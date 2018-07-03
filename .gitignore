@@ -3,6 +3,8 @@
 .mvn
 mvnw
 mvnw.cmd
+application.yml
+application.properties
 ### STS ###
 .apt_generated
 .classpath
