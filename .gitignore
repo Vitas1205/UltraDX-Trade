@@ -3,6 +3,8 @@
 .mvn
 mvnw
 mvnw.cmd
+logs/
+
 application.yml
 application.properties
 ### STS ###
