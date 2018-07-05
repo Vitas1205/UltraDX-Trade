@@ -12,7 +12,7 @@ spring:
     name: fota-trade
   cloud:
     config:
-      profile: ${SPTRING_PROFILE:dev}
+      profile: ${SPRING_PROFILE:dev}
       label: master
       discovery:
         enabled: true
