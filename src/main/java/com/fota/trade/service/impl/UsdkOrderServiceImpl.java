@@ -1,9 +1,10 @@
 package com.fota.trade.service.impl;
 
 import com.fota.trade.domain.ContractOrderDO;
+import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.trade.domain.enums.EntrustOrderStatusEnum;
-import com.fota.trade.mapper.ContractOrderMapper;
-import com.fota.trade.service.ContractOrderService;
+import com.fota.trade.mapper.UsdkOrderMapper;
+import com.fota.trade.service.UsdkOrderService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,25 +17,26 @@ import java.util.List;
 /**
  * @Author: JianLi.Gao
  * @Descripyion:
- * @Date: Create in 下午11:16 2018/7/5
+ * @Date: Create in 下午3:22 2018/7/6
  * @Modified:
  */
-@Service("ContractOrderService")
-public class ContractOrderServiceImpl implements ContractOrderService {
+@Service
+public class UsdkOrderServiceImpl implements UsdkOrderService {
 
-    private static final Logger log = LoggerFactory.getLogger(ContractOrderServiceImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(UsdkOrderServiceImpl.class);
 
     @Autowired
-    private ContractOrderMapper contractOrderMapper;
+    private UsdkOrderMapper usdkOrderMapper;
+
 
     @Override
-    public List<ContractOrderDO> listNotMatchOrder(BigInteger contractOrderIndex, Integer orderDirection) {
-        List<ContractOrderDO> notMatchOrderList = null;
+    public List<UsdkOrderDO> listNotMatchOrder(BigInteger contractOrderIndex, Integer orderDirection) {
+        List<UsdkOrderDO> notMatchOrderList = null;
         try {
-            notMatchOrderList = contractOrderMapper.notMatchOrderList(
+            notMatchOrderList = usdkOrderMapper.notMatchOrderList(
                     EntrustOrderStatusEnum.PLACE_ORDER.getCode(), EntrustOrderStatusEnum.PARTIAL_SUCCESS.getCode(), contractOrderIndex, orderDirection);
         } catch (Exception e) {
-            log.error("contractOrderMapper.notMatchOrderList error", e);
+            log.error("usdkOrderMapper.notMatchOrderList error", e);
         }
         if (notMatchOrderList == null) {
             notMatchOrderList = new ArrayList<>();
