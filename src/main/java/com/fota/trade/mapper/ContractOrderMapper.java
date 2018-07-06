@@ -2,12 +2,12 @@ package com.fota.trade.mapper;
 
 import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.mapper.common.BaseMapper;
-import org.apache.ibatis.annotations.Delete;
-import org.apache.ibatis.annotations.Insert;
-import org.apache.ibatis.annotations.ResultMap;
-import org.apache.ibatis.annotations.Select;
-import org.apache.ibatis.annotations.Update;
+import org.apache.ibatis.annotations.*;
 
+import java.math.BigInteger;
+import java.util.List;
+
+@Mapper
 public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
 
     @Delete({
@@ -77,4 +77,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
         "where id = #{id,jdbcType=BIGINT}"
     })
     int updateByPrimaryKey(ContractOrderDO record);
+
+    List<ContractOrderDO> notMatchOrderList(
+            @Param("placeOrder") Integer placeOrder, @Param("partialSuccess") Integer partialSuccess, @Param("contractOrderIndex") BigInteger contractOrderIndex);
 }
