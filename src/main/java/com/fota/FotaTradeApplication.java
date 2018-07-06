@@ -1,9 +1,11 @@
-package com.fota.fotatrade;
+package com.fota;
 
 import com.fota.fotatrade.thriftserver.ThriftServer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 
 import javax.annotation.PostConstruct;
 import java.util.concurrent.LinkedBlockingDeque;
