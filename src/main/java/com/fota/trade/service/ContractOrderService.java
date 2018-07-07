@@ -11,7 +11,8 @@ import java.util.List;
  * @Date: Create in 下午11:16 2018/7/5
  * @Modified:
  */
-public interface ContractOrderService {
+public interface
+ContractOrderService {
 
     /**
      * 查询未被撮合或部分撮合的订单

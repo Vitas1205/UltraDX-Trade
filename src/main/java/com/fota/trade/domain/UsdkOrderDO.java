@@ -13,8 +13,8 @@ public class UsdkOrderDO {
     private Long userId;
     private Integer assetId;
     private String assetName;
-    private Byte orderDirection;
-    private Byte orderType;
+    private Integer orderDirection;
+    private Integer orderType;
     private BigDecimal totalAmount;
     private BigDecimal unfilledAmount;
     private BigDecimal price;

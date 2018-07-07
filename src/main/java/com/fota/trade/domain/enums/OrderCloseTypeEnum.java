@@ -2,29 +2,30 @@ package com.fota.trade.domain.enums;
 
 /**
  * @author Gavin Shen
- * @Date 2018/7/5
+ * @Date 2018/7/7
  */
-public enum  ContractTypeEnum {
+public enum OrderCloseTypeEnum {
 
     /**
-     * 周
+     * 手动平仓
      */
-    WEEK(1, "WEEK"),
+    MANUAL(1, "MANUAL"),
     /**
-     * MONTH
+     * 系统平仓
      */
-    MONTH(2, "MONTH"),
+    SYSTEM(2, "SYSTEM"),
     /**
      * SEASON
      */
-    SEASON(3, "SEASON"),
+    EXPIRED(3, "EXPIRED"),
     ;
     private int code;
     private String desc;
 
-    ContractTypeEnum(int code, String desc) {
+    OrderCloseTypeEnum(int code, String desc) {
         this.code = code;
         this.desc = desc;
     }
+
 
 }

@@ -1,4 +1,4 @@
-package com.fota.client;
+package com.fota.client.domain;
 
 /**
  * @author Gavin Shen
