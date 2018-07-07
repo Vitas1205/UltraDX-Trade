@@ -1,6 +1,9 @@
 package com.fota.client.domain;
 
+import com.fasterxml.jackson.databind.util.BeanUtil;
+import com.fota.trade.domain.ContractCategoryDO;
 import lombok.Data;
+import org.springframework.beans.BeanUtils;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
