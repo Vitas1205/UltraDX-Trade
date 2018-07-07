@@ -1,20 +1,24 @@
 package com.fota.trade.manager;
 
+import com.fota.client.common.BeanUtil;
+import com.fota.client.common.ResultCode;
+import com.fota.client.domain.UsdkOrderDTO;
 import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.mapper.UsdkOrderMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
 @Component
+@Slf4j
 public class UsdkOrderManager {
 
-    private static final Logger log = LoggerFactory.getLogger(UsdkOrderManager.class);
+    private static BigDecimal usdkFee = BigDecimal.valueOf(0.001);
 
     @Autowired
     private UsdkOrderMapper usdkOrderMapper;
@@ -33,4 +37,17 @@ public class UsdkOrderManager {
         return notMatchOrderList;
     }
 
+    public ResultCode orderImp(UsdkOrderDTO usdkOrderDTO){
+        ResultCode resultCode = null;
+        UsdkOrderDO usdkOrderDO = BeanUtil.copy(usdkOrderDTO);
+        BigDecimal unfilledAmount = usdkOrderDTO.getTotalAmount();
+        Integer status = OrderStatusEnum.COMMIT.getCode();
+        BigDecimal fee = usdkFee;
+        int Ret = usdkOrderMapper.insert(usdkOrderDO);
+        return resultCode;
+    }
+
 }
+
+
+
