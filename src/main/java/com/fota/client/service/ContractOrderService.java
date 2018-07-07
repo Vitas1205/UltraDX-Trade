@@ -21,7 +21,7 @@ public interface ContractOrderService {
      * 查询未被撮合或部分撮合的订单
      * @return
      */
-    List<ContractOrderDO> listNotMatchOrder(BigInteger contractOrderIndex, Integer orderDirection);
+    List<ContractOrderDTO> listNotMatchOrder(BigInteger contractOrderIndex, Integer orderDirection);
 
     /**
      *

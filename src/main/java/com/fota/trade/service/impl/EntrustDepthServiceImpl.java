@@ -1,6 +1,7 @@
 package com.fota.trade.service.impl;
 
 import com.fota.client.service.EntrustDepthService;
+import com.fota.client.service.UsdkOrderService;
 import com.fota.trade.domain.AssetCategoryDO;
 import com.fota.trade.domain.ContractCategoryDO;
 import com.fota.trade.domain.ContractOrderDO;
@@ -8,7 +9,6 @@ import com.fota.client.service.ContractCategoryService;
 import com.fota.client.service.ContractOrderService;
 import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.trade.mapper.AssetCategoryMapper;
-import com.fota.trade.service.UsdkOrderService;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

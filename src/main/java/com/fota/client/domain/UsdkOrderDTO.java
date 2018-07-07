@@ -17,18 +17,14 @@ public class UsdkOrderDTO implements Serializable {
     private Date gmtCreate;
     private Date gmtModified;
     private Long userId;
-    private Integer contractId;
-    private String contractName;
+    private Integer assetId;
+    private String assetName;
     private Integer orderDirection;
-    private Integer operateType;
-    private Integer operateDirection;
-    private Integer lever;
+    private Integer orderType;
     private BigDecimal totalAmount;
     private BigDecimal unfilledAmount;
-    private Integer closeType;
     private BigDecimal price;
     private BigDecimal fee;
-    private BigDecimal usdkLockedAmount;
-    private BigDecimal positionLockedAmount;
     private Integer status;
+    private BigDecimal matchAmount;
 }

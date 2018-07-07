@@ -2,9 +2,12 @@ package com.fota.client.service;
 
 import com.fota.client.common.Page;
 import com.fota.client.common.ResultCode;
+import com.fota.client.domain.UsdkOrderDTO;
+import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.client.domain.query.UsdkOrderQuery;
 
+import java.math.BigInteger;
 import java.util.List;
 
 /**
@@ -14,18 +17,24 @@ import java.util.List;
 public interface UsdkOrderService {
 
     /**
+     * 查询未被撮合或部分撮合的订单
+     * @return
+     */
+    List<UsdkOrderDTO> listNotMatchOrder(BigInteger contractOrderIndex, Integer orderDirection);
+
+    /**
      * 查询Usdk兑换订单列表
      * @param usdkOrderQuery
      * @return
      */
-    Page<UsdkOrderDO> listUsdkOrderByQuery(UsdkOrderQuery usdkOrderQuery);
+    Page<UsdkOrderDTO> listUsdkOrderByQuery(UsdkOrderQuery usdkOrderQuery);
 
     /**
      * 下单接口
-     * @param usdkOrderDO
+     * @param usdkOrderDTO
      * @return
      */
-    ResultCode order(UsdkOrderDO usdkOrderDO);
+    ResultCode order(UsdkOrderDTO usdkOrderDTO);
 
     /**
      * 撤销订单

@@ -32,7 +32,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     private ContractOrderMapper contractOrderMapper;
 
     @Override
-    public List<ContractOrderDO> listNotMatchOrder(BigInteger contractOrderIndex, Integer orderDirection) {
+    public List<ContractOrderDTO> listNotMatchOrder(BigInteger contractOrderIndex, Integer orderDirection) {
         List<ContractOrderDO> notMatchOrderList = null;
         try {
             notMatchOrderList = contractOrderMapper.notMatchOrderList(
@@ -43,7 +43,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         if (notMatchOrderList == null) {
             notMatchOrderList = new ArrayList<>();
         }
-        return notMatchOrderList;
+        return null;
     }
 
     @Override
