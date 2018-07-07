@@ -87,7 +87,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     @Override
     public ResultCode order(UsdkOrderDTO usdkOrderDTO) {
         try {
-            ResultCode resultCode = usdkOrderManager.orderImp(usdkOrderDTO);
+            ResultCode resultCode = usdkOrderManager.order(usdkOrderDTO);
         }catch (Exception e){
             log.error("order() failed", e);
         }
