@@ -2,6 +2,7 @@ package com.fota.client.domain;
 
 import lombok.Data;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
 
@@ -10,7 +11,8 @@ import java.util.Date;
  * @Date 2018/7/5
  */
 @Data
-public class ContractOrderDTO {
+public class ContractOrderDTO implements Serializable{
+    private static final long serialVersionUID = 8886487787787250306L;
     private Long id;
     private Date gmtCreate;
     private Date gmtModified;
