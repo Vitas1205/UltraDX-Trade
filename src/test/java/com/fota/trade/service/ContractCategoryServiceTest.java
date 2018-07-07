@@ -1,5 +1,6 @@
 package com.fota.trade.service;
 
+import com.fota.client.service.ContractCategoryService;
 import com.fota.trade.domain.ContractCategoryDO;
 import com.fota.trade.domain.enums.ContractStatusEnum;
 import org.junit.Assert;
@@ -32,7 +33,7 @@ public class ContractCategoryServiceTest {
 
     @Test
     public void testListActiveContractByAssetName() throws Exception {
-        List<ContractCategoryDO> list = contractCategoryService.listActiveContractByAssetName("ETH");
+        List<ContractCategoryDO> list = contractCategoryService.listActiveContractByAssetId(3);
         Assert.assertTrue(list != null);
     }
 

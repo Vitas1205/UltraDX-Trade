@@ -2,8 +2,8 @@ package com.fota.trade.service.impl;
 
 import com.fota.trade.domain.ContractCategoryDO;
 import com.fota.trade.domain.ContractOrderDO;
-import com.fota.trade.service.ContractCategoryService;
-import com.fota.trade.service.ContractOrderService;
+import com.fota.client.service.ContractCategoryService;
+import com.fota.client.service.ContractOrderService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

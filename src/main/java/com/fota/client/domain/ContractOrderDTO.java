@@ -1,12 +1,16 @@
-package com.fota.trade.domain;
+package com.fota.client.domain;
 
 import lombok.Data;
 
 import java.math.BigDecimal;
 import java.util.Date;
 
+/**
+ * @author Gavin Shen
+ * @Date 2018/7/5
+ */
 @Data
-public class ContractOrderDO {
+public class ContractOrderDTO {
     private Long id;
     private Date gmtCreate;
     private Date gmtModified;
@@ -25,4 +29,5 @@ public class ContractOrderDO {
     private BigDecimal usdkLockedAmount;
     private BigDecimal positionLockedAmount;
     private Integer status;
+
 }

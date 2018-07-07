@@ -16,5 +16,6 @@ public class UserPositionDO {
     private BigDecimal lockedAmount;
     private BigDecimal unfilledAmount;
     private Integer positionType;
+    private BigDecimal averagePrice;
     private Integer status;
 }

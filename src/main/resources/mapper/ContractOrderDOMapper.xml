@@ -13,12 +13,13 @@
       <arg column="user_id" jdbcType="BIGINT" javaType="java.lang.Long" />
       <arg column="contract_id" jdbcType="INTEGER" javaType="java.lang.Integer" />
       <arg column="contract_name" jdbcType="VARCHAR" javaType="java.lang.String" />
-      <arg column="order_direction" jdbcType="TINYINT" javaType="java.lang.Byte" />
-      <arg column="operate_type" jdbcType="TINYINT" javaType="java.lang.Byte" />
-      <arg column="operate_direction" jdbcType="TINYINT" javaType="java.lang.Byte" />
+      <arg column="order_direction" jdbcType="TINYINT" javaType="java.lang.Integer" />
+      <arg column="operate_type" jdbcType="TINYINT" javaType="java.lang.Integer" />
+      <arg column="operate_direction" jdbcType="TINYINT" javaType="java.lang.Integer" />
       <arg column="lever" jdbcType="INTEGER" javaType="java.lang.Integer" />
       <arg column="total_amount" jdbcType="DECIMAL" javaType="java.math.BigDecimal" />
       <arg column="unfilled_amount" jdbcType="DECIMAL" javaType="java.math.BigDecimal" />
+      <arg column="close_type" jdbcType="TINYINT" javaType="java.lang.Integer" />
       <arg column="price" jdbcType="DECIMAL" javaType="java.math.BigDecimal" />
       <arg column="fee" jdbcType="DECIMAL" javaType="java.math.BigDecimal" />
       <arg column="usdk_locked_amount" jdbcType="DECIMAL" javaType="java.math.BigDecimal" />

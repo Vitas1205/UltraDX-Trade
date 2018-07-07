@@ -1,6 +1,6 @@
 package com.fota.fotatrade;
 
-import com.fota.trade.service.ContractOrderService;
+import com.fota.client.service.ContractOrderService;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;

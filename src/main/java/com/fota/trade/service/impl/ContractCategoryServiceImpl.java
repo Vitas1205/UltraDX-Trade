@@ -3,7 +3,7 @@ package com.fota.trade.service.impl;
 import com.fota.trade.domain.ContractCategoryDO;
 import com.fota.trade.domain.enums.ContractStatusEnum;
 import com.fota.trade.mapper.ContractCategoryMapper;
-import com.fota.trade.service.ContractCategoryService;
+import com.fota.client.service.ContractCategoryService;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,14 +42,14 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
     }
 
     @Override
-    public List<ContractCategoryDO> listActiveContractByAssetName(String assetName) {
+    public List<ContractCategoryDO> listActiveContractByAssetId(Integer assetId) {
         List<ContractCategoryDO> result = null;
-        if (StringUtils.isEmpty(assetName)) {
+        if (assetId == null || assetId <= 0) {
             return null;
         }
         ContractCategoryDO contractCategoryDO = new ContractCategoryDO();
         contractCategoryDO.setStatus(ContractStatusEnum.PROCESSING.getCode());
-        contractCategoryDO.setAssetName(assetName);
+        contractCategoryDO.setAssetId(assetId);
         try {
             result = contractCategoryMapper.listByQuery(contractCategoryDO);
         } catch (Exception e) {
