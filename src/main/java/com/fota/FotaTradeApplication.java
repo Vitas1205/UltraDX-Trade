@@ -15,6 +15,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 @SpringBootApplication
+@EnableAutoConfiguration
+@RefreshScope
 public class FotaTradeApplication {
 
 	@Autowired

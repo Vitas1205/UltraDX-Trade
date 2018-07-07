@@ -2,7 +2,6 @@ package com.fota.trade.mapper;
 
 import com.fota.trade.domain.UsdkOrderDO;
 import org.apache.ibatis.annotations.*;
-import java.math.BigInteger;
 import java.util.List;
 
 @Mapper
