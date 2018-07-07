@@ -42,6 +42,7 @@
     <include refid="Base_Column_List"/>
     from trade_contract_order
     where id <![CDATA[ <= ]]> #{contractOrderIndex, jdbcType=INTEGER}
+    and order_direction = #{orderDirection, jdbcType=INTEGER}
     and status in (#{placeOrder, jdbcType=INTEGER}, #{partialSuccess, jdbcType=INTEGER})
   </select>
 

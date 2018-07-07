@@ -2,6 +2,8 @@ package com.fota.trade.mapper;
 
 import com.fota.trade.domain.UsdkOrderDO;
 import org.apache.ibatis.annotations.*;
+import java.math.BigInteger;
+import java.util.List;
 
 @Mapper
 public interface UsdkOrderMapper {
@@ -94,4 +96,7 @@ public interface UsdkOrderMapper {
         "where id = #{id,jdbcType=BIGINT}"
     })
     int updateByPrimaryKey(UsdkOrderDO record);
+
+    List<UsdkOrderDO> notMatchOrderList(@Param("placeOrder") Integer placeOrder, @Param("partialSuccess") Integer partialSuccess,
+                                        @Param("contractOrderIndex") BigInteger contractOrderIndex, @Param("orderDirection") Integer orderDirection);
 }
