@@ -1,5 +1,6 @@
 package com.fota.trade.service.impl;
 
+import com.fota.client.service.EntrustDepthService;
 import com.fota.trade.domain.AssetCategoryDO;
 import com.fota.trade.domain.ContractCategoryDO;
 import com.fota.trade.domain.ContractOrderDO;
@@ -28,9 +29,9 @@ import java.util.Map;
  * @Modified:
  */
 @Service
-public class EntrustInitServiceImpl {
+public class EntrustDepthServiceImpl implements EntrustDepthService {
 
-    private static final Logger log = LoggerFactory.getLogger(EntrustInitServiceImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(EntrustDepthServiceImpl.class);
 
     @Autowired
     private ContractCategoryService contractCategoryService;
@@ -49,6 +50,7 @@ public class EntrustInitServiceImpl {
      * @param orderDirection 1 买单 2 卖单
      * @return
      */
+    @Override
     public Map<String, Map<BigDecimal, BigDecimal>> initContractEntrust(Integer orderDirection) {
         Map<String, Map<BigDecimal, BigDecimal>> contractEntrustMap = new LinkedHashMap<>();
         // TODO contractOrderIndex 需要从redis中获取 暂时写死
@@ -97,6 +99,7 @@ public class EntrustInitServiceImpl {
      * @param orderDirection 1 买单 2 卖单
      * @return
      */
+    @Override
     public Map<String, Map<BigDecimal, BigDecimal>> initUsdkEntrust(Integer orderDirection) {
         Map<String, Map<BigDecimal, BigDecimal>> usdkEntrustMap = new LinkedHashMap<>();
         // TODO contractOrderIndex 需要从redis中获取 暂时写死
