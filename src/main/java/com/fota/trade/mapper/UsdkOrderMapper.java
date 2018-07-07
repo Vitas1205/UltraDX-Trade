@@ -98,5 +98,5 @@ public interface UsdkOrderMapper {
     int updateByPrimaryKey(UsdkOrderDO record);
 
     List<UsdkOrderDO> notMatchOrderList(@Param("placeOrder") Integer placeOrder, @Param("partialSuccess") Integer partialSuccess,
-                                        @Param("contractOrderIndex") BigInteger contractOrderIndex, @Param("orderDirection") Integer orderDirection);
+                                        @Param("contractOrderIndex") Long contractOrderIndex, @Param("orderDirection") Integer orderDirection);
 }

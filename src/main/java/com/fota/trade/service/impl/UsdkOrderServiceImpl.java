@@ -36,22 +36,6 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     @Autowired
     private UsdkOrderMapper usdkOrderMapper;
 
-
-    @Override
-    public List<UsdkOrderDTO> listNotMatchOrder(BigInteger contractOrderIndex, Integer orderDirection) {
-        List<UsdkOrderDO> notMatchOrderList = null;
-        try {
-            notMatchOrderList = usdkOrderMapper.notMatchOrderList(
-                    OrderStatusEnum.COMMIT.getCode(), OrderStatusEnum.PART_MATCH.getCode(), contractOrderIndex, orderDirection);
-        } catch (Exception e) {
-            log.error("usdkOrderMapper.notMatchOrderList error", e);
-        }
-        if (notMatchOrderList == null) {
-            notMatchOrderList = new ArrayList<>();
-        }
-        return null;
-    }
-
     @Override
     public Page<UsdkOrderDTO> listUsdkOrderByQuery(UsdkOrderQuery usdkOrderQuery) {
         return null;

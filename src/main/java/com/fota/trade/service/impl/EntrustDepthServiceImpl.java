@@ -8,6 +8,8 @@ import com.fota.trade.domain.ContractOrderDO;
 import com.fota.client.service.ContractCategoryService;
 import com.fota.client.service.ContractOrderService;
 import com.fota.trade.domain.UsdkOrderDO;
+import com.fota.trade.manager.ContractOrderManager;
+import com.fota.trade.manager.UsdkOrderManager;
 import com.fota.trade.mapper.AssetCategoryMapper;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -37,10 +39,10 @@ public class EntrustDepthServiceImpl implements EntrustDepthService {
     private ContractCategoryService contractCategoryService;
 
     @Autowired
-    private ContractOrderService contractOrderService;
+    private ContractOrderManager contractOrderManager;
 
     @Autowired
-    private UsdkOrderService usdkOrderService;
+    private UsdkOrderManager usdkOrderManager;
 
     @Autowired
     private AssetCategoryMapper assetCategoryMapper;
@@ -53,10 +55,9 @@ public class EntrustDepthServiceImpl implements EntrustDepthService {
     @Override
     public Map<String, Map<BigDecimal, BigDecimal>> initContractEntrust(Integer orderDirection) {
         Map<String, Map<BigDecimal, BigDecimal>> contractEntrustMap = new LinkedHashMap<>();
-        // TODO contractOrderIndex 需要从redis中获取 暂时写死
-        BigInteger contractOrderIndex = new BigInteger("2");
         List<ContractCategoryDO> contractCategoryList = contractCategoryService.listActiveContract();
-        List<ContractOrderDO> contractOrderList = contractOrderService.listNotMatchOrder(contractOrderIndex, orderDirection);
+        // TODO contractOrderIndex 需要从redis中获取 暂时写死
+        List<ContractOrderDO> contractOrderList = contractOrderManager.listNotMatchOrder(2L, orderDirection);
 
         if (contractCategoryList.isEmpty()) {
             log.info("no active contracts at the moment");
@@ -102,10 +103,9 @@ public class EntrustDepthServiceImpl implements EntrustDepthService {
     @Override
     public Map<String, Map<BigDecimal, BigDecimal>> initUsdkEntrust(Integer orderDirection) {
         Map<String, Map<BigDecimal, BigDecimal>> usdkEntrustMap = new LinkedHashMap<>();
-        // TODO contractOrderIndex 需要从redis中获取 暂时写死
-        BigInteger contractOrderIndex = new BigInteger("2");
         List<AssetCategoryDO> assetCategoryList = assetCategoryMapper.getAll();
-        List<UsdkOrderDO> usdkOrderList = usdkOrderService.listNotMatchOrder(contractOrderIndex, orderDirection);
+        // TODO contractOrderIndex 需要从redis中获取 暂时写死
+        List<UsdkOrderDO> usdkOrderList = usdkOrderManager.listNotMatchOrder(2L, orderDirection);
 
         if (assetCategoryList == null || assetCategoryList.isEmpty()) {
             log.info("no active subject matter");

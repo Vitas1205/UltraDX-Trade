@@ -15,13 +15,7 @@ import java.util.List;
  * @Date 2018/7/7
  */
 public interface UsdkOrderService {
-
-    /**
-     * 查询未被撮合或部分撮合的订单
-     * @return
-     */
-    List<UsdkOrderDTO> listNotMatchOrder(BigInteger contractOrderIndex, Integer orderDirection);
-
+    
     /**
      * 查询Usdk兑换订单列表
      * @param usdkOrderQuery

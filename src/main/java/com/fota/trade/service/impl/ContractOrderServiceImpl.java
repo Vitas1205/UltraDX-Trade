@@ -28,31 +28,13 @@ public class ContractOrderServiceImpl implements ContractOrderService {
 
     private static final Logger log = LoggerFactory.getLogger(ContractOrderServiceImpl.class);
 
-    @Autowired
-    private ContractOrderMapper contractOrderMapper;
-
-    @Override
-    public List<ContractOrderDTO> listNotMatchOrder(BigInteger contractOrderIndex, Integer orderDirection) {
-        List<ContractOrderDO> notMatchOrderList = null;
-        try {
-            notMatchOrderList = contractOrderMapper.notMatchOrderList(
-                    OrderStatusEnum.COMMIT.getCode(), OrderStatusEnum.PART_MATCH.getCode(), contractOrderIndex, orderDirection);
-        } catch (Exception e) {
-            log.error("contractOrderMapper.notMatchOrderList error", e);
-        }
-        if (notMatchOrderList == null) {
-            notMatchOrderList = new ArrayList<>();
-        }
-        return null;
-    }
-
     @Override
     public Page<ContractOrderDTO> listContractOrderByQuery(ContractOrderQuery contractOrderQuery) {
         return null;
     }
 
     @Override
-    public ResultCode order(ContractOrderDO contractOrderDO) {
+    public ResultCode order(ContractOrderDTO contractOrderDTO) {
         return null;
     }
 

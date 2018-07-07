@@ -18,12 +18,6 @@ import java.util.List;
 public interface ContractOrderService {
 
     /**
-     * 查询未被撮合或部分撮合的订单
-     * @return
-     */
-    List<ContractOrderDTO> listNotMatchOrder(BigInteger contractOrderIndex, Integer orderDirection);
-
-    /**
      *
      * @param contractOrderQuery
      * @return
@@ -33,10 +27,10 @@ public interface ContractOrderService {
 
     /**
      * 合约下单接口
-     * @param contractOrderDO
+     * @param contractOrderDTO
      * @return
      */
-    ResultCode order(ContractOrderDO contractOrderDO);
+    ResultCode order(ContractOrderDTO contractOrderDTO);
 
     /**
      * 撤销合约订单

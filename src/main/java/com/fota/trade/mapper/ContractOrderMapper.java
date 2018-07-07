@@ -80,5 +80,5 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
 
     List<ContractOrderDO> notMatchOrderList(
             @Param("placeOrder") Integer placeOrder, @Param("partialSuccess") Integer partialSuccess,
-            @Param("contractOrderIndex") BigInteger contractOrderIndex, @Param("orderDirection") Integer orderDirection);
+            @Param("contractOrderIndex") Long contractOrderIndex, @Param("orderDirection") Integer orderDirection);
 }
