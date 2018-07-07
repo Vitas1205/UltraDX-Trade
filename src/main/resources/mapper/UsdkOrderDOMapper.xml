@@ -30,6 +30,16 @@
     id, gmt_create, gmt_modified, user_id, asset_id, asset_name, order_direction, order_type, 
     total_amount, unfilled_amount, price, fee, status
   </sql>
+
+  <select id="notMatchOrderList" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List"/>
+    from trade_usdk_order
+    where id <![CDATA[ <= ]]> #{contractOrderIndex, jdbcType=INTEGER}
+    and order_direction = #{orderDirection, jdbcType=INTEGER}
+    and status in (#{placeOrder, jdbcType=INTEGER}, #{partialSuccess, jdbcType=INTEGER})
+  </select>
+
   <insert id="insertSelective" parameterType="com.fota.trade.domain.UsdkOrderDO" >
     <!--
       WARNING - @mbggenerated
