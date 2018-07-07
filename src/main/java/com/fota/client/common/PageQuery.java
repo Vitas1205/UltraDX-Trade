@@ -9,6 +9,9 @@ import lombok.Data;
 @Data
 public class PageQuery {
 
+    private static final int DEFAULT_PAGE_NO = 1;
+    private static final int DEFAULT_PAGE_SIZE = 20;
+
     private Integer pageNo;
     private Integer pageSize;
     private Integer startRow;
@@ -19,6 +22,9 @@ public class PageQuery {
             return;
         }
         this.pageNo = pageNo;
+        if (pageSize == null || pageSize <= 0) {
+            pageSize = DEFAULT_PAGE_SIZE;
+        }
         this.startRow = (pageNo - 1) * pageSize;
         this.endRow = this.startRow + pageSize;
     }
@@ -28,6 +34,9 @@ public class PageQuery {
             return;
         }
         this.pageSize = pageSize;
+        if (pageNo == null || pageNo <= 0) {
+            this.pageNo = DEFAULT_PAGE_NO;
+        }
         this.startRow = (pageNo - 1) * pageSize;
         this.endRow = this.startRow + pageSize;
     }

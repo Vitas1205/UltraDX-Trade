@@ -1,10 +1,13 @@
 package com.fota.trade.service.impl;
 
-import com.fota.client.common.Page;
-import com.fota.client.common.ResultCode;
+import com.alibaba.rocketmq.shade.com.alibaba.fastjson.JSONObject;
+import com.fota.client.common.*;
 import com.fota.client.domain.UsdkOrderDTO;
 import com.fota.client.domain.query.UsdkOrderQuery;
 import com.fota.client.service.UsdkOrderService;
+import com.fota.trade.common.BeanUtils;
+import com.fota.trade.common.ParamUtil;
+import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.trade.manager.UsdkOrderManager;
 import com.fota.trade.mapper.UsdkOrderMapper;
 import lombok.Data;
@@ -12,6 +15,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 
 /**
@@ -36,8 +41,47 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
 
 
     @Override
-    public Page<UsdkOrderDTO> listUsdkOrderByQuery(UsdkOrderQuery usdkOrderQuery) {
-        return null;
+    public Result<Page<UsdkOrderDTO>> listUsdkOrderByQuery(UsdkOrderQuery usdkOrderQuery) {
+        Result<Page<UsdkOrderDTO>> result = Result.create();
+        if (usdkOrderQuery == null || usdkOrderQuery.getUserId() == null || usdkOrderQuery.getUserId() <= 0) {
+            return result.error(ResultCodeEnum.ILLEGAL_PARAM);
+        }
+        Page<UsdkOrderDTO> usdkOrderDTOPage = new Page<>();
+        if (usdkOrderQuery.getPageNo() == null || usdkOrderQuery.getPageNo() <= 0) {
+            usdkOrderQuery.setPageNo(1);
+        }
+        usdkOrderDTOPage.setPageNo(usdkOrderQuery.getPageNo());
+        if (usdkOrderQuery.getPageSize() == null || usdkOrderQuery.getPageSize() <= 0 || usdkOrderQuery.getPageSize() > 50) {
+            usdkOrderQuery.setPageSize(50);
+        }
+        usdkOrderDTOPage.setPageSize(usdkOrderQuery.getPageSize());
+        int total = 0;
+        try {
+            total = usdkOrderMapper.countByQuery(ParamUtil.objectToMap(usdkOrderQuery));
+        } catch (Exception e) {
+            log.error("usdkOrderMapper.countByQuery({})", usdkOrderQuery, e);
+            return result.error(ResultCodeEnum.DATABASE_EXCEPTION);
+        }
+        usdkOrderDTOPage.setTotal(total);
+        if (total == 0) {
+            return result.success(usdkOrderDTOPage);
+        }
+        List<UsdkOrderDO> usdkOrderDOList = null;
+        try {
+            usdkOrderDOList = usdkOrderMapper.listByQuery(ParamUtil.objectToMap(usdkOrderQuery));
+        } catch (Exception e) {
+            log.error("usdkOrderMapper.listByQuery({})", usdkOrderQuery, e);
+            return result.error(ResultCodeEnum.DATABASE_EXCEPTION);
+        }
+        List<UsdkOrderDTO> usdkOrderDTOList = null;
+        try {
+            usdkOrderDTOList = BeanUtils.copyList(usdkOrderDOList, UsdkOrderDTO.class);
+        } catch (Exception e) {
+            log.error("bean copy exception", e);
+            return result.error(ResultCodeEnum.BEAN_COPY_EXCEPTION);
+        }
+        usdkOrderDTOPage.setData(usdkOrderDTOList);
+        return result.success(usdkOrderDTOPage);
     }
 
     @Override

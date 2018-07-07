@@ -1,14 +1,10 @@
 package com.fota.client.service;
 
 import com.fota.client.common.Page;
+import com.fota.client.common.Result;
 import com.fota.client.common.ResultCode;
 import com.fota.client.domain.UsdkOrderDTO;
-import com.fota.trade.domain.ContractOrderDO;
-import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.client.domain.query.UsdkOrderQuery;
-
-import java.math.BigInteger;
-import java.util.List;
 
 /**
  * @author Gavin Shen
@@ -21,7 +17,7 @@ public interface UsdkOrderService {
      * @param usdkOrderQuery
      * @return
      */
-    Page<UsdkOrderDTO> listUsdkOrderByQuery(UsdkOrderQuery usdkOrderQuery);
+    Result<Page<UsdkOrderDTO>> listUsdkOrderByQuery(UsdkOrderQuery usdkOrderQuery);
 
     /**
      * 下单接口

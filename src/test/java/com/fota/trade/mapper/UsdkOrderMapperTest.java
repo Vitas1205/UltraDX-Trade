@@ -1,5 +1,7 @@
 package com.fota.trade.mapper;
 
+import com.fota.client.domain.query.UsdkOrderQuery;
+import com.fota.trade.common.ParamUtil;
 import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderPriceTypeEnum;
@@ -14,6 +16,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * @author Gavin Shen
@@ -43,6 +46,24 @@ public class UsdkOrderMapperTest {
         Assert.assertTrue(insertRet > 0);
     }
 
+
+    @Test
+    public void testCountByQuery() throws Exception {
+        UsdkOrderQuery usdkOrderQuery = new UsdkOrderQuery();
+        usdkOrderQuery.setPageSize(20);
+        usdkOrderQuery.setPageNo(1);
+        Integer count = usdkOrderMapper.countByQuery(ParamUtil.objectToMap(usdkOrderQuery));
+        Assert.assertTrue(count > 0);
+    }
+
+    @Test
+    public void testListByQuery() throws Exception {
+        UsdkOrderQuery usdkOrderQuery = new UsdkOrderQuery();
+        usdkOrderQuery.setPageSize(20);
+        usdkOrderQuery.setPageNo(1);
+        List<UsdkOrderDO> usdkOrderDOS = usdkOrderMapper.listByQuery(ParamUtil.objectToMap(usdkOrderQuery));
+        Assert.assertTrue(usdkOrderDOS != null && usdkOrderDOS.size() > 0);
+    }
 
 
     @After
