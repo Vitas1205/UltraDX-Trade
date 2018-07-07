@@ -1,8 +1,7 @@
 package com.fota.trade.service.impl;
 
-import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.domain.UsdkOrderDO;
-import com.fota.trade.domain.enums.EntrustOrderStatusEnum;
+import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.mapper.UsdkOrderMapper;
 import com.fota.trade.service.UsdkOrderService;
 import org.slf4j.Logger;
@@ -34,7 +33,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         List<UsdkOrderDO> notMatchOrderList = null;
         try {
             notMatchOrderList = usdkOrderMapper.notMatchOrderList(
-                    EntrustOrderStatusEnum.PLACE_ORDER.getCode(), EntrustOrderStatusEnum.PARTIAL_SUCCESS.getCode(), contractOrderIndex, orderDirection);
+                    OrderStatusEnum.COMMIT.getCode(), OrderStatusEnum.PART_MATCH.getCode(), contractOrderIndex, orderDirection);
         } catch (Exception e) {
             log.error("usdkOrderMapper.notMatchOrderList error", e);
         }

@@ -5,7 +5,7 @@ import com.fota.client.common.ResultCode;
 import com.fota.client.domain.ContractOrderDTO;
 import com.fota.client.domain.query.ContractOrderQuery;
 import com.fota.trade.domain.ContractOrderDO;
-import com.fota.trade.domain.enums.EntrustOrderStatusEnum;
+import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.client.service.ContractOrderService;
 import org.slf4j.Logger;
@@ -36,7 +36,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         List<ContractOrderDO> notMatchOrderList = null;
         try {
             notMatchOrderList = contractOrderMapper.notMatchOrderList(
-                    EntrustOrderStatusEnum.PLACE_ORDER.getCode(), EntrustOrderStatusEnum.PARTIAL_SUCCESS.getCode(), contractOrderIndex, orderDirection);
+                    OrderStatusEnum.COMMIT.getCode(), OrderStatusEnum.PART_MATCH.getCode(), contractOrderIndex, orderDirection);
         } catch (Exception e) {
             log.error("contractOrderMapper.notMatchOrderList error", e);
         }
