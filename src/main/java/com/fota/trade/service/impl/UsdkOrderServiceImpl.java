@@ -94,6 +94,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     public ResultCode order(UsdkOrderDTO usdkOrderDTO) {
         try {
             ResultCode resultCode = usdkOrderManager.placeOrder(usdkOrderDTO);
+            return resultCode;
         }catch (Exception e){
             log.error("order() failed", e);
         }
@@ -102,11 +103,23 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
 
     @Override
     public ResultCode cancelOrder(Long userId, Long orderId) {
+        try {
+            ResultCode resultCode = usdkOrderManager.cancelOrder(userId, orderId);
+            return resultCode;
+        }catch (Exception e){
+            log.error("order() failed", e);
+        }
         return null;
     }
 
     @Override
     public ResultCode cancelAllOrder(Long userId) {
+        try {
+            ResultCode resultCode = usdkOrderManager.cancelAllOrder(userId);
+            return resultCode;
+        }catch (Exception e){
+            log.error("order() failed", e);
+        }
         return null;
     }
 

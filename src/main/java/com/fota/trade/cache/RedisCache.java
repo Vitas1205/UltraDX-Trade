@@ -2,6 +2,7 @@ package com.fota.trade.cache;
 
 import org.springframework.beans.factory.annotation.Autowired;
 //import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.TimeUnit;
@@ -17,10 +18,10 @@ public class RedisCache {
 
 
     /*@Autowired
-    public RedisTemplate<String,Object> redis;*/
+    public RedisTemplate<String,Object> redis;
 
 
-    /*public void set(String key, String value) {
+    public void set(String key, String value) {
         redis.boundValueOps(key).set(value, 10, TimeUnit.MINUTES);
     }
     public void set(String value) {
