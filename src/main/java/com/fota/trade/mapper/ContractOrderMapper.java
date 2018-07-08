@@ -4,8 +4,8 @@ import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.mapper.common.BaseMapper;
 import org.apache.ibatis.annotations.*;
 
-import java.math.BigInteger;
 import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
@@ -26,12 +26,12 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
         "total_amount, unfilled_amount, ",
         "price, fee, usdk_locked_amount, ",
         "position_locked_amount, status)",
-        "values (#{id,jdbcType=BIGINT}, #{gmtCreate,jdbcType=TIMESTAMP}, ",
-        "#{gmtModified,jdbcType=TIMESTAMP}, #{userId,jdbcType=BIGINT}, ",
+        "values (#{id,jdbcType=BIGINT}, now(), ",
+        "now(), #{userId,jdbcType=BIGINT}, ",
         "#{contractId,jdbcType=INTEGER}, #{contractName,jdbcType=VARCHAR}, ",
         "#{orderDirection,jdbcType=TINYINT}, #{operateType,jdbcType=TINYINT}, ",
         "#{operateDirection,jdbcType=TINYINT}, #{lever,jdbcType=INTEGER}, ",
-        "#{totalAmount,jdbcType=DECIMAL}, #{unfilledAmount,jdbcType=DECIMAL}, ",
+        "#{totalAmount,jdbcType=BIGINT}, #{unfilledAmount,jdbcType=BIGINT}, ",
         "#{price,jdbcType=DECIMAL}, #{fee,jdbcType=DECIMAL}, #{usdkLockedAmount,jdbcType=DECIMAL}, ",
         "#{positionLockedAmount,jdbcType=DECIMAL}, #{status,jdbcType=INTEGER})"
     })
@@ -67,8 +67,8 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
           "operate_type = #{operateType,jdbcType=TINYINT},",
           "operate_direction = #{operateDirection,jdbcType=TINYINT},",
           "lever = #{lever,jdbcType=INTEGER},",
-          "total_amount = #{totalAmount,jdbcType=DECIMAL},",
-          "unfilled_amount = #{unfilledAmount,jdbcType=DECIMAL},",
+          "total_amount = #{totalAmount,jdbcType=BIGINT},",
+          "unfilled_amount = #{unfilledAmount,jdbcType=BIGINT},",
           "price = #{price,jdbcType=DECIMAL},",
           "fee = #{fee,jdbcType=DECIMAL},",
           "usdk_locked_amount = #{usdkLockedAmount,jdbcType=DECIMAL},",
@@ -81,4 +81,8 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
     List<ContractOrderDO> notMatchOrderList(
             @Param("placeOrder") Integer placeOrder, @Param("partialSuccess") Integer partialSuccess,
             @Param("contractOrderIndex") Long contractOrderIndex, @Param("orderDirection") Integer orderDirection);
+
+    int countByQuery(Map<String, Object> param);
+
+    List<ContractOrderDO> listByQuery(Map<String, Object> param);
 }

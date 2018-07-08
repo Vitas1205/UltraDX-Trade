@@ -49,7 +49,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         }
         Page<UsdkOrderDTO> usdkOrderDTOPage = new Page<>();
         if (usdkOrderQuery.getPageNo() == null || usdkOrderQuery.getPageNo() <= 0) {
-            usdkOrderQuery.setPageNo(1);
+            usdkOrderQuery.setPageNo(Constant.DEFAULT_PAGE_NO);
         }
         usdkOrderDTOPage.setPageNo(usdkOrderQuery.getPageNo());
         if (usdkOrderQuery.getPageSize() == null

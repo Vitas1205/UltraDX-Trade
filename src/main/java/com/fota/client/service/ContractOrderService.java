@@ -1,6 +1,7 @@
 package com.fota.client.service;
 
 import com.fota.client.common.Page;
+import com.fota.client.common.Result;
 import com.fota.client.common.ResultCode;
 import com.fota.client.domain.ContractOrderDTO;
 import com.fota.client.domain.query.ContractOrderQuery;
@@ -22,7 +23,7 @@ public interface ContractOrderService {
      * @param contractOrderQuery
      * @return
      */
-    Page<ContractOrderDTO> listContractOrderByQuery(ContractOrderQuery contractOrderQuery);
+    Result<Page<ContractOrderDTO>> listContractOrderByQuery(ContractOrderQuery contractOrderQuery);
 
 
     /**

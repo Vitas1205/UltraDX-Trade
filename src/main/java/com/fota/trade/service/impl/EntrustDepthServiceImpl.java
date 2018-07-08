@@ -85,10 +85,10 @@ public class EntrustDepthServiceImpl implements EntrustDepthService {
                 BigDecimal price = contractOrderDO.getPrice();
                 if (priceAndAmountMap.containsKey(price)) {
                     BigDecimal amount = priceAndAmountMap.get(price);
-                    amount = amount.add(contractOrderDO.getUnfilledAmount());
+//                    amount = amount.add(contractOrderDO.getUnfilledAmount());
                     priceAndAmountMap.put(price, amount);
                 } else {
-                    priceAndAmountMap.put(price, contractOrderDO.getUnfilledAmount());
+//                    priceAndAmountMap.put(price, contractOrderDO.getUnfilledAmount());
                 }
             }
         });
