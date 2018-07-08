@@ -8,6 +8,7 @@ import com.fota.client.domain.query.UserPositionQuery;
 import com.fota.client.service.UserPositionService;
 import com.fota.trade.common.BeanUtils;
 import com.fota.trade.common.Constant;
+import com.fota.trade.common.ParamUtil;
 import com.fota.trade.domain.UserPositionDO;
 import com.fota.trade.mapper.UserPositionMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -48,7 +49,7 @@ public class UserPositionServiceImpl implements UserPositionService {
 
         int total = 0;
         try {
-            total = userPositionMapper.countByQuery(userPositionQuery);
+            total = userPositionMapper.countByQuery(ParamUtil.objectToMap(userPositionQuery));
         } catch (Exception e) {
             log.error("userPositionMapper.countByQuery({})", userPositionQuery, e);
             return result.error(ResultCodeEnum.DATABASE_EXCEPTION);
@@ -59,7 +60,7 @@ public class UserPositionServiceImpl implements UserPositionService {
         }
         List<UserPositionDO> userPositionDOList = null;
         try {
-            userPositionDOList = userPositionMapper.listByQuery(userPositionQuery);
+            userPositionDOList = userPositionMapper.listByQuery(ParamUtil.objectToMap(userPositionQuery));
         } catch (Exception e) {
             log.error("userPositionMapper.listByQuery({})", userPositionQuery, e);
             return result.error(ResultCodeEnum.DATABASE_EXCEPTION);

@@ -1,6 +1,7 @@
 package com.fota.trade.mapper;
 
 import com.fota.client.domain.query.UserPositionQuery;
+import com.fota.trade.common.ParamUtil;
 import com.fota.trade.domain.UserPositionDO;
 import org.junit.After;
 import org.junit.Assert;
@@ -25,11 +26,11 @@ public class UserPositionMapperTest {
     @Resource
     private UserPositionMapper userPositionMapper;
 
-    @Before
+    @Test
     public void testInsert() throws Exception {
         UserPositionDO userPositionDO = new UserPositionDO();
         userPositionDO.setUserId(9527L);
-        userPositionDO.setContractId(1);
+        userPositionDO.setContractId(1L);
         userPositionDO.setContractName("Test");
         userPositionDO.setLockedAmount(new BigDecimal("0"));
         userPositionDO.setUnfilledAmount(new BigDecimal("10"));
@@ -45,7 +46,9 @@ public class UserPositionMapperTest {
         UserPositionQuery userPositionQuery = new UserPositionQuery();
         userPositionQuery.setUserId(9527L);
         userPositionQuery.setContractId(1L);
-        int count = userPositionMapper.countByQuery(userPositionQuery);
+        userPositionQuery.setPageNo(1);
+        userPositionQuery.setPageSize(20);
+        int count = userPositionMapper.countByQuery(ParamUtil.objectToMap(userPositionQuery));
         Assert.assertTrue(count == 1);
     }
 
@@ -54,13 +57,14 @@ public class UserPositionMapperTest {
         UserPositionQuery userPositionQuery = new UserPositionQuery();
         userPositionQuery.setUserId(9527L);
         userPositionQuery.setContractId(1L);
-
-        List<UserPositionDO> list = userPositionMapper.listByQuery(userPositionQuery);
+        userPositionQuery.setPageNo(1);
+        userPositionQuery.setPageSize(20);
+        List<UserPositionDO> list = userPositionMapper.listByQuery(ParamUtil.objectToMap(userPositionQuery));
         Assert.assertTrue(list != null && list.size() == 1);
         Assert.assertTrue(list.get(0).getUserId() == 9527);
     }
 
-    @After
+    @Test
     public void testDelete() throws Exception {
         int deleteRet = userPositionMapper.deleteByUserId(9527L);
         Assert.assertTrue(deleteRet > 0);

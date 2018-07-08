@@ -5,6 +5,7 @@ import com.fota.trade.domain.UserPositionDO;
 import org.apache.ibatis.annotations.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface UserPositionMapper {
@@ -60,7 +61,7 @@ public interface UserPositionMapper {
     int updateByPrimaryKey(UserPositionDO record);
 
 
-    int countByQuery(UserPositionQuery userPositionQuery);
+    int countByQuery(Map<String, Object> param);
 
-    List<UserPositionDO> listByQuery(UserPositionQuery userPositionQuery);
+    List<UserPositionDO> listByQuery(Map<String, Object> param);
 }
