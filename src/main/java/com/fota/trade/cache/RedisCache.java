@@ -1,7 +1,7 @@
 package com.fota.trade.cache;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.RedisTemplate;
+//import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 /**
@@ -13,15 +13,15 @@ import org.springframework.stereotype.Component;
 @Component
 public class RedisCache {
 
-    @Autowired
-    public RedisTemplate<String,Object> redis;
-
-    /**
-     * 向Redis添加缓存
-     * @param
-     */
-
-    public void addCache(){
-
-    }
+//    @Autowired
+//    public RedisTemplate<String,Object> redis;
+//
+//    /**
+//     * 向Redis添加缓存
+//     * @param
+//     */
+//
+//    public void addCache(){
+//
+//    }
 }

@@ -6,6 +6,7 @@ import com.fota.client.domain.UsdkOrderDTO;
 import com.fota.client.domain.query.UsdkOrderQuery;
 import com.fota.client.service.UsdkOrderService;
 import com.fota.trade.common.BeanUtils;
+import com.fota.trade.common.Constant;
 import com.fota.trade.common.ParamUtil;
 import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.trade.manager.UsdkOrderManager;
@@ -51,9 +52,12 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
             usdkOrderQuery.setPageNo(1);
         }
         usdkOrderDTOPage.setPageNo(usdkOrderQuery.getPageNo());
-        if (usdkOrderQuery.getPageSize() == null || usdkOrderQuery.getPageSize() <= 0 || usdkOrderQuery.getPageSize() > 50) {
-            usdkOrderQuery.setPageSize(50);
+        if (usdkOrderQuery.getPageSize() == null
+                || usdkOrderQuery.getPageSize() <= 0
+                || usdkOrderQuery.getPageSize() > Constant.DEFAULT_MAX_PAGE_SIZE) {
+            usdkOrderQuery.setPageSize(Constant.DEFAULT_MAX_PAGE_SIZE);
         }
+        usdkOrderDTOPage.setPageNo(usdkOrderQuery.getPageNo());
         usdkOrderDTOPage.setPageSize(usdkOrderQuery.getPageSize());
         int total = 0;
         try {

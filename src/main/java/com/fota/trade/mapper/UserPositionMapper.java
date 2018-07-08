@@ -1,31 +1,31 @@
 package com.fota.trade.mapper;
 
+import com.fota.client.domain.query.UserPositionQuery;
 import com.fota.trade.domain.UserPositionDO;
-import org.apache.ibatis.annotations.Delete;
-import org.apache.ibatis.annotations.Insert;
-import org.apache.ibatis.annotations.ResultMap;
-import org.apache.ibatis.annotations.Select;
-import org.apache.ibatis.annotations.Update;
+import org.apache.ibatis.annotations.*;
 
+import java.util.List;
+
+@Mapper
 public interface UserPositionMapper {
 
     @Delete({
         "delete from trade_user_position",
-        "where id = #{id,jdbcType=BIGINT}"
+        "where user_id = #{userId,jdbcType=BIGINT}"
     })
-    int deleteByPrimaryKey(Long id);
+    int deleteByUserId(Long userId);
 
 
     @Insert({
         "insert into trade_user_position (id, gmt_create, ",
         "gmt_modified, user_id, ",
         "contract_id, contract_name, ",
-        "locked_amount, unfilled_amount, ",
+        "locked_amount, unfilled_amount, average_price,",
         "position_type, status)",
-        "values (#{id,jdbcType=BIGINT}, #{gmtCreate,jdbcType=TIMESTAMP}, ",
-        "#{gmtModified,jdbcType=TIMESTAMP}, #{userId,jdbcType=BIGINT}, ",
+        "values (#{id,jdbcType=BIGINT}, now(), ",
+        "now(), #{userId,jdbcType=BIGINT}, ",
         "#{contractId,jdbcType=INTEGER}, #{contractName,jdbcType=VARCHAR}, ",
-        "#{lockedAmount,jdbcType=DECIMAL}, #{unfilledAmount,jdbcType=DECIMAL}, ",
+        "#{lockedAmount,jdbcType=DECIMAL}, #{unfilledAmount,jdbcType=DECIMAL}, #{averagePrice,jdbcType=DECIMAL}, ",
         "#{positionType,jdbcType=INTEGER}, #{status,jdbcType=INTEGER})"
     })
     int insert(UserPositionDO record);
@@ -58,4 +58,9 @@ public interface UserPositionMapper {
         "where id = #{id,jdbcType=BIGINT}"
     })
     int updateByPrimaryKey(UserPositionDO record);
+
+
+    int countByQuery(UserPositionQuery userPositionQuery);
+
+    List<UserPositionDO> listByQuery(UserPositionQuery userPositionQuery);
 }

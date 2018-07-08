@@ -1,6 +1,7 @@
 package com.fota.client.service;
 
 import com.fota.client.common.Page;
+import com.fota.client.common.Result;
 import com.fota.client.domain.UserPositionDTO;
 import com.fota.client.domain.query.UserPositionQuery;
 
@@ -15,6 +16,6 @@ public interface UserPositionService {
      * @param userPositionQuery
      * @return
      */
-    Page<UserPositionDTO> listPositionByQuery(UserPositionQuery userPositionQuery);
+    Result<Page<UserPositionDTO>> listPositionByQuery(UserPositionQuery userPositionQuery);
 
 }

@@ -139,4 +139,32 @@
     </set>
     where id = #{id,jdbcType=BIGINT}
   </update>
+
+  <select id="countByQuery" parameterType="com.fota.client.domain.query.UserPositionQuery" resultType="java.lang.Integer">
+    select count(*)
+    from trade_user_position
+    where 1=1
+    <if test="contractId != null" >
+      and contract_id=#{contractId,jdbcType=INTEGER}
+    </if>
+    <if test="userId != null" >
+      and user_id=#{userId,jdbcType=BIGINT}
+    </if>
+  </select>
+
+  <select id="listByQuery" parameterType="com.fota.client.domain.query.UserPositionQuery" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List"/>
+    from trade_user_position
+    where 1=1
+    <if test="contractId != null" >
+      and contract_id=#{contractId,jdbcType=INTEGER}
+    </if>
+    <if test="userId != null" >
+      and user_id=#{userId,jdbcType=BIGINT}
+    </if>
+    order by gmt_create desc
+    limit #{startRow,jdbcType=INTEGER}, #{endRow,jdbcType=INTEGER}
+  </select>
+
 </mapper>
