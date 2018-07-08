@@ -2,7 +2,6 @@ package com.fota.trade.mapper;
 
 import com.fota.client.domain.query.UserPositionQuery;
 import com.fota.trade.domain.UserPositionDO;
-import com.sun.java.swing.plaf.gtk.GTKConstants;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;

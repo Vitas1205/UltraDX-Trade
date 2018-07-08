@@ -1,7 +1,9 @@
 package com.fota.trade.manager;
 
+import com.alibaba.rocketmq.shade.com.alibaba.fastjson.JSONObject;
 import com.fota.client.common.ResultCode;
 import com.fota.client.domain.UsdkOrderDTO;
+import com.fota.trade.cache.RedisCache;
 import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
@@ -10,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +35,9 @@ public class UsdkOrderManager {
     @Autowired
     private UsdkOrderMapper usdkOrderMapper;
 
+    @Autowired
+    private RedisCache redisCache;
+
     public List<UsdkOrderDO> listNotMatchOrder(Long contractOrderIndex, Integer orderDirection) {
         List<UsdkOrderDO> notMatchOrderList = null;
         try {
@@ -45,7 +52,7 @@ public class UsdkOrderManager {
         return notMatchOrderList;
     }
 
-    public ResultCode order(UsdkOrderDTO usdkOrderDTO){
+    public ResultCode placeOrder(UsdkOrderDTO usdkOrderDTO){
         ResultCode resultCode = null;
         UsdkOrderDO usdkOrderDO = null;
         BeanUtils.copyProperties(usdkOrderDTO,usdkOrderDO);
@@ -67,11 +74,13 @@ public class UsdkOrderManager {
         usdkOrderDO.setFee(usdkFee);
         usdkOrderDO.setStatus(OrderStatusEnum.COMMIT.getCode());
         usdkOrderDO.setUnfilledAmount(usdkOrderDTO.getTotalAmount());
-        int Ret = usdkOrderMapper.insert(usdkOrderDO);
-        if (Ret > 0){
+        int ret = usdkOrderMapper.insert(usdkOrderDO);
+        BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
+        if (ret > 0){
             resultCode = ResultCode.success();
             //todo 放入缓存
-
+            String jsonStr = JSONObject.toJSONString(usdkOrderDTO);
+            //redisCache.set(jsonStr);
             //todo 发送RocketMQ
         }else {
             resultCode = ResultCode.error(1,"usdkOrder insert failed");
