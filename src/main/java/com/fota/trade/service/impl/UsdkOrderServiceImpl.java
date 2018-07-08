@@ -1,7 +1,7 @@
 package com.fota.trade.service.impl;
 
-import com.alibaba.rocketmq.shade.com.alibaba.fastjson.JSONObject;
 import com.fota.client.common.*;
+import com.fota.client.domain.UsdkMatchedOrderDTO;
 import com.fota.client.domain.UsdkOrderDTO;
 import com.fota.client.domain.query.UsdkOrderQuery;
 import com.fota.client.service.UsdkOrderService;
@@ -9,6 +9,7 @@ import com.fota.trade.common.BeanUtils;
 import com.fota.trade.common.Constant;
 import com.fota.trade.common.ParamUtil;
 import com.fota.trade.domain.UsdkOrderDO;
+import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.manager.UsdkOrderManager;
 import com.fota.trade.mapper.UsdkOrderMapper;
 import lombok.Data;
@@ -17,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 
@@ -106,5 +108,55 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     @Override
     public ResultCode cancelAllOrder(Long userId) {
         return null;
+    }
+
+    @Override
+    public ResultCode updateOrderByMatch(UsdkMatchedOrderDTO usdkMatchedOrderDTO) {
+        if (usdkMatchedOrderDTO == null) {
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM);
+        }
+        UsdkOrderDTO askUsdkOrder = usdkMatchedOrderDTO.getAskUsdkOrder();
+        UsdkOrderDTO bidUsdkOrder = usdkMatchedOrderDTO.getBidUsdkOrder();
+        BigDecimal filledAmount = usdkMatchedOrderDTO.getFilledAmount();
+        BigDecimal filledPrice = usdkMatchedOrderDTO.getFilledPrice();
+        updateSingleOrderByFilledAmount(askUsdkOrder, filledAmount);
+        updateSingleOrderByFilledAmount(bidUsdkOrder, filledAmount);
+
+        // todo 买币 bid +totalAsset = filledAmount - filledAmount * feeRate
+        // todo 买币 bid -totalUsdk = filledAmount * filledPrice
+        // todo 买币 bid -lockedUsdk = filledAmount * bidOrderPrice
+        // todo 卖币 ask +totalUsdk = filledAmount * filledPrice - filledAmount * filledPrice * feeRate
+        // todo 卖币 ask -lockedAsset = filledAmount
+        // todo 卖币 ask -totalAsset = filledAmount
+
+        BigDecimal addBidTotalAsset = filledAmount.subtract(filledAmount.multiply(Constant.FEE_RATE));
+        BigDecimal addTotalUsdk = filledAmount.multiply(filledPrice).negate();
+        BigDecimal addLockedUsdk = filledAmount.multiply(usdkMatchedOrderDTO.getBidOrderPrice());
+        BigDecimal addAskTotalUsdk = filledAmount.multiply(filledPrice).multiply(new BigDecimal("1").subtract(Constant.FEE_RATE));
+        BigDecimal addLockedAsset = filledAmount.negate();
+        BigDecimal addTotalAsset = filledAmount.negate();
+        boolean balanceRet = false;
+        //todo 调用资产变更接口
+        return null;
+    }
+
+    /**
+     * 如果撮合的量等于unfilled的量，则更新状态为已成
+     * 如果撮合的量小于unfilled的量并且状态为已报，增更新状态为部成，
+     * 更新unfilledAmount为减去成交量后的值
+     * @param usdkOrderDTO
+     * @param filledAmount
+     * @return
+     */
+    private int updateSingleOrderByFilledAmount(UsdkOrderDTO usdkOrderDTO, BigDecimal filledAmount) {
+        if (usdkOrderDTO.getUnfilledAmount().compareTo(filledAmount) == 0) {
+            usdkOrderDTO.setStatus(OrderStatusEnum.MATCH.getCode());
+        } else if (usdkOrderDTO.getStatus() == OrderStatusEnum.COMMIT.getCode()) {
+            usdkOrderDTO.setStatus(OrderStatusEnum.PART_MATCH.getCode());
+        }
+        usdkOrderDTO.setUnfilledAmount(usdkOrderDTO.getUnfilledAmount().subtract(filledAmount));
+        UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
+        BeanUtils.copy(usdkOrderDTO, usdkOrderDO);
+        return usdkOrderMapper.updateByPrimaryKey(usdkOrderDO);
     }
 }

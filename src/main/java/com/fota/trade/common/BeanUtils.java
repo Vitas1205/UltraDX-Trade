@@ -1,5 +1,6 @@
 package com.fota.trade.common;
 
+import org.springframework.beans.BeansException;
 import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
@@ -27,5 +28,7 @@ public class BeanUtils {
         return targetList;
     }
 
-
+    public static void copy(Object source, Object target) throws BeansException {
+        org.springframework.beans.BeanUtils.copyProperties(source, target);
+    }
 }

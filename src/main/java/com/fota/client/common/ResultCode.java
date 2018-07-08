@@ -24,6 +24,13 @@ public class ResultCode {
         return resultCode;
     }
 
+    public static ResultCode error(ResultCodeEnum resultCodeEnum) {
+        ResultCode resultCode = new ResultCode();
+        resultCode.code = resultCodeEnum.getCode();
+        resultCode.message = resultCodeEnum.getMessage();
+        return resultCode;
+    }
+
     public boolean isSuccess() {
         return this.code == 0;
     }

@@ -2,6 +2,8 @@ package com.fota.trade.service;
 
 import com.fota.client.common.Page;
 import com.fota.client.common.Result;
+import com.fota.client.common.ResultCode;
+import com.fota.client.domain.UsdkMatchedOrderDTO;
 import com.fota.client.domain.UsdkOrderDTO;
 import com.fota.client.domain.query.UsdkOrderQuery;
 import com.fota.client.service.UsdkOrderService;
@@ -52,5 +54,11 @@ public class UsdkOrderServiceTest {
         Assert.assertTrue(result != null && result.getData() != null && result.getData().getData() != null);
     }
 
+    @Test
+    public void testUpdateOrderByMatch() throws Exception {
+        UsdkMatchedOrderDTO usdkMatchedOrderDTO = new UsdkMatchedOrderDTO();
+        ResultCode resultCode = usdkOrderService.updateOrderByMatch(usdkMatchedOrderDTO);
+        Assert.assertTrue(resultCode != null && resultCode.isSuccess());
+    }
 
 }

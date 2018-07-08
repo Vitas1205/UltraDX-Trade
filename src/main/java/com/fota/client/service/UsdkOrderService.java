@@ -3,6 +3,7 @@ package com.fota.client.service;
 import com.fota.client.common.Page;
 import com.fota.client.common.Result;
 import com.fota.client.common.ResultCode;
+import com.fota.client.domain.UsdkMatchedOrderDTO;
 import com.fota.client.domain.UsdkOrderDTO;
 import com.fota.client.domain.query.UsdkOrderQuery;
 
@@ -40,5 +41,11 @@ public interface UsdkOrderService {
      * @return
      */
     ResultCode cancelAllOrder(Long userId);
+
+    /**
+     * 根据成交更新订单的信息
+     * @return
+     */
+    ResultCode updateOrderByMatch(UsdkMatchedOrderDTO usdkMatchedOrderDTO);
 
 }
