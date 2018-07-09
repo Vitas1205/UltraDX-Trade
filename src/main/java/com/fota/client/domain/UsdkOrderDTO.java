@@ -27,4 +27,5 @@ public class UsdkOrderDTO implements Serializable {
     private BigDecimal fee;
     private Integer status;
     private BigDecimal matchAmount;
+    private BigDecimal completeAmount;
 }

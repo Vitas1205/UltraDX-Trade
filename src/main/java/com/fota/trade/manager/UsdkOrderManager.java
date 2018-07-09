@@ -65,7 +65,7 @@ public class UsdkOrderManager {
         BigDecimal totalAmount = usdkOrderDO.getTotalAmount();
         BigDecimal orderValue = totalAmount.multiply(price);
         BigDecimal feeValue = orderValue.multiply(usdkFee);
-        BigDecimal totalValue = orderValue.add(feeValue);
+        //BigDecimal totalValue = orderValue.add(feeValue);
         /*if (orderDirection == OrderDirectionEnum.BID.getCode()){
             //todo 查询usdk账户可用余额
             //todo 判断账户可用余额是否大于tatalValue

@@ -45,8 +45,10 @@ public class UsdkTradeTest {
         usdkOrderDO.setOrderType(1);
         usdkOrderDO.setOrderDirection(1);
         usdkOrderDO.setUserId(1L);
-        usdkOrderMapper.insertSelective(usdkOrderDO);
-        log.info(usdkOrderDO.getId().toString());
+        //usdkOrderMapper.insertSelective(usdkOrderDO);
+        UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
+        BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
+        log.info(usdkOrderDTO.getAssetName().toString());
     }
 
     @Test
