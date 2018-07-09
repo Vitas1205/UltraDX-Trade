@@ -5,6 +5,7 @@ import com.fota.client.common.ResultCode;
 import com.fota.client.domain.UsdkOrderDTO;
 import com.fota.trade.cache.RedisCache;
 import com.fota.trade.domain.UsdkOrderDO;
+import com.fota.trade.domain.enums.AssetTypeEnum;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.mapper.UsdkOrderMapper;
@@ -92,6 +93,7 @@ public class UsdkOrderManager {
         return resultCode;
     }
 
+    @Transactional(rollbackFor={RuntimeException.class, Exception.class})
     public ResultCode cancelOrder(Long userId, Long orderId){
         ResultCode resultCode = null;
         UsdkOrderDO usdkOrderDO = usdkOrderMapper.selectByIdAndUserId(orderId, userId);
@@ -107,16 +109,33 @@ public class UsdkOrderManager {
         }
         int ret = usdkOrderMapper.updateByOpLock(usdkOrderDO);
         if (ret > 0){
+            //解冻对应账户的冻结资产
+            Integer orderDirection = usdkOrderDO.getOrderDirection();
+            Integer assetId = 0;
+            BigDecimal UnlockAmount = BigDecimal.ZERO;
+            if (orderDirection == OrderDirectionEnum.BID.getCode()){
+                assetId = AssetTypeEnum.USDK.getCode();
+                BigDecimal unfilledAmount = usdkOrderDO.getUnfilledAmount();
+                BigDecimal price = usdkOrderDO.getPrice();
+                UnlockAmount = unfilledAmount.multiply(price);
+                //todo 调用修改USDK钱包账户冻结资产接口
+            }else if (orderDirection == OrderDirectionEnum.ASK.getCode()){
+                assetId = usdkOrderDO.getAssetId();
+                UnlockAmount = usdkOrderDO.getUnfilledAmount();
+                //todo 调用修改Coin钱包账户冻结资产接口
+            }
+
+            //todo 放入缓存
+            UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
+            BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
+            String jsonStr = JSONObject.toJSONString(usdkOrderDTO);
+            //redisCache.set(jsonStr);
+            //todo 发送RocketMQ
             resultCode = ResultCode.success();
         }else {
             resultCode = ResultCode.error(3,"usdkOrder update failed");
         }
-        //todo 放入缓存
-        UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
-        BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
-        String jsonStr = JSONObject.toJSONString(usdkOrderDTO);
-        //redisCache.set(jsonStr);
-        //todo 发送RocketMQ
+
         return resultCode;
     }
 

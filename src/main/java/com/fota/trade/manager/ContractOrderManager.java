@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -51,29 +52,60 @@ public class ContractOrderManager {
         return notMatchOrderList;
     }
 
+    @Transactional(rollbackFor = {Exception.class ,RuntimeException.class})
     public ResultCode placeOrder(ContractOrderDTO contractOrderDTO){
         ResultCode resultCode = new ResultCode();
         ContractOrderDO contractOrderDO = new ContractOrderDO();
         BeanUtils.copyProperties(contractOrderDTO,contractOrderDO);
+        if (contractOrderDO == null){
+            throw new RuntimeException("contractOrder is required not null ,placeOrder failed");
+        }
         Integer contractId = contractOrderDTO.getContractId();
         Long userId = contractOrderDTO.getUserId();
         Long totalAmount = contractOrderDTO.getTotalAmount();
         BigDecimal price = contractOrderDTO.getPrice();
         Integer orderDirection = contractOrderDTO.getOrderDirection();
         BigDecimal orderValue = BigDecimal.valueOf(totalAmount).multiply(price);
-        BigDecimal feeValue = orderValue.multiply(contractFee);
+        BigDecimal totalFeeValue = orderValue.multiply(contractFee);
+        BigDecimal totalValue = orderValue.add(totalFeeValue);
         UserPositionDO userPositionDO = new UserPositionDO();
         //查询持仓表
         userPositionDO = userPositionMapper.selectByUserIdAndId(userId,contractId);
-        Date gmtModified = userPositionDO.getGmtModified();
-        if (userPositionDO != null && orderDirection == 2 && userPositionDO.getPositionType() == 2){
-            Long positionUnfilledAmount = userPositionDO.getUnfilledAmount();
-            if (totalAmount.compareTo(positionUnfilledAmount) <= 0){
-                //更新持仓表
+        if (userPositionDO != null){
 
-            }
         }
 
+        //插入合约订单
+        int insertContractOrderRet = contractOrderMapper.insertSelective(contractOrderDO);
+        if (insertContractOrderRet <= 0){
+            throw new RuntimeException("insert contractOrder failed");
+        }
+        resultCode = ResultCode.success();
         return resultCode;
     }
+
+
+    public ResultCode cancelOrder(Long userId, Long orderId){
+        ResultCode resultCode = new ResultCode();
+        ContractOrderDO contractOrderDO = contractOrderMapper.selectByIdAndUserId(orderId, userId);
+        Integer status = contractOrderDO.getStatus();
+        if (status == OrderStatusEnum.COMMIT.getCode() || status == OrderStatusEnum.CANCEL.getCode()){
+            contractOrderDO.setStatus(OrderStatusEnum.CANCEL.getCode());
+        }else if (status == OrderStatusEnum.PART_MATCH.getCode() || status == OrderStatusEnum.PART_CANCEL.getCode()){
+            contractOrderDO.setStatus(OrderStatusEnum.PART_CANCEL.getCode());
+        }else if (status == OrderStatusEnum.MATCH.getCode()){
+            contractOrderDO.setStatus(OrderStatusEnum.MATCH.getCode());
+        }else {
+            resultCode = ResultCode.error(2,"contractOrder status illegal");
+        }
+        int ret = contractOrderMapper.updateByOpLock(contractOrderDO);
+        if (ret > 0){
+            //解冻对应
+        }
+        return resultCode;
+    }
+
+
+
+
 }

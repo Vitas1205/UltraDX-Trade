@@ -13,6 +13,7 @@ import com.fota.trade.common.ParamUtil;
 import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.trade.domain.enums.OrderStatusEnum;
+import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.client.service.ContractOrderService;
 import org.slf4j.Logger;
@@ -38,6 +39,9 @@ public class ContractOrderServiceImpl implements ContractOrderService {
 
     @Resource
     private ContractOrderMapper contractOrderMapper;
+
+    @Resource
+    private ContractOrderManager contractOrderManager;
 
     @Override
     public Result<Page<ContractOrderDTO>> listContractOrderByQuery(ContractOrderQuery contractOrderQuery) {
@@ -89,12 +93,25 @@ public class ContractOrderServiceImpl implements ContractOrderService {
 
     @Override
     public ResultCode order(ContractOrderDTO contractOrderDTO) {
-
+        try {
+            ResultCode resultCode = new ResultCode();
+            resultCode = contractOrderManager.placeOrder(contractOrderDTO);
+            return resultCode;
+        }catch (Exception e){
+            log.error("Contract order() failed", e);
+        }
         return null;
     }
 
     @Override
     public ResultCode cancelOrder(Long userId, Long orderId) {
+        try {
+            ResultCode resultCode = new ResultCode();
+            resultCode = contractOrderManager.cancelOrder(userId, orderId);
+            return resultCode;
+        }catch (Exception e){
+            log.error("Contract cancelOrder() failed", e);
+        }
         return null;
     }
 
