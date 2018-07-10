@@ -204,7 +204,6 @@ public class UsdkOrderManager {
             BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
             BigDecimal matchAmount = usdkOrderDTO.getTotalAmount().subtract(usdkOrderDTO.getUnfilledAmount());
             usdkOrderDTO.setMatchAmount(matchAmount);
-            String jsonStr = JSONObject.toJSONString(usdkOrderDTO);
             Long count = redisManager.getCount(Constant.REDIS_KEY);
             String key = Constant.USDK_ORDER_HEAD + count;
             String usdkOrderDTOStr = JSONObject.toJSONString(usdkOrderDTO);
