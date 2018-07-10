@@ -99,8 +99,8 @@ public class UsdkOrderManager {
             //查询usdk账户可用余额
             for(UserCapitalDTO userCapitalDTO : list){
                 if (userCapitalDTO.getAssetId() == AssetTypeEnum.USDK.getCode()){
-                    BigDecimal amount = BigDecimal.valueOf(Integer.valueOf(userCapitalDTO.getAmount()));
-                    BigDecimal lockedAmount = BigDecimal.valueOf(Integer.valueOf(userCapitalDTO.getLockedAmount()));
+                    BigDecimal amount = new BigDecimal(userCapitalDTO.getAmount());
+                    BigDecimal lockedAmount = new BigDecimal(userCapitalDTO.getLockedAmount());
                     BigDecimal availableAmount = amount.subtract(lockedAmount);
                     //判断账户可用余额是否大于orderValue
                     if (availableAmount.compareTo(orderValue) >= 0){
@@ -120,13 +120,13 @@ public class UsdkOrderManager {
             //查询对应资产账户可用余额
             for (UserCapitalDTO userCapitalDTO : list){
                 if (assetId == userCapitalDTO.getAssetId()){
-                    BigDecimal amount = BigDecimal.valueOf(Integer.valueOf(userCapitalDTO.getAmount()));
-                    BigDecimal lockedAmount = BigDecimal.valueOf(Integer.valueOf(userCapitalDTO.getLockedAmount()));
+                    BigDecimal amount = new BigDecimal(userCapitalDTO.getAmount());
+                    BigDecimal lockedAmount = new BigDecimal(userCapitalDTO.getLockedAmount());
                     BigDecimal availableAmount = amount.subtract(lockedAmount);
                     //断账户可用余额是否大于tatalValue
-                    if (availableAmount.compareTo(orderValue) >= 0){
+                    if (availableAmount.compareTo(usdkOrderDO.getTotalAmount()) >= 0){
                         Long gmtModified = userCapitalDTO.getGmtModified();
-                        Boolean ret = getCapitalService().updateLockedAmount(userId, userCapitalDTO.getAssetId(), String.valueOf(orderValue), gmtModified);
+                        Boolean ret = getCapitalService().updateLockedAmount(userId, userCapitalDTO.getAssetId(), String.valueOf(usdkOrderDO.getTotalAmount()), gmtModified);
                         if (!ret){
                             resultCode = ResultCode.error(5,"update CoinCapital LockedAmount failed");
                             return resultCode;
@@ -160,7 +160,7 @@ public class UsdkOrderManager {
     }
 
     @Transactional(rollbackFor={RuntimeException.class, Exception.class})
-    public ResultCode cancelOrder(Long userId, Long orderId){
+    public ResultCode cancelOrder(Long userId, Long orderId) throws Exception{
         ResultCode resultCode = null;
         UsdkOrderDO usdkOrderDO = usdkOrderMapper.selectByIdAndUserId(orderId, userId);
         Integer status = usdkOrderDO.getStatus();
@@ -171,7 +171,7 @@ public class UsdkOrderManager {
         }else if (status == OrderStatusEnum.MATCH.getCode()){
             usdkOrderDO.setStatus(OrderStatusEnum.MATCH.getCode());
         }else {
-            resultCode = ResultCode.error(2,"usdkOrder status illegal");
+            resultCode = ResultCode.error(8,"usdkOrder status illegal");
         }
         int ret = usdkOrderMapper.updateByOpLock(usdkOrderDO);
         if (ret > 0){
@@ -184,11 +184,21 @@ public class UsdkOrderManager {
                 BigDecimal unfilledAmount = usdkOrderDO.getUnfilledAmount();
                 BigDecimal price = usdkOrderDO.getPrice();
                 unlockAmount = unfilledAmount.multiply(price);
-                //todo 调用修改USDK钱包账户冻结资产接口
+                //解冻USDK钱包账户
+                Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,AssetTypeEnum.USDK.getCode(),unlockAmount.negate().toString(), 0L);
+                if (!updateLockedAmountRet){
+                    resultCode = ResultCode.error(9,"Update USDK LockedAmount Failed");
+                    return resultCode;
+                }
             }else if (orderDirection == OrderDirectionEnum.ASK.getCode()){
                 assetId = usdkOrderDO.getAssetId();
                 unlockAmount = usdkOrderDO.getUnfilledAmount();
-                //todo 调用修改Coin钱包账户冻结资产接口
+                //解冻Coin钱包账户
+                Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,assetId,unlockAmount.negate().toString(), 0L);
+                if (!updateLockedAmountRet){
+                    resultCode = ResultCode.error(9,"Update Coin LockedAmount Failed");
+                    return resultCode;
+                }
             }
             UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
             BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
@@ -209,7 +219,7 @@ public class UsdkOrderManager {
     }
 
     @Transactional(rollbackFor={RuntimeException.class, Exception.class})
-    public ResultCode cancelAllOrder(Long userId){
+    public ResultCode cancelAllOrder(Long userId) throws Exception{
         ResultCode resultCode = null;
         List<UsdkOrderDO> list = usdkOrderMapper.selectByUserID(userId);
         UsdkOrderManager usdkOrderManager = new UsdkOrderManager();

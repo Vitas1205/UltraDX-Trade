@@ -1,7 +1,7 @@
 server:
   thrift:
     port:
-      7888
+      7889
   port: 8999
 fota:
   asset:

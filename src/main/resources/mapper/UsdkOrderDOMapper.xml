@@ -83,12 +83,8 @@
       <if test="id != null" >
         #{id,jdbcType=BIGINT},
       </if>
-      <if test="gmtCreate != null" >
-        #{gmtCreate,jdbcType=TIMESTAMP},
-      </if>
-      <if test="gmtModified != null" >
-        #{gmtModified,jdbcType=TIMESTAMP},
-      </if>
+      now(),
+      now(),
       <if test="userId != null" >
         #{userId,jdbcType=BIGINT},
       </if>
