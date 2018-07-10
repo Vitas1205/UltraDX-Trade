@@ -86,10 +86,8 @@ public class UsdkOrderManager {
         return notMatchOrderList;
     }
 
-    public ResultCode placeOrder(UsdkOrderDTO usdkOrderDTO)throws Exception {
+    public ResultCode placeOrder(UsdkOrderDO usdkOrderDO)throws Exception {
         ResultCode resultCode = new ResultCode();
-        UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
-        BeanUtils.copyProperties(usdkOrderDTO,usdkOrderDO);
         Integer assetId = usdkOrderDO.getAssetId();
         Long userId = usdkOrderDO.getUserId();
         Integer orderDirection = usdkOrderDO.getOrderDirection();
@@ -142,8 +140,9 @@ public class UsdkOrderManager {
         }
         usdkOrderDO.setFee(usdkFee);
         usdkOrderDO.setStatus(OrderStatusEnum.COMMIT.getCode());
-        usdkOrderDO.setUnfilledAmount(usdkOrderDTO.getTotalAmount());
+        usdkOrderDO.setUnfilledAmount(usdkOrderDO.getTotalAmount());
         int ret = usdkOrderMapper.insertSelective(usdkOrderDO);
+        UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
         BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
         if (ret > 0){
             resultCode = ResultCode.success();
@@ -155,7 +154,7 @@ public class UsdkOrderManager {
             //todo 发送RocketMQ*/
 
         }else {
-            resultCode = ResultCode.error(1,"usdkOrder insert failed");
+            resultCode = ResultCode.error(7,"Create UsdkOrder failed");
         }
         return resultCode;
     }
@@ -179,25 +178,27 @@ public class UsdkOrderManager {
             //解冻对应账户的冻结资产
             Integer orderDirection = usdkOrderDO.getOrderDirection();
             Integer assetId = 0;
-            BigDecimal UnlockAmount = BigDecimal.ZERO;
+            BigDecimal unlockAmount = BigDecimal.ZERO;
             if (orderDirection == OrderDirectionEnum.BID.getCode()){
                 assetId = AssetTypeEnum.USDK.getCode();
                 BigDecimal unfilledAmount = usdkOrderDO.getUnfilledAmount();
                 BigDecimal price = usdkOrderDO.getPrice();
-                UnlockAmount = unfilledAmount.multiply(price);
+                unlockAmount = unfilledAmount.multiply(price);
                 //todo 调用修改USDK钱包账户冻结资产接口
-                //List<UsdkCapitalDTO>
             }else if (orderDirection == OrderDirectionEnum.ASK.getCode()){
                 assetId = usdkOrderDO.getAssetId();
-                UnlockAmount = usdkOrderDO.getUnfilledAmount();
+                unlockAmount = usdkOrderDO.getUnfilledAmount();
                 //todo 调用修改Coin钱包账户冻结资产接口
             }
-
-            //todo 放入缓存
             UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
             BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
+            BigDecimal matchAmount = usdkOrderDTO.getTotalAmount().subtract(usdkOrderDTO.getUnfilledAmount());
+            usdkOrderDTO.setMatchAmount(matchAmount);
             String jsonStr = JSONObject.toJSONString(usdkOrderDTO);
-            //redisCache.set(jsonStr);
+            Long count = redisManager.getCount(Constant.REDIS_KEY);
+            String key = Constant.USDK_ORDER_HEAD + count;
+            String usdkOrderDTOStr = JSONObject.toJSONString(usdkOrderDTO);
+            redisManager.set(key,usdkOrderDTOStr);
             //todo 发送RocketMQ
             resultCode = ResultCode.success();
         }else {
