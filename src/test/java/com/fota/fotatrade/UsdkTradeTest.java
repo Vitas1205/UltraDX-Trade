@@ -81,7 +81,7 @@ public class UsdkTradeTest {
     @Test
     public void getByUserIdTest(){
         Long userId = 1L;
-        List<UsdkOrderDO> list = usdkOrderMapper.selectByUserID(userId);
+        List<UsdkOrderDO> list = usdkOrderMapper.selectByUserId(userId);
         log.info("------------------"+list.size());
     }
 }

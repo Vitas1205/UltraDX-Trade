@@ -220,7 +220,7 @@ public class UsdkOrderManager {
     @Transactional(rollbackFor={RuntimeException.class, Exception.class})
     public ResultCode cancelAllOrder(Long userId) throws Exception{
         ResultCode resultCode = null;
-        List<UsdkOrderDO> list = usdkOrderMapper.selectByUserID(userId);
+        List<UsdkOrderDO> list = usdkOrderMapper.selectByUserId(userId);
         UsdkOrderManager usdkOrderManager = new UsdkOrderManager();
         int ret = 0;
         UsdkOrderDTO usdkOrderDTO = null;
