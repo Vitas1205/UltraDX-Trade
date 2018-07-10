@@ -77,6 +77,8 @@ public class UsdkOrderServiceImpl implements com.fota.trade.service.UsdkOrderSer
         }
         usdkOrderDTOPage.setPageNo(usdkOrderQuery.getPageNo());
         usdkOrderDTOPage.setPageSize(usdkOrderQuery.getPageSize());
+        usdkOrderQuery.setStartRow((usdkOrderQuery.getPageNo() - 1) * usdkOrderQuery.getPageSize());
+        usdkOrderQuery.setEndRow(usdkOrderQuery.getStartRow() + usdkOrderQuery.getPageSize());
         int total = 0;
         try {
             total = usdkOrderMapper.countByQuery(ParamUtil.objectToMap(usdkOrderQuery));
