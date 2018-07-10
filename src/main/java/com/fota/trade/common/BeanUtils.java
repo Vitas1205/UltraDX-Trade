@@ -37,22 +37,8 @@ public class BeanUtils {
     }
 
 
-//    private Long id;
-//    private Date gmtCreate;
-//    private Date gmtModified;
-//    private String contractName;
-//    private Integer assetId;
-//    private String assetName;
-//    private Long totalAmount;
-//    private Long unfilledAmount;
-//    private Date deliveryDate;
-//    private Integer status;
-//    private Integer contractType;
-//    private BigDecimal price;
     public static ContractCategoryDTO copy(ContractCategoryDO contractCategoryDO) {
         ContractCategoryDTO contractCategoryDTO = new ContractCategoryDTO();
-//        copy(contractCategoryDO, contractCategoryDTO);
-
         contractCategoryDTO.setId(contractCategoryDO.getId());
         contractCategoryDTO.setGmtCreate(contractCategoryDO.getGmtCreate().getTime());
         contractCategoryDTO.setGmtModified(contractCategoryDO.getGmtModified().getTime());
@@ -68,7 +54,17 @@ public class BeanUtils {
 
     public static ContractCategoryDO copy(ContractCategoryDTO contractCategoryDTO) {
         ContractCategoryDO contractCategoryDO = new ContractCategoryDO();
-
+        contractCategoryDO.setId((contractCategoryDTO.getId()));
+        contractCategoryDO.setGmtCreate(new Date(contractCategoryDTO.getGmtCreate()));
+        contractCategoryDO.setGmtModified(new Date(contractCategoryDTO.getGmtModified()));
+        contractCategoryDO.setContractName(contractCategoryDTO.getContractName());
+        contractCategoryDO.setAssetId(contractCategoryDTO.getAssetId());
+        contractCategoryDO.setTotalAmount(contractCategoryDO.getTotalAmount());
+        contractCategoryDO.setUnfilledAmount(contractCategoryDO.getUnfilledAmount());
+        contractCategoryDO.setDeliveryDate(new Date(contractCategoryDTO.getDeliveryDate()));
+        contractCategoryDO.setStatus(contractCategoryDTO.getStatus());
+        contractCategoryDO.setContractType(contractCategoryDTO.getContractType());
+        contractCategoryDO.setPrice(new BigDecimal("0.01"));
         return contractCategoryDO;
     }
 }
