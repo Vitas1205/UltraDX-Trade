@@ -188,7 +188,7 @@ public class UsdkOrderManager {
                 Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,AssetTypeEnum.USDK.getCode(),unlockAmount.negate().toString(), 0L);
                 if (!updateLockedAmountRet){
                     resultCode = ResultCode.error(9,"Update USDK LockedAmount Failed");
-                    return resultCode;
+                    throw new RuntimeException("update Locked Amount failed");
                 }
             }else if (orderDirection == OrderDirectionEnum.ASK.getCode()){
                 assetId = usdkOrderDO.getAssetId();
