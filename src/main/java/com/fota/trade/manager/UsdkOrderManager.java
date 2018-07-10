@@ -161,7 +161,7 @@ public class UsdkOrderManager {
 
     @Transactional(rollbackFor={RuntimeException.class, Exception.class})
     public ResultCode cancelOrder(Long userId, Long orderId) throws Exception{
-        ResultCode resultCode = null;
+        ResultCode resultCode = new ResultCode();
         UsdkOrderDO usdkOrderDO = usdkOrderMapper.selectByIdAndUserId(orderId, userId);
         Integer status = usdkOrderDO.getStatus();
         if (status == OrderStatusEnum.COMMIT.getCode()){
@@ -223,16 +223,15 @@ public class UsdkOrderManager {
     public ResultCode cancelAllOrder(Long userId) throws Exception{
         ResultCode resultCode = null;
         List<UsdkOrderDO> list = usdkOrderMapper.selectByUserId(userId);
-        UsdkOrderManager usdkOrderManager = new UsdkOrderManager();
         int ret = 0;
-        UsdkOrderDTO usdkOrderDTO = null;
+        UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
         for(UsdkOrderDO usdkOrderDO : list){
             Long orderId = usdkOrderDO.getId();
-            resultCode =  usdkOrderManager.cancelOrder(userId, orderId);
+            resultCode = cancelOrder(userId, orderId);
             ret = resultCode.getCode();
             if (ret != ResultCode.success().getCode() && ret != 8){
                 throw new RuntimeException("cancelAllOrder failed");
-            }else {
+            }else if(ret == 0) {
                 //todo 放入缓存
                 BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
                 BigDecimal matchAmount = usdkOrderDTO.getTotalAmount().subtract(usdkOrderDTO.getUnfilledAmount());

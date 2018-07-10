@@ -215,7 +215,7 @@
     limit #{startRow,jdbcType=INTEGER}, #{endRow,jdbcType=INTEGER}
   </select>
 
-  <select id="selectByUserId" resultType="com.fota.trade.domain.UsdkOrderDO">
+  <select id="selectByUserId" resultMap="BaseResultMap">
     SELECT
     <include refid="Base_Column_List" />
     FROM trade_usdk_order
