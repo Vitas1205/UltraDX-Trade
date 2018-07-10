@@ -1,7 +1,8 @@
 package com.fota.trade.common;
 
-import com.fota.trade.domain.ContractCategoryDO;
-import com.fota.trade.domain.ContractCategoryDTO;
+import com.fota.client.common.*;
+import com.fota.trade.domain.*;
+import com.fota.trade.domain.ResultCode;
 import org.springframework.beans.BeansException;
 import org.springframework.util.CollectionUtils;
 
@@ -66,5 +67,69 @@ public class BeanUtils {
         contractCategoryDO.setContractType(contractCategoryDTO.getContractType());
         contractCategoryDO.setPrice(new BigDecimal("0.01"));
         return contractCategoryDO;
+    }
+
+//    private Long id;
+//    private Date gmtCreate;
+//    private Date gmtModified;
+//    private Long userId;
+//    private Integer assetId;
+//    private String assetName;
+//    private Integer orderDirection;
+//    private Integer orderType;
+//    private BigDecimal totalAmount;
+//    private BigDecimal unfilledAmount;
+//    private BigDecimal price;
+//    private BigDecimal fee;
+//    private Integer status;
+
+    public static UsdkOrderDTO copy(UsdkOrderDO usdkOrderDO) {
+        UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
+        usdkOrderDTO.setId(usdkOrderDO.getId());
+        usdkOrderDTO.setGmtCreate(usdkOrderDO.getGmtCreate().getTime());
+        usdkOrderDTO.setGmtModified(usdkOrderDO.getGmtModified().getTime());
+        usdkOrderDTO.setUserId(usdkOrderDO.getUserId());
+        usdkOrderDTO.setAssetId(usdkOrderDO.getAssetId());
+        usdkOrderDTO.setAssetName(usdkOrderDO.getAssetName());
+        usdkOrderDTO.setOrderDirection(usdkOrderDO.getOrderDirection());
+        usdkOrderDTO.setOrderType(usdkOrderDO.getOrderType());
+        usdkOrderDTO.setTotalAmount(usdkOrderDO.getTotalAmount().toString());
+        usdkOrderDTO.setUnfilledAmount(usdkOrderDO.getUnfilledAmount().toString());
+        usdkOrderDTO.setPrice(usdkOrderDO.getPrice().toString());
+        usdkOrderDTO.setFee(usdkOrderDO.getFee().toString());
+        usdkOrderDTO.setStatus(usdkOrderDO.getStatus());
+        return usdkOrderDTO;
+    }
+
+    public static UsdkOrderDO copy(UsdkOrderDTO usdkOrderDTO) {
+        UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
+        usdkOrderDO.setId(usdkOrderDTO.getId());
+        usdkOrderDO.setGmtCreate(new Date(usdkOrderDTO.getGmtCreate()));
+        usdkOrderDO.setGmtModified(new Date(usdkOrderDTO.getGmtModified()));
+        usdkOrderDO.setUserId(usdkOrderDTO.getUserId());
+        usdkOrderDO.setAssetId(usdkOrderDTO.getAssetId());
+        usdkOrderDO.setAssetName(usdkOrderDTO.getAssetName());
+        usdkOrderDO.setOrderDirection(usdkOrderDTO.getOrderDirection());
+        usdkOrderDO.setOrderType(usdkOrderDTO.getOrderType());
+        usdkOrderDO.setTotalAmount(new BigDecimal(usdkOrderDTO.getTotalAmount()));
+        usdkOrderDO.setUnfilledAmount(new BigDecimal(usdkOrderDTO.getUnfilledAmount()));
+        usdkOrderDO.setPrice(new BigDecimal(usdkOrderDTO.getPrice()));
+        usdkOrderDO.setFee(new BigDecimal(usdkOrderDTO.getFee()));
+        usdkOrderDO.setStatus(usdkOrderDTO.getStatus());
+        return usdkOrderDO;
+    }
+
+    public static ResultCode copy(com.fota.client.common.ResultCode resultCode) {
+        ResultCode targetResultCode = new ResultCode();
+        targetResultCode.setCode(resultCode.getCode());
+        targetResultCode.setMessage(resultCode.getMessage());
+        return targetResultCode;
+    }
+
+    public static com.fota.client.common.ResultCode copy(ResultCode resultCode) {
+        com.fota.client.common.ResultCode targetResultCode = new com.fota.client.common.ResultCode();
+        targetResultCode.setCode(resultCode.getCode());
+        targetResultCode.setMessage(resultCode.getMessage());
+        return targetResultCode;
     }
 }

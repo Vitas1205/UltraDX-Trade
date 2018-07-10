@@ -16,7 +16,12 @@
 
 package com.fota.fotatrade.thriftserver;
 
+import com.fota.trade.service.ContractCategoryService;
+import com.fota.trade.service.UsdkOrderService;
+import com.fota.trade.service.impl.ContractCategoryServiceImpl;
+import com.fota.trade.service.impl.UsdkOrderServiceImpl;
 import org.apache.thrift.TMultiplexedProcessor;
+import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TThreadedSelectorServer;
@@ -26,6 +31,7 @@ import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.TTransportFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -40,6 +46,11 @@ public class ThriftServer implements Runnable {
     @Value("${server.thrift.port}")
     private int serverPort;
 
+    @Autowired
+    private ContractCategoryServiceImpl contractCategoryServiceImpl;
+    @Autowired
+    private UsdkOrderServiceImpl usdkOrderServiceImpl;
+
     @Override
     public void run() {
         startServer();
@@ -49,11 +60,11 @@ public class ThriftServer implements Runnable {
         LOGGER.info("Starting Thrift Server......!!!");
 
         try {
-
             TMultiplexedProcessor multiplexedProcessor = new TMultiplexedProcessor();
-            //
-//            TProcessor userProcessor = new UserService.Processor<UserService.Iface>(new UserServiceImpl());
-
+            TProcessor assetService = new ContractCategoryService.Processor<ContractCategoryService.Iface>(contractCategoryServiceImpl);
+            TProcessor usdkOrderService = new UsdkOrderService.Processor<UsdkOrderService.Iface>(usdkOrderServiceImpl);
+            multiplexedProcessor.registerProcessor("assetService", assetService);
+            multiplexedProcessor.registerProcessor("usdkOrderService", usdkOrderService);
             TNonblockingServerSocket serverTransport = new TNonblockingServerSocket(serverPort);
             LOGGER.info("server port " + serverPort);
             TTransportFactory transportFactory = new TFramedTransport.Factory();
