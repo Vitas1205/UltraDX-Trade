@@ -108,12 +108,14 @@ public class UsdkOrderServiceImpl implements com.fota.trade.service.UsdkOrderSer
     @Override
     public ResultCode order(UsdkOrderDTO usdkOrderDTO) {
         try {
-            ResultCode resultCode = usdkOrderManager.placeOrder(BeanUtils.copy(usdkOrderDTO));
-            return resultCode;
+            return BeanUtils.copy(usdkOrderManager.placeOrder(BeanUtils.copy(usdkOrderDTO)));
         }catch (Exception e){
             log.error("USDK order() failed", e);
         }
-        return null;
+        ResultCode resultCode = new ResultCode();
+        resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
+        resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());
+        return resultCode;
     }
 
     @Override

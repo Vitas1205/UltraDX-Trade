@@ -61,10 +61,10 @@ public class UsdkTradeTest {
         usdkOrderDO.setOrderType(1);
         usdkOrderDO.setOrderDirection(1);
         usdkOrderDO.setUserId(9527L);
-        UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
-        BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
-        log.info("======================="+usdkOrderDTO.getAssetName());
-        usdkOrderManager.placeOrder(usdkOrderDTO);
+//        UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
+//        BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
+//        log.info("======================="+usdkOrderDTO.getAssetName());
+        usdkOrderManager.placeOrder(usdkOrderDO);
     }
 
     @Test
