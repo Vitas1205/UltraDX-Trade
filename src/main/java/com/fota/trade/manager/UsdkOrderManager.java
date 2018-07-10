@@ -1,9 +1,14 @@
 package com.fota.trade.manager;
 
 import com.alibaba.rocketmq.shade.com.alibaba.fastjson.JSONObject;
+import com.fota.asset.domain.UserCapitalDTO;
+import com.fota.asset.service.AssetService;
+import com.fota.asset.service.CapitalService;
 import com.fota.client.common.ResultCode;
 import com.fota.client.domain.UsdkOrderDTO;
+import com.fota.thrift.ThriftJ;
 import com.fota.trade.cache.RedisCache;
+import com.fota.trade.common.Constant;
 import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.trade.domain.enums.AssetTypeEnum;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
@@ -12,10 +17,12 @@ import com.fota.trade.mapper.UsdkOrderMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 
+import javax.annotation.PostConstruct;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -41,6 +48,30 @@ public class UsdkOrderManager {
     @Autowired
     private RedisCache redisCache;
 
+    @Autowired
+    RedisManager redisManager;
+
+    @Autowired
+    private ThriftJ thriftJ;
+    @Value("${fota.asset.server.thrift.port}")
+    private int thriftPort;
+    @PostConstruct
+    public void init() {
+        thriftJ.initService("FOTA-ASSET", thriftPort);
+    }
+    private CapitalService.Client getCapitalService() {
+        CapitalService.Client serviceClient =
+                thriftJ.getServiceClient("FOTA-ASSET")
+                        .iface(CapitalService.Client.class, "capitalService");
+        return serviceClient;
+    }
+    private AssetService.Client getAssetService() {
+        AssetService.Client serviceClient =
+                thriftJ.getServiceClient("FOTA-ASSET")
+                        .iface(AssetService.Client.class, "assetService");
+        return serviceClient;
+    }
+
     public List<UsdkOrderDO> listNotMatchOrder(Long contractOrderIndex, Integer orderDirection) {
         List<UsdkOrderDO> notMatchOrderList = null;
         try {
@@ -55,7 +86,7 @@ public class UsdkOrderManager {
         return notMatchOrderList;
     }
 
-    public ResultCode placeOrder(UsdkOrderDTO usdkOrderDTO){
+    public ResultCode placeOrder(UsdkOrderDTO usdkOrderDTO)throws Exception {
         ResultCode resultCode = new ResultCode();
         UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
         BeanUtils.copyProperties(usdkOrderDTO,usdkOrderDO);
@@ -65,16 +96,50 @@ public class UsdkOrderManager {
         BigDecimal price = usdkOrderDO.getPrice();
         BigDecimal totalAmount = usdkOrderDO.getTotalAmount();
         BigDecimal orderValue = totalAmount.multiply(price);
-        BigDecimal feeValue = orderValue.multiply(usdkFee);
-        //BigDecimal totalValue = orderValue.add(feeValue);
-        /*if (orderDirection == OrderDirectionEnum.BID.getCode()){
-            //todo 查询usdk账户可用余额
-            //todo 判断账户可用余额是否大于tatalValue
-
+        List<UserCapitalDTO> list = getAssetService().getUserCapital(userId);
+        if (orderDirection == OrderDirectionEnum.BID.getCode()){
+            //查询usdk账户可用余额
+            for(UserCapitalDTO userCapitalDTO : list){
+                if (userCapitalDTO.getAssetId() == AssetTypeEnum.USDK.getCode()){
+                    BigDecimal amount = BigDecimal.valueOf(Integer.valueOf(userCapitalDTO.getAmount()));
+                    BigDecimal lockedAmount = BigDecimal.valueOf(Integer.valueOf(userCapitalDTO.getLockedAmount()));
+                    BigDecimal availableAmount = amount.subtract(lockedAmount);
+                    //判断账户可用余额是否大于orderValue
+                    if (availableAmount.compareTo(orderValue) >= 0){
+                        Long gmtModified = userCapitalDTO.getGmtModified();
+                        Boolean ret = getCapitalService().updateLockedAmount(userId, userCapitalDTO.getAssetId(), String.valueOf(orderValue), gmtModified);
+                        if (!ret){
+                            resultCode = ResultCode.error(3,"update USDKCapital LockedAmount failed");
+                            return resultCode;
+                        }
+                    }else {
+                        resultCode = ResultCode.error(4,"USDK Capital Amount Not Enough");
+                        return resultCode;
+                    }
+                }
+            }
         }else if (orderDirection == OrderDirectionEnum.ASK.getCode()){
-            //todo 查询对应资产账户可用余额
-            //todo 判断账户可用余额是否大于tatalValue
-        }*/
+            //查询对应资产账户可用余额
+            for (UserCapitalDTO userCapitalDTO : list){
+                if (assetId == userCapitalDTO.getAssetId()){
+                    BigDecimal amount = BigDecimal.valueOf(Integer.valueOf(userCapitalDTO.getAmount()));
+                    BigDecimal lockedAmount = BigDecimal.valueOf(Integer.valueOf(userCapitalDTO.getLockedAmount()));
+                    BigDecimal availableAmount = amount.subtract(lockedAmount);
+                    //断账户可用余额是否大于tatalValue
+                    if (availableAmount.compareTo(orderValue) >= 0){
+                        Long gmtModified = userCapitalDTO.getGmtModified();
+                        Boolean ret = getCapitalService().updateLockedAmount(userId, userCapitalDTO.getAssetId(), String.valueOf(orderValue), gmtModified);
+                        if (!ret){
+                            resultCode = ResultCode.error(5,"update CoinCapital LockedAmount failed");
+                            return resultCode;
+                        }
+                    }else {
+                        resultCode = ResultCode.error(6, "Coin Capital Amount Not Enough");
+                        return resultCode;
+                    }
+                }
+            }
+        }
         usdkOrderDO.setFee(usdkFee);
         usdkOrderDO.setStatus(OrderStatusEnum.COMMIT.getCode());
         usdkOrderDO.setUnfilledAmount(usdkOrderDTO.getTotalAmount());
@@ -82,9 +147,11 @@ public class UsdkOrderManager {
         BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
         if (ret > 0){
             resultCode = ResultCode.success();
-            /*//todo 放入缓存
-            String jsonStr = JSONObject.toJSONString(usdkOrderDTO);
-            //redisCache.set(jsonStr);
+            Long count = redisManager.getCount(Constant.REDIS_KEY);
+            String key = Constant.USDK_ORDER_HEAD + count;
+            usdkOrderDTO.setMatchAmount(BigDecimal.ZERO);
+            String usdkOrderDTOStr = JSONObject.toJSONString(usdkOrderDTO);
+            redisManager.set(key,usdkOrderDTOStr);
             //todo 发送RocketMQ*/
 
         }else {
@@ -119,6 +186,7 @@ public class UsdkOrderManager {
                 BigDecimal price = usdkOrderDO.getPrice();
                 UnlockAmount = unfilledAmount.multiply(price);
                 //todo 调用修改USDK钱包账户冻结资产接口
+                //List<UsdkCapitalDTO>
             }else if (orderDirection == OrderDirectionEnum.ASK.getCode()){
                 assetId = usdkOrderDO.getAssetId();
                 UnlockAmount = usdkOrderDO.getUnfilledAmount();

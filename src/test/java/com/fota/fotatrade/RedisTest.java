@@ -6,7 +6,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.test.context.junit4.SpringRunner;
+
+import javax.annotation.Resource;
 
 /**
  * @Author: Harry Wang
@@ -22,12 +25,15 @@ public class RedisTest {
     @Autowired
     RedisManager redisManager;
 
+    @Resource
+    private RedisTemplate<String, Object> redisTemplate;
     @Test
     public void RedisTest(){
-        redisManager.set("mykey","1");
-        Long ret = Long.valueOf(String.valueOf(redisManager.get("mykey")));
-        ret = ret + 1;
-        redisManager.set("mykey",ret);
-        log.info("-----------------------------"+redisManager.get("mykey"));
+        String redisKey = "mykey"+123;
+        for (int i = 0;i <= 10;i++){
+            long count = redisTemplate.opsForValue().increment(redisKey, 1);
+            log.info("------------"+String.valueOf(count));
+            log.info("fota_usdk_entrust_"+count);
+        }
     }
 }

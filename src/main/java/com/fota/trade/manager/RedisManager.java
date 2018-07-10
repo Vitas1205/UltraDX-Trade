@@ -40,6 +40,7 @@ public class RedisManager {
         }
     }
 
+
     public Object get(final String key) {
         try {
             ValueOperations<String, Object> vOps = redisTemplate.opsForValue();
@@ -48,6 +49,16 @@ public class RedisManager {
             log.error("redis get error", e);
             return null;
         }
+    }
+
+    public Long getCount(final String redisKey) {
+        try {
+            long count = redisTemplate.opsForValue().increment(redisKey, 1);
+            return count;
+        } catch (Exception e) {
+            log.error("redis getCount", e);
+        }
+        return null;
     }
 
     public boolean expire(final String key, long expire) {

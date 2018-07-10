@@ -36,7 +36,7 @@ public class EntrustDepthServiceImpl implements EntrustDepthService {
     private static final Logger log = LoggerFactory.getLogger(EntrustDepthServiceImpl.class);
 
     @Autowired
-    private ContractCategoryService contractCategoryService;
+    private com.fota.trade.service.ContractCategoryService.Iface contractCategoryService;
 
     @Autowired
     private ContractOrderManager contractOrderManager;
@@ -55,43 +55,43 @@ public class EntrustDepthServiceImpl implements EntrustDepthService {
     @Override
     public Map<String, Map<BigDecimal, BigDecimal>> initContractEntrust(Integer orderDirection) {
         Map<String, Map<BigDecimal, BigDecimal>> contractEntrustMap = new LinkedHashMap<>();
-        List<ContractCategoryDO> contractCategoryList = contractCategoryService.listActiveContract();
-        // TODO contractOrderIndex 需要从redis中获取 暂时写死
-        List<ContractOrderDO> contractOrderList = contractOrderManager.listNotMatchOrder(2L, orderDirection);
-
-        if (contractCategoryList.isEmpty()) {
-            log.info("no active contracts at the moment");
-            return contractEntrustMap;
-        }
-
-        if (contractOrderList.isEmpty()) {
-            log.info("no outstanding contract orders");
-            return contractEntrustMap;
-        }
-
-        contractCategoryList.stream()
-                .sorted(Comparator.comparing(ContractCategoryDO::getAssetId))
-                .forEach(contractCategoryDO -> {
-            if (!contractEntrustMap.containsKey(contractCategoryDO.getContractName())) {
-                contractEntrustMap.put(contractCategoryDO.getContractName(), new LinkedHashMap<>());
-            }
-        });
-
-        contractOrderList.stream()
-                .sorted(Comparator.comparing(ContractOrderDO::getPrice))
-                .forEach(contractOrderDO -> {
-            Map<BigDecimal, BigDecimal> priceAndAmountMap = contractEntrustMap.get(contractOrderDO.getContractName());
-            if (priceAndAmountMap != null) {
-                BigDecimal price = contractOrderDO.getPrice();
-                if (priceAndAmountMap.containsKey(price)) {
-                    BigDecimal amount = priceAndAmountMap.get(price);
-//                    amount = amount.add(contractOrderDO.getUnfilledAmount());
-                    priceAndAmountMap.put(price, amount);
-                } else {
-//                    priceAndAmountMap.put(price, contractOrderDO.getUnfilledAmount());
-                }
-            }
-        });
+//        List<ContractCategoryDO> contractCategoryList = contractCategoryService.listActiveContract();
+//        // TODO contractOrderIndex 需要从redis中获取 暂时写死
+//        List<ContractOrderDO> contractOrderList = contractOrderManager.listNotMatchOrder(2L, orderDirection);
+//
+//        if (contractCategoryList.isEmpty()) {
+//            log.info("no active contracts at the moment");
+//            return contractEntrustMap;
+//        }
+//
+//        if (contractOrderList.isEmpty()) {
+//            log.info("no outstanding contract orders");
+//            return contractEntrustMap;
+//        }
+//
+//        contractCategoryList.stream()
+//                .sorted(Comparator.comparing(ContractCategoryDO::getAssetId))
+//                .forEach(contractCategoryDO -> {
+//            if (!contractEntrustMap.containsKey(contractCategoryDO.getContractName())) {
+//                contractEntrustMap.put(contractCategoryDO.getContractName(), new LinkedHashMap<>());
+//            }
+//        });
+//
+//        contractOrderList.stream()
+//                .sorted(Comparator.comparing(ContractOrderDO::getPrice))
+//                .forEach(contractOrderDO -> {
+//            Map<BigDecimal, BigDecimal> priceAndAmountMap = contractEntrustMap.get(contractOrderDO.getContractName());
+//            if (priceAndAmountMap != null) {
+//                BigDecimal price = contractOrderDO.getPrice();
+//                if (priceAndAmountMap.containsKey(price)) {
+//                    BigDecimal amount = priceAndAmountMap.get(price);
+////                    amount = amount.add(contractOrderDO.getUnfilledAmount());
+//                    priceAndAmountMap.put(price, amount);
+//                } else {
+////                    priceAndAmountMap.put(price, contractOrderDO.getUnfilledAmount());
+//                }
+//            }
+//        });
         return contractEntrustMap;
     }
 

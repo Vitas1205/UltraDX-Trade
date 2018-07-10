@@ -52,18 +52,15 @@ public class UsdkTradeTest {
     }
 
     @Test
-    public void orderTest() {
+    public void orderTest() throws Exception{
         UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
-        //usdkOrderDO.setStatus(8);
-        //usdkOrderDO.setFee(BigDecimal.valueOf(0.01));
-        usdkOrderDO.setPrice(BigDecimal.valueOf(12));
+        usdkOrderDO.setPrice(BigDecimal.valueOf(2));
         usdkOrderDO.setAssetId(2);
         usdkOrderDO.setAssetName("ETH");
-        usdkOrderDO.setTotalAmount(BigDecimal.valueOf(14));
-        //usdkOrderDO.setUnfilledAmount(BigDecimal.valueOf(15));
+        usdkOrderDO.setTotalAmount(BigDecimal.valueOf(5));
         usdkOrderDO.setOrderType(1);
         usdkOrderDO.setOrderDirection(1);
-        usdkOrderDO.setUserId(3L);
+        usdkOrderDO.setUserId(9527L);
         UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
         BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
         log.info("======================="+usdkOrderDTO.getAssetName());
