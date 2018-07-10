@@ -1,5 +1,8 @@
 package com.fota.trade.manager;
 
+import com.alibaba.rocketmq.shade.com.alibaba.fastjson.JSONObject;
+import com.fota.client.domain.UsdkOrderDTO;
+import com.fota.trade.common.Constant;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.HashOperations;
@@ -49,6 +52,13 @@ public class RedisManager {
             log.error("redis get error", e);
             return null;
         }
+    }
+
+    public void usdkOrderSave(UsdkOrderDTO usdkOrderDTO){
+        Long count = getCount(Constant.REDIS_KEY);
+        String key = Constant.USDK_ORDER_HEAD + count;
+        String usdkOrderDTOStr = JSONObject.toJSONString(usdkOrderDTO);
+        set(key,usdkOrderDTOStr);
     }
 
     public Long getCount(final String redisKey) {

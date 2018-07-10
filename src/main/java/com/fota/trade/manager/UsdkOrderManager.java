@@ -146,11 +146,8 @@ public class UsdkOrderManager {
         BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
         if (ret > 0){
             resultCode = ResultCode.success();
-            Long count = redisManager.getCount(Constant.REDIS_KEY);
-            String key = Constant.USDK_ORDER_HEAD + count;
             usdkOrderDTO.setMatchAmount(BigDecimal.ZERO);
-            String usdkOrderDTOStr = JSONObject.toJSONString(usdkOrderDTO);
-            redisManager.set(key,usdkOrderDTOStr);
+            redisManager.usdkOrderSave(usdkOrderDTO);
             //todo 发送RocketMQ*/
 
         }else {
@@ -206,10 +203,7 @@ public class UsdkOrderManager {
             BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
             BigDecimal matchAmount = usdkOrderDTO.getTotalAmount().subtract(usdkOrderDTO.getUnfilledAmount());
             usdkOrderDTO.setMatchAmount(matchAmount);
-            Long count = redisManager.getCount(Constant.REDIS_KEY);
-            String key = Constant.USDK_ORDER_HEAD + count;
-            String usdkOrderDTOStr = JSONObject.toJSONString(usdkOrderDTO);
-            redisManager.set(key,usdkOrderDTOStr);
+            redisManager.usdkOrderSave(usdkOrderDTO);
             //todo 发送RocketMQ
             resultCode = ResultCode.success();
         }else {
@@ -232,18 +226,12 @@ public class UsdkOrderManager {
             if (ret != ResultCode.success().getCode() && ret != 8){
                 throw new RuntimeException("cancelAllOrder failed");
             }else if(ret == 0) {
-                //todo 放入缓存
-                BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
-                BigDecimal matchAmount = usdkOrderDTO.getTotalAmount().subtract(usdkOrderDTO.getUnfilledAmount());
-                usdkOrderDTO.setMatchAmount(matchAmount);
-                Long count = redisManager.getCount(Constant.REDIS_KEY);
-                String key = Constant.USDK_ORDER_HEAD + count;
-                String usdkOrderDTOStr = JSONObject.toJSONString(usdkOrderDTO);
-                redisManager.set(key,usdkOrderDTOStr);
+                resultCode = ResultCode.success();
+                //redisManager.usdkOrderSave(usdkOrderDTO);
                 //todo 发送RocketMQ
             }
         }
-        resultCode = ResultCode.success();
+
         return resultCode;
     }
 
