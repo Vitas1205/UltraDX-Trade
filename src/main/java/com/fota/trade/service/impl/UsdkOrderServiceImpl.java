@@ -1,18 +1,15 @@
 package com.fota.trade.service.impl;
 
 import com.fota.asset.domain.BalanceTransferDTO;
-import com.fota.asset.service.AssetService;
 import com.fota.asset.service.CapitalService;
 import com.fota.client.common.*;
-import com.fota.client.domain.UsdkMatchedOrderDTO;
-import com.fota.client.domain.UsdkOrderDTO;
-import com.fota.client.domain.query.UsdkOrderQuery;
-import com.fota.client.service.UsdkOrderService;
+
 import com.fota.thrift.ThriftJ;
 import com.fota.trade.common.BeanUtils;
 import com.fota.trade.common.Constant;
 import com.fota.trade.common.ParamUtil;
-import com.fota.trade.domain.UsdkOrderDO;
+import com.fota.trade.domain.*;
+import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.manager.UsdkOrderManager;
 import com.fota.trade.mapper.UsdkOrderMapper;
@@ -37,7 +34,7 @@ import java.util.List;
  */
 @Service
 @Data
-public class UsdkOrderServiceImpl implements UsdkOrderService {
+public class UsdkOrderServiceImpl implements com.fota.trade.service.UsdkOrderService.Iface {
 
     private static final Logger log = LoggerFactory.getLogger(UsdkOrderServiceImpl.class);
 
@@ -64,18 +61,17 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
 
 
     @Override
-    public Result<Page<UsdkOrderDTO>> listUsdkOrderByQuery(UsdkOrderQuery usdkOrderQuery) {
+    public UsdkOrderDTOPage listUsdkOrderByQuery(UsdkOrderQuery usdkOrderQuery) {
         Result<Page<UsdkOrderDTO>> result = Result.create();
         if (usdkOrderQuery == null || usdkOrderQuery.getUserId() == null || usdkOrderQuery.getUserId() <= 0) {
             return result.error(ResultCodeEnum.ILLEGAL_PARAM);
         }
         Page<UsdkOrderDTO> usdkOrderDTOPage = new Page<>();
-        if (usdkOrderQuery.getPageNo() == null || usdkOrderQuery.getPageNo() <= 0) {
+        if (usdkOrderQuery.getPageNo() <= 0) {
             usdkOrderQuery.setPageNo(Constant.DEFAULT_PAGE_NO);
         }
         usdkOrderDTOPage.setPageNo(usdkOrderQuery.getPageNo());
-        if (usdkOrderQuery.getPageSize() == null
-                || usdkOrderQuery.getPageSize() <= 0
+        if (usdkOrderQuery.getPageSize() <= 0
                 || usdkOrderQuery.getPageSize() > Constant.DEFAULT_MAX_PAGE_SIZE) {
             usdkOrderQuery.setPageSize(Constant.DEFAULT_MAX_PAGE_SIZE);
         }
@@ -113,7 +109,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     @Override
     public ResultCode order(UsdkOrderDTO usdkOrderDTO) {
         try {
-            ResultCode resultCode = usdkOrderManager.placeOrder(usdkOrderDTO);
+            ResultCode resultCode = usdkOrderManager.placeOrder(BeanUtils.copy(usdkOrderDTO));
             return resultCode;
         }catch (Exception e){
             log.error("USDK order() failed", e);
@@ -122,36 +118,40 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     }
 
     @Override
-    public ResultCode cancelOrder(Long userId, Long orderId) {
+    public ResultCode cancelOrder(long userId, long orderId) {
         try {
-            ResultCode resultCode = usdkOrderManager.cancelOrder(userId, orderId);
-            return resultCode;
+            return BeanUtils.copy(usdkOrderManager.cancelOrder(userId, orderId));
         }catch (Exception e){
             log.error("USDK cancelOrder() failed", e);
         }
-        return null;
+        ResultCode resultCode = new ResultCode();
+        resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
+        resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());
+        return resultCode;
     }
 
     @Override
-    public ResultCode cancelAllOrder(Long userId) {
+    public ResultCode cancelAllOrder(long userId) {
         try {
-            ResultCode resultCode = usdkOrderManager.cancelAllOrder(userId);
-            return resultCode;
+            return BeanUtils.copy(usdkOrderManager.cancelAllOrder(userId));
         }catch (Exception e){
             log.error("USDK cancelAllOrder() failed", e);
         }
-        return null;
+        ResultCode resultCode = new ResultCode();
+        resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
+        resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());
+        return resultCode;
     }
 
     @Override
     public ResultCode updateOrderByMatch(UsdkMatchedOrderDTO usdkMatchedOrderDTO) {
         if (usdkMatchedOrderDTO == null) {
-            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM);
+            return BeanUtils.copy(com.fota.client.common.ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM));
         }
-        UsdkOrderDTO askUsdkOrder = usdkMatchedOrderDTO.getAskUsdkOrder();
-        UsdkOrderDTO bidUsdkOrder = usdkMatchedOrderDTO.getBidUsdkOrder();
-        BigDecimal filledAmount = usdkMatchedOrderDTO.getFilledAmount();
-        BigDecimal filledPrice = usdkMatchedOrderDTO.getFilledPrice();
+        UsdkOrderDO askUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getAskOrderId());
+        UsdkOrderDO bidUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getBidOrderId());
+        BigDecimal filledAmount = new BigDecimal(usdkMatchedOrderDTO.getFilledAmount());
+        BigDecimal filledPrice = new BigDecimal(usdkMatchedOrderDTO.getFilledPrice());
         updateSingleOrderByFilledAmount(askUsdkOrder, filledAmount);
         updateSingleOrderByFilledAmount(bidUsdkOrder, filledAmount);
 
@@ -161,10 +161,9 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         // todo 卖币 ask +totalUsdk = filledAmount * filledPrice - filledAmount * filledPrice * feeRate
         // todo 卖币 ask -lockedAsset = filledAmount
         // todo 卖币 ask -totalAsset = filledAmount
-
         BigDecimal addBidTotalAsset = filledAmount.subtract(filledAmount.multiply(Constant.FEE_RATE));
         BigDecimal addTotalUsdk = filledAmount.multiply(filledPrice).negate();
-        BigDecimal addLockedUsdk = filledAmount.multiply(usdkMatchedOrderDTO.getBidOrderPrice());
+        BigDecimal addLockedUsdk = filledAmount.multiply(new BigDecimal(usdkMatchedOrderDTO.getBidOrderPrice()));
         BigDecimal addAskTotalUsdk = filledAmount.multiply(filledPrice).multiply(new BigDecimal("1").subtract(Constant.FEE_RATE));
         BigDecimal addLockedAsset = filledAmount.negate();
         BigDecimal addTotalAsset = filledAmount.negate();
@@ -178,43 +177,40 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         balanceTransferDTO.setAskLockedAsset(addLockedAsset.toString());
         balanceTransferDTO.setAskTotalAsset(addTotalAsset.toString());
         balanceTransferDTO.setAssetId(usdkMatchedOrderDTO.getAssetId());
-        balanceTransferDTO.setAskUserId(usdkMatchedOrderDTO.getAskUsdkOrder().getUserId());
-        balanceTransferDTO.setBidUserId(usdkMatchedOrderDTO.getBidUsdkOrder().getUserId());
+        balanceTransferDTO.setAskUserId(askUsdkOrder.getUserId());
+        balanceTransferDTO.setBidUserId(bidUsdkOrder.getUserId());
 
         boolean updateRet = false;
         try {
-
             updateRet = getService().updateBalance(balanceTransferDTO);
         } catch (TException e) {
             log.error("capitalService.updateBalance({})", balanceTransferDTO, e);
-            return ResultCode.error(ResultCodeEnum.SERVICE_EXCEPTION);
+            return BeanUtils.copy(com.fota.client.common.ResultCode.error(ResultCodeEnum.SERVICE_EXCEPTION));
         }
         if (!updateRet) {
-            return ResultCode.error(ResultCodeEnum.SERVICE_FAILED);
+            return BeanUtils.copy(com.fota.client.common.ResultCode.error(ResultCodeEnum.SERVICE_FAILED));
         }
 
         //todo 存redis，发消息？
 
-        return ResultCode.success();
+        return BeanUtils.copy(com.fota.client.common.ResultCode.success());
     }
 
     /**
      * 如果撮合的量等于unfilled的量，则更新状态为已成
      * 如果撮合的量小于unfilled的量并且状态为已报，增更新状态为部成，
      * 更新unfilledAmount为减去成交量后的值
-     * @param usdkOrderDTO
+     * @param usdkOrderDO
      * @param filledAmount
      * @return
      */
-    private int updateSingleOrderByFilledAmount(UsdkOrderDTO usdkOrderDTO, BigDecimal filledAmount) {
-        if (usdkOrderDTO.getUnfilledAmount().compareTo(filledAmount) == 0) {
-            usdkOrderDTO.setStatus(OrderStatusEnum.MATCH.getCode());
-        } else if (usdkOrderDTO.getStatus() == OrderStatusEnum.COMMIT.getCode()) {
-            usdkOrderDTO.setStatus(OrderStatusEnum.PART_MATCH.getCode());
+    private int updateSingleOrderByFilledAmount(UsdkOrderDO usdkOrderDO, BigDecimal filledAmount) {
+        if (usdkOrderDO.getUnfilledAmount().compareTo(filledAmount) == 0) {
+            usdkOrderDO.setStatus(OrderStatusEnum.MATCH.getCode());
+        } else if (usdkOrderDO.getStatus() == OrderStatusEnum.COMMIT.getCode()) {
+            usdkOrderDO.setStatus(OrderStatusEnum.PART_MATCH.getCode());
         }
-        usdkOrderDTO.setUnfilledAmount(usdkOrderDTO.getUnfilledAmount().subtract(filledAmount));
-        UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
-        BeanUtils.copy(usdkOrderDTO, usdkOrderDO);
+        usdkOrderDO.setUnfilledAmount(usdkOrderDO.getUnfilledAmount().subtract(filledAmount));
         return usdkOrderMapper.updateByPrimaryKey(usdkOrderDO);
     }
 }
