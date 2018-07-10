@@ -103,9 +103,15 @@ public class BeanUtils {
 
     public static UsdkOrderDO copy(UsdkOrderDTO usdkOrderDTO) {
         UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
-        usdkOrderDO.setId(usdkOrderDTO.getId());
-        usdkOrderDO.setGmtCreate(new Date(usdkOrderDTO.getGmtCreate()));
-        usdkOrderDO.setGmtModified(new Date(usdkOrderDTO.getGmtModified()));
+        if (usdkOrderDTO.getId() > 0) {
+            usdkOrderDO.setId(usdkOrderDTO.getId());
+        }
+        if (usdkOrderDTO.getGmtCreate() > 0) {
+            usdkOrderDO.setGmtCreate(new Date(usdkOrderDTO.getGmtCreate()));
+        }
+        if (usdkOrderDTO.getGmtModified() > 0) {
+            usdkOrderDO.setGmtModified(new Date(usdkOrderDTO.getGmtModified()));
+        }
         usdkOrderDO.setUserId(usdkOrderDTO.getUserId());
         usdkOrderDO.setAssetId(usdkOrderDTO.getAssetId());
         usdkOrderDO.setAssetName(usdkOrderDTO.getAssetName());
