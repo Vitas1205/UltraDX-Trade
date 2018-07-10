@@ -172,16 +172,16 @@
     select count(*)
     from trade_usdk_order
     where 1=1
-    <if test="assetId != null" >
+    <if test="assetId > 0" >
       and asset_id=#{assetId,jdbcType=INTEGER}
     </if>
-    <if test="userId != null" >
+    <if test="userId > 0" >
       and user_id=#{userId,jdbcType=BIGINT}
     </if>
-    <if test="startTime != null" >
+    <if test="startTime > 0" >
       and gmt_create > #{startTime,jdbcType=TIMESTAMP}
     </if>
-    <if test="endTime != null" >
+    <if test="endTime > 0" >
       and gmt_create &lt; #{endTime,jdbcType=TIMESTAMP}
     </if>
     <if test="orderStatus != null and orderStatus.size != 0" >
@@ -197,16 +197,16 @@
     <include refid="Base_Column_List"/>
     from trade_usdk_order
     where 1=1
-    <if test="assetId != null" >
+    <if test="assetId > 0" >
       and asset_id=#{assetId,jdbcType=INTEGER}
     </if>
-    <if test="userId != null" >
+    <if test="userId > 0" >
       and user_id=#{userId,jdbcType=BIGINT}
     </if>
-    <if test="startTime != null" >
+    <if test="startTime > 0" >
       and gmt_create > #{startTime,jdbcType=TIMESTAMP}
     </if>
-    <if test="endTime != null" >
+    <if test="endTime > 0" >
       and gmt_create &lt; #{endTime,jdbcType=TIMESTAMP}
     </if>
     <if test="orderStatus != null and orderStatus.size != 0" >
@@ -219,7 +219,10 @@
     limit #{startRow,jdbcType=INTEGER}, #{endRow,jdbcType=INTEGER}
   </select>
 
-  <select id="selectByUserID" resultType="com.fota.trade.domain.UsdkOrderDO">
+  <select id="
+
+
+" resultType="com.fota.trade.domain.UsdkOrderDO">
     SELECT
     <include refid="Base_Column_List" />
     FROM trade_usdk_order
