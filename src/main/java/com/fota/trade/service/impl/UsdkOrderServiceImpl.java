@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -62,11 +63,10 @@ public class UsdkOrderServiceImpl implements com.fota.trade.service.UsdkOrderSer
 
     @Override
     public UsdkOrderDTOPage listUsdkOrderByQuery(UsdkOrderQuery usdkOrderQuery) {
-        Result<Page<UsdkOrderDTO>> result = Result.create();
-        if (usdkOrderQuery == null || usdkOrderQuery.getUserId() == null || usdkOrderQuery.getUserId() <= 0) {
-            return result.error(ResultCodeEnum.ILLEGAL_PARAM);
+        UsdkOrderDTOPage usdkOrderDTOPage = new UsdkOrderDTOPage();
+        if (usdkOrderQuery == null || usdkOrderQuery.getUserId() <= 0) {
+            return usdkOrderDTOPage;
         }
-        Page<UsdkOrderDTO> usdkOrderDTOPage = new Page<>();
         if (usdkOrderQuery.getPageNo() <= 0) {
             usdkOrderQuery.setPageNo(Constant.DEFAULT_PAGE_NO);
         }
@@ -82,28 +82,27 @@ public class UsdkOrderServiceImpl implements com.fota.trade.service.UsdkOrderSer
             total = usdkOrderMapper.countByQuery(ParamUtil.objectToMap(usdkOrderQuery));
         } catch (Exception e) {
             log.error("usdkOrderMapper.countByQuery({})", usdkOrderQuery, e);
-            return result.error(ResultCodeEnum.DATABASE_EXCEPTION);
+            return usdkOrderDTOPage;
         }
         usdkOrderDTOPage.setTotal(total);
         if (total == 0) {
-            return result.success(usdkOrderDTOPage);
+            return usdkOrderDTOPage;
         }
         List<UsdkOrderDO> usdkOrderDOList = null;
         try {
             usdkOrderDOList = usdkOrderMapper.listByQuery(ParamUtil.objectToMap(usdkOrderQuery));
         } catch (Exception e) {
             log.error("usdkOrderMapper.listByQuery({})", usdkOrderQuery, e);
-            return result.error(ResultCodeEnum.DATABASE_EXCEPTION);
+            return usdkOrderDTOPage;
         }
-        List<UsdkOrderDTO> usdkOrderDTOList = null;
-        try {
-            usdkOrderDTOList = BeanUtils.copyList(usdkOrderDOList, UsdkOrderDTO.class);
-        } catch (Exception e) {
-            log.error("bean copy exception", e);
-            return result.error(ResultCodeEnum.BEAN_COPY_EXCEPTION);
+        List<UsdkOrderDTO> list = new ArrayList<>();
+        if (usdkOrderDOList != null && usdkOrderDOList.size() > 0) {
+            for (UsdkOrderDO usdkOrderDO : usdkOrderDOList) {
+                list.add(BeanUtils.copy(usdkOrderDO));
+            }
         }
-        usdkOrderDTOPage.setData(usdkOrderDTOList);
-        return result.success(usdkOrderDTOPage);
+        usdkOrderDTOPage.setData(list);
+        return usdkOrderDTOPage;
     }
 
     @Override
