@@ -73,7 +73,7 @@ public class UsdkTradeTest {
     }
 
     @Test
-    public void cancelTest(){
+    public void cancelTest() throws Exception{
         usdkOrderManager.cancelOrder(3L,7L);
     }
 
