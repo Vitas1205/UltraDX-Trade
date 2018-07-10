@@ -32,8 +32,8 @@ public class UserPositionMapperTest {
         userPositionDO.setUserId(9527L);
         userPositionDO.setContractId(1L);
         userPositionDO.setContractName("Test");
-        userPositionDO.setLockedAmount(new BigDecimal("0"));
-        userPositionDO.setUnfilledAmount(new BigDecimal("10"));
+        userPositionDO.setLockedAmount(5L);
+        userPositionDO.setUnfilledAmount(10L);
         userPositionDO.setPositionType(1);
         userPositionDO.setAveragePrice(new BigDecimal("13.123"));
         userPositionDO.setStatus(1);

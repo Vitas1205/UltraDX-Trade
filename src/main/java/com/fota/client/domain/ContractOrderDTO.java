@@ -23,13 +23,14 @@ public class ContractOrderDTO implements Serializable{
     private Integer operateType;
     private Integer operateDirection;
     private Integer lever;
-    private BigDecimal totalAmount;
-    private BigDecimal unfilledAmount;
+    private Long totalAmount;
+    private Long unfilledAmount;
     private Integer closeType;
     private BigDecimal price;
     private BigDecimal fee;
     private BigDecimal usdkLockedAmount;
     private BigDecimal positionLockedAmount;
     private Integer status;
+    private BigDecimal completeAmount;
 
 }

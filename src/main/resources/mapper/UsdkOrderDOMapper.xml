@@ -219,4 +219,12 @@
     limit #{startRow,jdbcType=INTEGER}, #{endRow,jdbcType=INTEGER}
   </select>
 
+  <select id="selectByUserID" resultType="com.fota.trade.domain.UsdkOrderDO">
+    SELECT
+    <include refid="Base_Column_List" />
+    FROM trade_usdk_order
+    WHERE user_id = #{userId}
+    ORDER BY id
+  </select>
+
 </mapper>

@@ -17,6 +17,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
     int deleteByPrimaryKey(Long id);
 
 
+    @Override
     @Insert({
         "insert into trade_contract_order (id, gmt_create, ",
         "gmt_modified, user_id, ",
@@ -52,6 +53,17 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
     @ResultMap("BaseResultMap")
     ContractOrderDO selectByPrimaryKey(Long id);
 
+    @Select({
+            "select",
+            "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, order_direction, ",
+            "operate_type, operate_direction, lever, total_amount, unfilled_amount, price, ",
+            "fee, usdk_locked_amount, position_locked_amount, status",
+            "from trade_contract_order",
+            "where id = #{id,jdbcType=BIGINT} and user_id =  #{userId,jdbcType=BIGINT}"
+    })
+    @ResultMap("BaseResultMap")
+    ContractOrderDO selectByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId);
+
 
     int updateByPrimaryKeySelective(ContractOrderDO record);
 
@@ -59,7 +71,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
     @Update({
         "update trade_contract_order",
         "set gmt_create = #{gmtCreate,jdbcType=TIMESTAMP},",
-          "gmt_modified = #{gmtModified,jdbcType=TIMESTAMP},",
+          "gmt_modified = now(),",
           "user_id = #{userId,jdbcType=BIGINT},",
           "contract_id = #{contractId,jdbcType=INTEGER},",
           "contract_name = #{contractName,jdbcType=VARCHAR},",
@@ -77,6 +89,28 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
         "where id = #{id,jdbcType=BIGINT}"
     })
     int updateByPrimaryKey(ContractOrderDO record);
+
+    @Update({
+            "update trade_contract_order",
+            "set gmt_create = #{gmtCreate,jdbcType=TIMESTAMP},",
+            "gmt_modified = now(),",
+            "user_id = #{userId,jdbcType=BIGINT},",
+            "contract_id = #{contractId,jdbcType=INTEGER},",
+            "contract_name = #{contractName,jdbcType=VARCHAR},",
+            "order_direction = #{orderDirection,jdbcType=TINYINT},",
+            "operate_type = #{operateType,jdbcType=TINYINT},",
+            "operate_direction = #{operateDirection,jdbcType=TINYINT},",
+            "lever = #{lever,jdbcType=INTEGER},",
+            "total_amount = #{totalAmount,jdbcType=BIGINT},",
+            "unfilled_amount = #{unfilledAmount,jdbcType=BIGINT},",
+            "price = #{price,jdbcType=DECIMAL},",
+            "fee = #{fee,jdbcType=DECIMAL},",
+            "usdk_locked_amount = #{usdkLockedAmount,jdbcType=DECIMAL},",
+            "position_locked_amount = #{positionLockedAmount,jdbcType=DECIMAL},",
+            "status = #{status,jdbcType=INTEGER}",
+            "where id = #{id,jdbcType=BIGINT and user_id = #{userId,jdbcType=BIGINT} and gmt_modified = #{gmtModified,jdbcType=TIMESTAMP}}"
+    })
+    int updateByOpLock(ContractOrderDO record);
 
     List<ContractOrderDO> notMatchOrderList(
             @Param("placeOrder") Integer placeOrder, @Param("partialSuccess") Integer partialSuccess,

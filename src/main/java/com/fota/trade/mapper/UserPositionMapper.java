@@ -34,14 +34,24 @@ public interface UserPositionMapper {
     int insertSelective(UserPositionDO record);
 
     @Select({
-        "select",
-        "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, locked_amount, ",
-        "unfilled_amount, position_type, status",
-        "from trade_user_position",
-        "where id = #{id,jdbcType=BIGINT}"
+            "select",
+            "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, locked_amount, ",
+            "unfilled_amount, position_type, status",
+            "from trade_user_position",
+            "where id = #{id,jdbcType=BIGINT}"
     })
     @ResultMap("BaseResultMap")
     UserPositionDO selectByPrimaryKey(Long id);
+
+    @Select({
+            "select",
+            "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, locked_amount, ",
+            "unfilled_amount, position_type, status",
+            "from trade_user_position",
+            "where contrant_id = #{contrantId,jdbcType=BIGINT} and user_id = #{userId,jdbcType=BIGINT}"
+    })
+    @ResultMap("BaseResultMap")
+    UserPositionDO selectByUserIdAndId(@Param("userId") Long userId, @Param("contrantId") Integer contrantId);
 
     int updateByPrimaryKeySelective(UserPositionDO record);
 
@@ -59,6 +69,21 @@ public interface UserPositionMapper {
         "where id = #{id,jdbcType=BIGINT}"
     })
     int updateByPrimaryKey(UserPositionDO record);
+
+    @Update({
+            "update trade_user_position",
+            "set gmt_create = #{gmtCreate,jdbcType=TIMESTAMP},",
+            "gmt_modified = now(),",
+            "user_id = #{userId,jdbcType=BIGINT},",
+            "contract_id = #{contractId,jdbcType=INTEGER},",
+            "contract_name = #{contractName,jdbcType=VARCHAR},",
+            "locked_amount = #{lockedAmount,jdbcType=DECIMAL},",
+            "unfilled_amount = #{unfilledAmount,jdbcType=DECIMAL},",
+            "position_type = #{positionType,jdbcType=INTEGER},",
+            "status = #{status,jdbcType=INTEGER}",
+            "where id = #{id,jdbcType=BIGINT} and user_id = #{userId} and gmt_modified = #{gmtModified,jdbcType=TIMESTAMP}"
+    })
+    int updateByOpLock(UserPositionDO record);
 
 
     int countByQuery(Map<String, Object> param);

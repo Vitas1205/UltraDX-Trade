@@ -12,6 +12,7 @@ spring:
     redis:
       port: 6379
       host: 39.104.117.144
+      password:
     cloud:
       config:
         allow-override: true # 远端配置是否允许覆盖，默认是 true
