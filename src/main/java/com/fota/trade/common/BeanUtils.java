@@ -1,9 +1,13 @@
 package com.fota.trade.common;
 
+import com.fota.trade.domain.ContractCategoryDO;
+import com.fota.trade.domain.ContractCategoryDTO;
 import org.springframework.beans.BeansException;
 import org.springframework.util.CollectionUtils;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -30,5 +34,41 @@ public class BeanUtils {
 
     public static void copy(Object source, Object target) throws BeansException {
         org.springframework.beans.BeanUtils.copyProperties(source, target);
+    }
+
+
+//    private Long id;
+//    private Date gmtCreate;
+//    private Date gmtModified;
+//    private String contractName;
+//    private Integer assetId;
+//    private String assetName;
+//    private Long totalAmount;
+//    private Long unfilledAmount;
+//    private Date deliveryDate;
+//    private Integer status;
+//    private Integer contractType;
+//    private BigDecimal price;
+    public static ContractCategoryDTO copy(ContractCategoryDO contractCategoryDO) {
+        ContractCategoryDTO contractCategoryDTO = new ContractCategoryDTO();
+//        copy(contractCategoryDO, contractCategoryDTO);
+
+        contractCategoryDTO.setId(contractCategoryDO.getId());
+        contractCategoryDTO.setGmtCreate(contractCategoryDO.getGmtCreate().getTime());
+        contractCategoryDTO.setGmtModified(contractCategoryDO.getGmtModified().getTime());
+        contractCategoryDTO.setContractName(contractCategoryDO.getContractName());
+        contractCategoryDTO.setAssetId(contractCategoryDO.getAssetId());
+        contractCategoryDTO.setTotalAmount(contractCategoryDO.getTotalAmount());
+        contractCategoryDTO.setUnfilledAmount(contractCategoryDO.getUnfilledAmount());
+        contractCategoryDTO.setDeliveryDate(contractCategoryDO.getDeliveryDate().getTime());
+        contractCategoryDTO.setStatus(contractCategoryDO.getStatus());
+        contractCategoryDTO.setContractType(contractCategoryDO.getContractType());
+        return contractCategoryDTO;
+    }
+
+    public static ContractCategoryDO copy(ContractCategoryDTO contractCategoryDTO) {
+        ContractCategoryDO contractCategoryDO = new ContractCategoryDO();
+
+        return contractCategoryDO;
     }
 }

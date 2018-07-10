@@ -18,6 +18,7 @@ public class UsdkMatchedOrderDTO {
     private BigDecimal bidOrderPrice;
     private BigDecimal filledPrice;
     private BigDecimal filledAmount;
+    private Integer assetId;
     private String assetName;
     private Date gmtCreate;
     private UsdkOrderDTO askUsdkOrder;

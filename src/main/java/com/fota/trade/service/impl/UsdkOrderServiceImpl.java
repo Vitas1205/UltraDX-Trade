@@ -1,10 +1,14 @@
 package com.fota.trade.service.impl;
 
+import com.fota.asset.domain.BalanceTransferDTO;
+import com.fota.asset.service.AssetService;
+import com.fota.asset.service.CapitalService;
 import com.fota.client.common.*;
 import com.fota.client.domain.UsdkMatchedOrderDTO;
 import com.fota.client.domain.UsdkOrderDTO;
 import com.fota.client.domain.query.UsdkOrderQuery;
 import com.fota.client.service.UsdkOrderService;
+import com.fota.thrift.ThriftJ;
 import com.fota.trade.common.BeanUtils;
 import com.fota.trade.common.Constant;
 import com.fota.trade.common.ParamUtil;
@@ -13,11 +17,14 @@ import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.manager.UsdkOrderManager;
 import com.fota.trade.mapper.UsdkOrderMapper;
 import lombok.Data;
+import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -34,13 +41,26 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
 
     private static final Logger log = LoggerFactory.getLogger(UsdkOrderServiceImpl.class);
 
-
     @Autowired
     private UsdkOrderMapper usdkOrderMapper;
 
     @Autowired
     private UsdkOrderManager usdkOrderManager;
 
+    @Autowired
+    private ThriftJ thriftJ;
+    @Value("${fota.asset.server.thrift.port}")
+    private int thriftPort;
+    @PostConstruct
+    public void init() {
+        thriftJ.initService("FOTA-ASSET", thriftPort);
+    }
+    private CapitalService.Client getService() {
+        CapitalService.Client serviceClient =
+                thriftJ.getServiceClient("FOTA-ASSET")
+                        .iface(CapitalService.Client.class, "capitalService");
+        return serviceClient;
+    }
 
 
     @Override
@@ -135,9 +155,34 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         BigDecimal addAskTotalUsdk = filledAmount.multiply(filledPrice).multiply(new BigDecimal("1").subtract(Constant.FEE_RATE));
         BigDecimal addLockedAsset = filledAmount.negate();
         BigDecimal addTotalAsset = filledAmount.negate();
-        boolean balanceRet = false;
-        //todo 调用资产变更接口
-        return null;
+
+        BalanceTransferDTO balanceTransferDTO = new BalanceTransferDTO();
+
+        balanceTransferDTO.setBidTotalAsset(addBidTotalAsset.toString());
+        balanceTransferDTO.setBidTotalUsdk(addTotalUsdk.toString());
+        balanceTransferDTO.setBidLockedUsdk(addLockedUsdk.toString());
+        balanceTransferDTO.setAskTotalUsdk(addAskTotalUsdk.toString());
+        balanceTransferDTO.setAskLockedAsset(addLockedAsset.toString());
+        balanceTransferDTO.setAskTotalAsset(addTotalAsset.toString());
+        balanceTransferDTO.setAssetId(usdkMatchedOrderDTO.getAssetId());
+        balanceTransferDTO.setAskUserId(usdkMatchedOrderDTO.getAskUsdkOrder().getUserId());
+        balanceTransferDTO.setBidUserId(usdkMatchedOrderDTO.getBidUsdkOrder().getUserId());
+
+        boolean updateRet = false;
+        try {
+
+            updateRet = getService().updateBalance(balanceTransferDTO);
+        } catch (TException e) {
+            log.error("capitalService.updateBalance({})", balanceTransferDTO, e);
+            return ResultCode.error(ResultCodeEnum.SERVICE_EXCEPTION);
+        }
+        if (!updateRet) {
+            return ResultCode.error(ResultCodeEnum.SERVICE_FAILED);
+        }
+
+        //todo 存redis，发消息？
+
+        return ResultCode.success();
     }
 
     /**

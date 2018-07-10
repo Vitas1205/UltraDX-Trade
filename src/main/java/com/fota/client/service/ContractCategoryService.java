@@ -31,6 +31,13 @@ public interface ContractCategoryService {
     ContractCategoryDO getContractById(Long id);
 
     /**
+     * 根据合约id获取合约详情
+     * @param id
+     * @return
+     */
+    ContractCategoryDO getPreviousContract(Long id);
+
+    /**
      * 创建合约
      * @param contractCategoryDO
      * @return

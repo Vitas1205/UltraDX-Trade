@@ -62,15 +62,18 @@ public class UsdkOrderServiceTest {
     @Test
     public void testUpdateOrderByMatch() throws Exception {
 
-        UsdkOrderDO askUsdkOrderDO = usdkOrderMapper.selectByPrimaryKey(1L);
+        UsdkOrderDO askUsdkOrderDO = usdkOrderMapper.selectByPrimaryKey(8L);
         UsdkOrderDTO askUsdkOrderDTO = new UsdkOrderDTO();
         BeanUtils.copy(askUsdkOrderDO, askUsdkOrderDTO);
-        UsdkOrderDO bidUsdkOrderDO = usdkOrderMapper.selectByPrimaryKey(2L);
+        UsdkOrderDO bidUsdkOrderDO = usdkOrderMapper.selectByPrimaryKey(9L);
         UsdkOrderDTO bidUsdkOrderDTO = new UsdkOrderDTO();
         BeanUtils.copy(bidUsdkOrderDO, bidUsdkOrderDTO);
         UsdkMatchedOrderDTO usdkMatchedOrderDTO = new UsdkMatchedOrderDTO();
         usdkMatchedOrderDTO.setFilledAmount(new BigDecimal("1"));
         usdkMatchedOrderDTO.setFilledPrice(new BigDecimal("11"));
+        usdkMatchedOrderDTO.setBidOrderPrice(new BigDecimal("12"));
+        usdkMatchedOrderDTO.setAssetId(1);
+
         usdkMatchedOrderDTO.setAskUsdkOrder(askUsdkOrderDTO);
         usdkMatchedOrderDTO.setBidUsdkOrder(bidUsdkOrderDTO);
         ResultCode resultCode = usdkOrderService.updateOrderByMatch(usdkMatchedOrderDTO);

@@ -3,7 +3,9 @@ package com.fota.client.service;
 import com.fota.client.common.Page;
 import com.fota.client.common.Result;
 import com.fota.client.common.ResultCode;
+import com.fota.client.domain.ContractMatchedOrderDTO;
 import com.fota.client.domain.ContractOrderDTO;
+import com.fota.client.domain.UsdkMatchedOrderDTO;
 import com.fota.client.domain.query.ContractOrderQuery;
 import com.fota.trade.domain.ContractOrderDO;
 
@@ -47,5 +49,11 @@ public interface ContractOrderService {
      * @return
      */
     ResultCode cancelAllOrder(Long userId);
+
+    /**
+     * 根据成交更新订单的信息
+     * @return
+     */
+    ResultCode updateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO);
 
 }
