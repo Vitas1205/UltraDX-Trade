@@ -1,6 +1,7 @@
 package com.fota.trade.common;
 
 import com.fota.client.common.*;
+import com.fota.client.domain.ContractOrderDTO;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.ResultCode;
 import org.springframework.beans.BeansException;
@@ -140,13 +141,13 @@ public class BeanUtils {
         return targetResultCode;
     }
 
-    public static ContractOrderDTO copy(ContractOrderDO contractOrderDO) {
-        ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
+    public static com.fota.trade.domain.ContractOrderDTO copy(ContractOrderDO contractOrderDO) {
+        com.fota.trade.domain.ContractOrderDTO contractOrderDTO = new com.fota.trade.domain.ContractOrderDTO();
         contractOrderDTO.setId(contractOrderDO.getId());
         contractOrderDTO.setGmtCreate(contractOrderDO.getGmtCreate().getTime());
         contractOrderDTO.setGmtModified(contractOrderDO.getGmtModified().getTime());
         contractOrderDTO.setUserId(contractOrderDO.getUserId());
-        contractOrderDTO.setContractId(contractOrderDO.getContractId());
+        contractOrderDTO.setContractId(contractOrderDO.getContractId().intValue());
         contractOrderDTO.setContractName(contractOrderDO.getContractName());
         contractOrderDTO.setOrderDirection(contractOrderDO.getOrderDirection());
         contractOrderDTO.setOrderType(contractOrderDO.getOrderType());
@@ -159,7 +160,7 @@ public class BeanUtils {
         return contractOrderDTO;
     }
 
-    public static ContractOrderDO copy(ContractOrderDTO contractOrderDTO) {
+    public static ContractOrderDO copy(com.fota.trade.domain.ContractOrderDTO contractOrderDTO) {
         ContractOrderDO contractOrderDO = new ContractOrderDO();
         if (contractOrderDO.getId() > 0) {
             contractOrderDO.setId(contractOrderDO.getId());
@@ -171,7 +172,7 @@ public class BeanUtils {
             contractOrderDO.setGmtModified(new Date(contractOrderDTO.getGmtModified()));
         }
         contractOrderDO.setUserId(contractOrderDTO.getUserId());
-        contractOrderDO.setContractId(contractOrderDTO.getContractId());
+        contractOrderDO.setContractId((long)contractOrderDTO.getContractId());
         contractOrderDO.setContractName(contractOrderDTO.getContractName());
         contractOrderDO.setOrderDirection(contractOrderDTO.getOrderDirection());
         contractOrderDO.setOrderType(contractOrderDTO.getOrderType());

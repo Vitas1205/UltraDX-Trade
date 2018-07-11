@@ -1,6 +1,7 @@
 package com.fota.trade.manager;
 
 import com.alibaba.rocketmq.shade.com.alibaba.fastjson.JSONObject;
+import com.fota.client.domain.ContractOrderDTO;
 import com.fota.client.domain.UsdkOrderDTO;
 import com.fota.trade.common.Constant;
 import lombok.extern.slf4j.Slf4j;
@@ -58,6 +59,13 @@ public class RedisManager {
         Long count = getCount(Constant.REDIS_KEY);
         String key = Constant.USDK_ORDER_HEAD + count;
         String usdkOrderDTOStr = JSONObject.toJSONString(usdkOrderDTO);
+        set(key,usdkOrderDTOStr);
+    }
+
+    public void contractOrderSave(ContractOrderDTO contractOrderDTO){
+        Long count = getCount(Constant.REDIS_KEY);
+        String key = Constant.USDK_ORDER_HEAD + count;
+        String usdkOrderDTOStr = JSONObject.toJSONString(contractOrderDTO);
         set(key,usdkOrderDTOStr);
     }
 

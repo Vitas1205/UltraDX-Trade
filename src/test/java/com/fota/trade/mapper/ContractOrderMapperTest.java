@@ -34,11 +34,10 @@ public class ContractOrderMapperTest {
     public void testInsert() throws Exception {
         ContractOrderDO contractOrderDO = new ContractOrderDO();
         contractOrderDO.setCloseType(0);
-        contractOrderDO.setContractId(1);
+        contractOrderDO.setContractId(1L);
         contractOrderDO.setContractName("BTC0930");
         contractOrderDO.setFee(new BigDecimal("0.01"));
         contractOrderDO.setLever(10);
-
         contractOrderDO.setOrderDirection(OrderDirectionEnum.ASK.getCode());
         contractOrderDO.setPrice(new BigDecimal("6000.1"));
         contractOrderDO.setTotalAmount(100L);

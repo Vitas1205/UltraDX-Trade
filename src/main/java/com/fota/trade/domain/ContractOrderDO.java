@@ -15,7 +15,7 @@ public class ContractOrderDO {
     private Date gmtCreate;
     private Date gmtModified;
     private Long userId;
-    private Integer contractId;
+    private Long contractId;
     private String contractName;
     private Integer orderDirection;
     private Integer orderType;

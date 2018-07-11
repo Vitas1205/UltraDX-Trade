@@ -11,6 +11,7 @@ import com.fota.trade.common.ParamUtil;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.enums.OrderStatusEnum;
+import com.fota.trade.manager.RedisManager;
 import com.fota.trade.manager.UsdkOrderManager;
 import com.fota.trade.mapper.UsdkOrderMapper;
 import lombok.Data;
@@ -20,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
@@ -44,6 +46,9 @@ public class UsdkOrderServiceImpl implements com.fota.trade.service.UsdkOrderSer
 
     @Autowired
     private UsdkOrderManager usdkOrderManager;
+
+    @Autowired
+    RedisManager redisManager;
 
     @Autowired
     private ThriftJ thriftJ;
@@ -147,16 +152,21 @@ public class UsdkOrderServiceImpl implements com.fota.trade.service.UsdkOrderSer
     }
 
     @Override
+    //@Transactional(rollbackFor = {Exception.class,RuntimeException.class})
     public ResultCode updateOrderByMatch(UsdkMatchedOrderDTO usdkMatchedOrderDTO) {
         if (usdkMatchedOrderDTO == null) {
             return BeanUtils.copy(com.fota.client.common.ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM));
         }
+        com.fota.client.domain.UsdkOrderDTO bidUsdkOrderDTO = new com.fota.client.domain.UsdkOrderDTO();
+        com.fota.client.domain.UsdkOrderDTO askUsdkOrderDTO = new com.fota.client.domain.UsdkOrderDTO();
         UsdkOrderDO askUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getAskOrderId());
         UsdkOrderDO bidUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getBidOrderId());
         BigDecimal filledAmount = new BigDecimal(usdkMatchedOrderDTO.getFilledAmount());
         BigDecimal filledPrice = new BigDecimal(usdkMatchedOrderDTO.getFilledPrice());
         updateSingleOrderByFilledAmount(askUsdkOrder, filledAmount);
         updateSingleOrderByFilledAmount(bidUsdkOrder, filledAmount);
+
+
 
         // todo 买币 bid +totalAsset = filledAmount - filledAmount * feeRate
         // todo 买币 bid -totalUsdk = filledAmount * filledPrice
@@ -165,11 +175,11 @@ public class UsdkOrderServiceImpl implements com.fota.trade.service.UsdkOrderSer
         // todo 卖币 ask -lockedAsset = filledAmount
         // todo 卖币 ask -totalAsset = filledAmount
         BigDecimal addBidTotalAsset = filledAmount.subtract(filledAmount.multiply(Constant.FEE_RATE));
-        BigDecimal addTotalUsdk = filledAmount.multiply(filledPrice).negate();
+        BigDecimal addTotalUsdk = filledAmount.multiply(filledPrice);
         BigDecimal addLockedUsdk = filledAmount.multiply(new BigDecimal(usdkMatchedOrderDTO.getBidOrderPrice()));
         BigDecimal addAskTotalUsdk = filledAmount.multiply(filledPrice).multiply(new BigDecimal("1").subtract(Constant.FEE_RATE));
-        BigDecimal addLockedAsset = filledAmount.negate();
-        BigDecimal addTotalAsset = filledAmount.negate();
+        BigDecimal addLockedAsset = filledAmount;
+        BigDecimal addTotalAsset = filledAmount;
 
         BalanceTransferDTO balanceTransferDTO = new BalanceTransferDTO();
 
@@ -195,7 +205,12 @@ public class UsdkOrderServiceImpl implements com.fota.trade.service.UsdkOrderSer
         }
 
         //todo 存redis，发消息？
-
+        org.springframework.beans.BeanUtils.copyProperties(askUsdkOrder, askUsdkOrderDTO);
+        org.springframework.beans.BeanUtils.copyProperties(bidUsdkOrder, bidUsdkOrderDTO);
+        askUsdkOrderDTO.setMatchAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
+        bidUsdkOrderDTO.setMatchAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
+        redisManager.usdkOrderSave(askUsdkOrderDTO);
+        redisManager.usdkOrderSave(bidUsdkOrderDTO);
         return BeanUtils.copy(com.fota.client.common.ResultCode.success());
     }
 

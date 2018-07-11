@@ -49,7 +49,7 @@ public class UsdkOrderManager {
     private RedisCache redisCache;
 
     @Autowired
-    RedisManager redisManager;
+    private RedisManager redisManager;
 
     @Autowired
     private ThriftJ thriftJ;
@@ -146,7 +146,7 @@ public class UsdkOrderManager {
         BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
         if (ret > 0){
             resultCode = ResultCode.success();
-            usdkOrderDTO.setMatchAmount(BigDecimal.ZERO);
+            usdkOrderDTO.setCompleteAmount(BigDecimal.ZERO);
             redisManager.usdkOrderSave(usdkOrderDTO);
             //todo 发送RocketMQ*/
 
@@ -202,7 +202,7 @@ public class UsdkOrderManager {
             UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
             BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
             BigDecimal matchAmount = usdkOrderDTO.getTotalAmount().subtract(usdkOrderDTO.getUnfilledAmount());
-            usdkOrderDTO.setMatchAmount(matchAmount);
+            usdkOrderDTO.setCompleteAmount(matchAmount);
             redisManager.usdkOrderSave(usdkOrderDTO);
             //todo 发送RocketMQ
             resultCode = ResultCode.success();
@@ -213,12 +213,11 @@ public class UsdkOrderManager {
         return resultCode;
     }
 
-    @Transactional(rollbackFor={RuntimeException.class, Exception.class})
+
     public ResultCode cancelAllOrder(Long userId) throws Exception{
         ResultCode resultCode = null;
         List<UsdkOrderDO> list = usdkOrderMapper.selectByUserId(userId);
-        int ret = 0;
-        UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
+        int ret = -1;
         for(UsdkOrderDO usdkOrderDO : list){
             Long orderId = usdkOrderDO.getId();
             resultCode = cancelOrder(userId, orderId);
@@ -227,7 +226,6 @@ public class UsdkOrderManager {
                 throw new RuntimeException("cancelAllOrder failed");
             }else if(ret == 0) {
                 resultCode = ResultCode.success();
-                //redisManager.usdkOrderSave(usdkOrderDTO);
                 //todo 发送RocketMQ
             }
         }
