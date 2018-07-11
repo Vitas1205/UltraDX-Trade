@@ -1,6 +1,7 @@
 package com.fota.trade.common;
 
 import com.fota.client.common.*;
+import com.fota.client.domain.ContractOrderDTO;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.ResultCode;
 import org.springframework.beans.BeansException;
@@ -123,6 +124,12 @@ public class BeanUtils {
         usdkOrderDO.setFee(new BigDecimal(usdkOrderDTO.getFee()));
         usdkOrderDO.setStatus(usdkOrderDTO.getStatus());
         return usdkOrderDO;
+    }
+
+    public static ContractOrderDO copy(ContractOrderDTO contractOrderDTO) {
+        ContractOrderDO contractOrderDO = new ContractOrderDO();
+        //todo
+        return contractOrderDO;
     }
 
     public static ResultCode copy(com.fota.client.common.ResultCode resultCode) {

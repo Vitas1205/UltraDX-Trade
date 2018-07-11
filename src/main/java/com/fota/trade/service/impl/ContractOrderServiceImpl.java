@@ -97,7 +97,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     public ResultCode order(ContractOrderDTO contractOrderDTO) {
         try {
             ResultCode resultCode = new ResultCode();
-            resultCode = contractOrderManager.placeOrder(contractOrderDTO);
+            resultCode = contractOrderManager.placeOrder(BeanUtils.copy(contractOrderDTO));
             return resultCode;
         }catch (Exception e){
             log.error("Contract order() failed", e);
@@ -121,6 +121,8 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     public ResultCode cancelAllOrder(Long userId) {
         return null;
     }
+
+
 
     @Override
     public ResultCode updateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO) {

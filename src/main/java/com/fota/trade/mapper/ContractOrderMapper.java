@@ -64,6 +64,28 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
     @ResultMap("BaseResultMap")
     ContractOrderDO selectByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId);
 
+    @Select({
+            "select",
+            "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, order_direction, ",
+            "operate_type, operate_direction, lever, total_amount, unfilled_amount, price, ",
+            "fee, usdk_locked_amount, position_locked_amount, status",
+            "from trade_contract_order",
+            "where contract_id = #{contractId,jdbcType=BIGINT} and user_id =  #{userId,jdbcType=BIGINT}"
+    })
+    @ResultMap("BaseResultMap")
+    List<ContractOrderDO> selectByContractIdAndUserId(@Param("contractId") Long contractId, @Param("userId") Long userId);
+
+    @Select({
+            "select",
+            "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, order_direction, ",
+            "operate_type, operate_direction, lever, total_amount, unfilled_amount, price, ",
+            "fee, usdk_locked_amount, position_locked_amount, status",
+            "from trade_contract_order",
+            "where user_id =  #{userId,jdbcType=BIGINT}"
+    })
+    @ResultMap("BaseResultMap")
+    List<ContractOrderDO> selectByUserId(Long userId);
+
 
     int updateByPrimaryKeySelective(ContractOrderDO record);
 
