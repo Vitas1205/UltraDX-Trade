@@ -185,4 +185,19 @@ public class BeanUtils {
         return contractOrderDO;
     }
 
+    public static UserPositionDTO copy(UserPositionDO userPositionDO) {
+        UserPositionDTO userPositionDTO = new UserPositionDTO();
+        userPositionDTO.setId(userPositionDO.getId());
+        userPositionDTO.setGmtCreate(userPositionDO.getGmtCreate().getTime());
+        userPositionDTO.setGmtModified(userPositionDO.getGmtModified().getTime());
+        userPositionDTO.setUserId(userPositionDO.getUserId());
+        userPositionDTO.setContractId(Integer.valueOf(String.valueOf(userPositionDO.getContractId())));
+        userPositionDTO.setContractName(userPositionDO.getContractName());
+        userPositionDTO.setPositionType(userPositionDO.getPositionType());
+        userPositionDTO.setAveragePrice(userPositionDO.getAveragePrice().toString());
+        return userPositionDTO;
+    }
+
+
+
 }

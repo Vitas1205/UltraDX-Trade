@@ -65,6 +65,8 @@ public class ContractOrderServiceImpl implements com.fota.trade.service.Contract
         }
         contractOrderDTOPage.setPageNo(contractOrderQueryDTO.getPageNo());
         contractOrderDTOPage.setPageSize(contractOrderQueryDTO.getPageSize());
+        contractOrderQueryDTO.setStartRow((contractOrderQueryDTO.getPageNo() - 1) * contractOrderQueryDTO.getPageSize());
+        contractOrderQueryDTO.setEndRow(contractOrderQueryDTO.getStartRow() + contractOrderQueryDTO.getPageSize());
         int total = 0;
         try {
             total = contractOrderMapper.countByQuery(ParamUtil.objectToMap(contractOrderQueryDTO));
@@ -98,7 +100,7 @@ public class ContractOrderServiceImpl implements com.fota.trade.service.Contract
 //            return contractOrderDTOPageRet
 //        }
         contractOrderDTOPage.setData(list);
-        return contractOrderDTOPageRet;
+        return contractOrderDTOPage;
     }
 
     @Override

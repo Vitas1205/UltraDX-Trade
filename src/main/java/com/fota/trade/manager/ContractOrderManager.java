@@ -208,8 +208,13 @@ public class ContractOrderManager {
         List<UserPositionDO> positionDOlist = userPositionMapper.selectByUserId(userId);
         if (positionDOlist != null){
             for (UserPositionDO userPositionDO : positionDOlist){
-                Integer positionType = userPositionDO.getPositionType();
+                Integer lever = userPositionDO.getLever();
                 Long positionAmount = userPositionDO.getUnfilledAmount();
+                //todo 获取ContractValue计算保证金
+                BigDecimal contractValue = BigDecimal.ZERO;
+                BigDecimal earnestAmount = getEarnestAmount(userPositionDO.getContractId(), lever, positionAmount, contractValue);
+                Integer positionType = userPositionDO.getPositionType();
+
                 Long contractId = userPositionDO.getContractId();
                 //获取对应合约的委托列表
                 List<ContractOrderDO> orderList = contractOrderMapper.selectByContractIdAndUserId(contractId, userId);
@@ -239,27 +244,7 @@ public class ContractOrderManager {
                     if (bidOrderList != null){
                         bidOrderList = sortList(bidOrderList);
                     }
-                    if (positionType == 1){
-                        if (askOrderList != null && bidOrderList != null){
 
-                        }else if (askOrderList != null && bidOrderList == null){
-
-                        }else if (askOrderList == null && bidOrderList != null){
-
-                        }else {
-
-                        }
-                    }else if (positionType == 2){
-                        if (askOrderList != null && bidOrderList != null){
-
-                        }else if (askOrderList != null && bidOrderList == null){
-
-                        }else if (askOrderList == null && bidOrderList != null){
-
-                        }else {
-
-                        }
-                    }
                 }
 
             }
@@ -271,9 +256,6 @@ public class ContractOrderManager {
         return totalLockAmount;
     }
 
-    public void dealOrderList(List<ContractOrderDO> orderList, Long MyContractId){
-
-    }
 
     public List<ContractOrderDO> sortList(List<ContractOrderDO> list){
         List<ContractOrderDO> sortedList = list.stream()
@@ -282,6 +264,9 @@ public class ContractOrderManager {
         return sortedList;
     }
 
+    /*public BigDecimal  getLockAmount(Integer positionType, List<ContractOrderDO> askOrderList, ){
+        BigDecimal lockAmount;
 
+    }*/
 
 }
