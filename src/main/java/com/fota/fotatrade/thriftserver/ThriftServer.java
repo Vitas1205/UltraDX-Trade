@@ -61,9 +61,9 @@ public class ThriftServer implements Runnable {
 
         try {
             TMultiplexedProcessor multiplexedProcessor = new TMultiplexedProcessor();
-            TProcessor assetService = new ContractCategoryService.Processor<ContractCategoryService.Iface>(contractCategoryServiceImpl);
+            TProcessor contractCategoryService = new ContractCategoryService.Processor<ContractCategoryService.Iface>(contractCategoryServiceImpl);
             TProcessor usdkOrderService = new UsdkOrderService.Processor<UsdkOrderService.Iface>(usdkOrderServiceImpl);
-            multiplexedProcessor.registerProcessor("assetService", assetService);
+            multiplexedProcessor.registerProcessor("contractCategoryService", contractCategoryService);
             multiplexedProcessor.registerProcessor("usdkOrderService", usdkOrderService);
             TNonblockingServerSocket serverTransport = new TNonblockingServerSocket(serverPort);
             LOGGER.info("server port " + serverPort);

@@ -78,11 +78,14 @@ public class ContractCategoryServiceImpl implements com.fota.trade.service.Contr
             return null;
         }
         try {
-            return BeanUtils.copy(contractCategoryMapper.selectByPrimaryKey(id));
+            ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(id);
+            if (contractCategoryDO != null) {
+                return BeanUtils.copy(contractCategoryDO);
+            }
         } catch (Exception e) {
             log.error("contractCategoryMapper.selectByPrimaryKey({})", id, e);
         }
-        return null;
+        return new ContractCategoryDTO();
     }
 
     @Override

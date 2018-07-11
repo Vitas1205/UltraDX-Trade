@@ -18,6 +18,7 @@ public class ContractOrderDO {
     private Integer contractId;
     private String contractName;
     private Integer orderDirection;
+    private Integer orderType;
     private Integer operateType;
     private Integer operateDirection;
     private Integer lever;

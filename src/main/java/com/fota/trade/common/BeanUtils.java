@@ -45,6 +45,7 @@ public class BeanUtils {
         contractCategoryDTO.setGmtModified(contractCategoryDO.getGmtModified().getTime());
         contractCategoryDTO.setContractName(contractCategoryDO.getContractName());
         contractCategoryDTO.setAssetId(contractCategoryDO.getAssetId());
+        contractCategoryDTO.setAssetName(contractCategoryDO.getAssetName());
         contractCategoryDTO.setTotalAmount(contractCategoryDO.getTotalAmount());
         contractCategoryDTO.setUnfilledAmount(contractCategoryDO.getUnfilledAmount());
         contractCategoryDTO.setDeliveryDate(contractCategoryDO.getDeliveryDate().getTime());
@@ -138,4 +139,49 @@ public class BeanUtils {
         targetResultCode.setMessage(resultCode.getMessage());
         return targetResultCode;
     }
+
+    public static ContractOrderDTO copy(ContractOrderDO contractOrderDO) {
+        ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
+        contractOrderDTO.setId(contractOrderDO.getId());
+        contractOrderDTO.setGmtCreate(contractOrderDO.getGmtCreate().getTime());
+        contractOrderDTO.setGmtModified(contractOrderDO.getGmtModified().getTime());
+        contractOrderDTO.setUserId(contractOrderDO.getUserId());
+        contractOrderDTO.setContractId(contractOrderDO.getContractId());
+        contractOrderDTO.setContractName(contractOrderDO.getContractName());
+        contractOrderDTO.setOrderDirection(contractOrderDO.getOrderDirection());
+        contractOrderDTO.setOrderType(contractOrderDO.getOrderType());
+        contractOrderDTO.setTotalAmount(contractOrderDO.getTotalAmount());
+        contractOrderDTO.setUnfilledAmount(contractOrderDO.getUnfilledAmount());
+        contractOrderDTO.setPrice(contractOrderDO.getPrice().toString());
+        contractOrderDTO.setCloseType(contractOrderDO.getCloseType());
+        contractOrderDTO.setFee(contractOrderDO.getFee().toString());
+        contractOrderDTO.setStatus(contractOrderDO.getStatus());
+        return contractOrderDTO;
+    }
+
+    public static ContractOrderDO copy(ContractOrderDTO contractOrderDTO) {
+        ContractOrderDO contractOrderDO = new ContractOrderDO();
+        if (contractOrderDO.getId() > 0) {
+            contractOrderDO.setId(contractOrderDO.getId());
+        }
+        if (contractOrderDTO.getGmtCreate() > 0) {
+            contractOrderDO.setGmtCreate(new Date(contractOrderDTO.getGmtCreate()));
+        }
+        if (contractOrderDTO.getGmtModified() > 0) {
+            contractOrderDO.setGmtModified(new Date(contractOrderDTO.getGmtModified()));
+        }
+        contractOrderDO.setUserId(contractOrderDTO.getUserId());
+        contractOrderDO.setContractId(contractOrderDTO.getContractId());
+        contractOrderDO.setContractName(contractOrderDTO.getContractName());
+        contractOrderDO.setOrderDirection(contractOrderDTO.getOrderDirection());
+        contractOrderDO.setOrderType(contractOrderDTO.getOrderType());
+        contractOrderDO.setTotalAmount(contractOrderDTO.getTotalAmount());
+        contractOrderDO.setUnfilledAmount(contractOrderDTO.getUnfilledAmount());
+        contractOrderDO.setPrice(new BigDecimal(contractOrderDTO.getPrice()));
+        contractOrderDO.setFee(new BigDecimal(contractOrderDTO.getFee()));
+        contractOrderDO.setCloseType(contractOrderDTO.getCloseType());
+        contractOrderDO.setStatus(contractOrderDTO.getStatus());
+        return contractOrderDO;
+    }
+
 }

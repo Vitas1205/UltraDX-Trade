@@ -12,6 +12,8 @@ import com.fota.trade.common.BeanUtils;
 import com.fota.trade.common.Constant;
 import com.fota.trade.common.ParamUtil;
 import com.fota.trade.domain.ContractOrderDO;
+import com.fota.trade.domain.ContractOrderDTOPage;
+import com.fota.trade.domain.ContractOrderQueryDTO;
 import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.manager.ContractOrderManager;
@@ -35,7 +37,7 @@ import java.util.List;
  * @Modified:
  */
 @Service("ContractOrderService")
-public class ContractOrderServiceImpl implements ContractOrderService {
+public class ContractOrderServiceImpl implements com.fota.trade.service.ContractOrderService.Iface {
 
     private static final Logger log = LoggerFactory.getLogger(ContractOrderServiceImpl.class);
 
@@ -46,87 +48,94 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     private ContractOrderManager contractOrderManager;
 
     @Override
-    public Result<Page<ContractOrderDTO>> listContractOrderByQuery(ContractOrderQuery contractOrderQuery) {
-
+    public ContractOrderDTOPage listContractOrderByQuery(ContractOrderQueryDTO contractOrderQueryDTO) {
+        ContractOrderDTOPage contractOrderDTOPageRet = new ContractOrderDTOPage();
         Result<Page<ContractOrderDTO>> result = Result.create();
-        if (contractOrderQuery == null || contractOrderQuery.getUserId() == null || contractOrderQuery.getUserId() <= 0) {
-            return result.error(ResultCodeEnum.ILLEGAL_PARAM);
+        if (contractOrderQueryDTO.getUserId() <= 0) {
+            return null;
         }
-        Page<ContractOrderDTO> contractOrderDTOPage = new Page<>();
-        if (contractOrderQuery.getPageNo() == null || contractOrderQuery.getPageNo() <= 0) {
-            contractOrderQuery.setPageNo(Constant.DEFAULT_PAGE_NO);
+        ContractOrderDTOPage contractOrderDTOPage = new ContractOrderDTOPage();
+        if (contractOrderQueryDTO.getPageNo() <= 0) {
+            contractOrderQueryDTO.setPageNo(Constant.DEFAULT_PAGE_NO);
         }
-        contractOrderDTOPage.setPageNo(contractOrderQuery.getPageNo());
-        if (contractOrderQuery.getPageSize() == null
-                || contractOrderQuery.getPageSize() <= 0
-                || contractOrderQuery.getPageSize() > Constant.DEFAULT_MAX_PAGE_SIZE) {
-            contractOrderQuery.setPageSize(Constant.DEFAULT_MAX_PAGE_SIZE);
+        contractOrderDTOPage.setPageNo(contractOrderQueryDTO.getPageNo());
+        if (contractOrderQueryDTO.getPageSize() <= 0
+                || contractOrderQueryDTO.getPageSize() > Constant.DEFAULT_MAX_PAGE_SIZE) {
+            contractOrderQueryDTO.setPageSize(Constant.DEFAULT_MAX_PAGE_SIZE);
         }
-        contractOrderDTOPage.setPageNo(contractOrderQuery.getPageNo());
-        contractOrderDTOPage.setPageSize(contractOrderQuery.getPageSize());
+        contractOrderDTOPage.setPageNo(contractOrderQueryDTO.getPageNo());
+        contractOrderDTOPage.setPageSize(contractOrderQueryDTO.getPageSize());
         int total = 0;
         try {
-            total = contractOrderMapper.countByQuery(ParamUtil.objectToMap(contractOrderQuery));
+            total = contractOrderMapper.countByQuery(ParamUtil.objectToMap(contractOrderQueryDTO));
         } catch (Exception e) {
-            log.error("contractOrderMapper.countByQuery({})", contractOrderQuery, e);
-            return result.error(ResultCodeEnum.DATABASE_EXCEPTION);
+            log.error("contractOrderMapper.countByQuery({})", contractOrderQueryDTO, e);
+            return contractOrderDTOPageRet;
         }
         contractOrderDTOPage.setTotal(total);
         if (total == 0) {
-            return result.success(contractOrderDTOPage);
+            return contractOrderDTOPageRet;
         }
         List<ContractOrderDO> contractOrderDOList = null;
+        List<com.fota.trade.domain.ContractOrderDTO> list = new ArrayList<>();
         try {
-            contractOrderDOList = contractOrderMapper.listByQuery(ParamUtil.objectToMap(contractOrderQuery));
+            contractOrderDOList = contractOrderMapper.listByQuery(ParamUtil.objectToMap(contractOrderQueryDTO));
+            if (contractOrderDOList != null && contractOrderDOList.size() > 0) {
+
+                for (ContractOrderDO contractOrderDO : contractOrderDOList) {
+                    list.add(BeanUtils.copy(contractOrderDO));
+                }
+            }
         } catch (Exception e) {
-            log.error("contractOrderMapper.listByQuery({})", contractOrderQuery, e);
-            return result.error(ResultCodeEnum.DATABASE_EXCEPTION);
+            log.error("contractOrderMapper.listByQuery({})", contractOrderQueryDTO, e);
+            return contractOrderDTOPageRet;
         }
         List<ContractOrderDTO> contractOrderDTOList = null;
-        try {
-            contractOrderDTOList = BeanUtils.copyList(contractOrderDOList, ContractOrderDTO.class);
-        } catch (Exception e) {
-            log.error("bean copy exception", e);
-            return result.error(ResultCodeEnum.BEAN_COPY_EXCEPTION);
-        }
-        contractOrderDTOPage.setData(contractOrderDTOList);
-        return result.success(contractOrderDTOPage);
+//        try {
+//            contractOrderDTOList = BeanUtils.copyList(contractOrderDOList, ContractOrderDTO.class);
+//        } catch (Exception e) {
+//            log.error("bean copy exception", e);
+//            return contractOrderDTOPageRet
+//        }
+        contractOrderDTOPage.setData(list);
+        return contractOrderDTOPageRet;
     }
 
     @Override
-    public ResultCode order(ContractOrderDTO contractOrderDTO) {
-        try {
-            ResultCode resultCode = new ResultCode();
-            resultCode = contractOrderManager.placeOrder(contractOrderDTO);
-            return resultCode;
-        }catch (Exception e){
-            log.error("Contract order() failed", e);
-        }
+    public com.fota.trade.domain.ResultCode order(com.fota.trade.domain.ContractOrderDTO contractOrderDTO) {
+//        try {
+//            ResultCode resultCode = new ResultCode();
+//            resultCode = contractOrderManager.placeOrder(contractOrderDTO);
+//            return resultCode;
+//        }catch (Exception e){
+//            log.error("Contract order() failed", e);
+//        }
+//        return null;
         return null;
     }
 
     @Override
-    public ResultCode cancelOrder(Long userId, Long orderId) {
-        try {
-            ResultCode resultCode = new ResultCode();
-            resultCode = contractOrderManager.cancelOrder(userId, orderId);
-            return resultCode;
-        }catch (Exception e){
-            log.error("Contract cancelOrder() failed", e);
-        }
+    public com.fota.trade.domain.ResultCode cancelOrder(long userId, long orderId) {
+//        try {
+//            ResultCode resultCode = new ResultCode();
+//            resultCode = contractOrderManager.cancelOrder(userId, orderId);
+//            return resultCode;
+//        }catch (Exception e){
+//            log.error("Contract cancelOrder() failed", e);
+//        }
         return null;
     }
 
     @Override
-    public ResultCode cancelAllOrder(Long userId) {
+    public com.fota.trade.domain.ResultCode cancelAllOrder(long userId) {
         return null;
     }
 
     @Override
-    public ResultCode updateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO) {
-        if (contractMatchedOrderDTO == null) {
-            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM);
-        }
+    public com.fota.trade.domain.ResultCode updateOrderByMatch(com.fota.trade.domain.ContractMatchedOrderDTO contractMatchedOrderDTO) {
+//        if (contractMatchedOrderDTO == null) {
+//            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM);
+//        }
 //        UsdkOrderDTO askUsdkOrder = contractMatchedOrderDTO.getAskUsdkOrder();
 //        UsdkOrderDTO bidUsdkOrder = contractMatchedOrderDTO.getBidUsdkOrder();
 //        BigDecimal filledAmount = contractMatchedOrderDTO.getFilledAmount();
