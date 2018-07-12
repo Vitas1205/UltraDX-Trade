@@ -102,19 +102,26 @@ public class ContractOrderServiceImpl implements com.fota.trade.service.Contract
     }
 
     @Override
-    public com.fota.trade.domain.ResultCode cancelOrder(long userId, long orderId) {
-//        try {
-//            ResultCode resultCode = new ResultCode();
-//            resultCode = contractOrderManager.cancelOrder(userId, orderId);
-//            return resultCode;
-//        }catch (Exception e){
-//            log.error("Contract cancelOrder() failed", e);
-//        }
+    public ResultCode cancelOrder(long userId, long orderId) {
+        try {
+            ResultCode resultCode = new ResultCode();
+            resultCode = contractOrderManager.cancelOrder(userId, orderId);
+            return resultCode;
+        }catch (Exception e){
+            log.error("Contract cancelOrder() failed", e);
+        }
         return null;
     }
 
     @Override
-    public com.fota.trade.domain.ResultCode cancelAllOrder(long userId) {
+    public ResultCode cancelAllOrder(long userId) {
+        try {
+            ResultCode resultCode = new ResultCode();
+            resultCode = contractOrderManager.cancelAllOrder(userId);
+            return resultCode;
+        }catch (Exception e){
+            log.error("Contract cancelAllOrder() failed", e);
+        }
         return null;
     }
 

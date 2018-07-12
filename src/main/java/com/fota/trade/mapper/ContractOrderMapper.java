@@ -56,7 +56,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
     @Select({
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, order_direction, ",
-            "operate_type, operate_direction, lever, total_amount, unfilled_amount, price, ",
+            "operate_type, order_type, operate_direction, lever, total_amount, unfilled_amount, close_type, price, ",
             "fee, usdk_locked_amount, position_locked_amount, status",
             "from trade_contract_order",
             "where id = #{id,jdbcType=BIGINT} and user_id =  #{userId,jdbcType=BIGINT}"
@@ -78,7 +78,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
     @Select({
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, order_direction, ",
-            "operate_type, operate_direction, lever, total_amount, unfilled_amount, price, ",
+            "operate_type,order_type,close_type, operate_direction, lever, total_amount, unfilled_amount, price, ",
             "fee, usdk_locked_amount, position_locked_amount, status",
             "from trade_contract_order",
             "where user_id =  #{userId,jdbcType=BIGINT}"
@@ -117,10 +117,11 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
             "set gmt_create = #{gmtCreate,jdbcType=TIMESTAMP},",
             "gmt_modified = now(),",
             "user_id = #{userId,jdbcType=BIGINT},",
-            "contract_id = #{contractId,jdbcType=INTEGER},",
+            "contract_id = #{contractId,jdbcType=BIGINT},",
             "contract_name = #{contractName,jdbcType=VARCHAR},",
             "order_direction = #{orderDirection,jdbcType=TINYINT},",
             "operate_type = #{operateType,jdbcType=TINYINT},",
+            "order_type = #{orderType,jdbcType=TINYINT},",
             "operate_direction = #{operateDirection,jdbcType=TINYINT},",
             "lever = #{lever,jdbcType=INTEGER},",
             "total_amount = #{totalAmount,jdbcType=BIGINT},",
@@ -130,7 +131,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
             "usdk_locked_amount = #{usdkLockedAmount,jdbcType=DECIMAL},",
             "position_locked_amount = #{positionLockedAmount,jdbcType=DECIMAL},",
             "status = #{status,jdbcType=INTEGER}",
-            "where id = #{id,jdbcType=BIGINT and user_id = #{userId,jdbcType=BIGINT} and gmt_modified = #{gmtModified,jdbcType=TIMESTAMP}}"
+            "where id = #{id,jdbcType=BIGINT} and user_id = #{userId,jdbcType=BIGINT} and gmt_modified = #{gmtModified,jdbcType=TIMESTAMP}"
     })
     int updateByOpLock(ContractOrderDO record);
 

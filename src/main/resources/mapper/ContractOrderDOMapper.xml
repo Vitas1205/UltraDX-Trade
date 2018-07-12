@@ -11,12 +11,13 @@
       <arg column="gmt_create" jdbcType="TIMESTAMP" javaType="java.util.Date" />
       <arg column="gmt_modified" jdbcType="TIMESTAMP" javaType="java.util.Date" />
       <arg column="user_id" jdbcType="BIGINT" javaType="java.lang.Long" />
-      <arg column="contract_id" jdbcType="INTEGER" javaType="java.lang.Integer" />
+      <arg column="contract_id" jdbcType="BIGINT" javaType="java.lang.Long" />
       <arg column="contract_name" jdbcType="VARCHAR" javaType="java.lang.String" />
       <arg column="order_direction" jdbcType="TINYINT" javaType="java.lang.Integer" />
       <arg column="operate_type" jdbcType="TINYINT" javaType="java.lang.Integer" />
+      <arg column="order_type" jdbcType="TINYINT" javaType="java.lang.Integer" />
       <arg column="operate_direction" jdbcType="TINYINT" javaType="java.lang.Integer" />
-      <arg column="lever" jdbcType="INTEGER" javaType="java.lang.Integer" />
+      <arg column="lever" jdbcType="TINYINT" javaType="java.lang.Integer" />
       <arg column="total_amount" jdbcType="BIGINT" javaType="java.lang.Long" />
       <arg column="unfilled_amount" jdbcType="BIGINT" javaType="java.lang.Long" />
       <arg column="close_type" jdbcType="TINYINT" javaType="java.lang.Integer" />
@@ -57,12 +58,8 @@
       <if test="id != null" >
         id,
       </if>
-      <if test="gmtCreate != null" >
-        gmt_create,
-      </if>
-      <if test="gmtModified != null" >
-        gmt_modified,
-      </if>
+      gmt_create,
+      gmt_modified,
       <if test="userId != null" >
         user_id,
       </if>
@@ -110,12 +107,8 @@
       <if test="id != null" >
         #{id,jdbcType=BIGINT},
       </if>
-      <if test="gmtCreate != null" >
-        #{gmtCreate,jdbcType=TIMESTAMP},
-      </if>
-      <if test="gmtModified != null" >
-        #{gmtModified,jdbcType=TIMESTAMP},
-      </if>
+      now(),
+      now(),
       <if test="userId != null" >
         #{userId,jdbcType=BIGINT},
       </if>

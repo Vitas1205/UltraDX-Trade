@@ -181,9 +181,7 @@ public class BeanUtils {
         contractOrderDO.setTotalAmount(contractOrderDTO.getTotalAmount());
         contractOrderDO.setUnfilledAmount(contractOrderDTO.getUnfilledAmount());
         contractOrderDO.setPrice(new BigDecimal(contractOrderDTO.getPrice()));
-        contractOrderDO.setFee(new BigDecimal(contractOrderDTO.getFee()));
         contractOrderDO.setCloseType(contractOrderDTO.getCloseType());
-        contractOrderDO.setStatus(contractOrderDTO.getStatus());
         return contractOrderDO;
     }
 

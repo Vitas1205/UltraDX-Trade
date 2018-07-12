@@ -2,12 +2,12 @@ package com.fota.trade.manager;
 
 import com.fota.asset.domain.UserContractDTO;
 import com.fota.asset.service.AssetService;
+import com.fota.asset.service.ContractService;
 import com.fota.trade.common.Constant;
 import com.fota.trade.domain.ResultCode;
 import com.fota.client.domain.ContractOrderDTO;
 import com.fota.thrift.ThriftJ;
 import com.fota.trade.domain.ContractOrderDO;
-import com.fota.trade.domain.UserPositionDO;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
@@ -52,12 +52,12 @@ public class ContractOrderManager {
     public void init() {
         thriftJ.initService("FOTA-ASSET", thriftPort);
     }
-    /*private CapitalService.Client getCapitalService() {
-        CapitalService.Client serviceClient =
+    private ContractService.Client getContractService() {
+        ContractService.Client serviceClient =
                 thriftJ.getServiceClient("FOTA-ASSET")
-                        .iface(CapitalService.Client.class, "capitalService");
+                        .iface(ContractService.Client.class, "contractService");
         return serviceClient;
-    }*/
+    }
     private AssetService.Client getAssetService() {
         AssetService.Client serviceClient =
                 thriftJ.getServiceClient("FOTA-ASSET")
@@ -140,8 +140,14 @@ public class ContractOrderManager {
         }
         //todo 调用RPC接口冻结合约账户（加锁）
         long gmtModified =  userContractDTO.getGmtModified();
-        BigDecimal addLockedBalance = toatlLockAmount.subtract(lockedAmount);
+        Boolean lockContractAmountRet = getContractService().lockContractAmount(userId,toatlLockAmount.toString(),gmtModified);
+        if (!lockContractAmountRet){
+            throw new RuntimeException("Lock ContractAmount Failed");
+        }
         //插入合约订单
+        contractOrderDO.setStatus(8);
+        contractOrderDO.setFee(Constant.FEE_RATE);
+        contractOrderDO.setUnfilledAmount(contractOrderDO.getTotalAmount());
         int insertContractOrderRet = contractOrderMapper.insertSelective(contractOrderDO);
         if (insertContractOrderRet <= 0){
             throw new RuntimeException("insert contractOrder failed");
@@ -155,7 +161,7 @@ public class ContractOrderManager {
         return resultCode;
     }
 
-
+    @Transactional(rollbackFor = {Exception.class,RuntimeException.class})
     public ResultCode cancelOrder(Long userId, Long orderId) throws Exception{
         ResultCode resultCode = new ResultCode();
         ContractOrderDO contractOrderDO = contractOrderMapper.selectByIdAndUserId(orderId, userId);
@@ -166,31 +172,28 @@ public class ContractOrderManager {
             contractOrderDO.setStatus(OrderStatusEnum.PART_CANCEL.getCode());
         }else if (status == OrderStatusEnum.MATCH.getCode()){
             contractOrderDO.setStatus(OrderStatusEnum.MATCH.getCode());
+            resultCode = resultCode.setCode(8).setMessage("There is no order to be withdrawn");
+            return resultCode;
         }else {
             resultCode = resultCode.setCode(13).setMessage("contractOrder status illegal");
+            return resultCode;
         }
         int ret = contractOrderMapper.updateByOpLock(contractOrderDO);
         if (ret > 0){
-            //判断是否需要解冻合约账户
-            //获取总共冻结金额
-            BigDecimal totalLockAmount = getTotalLockAmount(contractOrderDO);
-            //查询合约账户
-            UserContractDTO userContractDTO = getAssetService().getContractAccount(userId);
-            BigDecimal lockedAmount = new BigDecimal(userContractDTO.getLockedAmount());
-            if (totalLockAmount.compareTo(lockedAmount) < 0){
-                BigDecimal reduceLockAmount = lockedAmount.subtract(totalLockAmount);
-                long gmtModified =  userContractDTO.getGmtModified();
-                //todo 调用RPC解冻合约账户
-            }
+            Long unfilledAmount = contractOrderDO.getUnfilledAmount();
+            BigDecimal price = contractOrderDO.getPrice();
+            BigDecimal unlockPrice = new BigDecimal(unfilledAmount).multiply(price);
+            BigDecimal unlockFee = unlockPrice.multiply(Constant.FEE_RATE);
+            BigDecimal totalUnlockPrice = unlockPrice.add(unlockFee);
+            getContractService().lockContractAmount(userId,totalUnlockPrice.negate().toString(),0L);
         }else {
-            //resultCode = ResultCode.error(14,"update contractOrder Failed");
             resultCode = resultCode.setCode(14).setMessage("update contractOrder Failed");
         }
-
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO );
         contractOrderDTO.setCompleteAmount(new BigDecimal(contractOrderDTO.getTotalAmount()-contractOrderDTO.getUnfilledAmount()));
         redisManager.contractOrderSave(contractOrderDTO);
+        resultCode = resultCode.setCode(0).setMessage("success");
         return resultCode;
     }
 
@@ -203,13 +206,10 @@ public class ContractOrderManager {
             Long orderId = contractOrderDO.getId();
             resultCode = cancelOrder(userId, orderId);
             ret = resultCode.getCode();
-            if (ret != 0 && ret != 8){
+            if (ret != 0 && ret != 8 && ret != 13){
                 throw new RuntimeException("cancelAllOrder failed");
             }else if(ret == 0) {
-                //resultCode = ResultCode.success();
                 resultCode = resultCode.setCode(0).setMessage("success");
-                //redisManager.usdkOrderSave(usdkOrderDTO);
-                //todo 发送RocketMQ
             }
         }
 
@@ -282,7 +282,7 @@ public class ContractOrderManager {
     }*/
 
     public BigDecimal getTotalLockAmount(ContractOrderDO contractOrderDO){
-        BigDecimal totalValue = contractOrderDO.getPrice().multiply(new BigDecimal(contractOrderDO.getUnfilledAmount()));
+        BigDecimal totalValue = contractOrderDO.getPrice().multiply(new BigDecimal(contractOrderDO.getTotalAmount()));
         BigDecimal fee = totalValue.multiply(Constant.FEE_RATE);
         return totalValue.add(fee);
     }
