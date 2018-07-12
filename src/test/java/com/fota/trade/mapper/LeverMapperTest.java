@@ -9,6 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.annotation.Resource;
+import java.util.List;
 
 /**
  * @author Gavin Shen
@@ -30,6 +31,12 @@ public class LeverMapperTest {
         userContractLeverDO.setLever(10);
         int insetRet = userContractLeverMapper.insert(userContractLeverDO);
         Assert.assertTrue(insetRet > 0);
+    }
+
+    @Test
+    public void testSelect() {
+        List<UserContractLeverDO> list = userContractLeverMapper.listUserContractLever(9527L);
+        Assert.assertTrue(list != null);
     }
 
 }

@@ -17,8 +17,8 @@ public class UserContractLeverDO {
     private Long id;
     private Date gmtCreate;
     private Date gmtModified;
-    private Long userId;
     private Integer assetId;
+    private Long userId;
     private String assetName;
     private Integer lever;
 }

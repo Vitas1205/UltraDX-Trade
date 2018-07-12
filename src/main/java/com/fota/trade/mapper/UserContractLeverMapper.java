@@ -26,8 +26,8 @@ public interface UserContractLeverMapper {
     int insert(UserContractLeverDO record);
 
     @Select({
-            "select",
-            "id, gmt_create, gmt_modified, user_id, asset_id, asset_name",
+            "select ",
+            "id, gmt_create, gmt_modified, user_id, asset_id, asset_name, lever",
             "from trade_user_lever",
             "where  user_id = #{userId,jdbcType=BIGINT}"
     })
@@ -36,7 +36,7 @@ public interface UserContractLeverMapper {
 
     @Select({
             "select",
-            "id, gmt_create, gmt_modified, user_id, asset_id, asset_name",
+            "id, gmt_create, gmt_modified, user_id, asset_id, asset_name, lever",
             "from trade_user_lever",
             "where  user_id = #{userId,jdbcType=BIGINT}"
     })
