@@ -42,12 +42,8 @@
       <if test="id != null" >
         id,
       </if>
-      <if test="gmtCreate != null" >
         gmt_create,
-      </if>
-      <if test="gmtModified != null" >
         gmt_modified,
-      </if>
       <if test="userId != null" >
         user_id,
       </if>

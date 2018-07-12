@@ -162,8 +162,8 @@ public class BeanUtils {
 
     public static ContractOrderDO copy(com.fota.trade.domain.ContractOrderDTO contractOrderDTO) {
         ContractOrderDO contractOrderDO = new ContractOrderDO();
-        if (contractOrderDO.getId() > 0) {
-            contractOrderDO.setId(contractOrderDO.getId());
+        if (contractOrderDTO.getId() > 0) {
+            contractOrderDO.setId(contractOrderDTO.getId());
         }
         if (contractOrderDTO.getGmtCreate() > 0) {
             contractOrderDO.setGmtCreate(new Date(contractOrderDTO.getGmtCreate()));
@@ -176,13 +176,28 @@ public class BeanUtils {
         contractOrderDO.setContractName(contractOrderDTO.getContractName());
         contractOrderDO.setOrderDirection(contractOrderDTO.getOrderDirection());
         contractOrderDO.setOrderType(contractOrderDTO.getOrderType());
+        contractOrderDO.setOperateType(contractOrderDTO.getOrderType());
+        contractOrderDO.setOperateDirection(contractOrderDTO.getOperateDirection());
         contractOrderDO.setTotalAmount(contractOrderDTO.getTotalAmount());
         contractOrderDO.setUnfilledAmount(contractOrderDTO.getUnfilledAmount());
         contractOrderDO.setPrice(new BigDecimal(contractOrderDTO.getPrice()));
-        contractOrderDO.setFee(new BigDecimal(contractOrderDTO.getFee()));
         contractOrderDO.setCloseType(contractOrderDTO.getCloseType());
-        contractOrderDO.setStatus(contractOrderDTO.getStatus());
         return contractOrderDO;
     }
+
+    public static UserPositionDTO copy(UserPositionDO userPositionDO) {
+        UserPositionDTO userPositionDTO = new UserPositionDTO();
+        userPositionDTO.setId(userPositionDO.getId());
+        userPositionDTO.setGmtCreate(userPositionDO.getGmtCreate().getTime());
+        userPositionDTO.setGmtModified(userPositionDO.getGmtModified().getTime());
+        userPositionDTO.setUserId(userPositionDO.getUserId());
+        userPositionDTO.setContractId(Integer.valueOf(String.valueOf(userPositionDO.getContractId())));
+        userPositionDTO.setContractName(userPositionDO.getContractName());
+        userPositionDTO.setPositionType(userPositionDO.getPositionType());
+        userPositionDTO.setAveragePrice(userPositionDO.getAveragePrice().toString());
+        return userPositionDTO;
+    }
+
+
 
 }

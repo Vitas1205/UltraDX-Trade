@@ -2,33 +2,19 @@ package com.fota.trade.service.impl;
 
 import com.fota.client.common.Page;
 import com.fota.client.common.Result;
-import com.fota.client.common.ResultCode;
-import com.fota.client.common.ResultCodeEnum;
-import com.fota.client.domain.ContractMatchedOrderDTO;
-import com.fota.client.domain.ContractOrderDTO;
-import com.fota.client.domain.UsdkOrderDTO;
-import com.fota.client.domain.query.ContractOrderQuery;
 import com.fota.trade.common.BeanUtils;
 import com.fota.trade.common.Constant;
 import com.fota.trade.common.ParamUtil;
-import com.fota.trade.domain.ContractOrderDO;
-import com.fota.trade.domain.ContractOrderDTOPage;
-import com.fota.trade.domain.ContractOrderQueryDTO;
-import com.fota.trade.domain.UsdkOrderDO;
-import com.fota.trade.domain.enums.OrderStatusEnum;
+import com.fota.trade.domain.*;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.mapper.ContractOrderMapper;
-import com.fota.client.service.ContractOrderService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import javax.annotation.Resource;
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
+import com.fota.trade.domain.ResultCode;
 
 /**
  * @Author: JianLi.Gao
@@ -65,6 +51,8 @@ public class ContractOrderServiceImpl implements com.fota.trade.service.Contract
         }
         contractOrderDTOPage.setPageNo(contractOrderQueryDTO.getPageNo());
         contractOrderDTOPage.setPageSize(contractOrderQueryDTO.getPageSize());
+        contractOrderQueryDTO.setStartRow((contractOrderQueryDTO.getPageNo() - 1) * contractOrderQueryDTO.getPageSize());
+        contractOrderQueryDTO.setEndRow(contractOrderQueryDTO.getStartRow() + contractOrderQueryDTO.getPageSize());
         int total = 0;
         try {
             total = contractOrderMapper.countByQuery(ParamUtil.objectToMap(contractOrderQueryDTO));
@@ -98,36 +86,42 @@ public class ContractOrderServiceImpl implements com.fota.trade.service.Contract
 //            return contractOrderDTOPageRet
 //        }
         contractOrderDTOPage.setData(list);
-        return contractOrderDTOPageRet;
+        return contractOrderDTOPage;
     }
 
     @Override
-    public com.fota.trade.domain.ResultCode order(com.fota.trade.domain.ContractOrderDTO contractOrderDTO) {
-//        try {
-//            ResultCode resultCode = new ResultCode();
-//            resultCode = contractOrderManager.placeOrder(contractOrderDTO);
-//            return resultCode;
-//        }catch (Exception e){
-//            log.error("Contract order() failed", e);
-//        }
-//        return null;
+    public com.fota.trade.domain.ResultCode order(ContractOrderDTO contractOrderDTO) {
+        try {
+            ResultCode resultCode = new ResultCode();
+            resultCode = contractOrderManager.placeOrder(BeanUtils.copy(contractOrderDTO));
+            //return resultCode;
+        }catch (Exception e){
+            log.error("Contract order() failed", e);
+        }
         return null;
     }
 
     @Override
-    public com.fota.trade.domain.ResultCode cancelOrder(long userId, long orderId) {
-//        try {
-//            ResultCode resultCode = new ResultCode();
-//            resultCode = contractOrderManager.cancelOrder(userId, orderId);
-//            return resultCode;
-//        }catch (Exception e){
-//            log.error("Contract cancelOrder() failed", e);
-//        }
+    public ResultCode cancelOrder(long userId, long orderId) {
+        try {
+            ResultCode resultCode = new ResultCode();
+            resultCode = contractOrderManager.cancelOrder(userId, orderId);
+            return resultCode;
+        }catch (Exception e){
+            log.error("Contract cancelOrder() failed", e);
+        }
         return null;
     }
 
     @Override
-    public com.fota.trade.domain.ResultCode cancelAllOrder(long userId) {
+    public ResultCode cancelAllOrder(long userId) {
+        try {
+            ResultCode resultCode = new ResultCode();
+            resultCode = contractOrderManager.cancelAllOrder(userId);
+            return resultCode;
+        }catch (Exception e){
+            log.error("Contract cancelAllOrder() failed", e);
+        }
         return null;
     }
 
