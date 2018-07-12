@@ -34,7 +34,7 @@ public class ContractTest {
 
     @Test
     public void placeOrder(){
-        for (int i = 0;i < 3;i++){
+        for (int i = 0;i < 5;i++){
             ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
             contractOrderDTO.setContractId(7);
             contractOrderDTO.setContractName("test7");
@@ -45,7 +45,7 @@ public class ContractTest {
             contractOrderDTO.setOperateType(1);
             contractOrderDTO.setTotalAmount(15);
             //contractOrderDTO.setUnfilledAmount(15);
-            contractOrderDTO.setPrice("2");
+            contractOrderDTO.setPrice("0.5");
             contractOrderService.order(contractOrderDTO);
         }
         //int insertContractOrderRet = contractOrderMapper.insertSelective(BeanUtils.copy(contractOrderDTO));

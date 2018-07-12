@@ -4,11 +4,13 @@ import com.fota.asset.domain.UserContractDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
 import com.fota.trade.common.Constant;
+import com.fota.trade.domain.ContractCategoryDO;
 import com.fota.trade.domain.ResultCode;
 import com.fota.client.domain.ContractOrderDTO;
 import com.fota.thrift.ThriftJ;
 import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.domain.enums.OrderStatusEnum;
+import com.fota.trade.mapper.ContractCategoryMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +45,9 @@ public class ContractOrderManager {
 
     @Autowired
     private RedisManager redisManager;
+
+    @Autowired
+    private ContractCategoryMapper contractCategoryMapper;
 
     @Autowired
     private ThriftJ thriftJ;
@@ -126,12 +131,24 @@ public class ContractOrderManager {
     }*/
 
     public ResultCode placeOrder(ContractOrderDO contractOrderDO) throws Exception{
+        ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractOrderDO.getContractId());
+        if (contractCategoryDO == null){
+            throw new RuntimeException("Contract Name Is Null");
+        }
+        contractOrderDO.setContractName(contractCategoryDO.getContractName());
         ResultCode resultCode = new ResultCode();
         Long userId = contractOrderDO.getUserId();
         BigDecimal toatlLockAmount = getTotalLockAmount(contractOrderDO);
+        //插入合约订单
+        contractOrderDO.setStatus(8);
+        contractOrderDO.setFee(Constant.FEE_RATE);
+        contractOrderDO.setUnfilledAmount(contractOrderDO.getTotalAmount());
+        int insertContractOrderRet = contractOrderMapper.insertSelective(contractOrderDO);
+        if (insertContractOrderRet <= 0){
+            throw new RuntimeException("insert contractOrder failed");
+        }
         //查询合约账户
         UserContractDTO userContractDTO = getAssetService().getContractAccount(userId);
-
         BigDecimal lockedAmount = new BigDecimal(userContractDTO.getLockedAmount());
         BigDecimal amount = new BigDecimal(userContractDTO.getAmount());
         BigDecimal availableAmount = amount.subtract(lockedAmount);
@@ -144,14 +161,7 @@ public class ContractOrderManager {
         if (!lockContractAmountRet){
             throw new RuntimeException("Lock ContractAmount Failed");
         }
-        //插入合约订单
-        contractOrderDO.setStatus(8);
-        contractOrderDO.setFee(Constant.FEE_RATE);
-        contractOrderDO.setUnfilledAmount(contractOrderDO.getTotalAmount());
-        int insertContractOrderRet = contractOrderMapper.insertSelective(contractOrderDO);
-        if (insertContractOrderRet <= 0){
-            throw new RuntimeException("insert contractOrder failed");
-        }
+
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO );
         contractOrderDTO.setCompleteAmount(BigDecimal.ZERO);
@@ -185,7 +195,10 @@ public class ContractOrderManager {
             BigDecimal unlockPrice = new BigDecimal(unfilledAmount).multiply(price);
             BigDecimal unlockFee = unlockPrice.multiply(Constant.FEE_RATE);
             BigDecimal totalUnlockPrice = unlockPrice.add(unlockFee);
-            getContractService().lockContractAmount(userId,totalUnlockPrice.negate().toString(),0L);
+            Boolean lockContractAmountRet =  getContractService().lockContractAmount(userId,totalUnlockPrice.negate().toString(),0L);
+            if (!lockContractAmountRet){
+                throw new RuntimeException("lockContractAmountRet failed");
+            }
         }else {
             resultCode = resultCode.setCode(14).setMessage("update contractOrder Failed");
         }
@@ -208,11 +221,9 @@ public class ContractOrderManager {
             ret = resultCode.getCode();
             if (ret != 0 && ret != 8 && ret != 13){
                 throw new RuntimeException("cancelAllOrder failed");
-            }else if(ret == 0) {
-                resultCode = resultCode.setCode(0).setMessage("success");
             }
         }
-
+        resultCode = resultCode.setCode(0).setMessage("success");
         return resultCode;
     }
 
