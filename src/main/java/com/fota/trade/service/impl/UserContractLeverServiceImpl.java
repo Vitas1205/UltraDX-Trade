@@ -53,7 +53,7 @@ public class UserContractLeverServiceImpl implements UserContractLeverService.If
         List<UserContractLeverDO> list;
         List<AssetCategoryDTO> assetList = getAssetService().getAssetList();
         for (AssetCategoryDTO assetCategoryDTO : assetList) {
-            if (assetCategoryDTO != null && assetCategoryDTO.getName().toUpperCase().equals("USDK")) {
+            if (assetCategoryDTO != null && !assetCategoryDTO.getName().toUpperCase().equals("USDK")) {
                 UserContractLeverDO userContractLeverDO = userContractLeverMapper.selectUserContractLever(userId, assetCategoryDTO.getId());
                 if (userContractLeverDO == null) {
                     UserContractLeverDO newUserContractLeverDO = new UserContractLeverDO();
@@ -94,7 +94,7 @@ public class UserContractLeverServiceImpl implements UserContractLeverService.If
             userContractLeverDO.setAssetId(temp.assetId);
             userContractLeverDO.setUserId(userId);
             try {
-                userContractLeverMapper.insert(userContractLeverDO);
+                userContractLeverMapper.update(userContractLeverDO);
             } catch (Exception e) {
                 log.error("userContractLeverMapper.insert({})", userContractLeverDO, e);
             }

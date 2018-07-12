@@ -95,49 +95,7 @@ public class UsdkOrderManager {
         BigDecimal totalAmount = usdkOrderDO.getTotalAmount();
         BigDecimal orderValue = totalAmount.multiply(price);
         List<UserCapitalDTO> list = getAssetService().getUserCapital(userId);
-        if (orderDirection == OrderDirectionEnum.BID.getCode()){
-            //查询usdk账户可用余额
-            for(UserCapitalDTO userCapitalDTO : list){
-                if (userCapitalDTO.getAssetId() == AssetTypeEnum.USDK.getCode()){
-                    BigDecimal amount = new BigDecimal(userCapitalDTO.getAmount());
-                    BigDecimal lockedAmount = new BigDecimal(userCapitalDTO.getLockedAmount());
-                    BigDecimal availableAmount = amount.subtract(lockedAmount);
-                    //判断账户可用余额是否大于orderValue
-                    if (availableAmount.compareTo(orderValue) >= 0){
-                        Long gmtModified = userCapitalDTO.getGmtModified();
-                        Boolean ret = getCapitalService().updateLockedAmount(userId, userCapitalDTO.getAssetId(), String.valueOf(orderValue), gmtModified);
-                        if (!ret){
-                            resultCode = ResultCode.error(3,"update USDKCapital LockedAmount failed");
-                            return resultCode;
-                        }
-                    }else {
-                        resultCode = ResultCode.error(4,"USDK Capital Amount Not Enough");
-                        return resultCode;
-                    }
-                }
-            }
-        }else if (orderDirection == OrderDirectionEnum.ASK.getCode()){
-            //查询对应资产账户可用余额
-            for (UserCapitalDTO userCapitalDTO : list){
-                if (assetId == userCapitalDTO.getAssetId()){
-                    BigDecimal amount = new BigDecimal(userCapitalDTO.getAmount());
-                    BigDecimal lockedAmount = new BigDecimal(userCapitalDTO.getLockedAmount());
-                    BigDecimal availableAmount = amount.subtract(lockedAmount);
-                    //断账户可用余额是否大于tatalValue
-                    if (availableAmount.compareTo(usdkOrderDO.getTotalAmount()) >= 0){
-                        Long gmtModified = userCapitalDTO.getGmtModified();
-                        Boolean ret = getCapitalService().updateLockedAmount(userId, userCapitalDTO.getAssetId(), String.valueOf(usdkOrderDO.getTotalAmount()), gmtModified);
-                        if (!ret){
-                            resultCode = ResultCode.error(5,"update CoinCapital LockedAmount failed");
-                            return resultCode;
-                        }
-                    }else {
-                        resultCode = ResultCode.error(6, "Coin Capital Amount Not Enough");
-                        return resultCode;
-                    }
-                }
-            }
-        }
+
         usdkOrderDO.setFee(usdkFee);
         usdkOrderDO.setStatus(OrderStatusEnum.COMMIT.getCode());
         usdkOrderDO.setUnfilledAmount(usdkOrderDO.getTotalAmount());
@@ -145,6 +103,49 @@ public class UsdkOrderManager {
         UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
         BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
         if (ret > 0){
+            if (orderDirection == OrderDirectionEnum.BID.getCode()){
+                //查询usdk账户可用余额
+                for(UserCapitalDTO userCapitalDTO : list){
+                    if (userCapitalDTO.getAssetId() == AssetTypeEnum.USDK.getCode()){
+                        BigDecimal amount = new BigDecimal(userCapitalDTO.getAmount());
+                        BigDecimal lockedAmount = new BigDecimal(userCapitalDTO.getLockedAmount());
+                        BigDecimal availableAmount = amount.subtract(lockedAmount);
+                        //判断账户可用余额是否大于orderValue
+                        if (availableAmount.compareTo(orderValue) >= 0){
+                            Long gmtModified = userCapitalDTO.getGmtModified();
+                            Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId, userCapitalDTO.getAssetId(), String.valueOf(orderValue), gmtModified);
+                            if (!updateLockedAmountRet){
+                                resultCode = ResultCode.error(3,"update USDKCapital LockedAmount failed");
+                                return resultCode;
+                            }
+                        }else {
+                            resultCode = ResultCode.error(4,"USDK Capital Amount Not Enough");
+                            return resultCode;
+                        }
+                    }
+                }
+            }else if (orderDirection == OrderDirectionEnum.ASK.getCode()){
+                //查询对应资产账户可用余额
+                for (UserCapitalDTO userCapitalDTO : list){
+                    if (assetId == userCapitalDTO.getAssetId()){
+                        BigDecimal amount = new BigDecimal(userCapitalDTO.getAmount());
+                        BigDecimal lockedAmount = new BigDecimal(userCapitalDTO.getLockedAmount());
+                        BigDecimal availableAmount = amount.subtract(lockedAmount);
+                        //断账户可用余额是否大于tatalValue
+                        if (availableAmount.compareTo(usdkOrderDO.getTotalAmount()) >= 0){
+                            Long gmtModified = userCapitalDTO.getGmtModified();
+                            Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId, userCapitalDTO.getAssetId(), String.valueOf(usdkOrderDO.getTotalAmount()), gmtModified);
+                            if (!updateLockedAmountRet){
+                                resultCode = ResultCode.error(5,"update CoinCapital LockedAmount failed");
+                                return resultCode;
+                            }
+                        }else {
+                            resultCode = ResultCode.error(6, "Coin Capital Amount Not Enough");
+                            return resultCode;
+                        }
+                    }
+                }
+            }
             resultCode = ResultCode.success();
             usdkOrderDTO.setCompleteAmount(BigDecimal.ZERO);
             redisManager.usdkOrderSave(usdkOrderDTO);
