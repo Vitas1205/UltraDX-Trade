@@ -2,20 +2,16 @@ package com.fota.trade.manager;
 
 import com.fota.asset.domain.UserContractDTO;
 import com.fota.asset.service.AssetService;
-import com.fota.asset.service.CapitalService;
-import com.fota.client.common.ResultCode;
+import com.fota.trade.common.Constant;
+import com.fota.trade.domain.ResultCode;
 import com.fota.client.domain.ContractOrderDTO;
-import com.fota.client.domain.UsdkOrderDTO;
 import com.fota.thrift.ThriftJ;
 import com.fota.trade.domain.ContractOrderDO;
-import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.trade.domain.UserPositionDO;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,7 +22,6 @@ import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -85,7 +80,7 @@ public class ContractOrderManager {
     }
 
     @Transactional(rollbackFor = {Exception.class ,RuntimeException.class})
-    public ResultCode placeOrder(ContractOrderDO contractOrderDO) throws Exception{
+    /*public ResultCode placeOrder(ContractOrderDO contractOrderDO) throws Exception{
         ResultCode resultCode = new ResultCode();
         Long userId = contractOrderDO.getUserId();
         BigDecimal toatlLockAmount = getTotalLockAmount(contractOrderDO);
@@ -116,8 +111,6 @@ public class ContractOrderManager {
         //todo 调用RPC接口冻结合约账户（加锁）
         long gmtModified =  userContractDTO.getGmtModified();
         BigDecimal addLockedBalance = toatlLockAmount.subtract(lockedAmount);
-
-
         //插入合约订单
         int insertContractOrderRet = contractOrderMapper.insertSelective(contractOrderDO);
         if (insertContractOrderRet <= 0){
@@ -127,7 +120,37 @@ public class ContractOrderManager {
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO );
         contractOrderDTO.setCompleteAmount(BigDecimal.ZERO);
         redisManager.contractOrderSave(contractOrderDTO);
-        resultCode = ResultCode.success();
+        resultCode = resultCode.setCode(0).setMessage("success");
+
+        return resultCode;
+    }*/
+
+    public ResultCode placeOrder(ContractOrderDO contractOrderDO) throws Exception{
+        ResultCode resultCode = new ResultCode();
+        Long userId = contractOrderDO.getUserId();
+        BigDecimal toatlLockAmount = getTotalLockAmount(contractOrderDO);
+        //查询合约账户
+        UserContractDTO userContractDTO = getAssetService().getContractAccount(userId);
+
+        BigDecimal lockedAmount = new BigDecimal(userContractDTO.getLockedAmount());
+        BigDecimal amount = new BigDecimal(userContractDTO.getAmount());
+        BigDecimal availableAmount = amount.subtract(lockedAmount);
+        if (availableAmount.compareTo(toatlLockAmount) < 0){
+            throw new RuntimeException("ContractAccount USDK Not Enough");
+        }
+        //todo 调用RPC接口冻结合约账户（加锁）
+        long gmtModified =  userContractDTO.getGmtModified();
+        BigDecimal addLockedBalance = toatlLockAmount.subtract(lockedAmount);
+        //插入合约订单
+        int insertContractOrderRet = contractOrderMapper.insertSelective(contractOrderDO);
+        if (insertContractOrderRet <= 0){
+            throw new RuntimeException("insert contractOrder failed");
+        }
+        ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
+        BeanUtils.copyProperties(contractOrderDO, contractOrderDTO );
+        contractOrderDTO.setCompleteAmount(BigDecimal.ZERO);
+        redisManager.contractOrderSave(contractOrderDTO);
+        resultCode = resultCode.setCode(0).setMessage("success");
 
         return resultCode;
     }
@@ -144,7 +167,7 @@ public class ContractOrderManager {
         }else if (status == OrderStatusEnum.MATCH.getCode()){
             contractOrderDO.setStatus(OrderStatusEnum.MATCH.getCode());
         }else {
-            resultCode = ResultCode.error(13,"contractOrder status illegal");
+            resultCode = resultCode.setCode(13).setMessage("contractOrder status illegal");
         }
         int ret = contractOrderMapper.updateByOpLock(contractOrderDO);
         if (ret > 0){
@@ -160,7 +183,8 @@ public class ContractOrderManager {
                 //todo 调用RPC解冻合约账户
             }
         }else {
-            resultCode = ResultCode.error(14,"update contractOrder Failed");
+            //resultCode = ResultCode.error(14,"update contractOrder Failed");
+            resultCode = resultCode.setCode(14).setMessage("update contractOrder Failed");
         }
 
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
@@ -179,10 +203,11 @@ public class ContractOrderManager {
             Long orderId = contractOrderDO.getId();
             resultCode = cancelOrder(userId, orderId);
             ret = resultCode.getCode();
-            if (ret != ResultCode.success().getCode() && ret != 8){
+            if (ret != 0 && ret != 8){
                 throw new RuntimeException("cancelAllOrder failed");
             }else if(ret == 0) {
-                resultCode = ResultCode.success();
+                //resultCode = ResultCode.success();
+                resultCode = resultCode.setCode(0).setMessage("success");
                 //redisManager.usdkOrderSave(usdkOrderDTO);
                 //todo 发送RocketMQ
             }
@@ -198,7 +223,7 @@ public class ContractOrderManager {
     }
 
     //todo 下单获取所需冻结总金额 (下单)
-    public BigDecimal getTotalLockAmount(ContractOrderDO contractOrderDO){
+   /* public BigDecimal getTotalLockAmount(ContractOrderDO contractOrderDO){
         BigDecimal totalLockAmount = BigDecimal.ZERO;
         BigDecimal singleLockAmount;
         BigDecimal singleEarnestAmount;
@@ -254,6 +279,12 @@ public class ContractOrderManager {
 
 
         return totalLockAmount;
+    }*/
+
+    public BigDecimal getTotalLockAmount(ContractOrderDO contractOrderDO){
+        BigDecimal totalValue = contractOrderDO.getPrice().multiply(new BigDecimal(contractOrderDO.getUnfilledAmount()));
+        BigDecimal fee = totalValue.multiply(Constant.FEE_RATE);
+        return totalValue.add(fee);
     }
 
 

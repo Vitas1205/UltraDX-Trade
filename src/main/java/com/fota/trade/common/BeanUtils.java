@@ -162,8 +162,8 @@ public class BeanUtils {
 
     public static ContractOrderDO copy(com.fota.trade.domain.ContractOrderDTO contractOrderDTO) {
         ContractOrderDO contractOrderDO = new ContractOrderDO();
-        if (contractOrderDO.getId() > 0) {
-            contractOrderDO.setId(contractOrderDO.getId());
+        if (contractOrderDTO.getId() > 0) {
+            contractOrderDO.setId(contractOrderDTO.getId());
         }
         if (contractOrderDTO.getGmtCreate() > 0) {
             contractOrderDO.setGmtCreate(new Date(contractOrderDTO.getGmtCreate()));
@@ -176,6 +176,8 @@ public class BeanUtils {
         contractOrderDO.setContractName(contractOrderDTO.getContractName());
         contractOrderDO.setOrderDirection(contractOrderDTO.getOrderDirection());
         contractOrderDO.setOrderType(contractOrderDTO.getOrderType());
+        contractOrderDO.setOperateType(contractOrderDTO.getOrderType());
+        contractOrderDO.setOperateDirection(contractOrderDTO.getOperateDirection());
         contractOrderDO.setTotalAmount(contractOrderDTO.getTotalAmount());
         contractOrderDO.setUnfilledAmount(contractOrderDTO.getUnfilledAmount());
         contractOrderDO.setPrice(new BigDecimal(contractOrderDTO.getPrice()));
