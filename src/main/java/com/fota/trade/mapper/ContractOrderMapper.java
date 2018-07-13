@@ -46,7 +46,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
         "select",
         "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, order_direction, ",
         "operate_type, operate_direction, lever, total_amount, unfilled_amount, price, ",
-        "fee, usdk_locked_amount, position_locked_amount, status",
+        "fee, usdk_locked_amount, position_locked_amount, status, order_type, close_type",
         "from trade_contract_order",
         "where id = #{id,jdbcType=BIGINT}"
     })
