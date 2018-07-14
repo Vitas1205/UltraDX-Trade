@@ -3,12 +3,14 @@ package com.fota.trade.manager;
 import com.fota.asset.domain.UserContractDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
+import com.fota.client.domain.OrderMessage;
 import com.fota.trade.common.Constant;
 import com.fota.trade.domain.ContractCategoryDO;
 import com.fota.trade.domain.ResultCode;
 import com.fota.client.domain.ContractOrderDTO;
 import com.fota.thrift.ThriftJ;
 import com.fota.trade.domain.ContractOrderDO;
+import com.fota.trade.domain.enums.OrderOperateTypeEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.mapper.ContractCategoryMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
@@ -41,6 +43,9 @@ public class ContractOrderManager {
     private ContractOrderMapper contractOrderMapper;
 
     @Autowired
+    private ContractLeverManager contractLeverManager;
+
+    @Autowired
     private UserPositionMapper userPositionMapper;
 
     @Autowired
@@ -48,6 +53,9 @@ public class ContractOrderManager {
 
     @Autowired
     private ContractCategoryMapper contractCategoryMapper;
+
+    @Autowired
+    private RocketMqManager rocketMqManager;
 
     @Autowired
     private ThriftJ thriftJ;
@@ -166,8 +174,15 @@ public class ContractOrderManager {
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO );
         contractOrderDTO.setCompleteAmount(BigDecimal.ZERO);
         redisManager.contractOrderSave(contractOrderDTO);
+        //todo 推送MQ消息
+        OrderMessage orderMessage = new OrderMessage();
+        orderMessage.setType(OrderOperateTypeEnum.PLACE_ORDER.getCode());
+        orderMessage.setMessage(contractOrderDTO);
+        Boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder", orderMessage);
+        if (!sendRet){
+            log.info("Send RocketMQ Message Failed ");
+        }
         resultCode = resultCode.setCode(0).setMessage("success");
-
         return resultCode;
     }
 
@@ -192,8 +207,9 @@ public class ContractOrderManager {
         if (ret > 0){
             Long unfilledAmount = contractOrderDO.getUnfilledAmount();
             BigDecimal price = contractOrderDO.getPrice();
-            BigDecimal unlockPrice = new BigDecimal(unfilledAmount).multiply(price);
-            BigDecimal unlockFee = unlockPrice.multiply(Constant.FEE_RATE);
+            BigDecimal lever = new BigDecimal(contractLeverManager.getLeverByContractId(contractOrderDO.getUserId(),contractOrderDO.getContractId()));
+            BigDecimal unlockPrice = new BigDecimal(unfilledAmount).multiply(price).multiply(new BigDecimal(0.01)).divide(lever);
+            BigDecimal unlockFee = unlockPrice.multiply(Constant.FEE_RATE).multiply(lever);
             BigDecimal totalUnlockPrice = unlockPrice.add(unlockFee);
             Boolean lockContractAmountRet =  getContractService().lockContractAmount(userId,totalUnlockPrice.negate().toString(),0L);
             if (!lockContractAmountRet){
@@ -206,6 +222,14 @@ public class ContractOrderManager {
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO );
         contractOrderDTO.setCompleteAmount(new BigDecimal(contractOrderDTO.getTotalAmount()-contractOrderDTO.getUnfilledAmount()));
         redisManager.contractOrderSave(contractOrderDTO);
+        //todo 推送MQ消息
+        OrderMessage orderMessage = new OrderMessage();
+        orderMessage.setType(OrderOperateTypeEnum.PLACE_ORDER.getCode());
+        orderMessage.setMessage(contractOrderDTO);
+        Boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder", orderMessage);
+        if (!sendRet){
+            log.info("Send RocketMQ Message Failed ");
+        }
         resultCode = resultCode.setCode(0).setMessage("success");
         return resultCode;
     }
@@ -293,8 +317,10 @@ public class ContractOrderManager {
     }*/
 
     public BigDecimal getTotalLockAmount(ContractOrderDO contractOrderDO){
-        BigDecimal totalValue = contractOrderDO.getPrice().multiply(new BigDecimal(contractOrderDO.getTotalAmount()));
-        BigDecimal fee = totalValue.multiply(Constant.FEE_RATE);
+        Integer lever = contractLeverManager.getLeverByContractId(contractOrderDO.getUserId(),contractOrderDO.getContractId());
+        BigDecimal totalValue = contractOrderDO.getPrice().multiply(new BigDecimal(contractOrderDO.getTotalAmount()))
+                .multiply(new BigDecimal(0.01)).divide(new BigDecimal(lever));
+        BigDecimal fee = totalValue.multiply(Constant.FEE_RATE).multiply(new BigDecimal(lever));
         return totalValue.add(fee);
     }
 
