@@ -29,7 +29,7 @@ public class ContractLeverManager {
 
     public Integer getLeverByContractId(Long userId, Long contractId) {
         if (contractId == null || contractId <= 0) {
-            return null;
+            return DEFAULT_LEVER;
         }
         try {
             ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractId);
@@ -39,7 +39,7 @@ public class ContractLeverManager {
         } catch (Exception e) {
             log.error("getLeverByContractId({}, {})", userId, contractId, e);
         }
-        return null;
+        return DEFAULT_LEVER;
     }
 
 }
