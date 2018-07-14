@@ -5,13 +5,15 @@ import com.fota.asset.domain.UserCapitalDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.CapitalService;
 import com.fota.client.common.ResultCode;
+import com.fota.client.domain.OrderMessage;
 import com.fota.client.domain.UsdkOrderDTO;
 import com.fota.thrift.ThriftJ;
-import com.fota.trade.cache.RedisCache;
 import com.fota.trade.common.Constant;
+import com.fota.trade.common.RocketMqProducer;
 import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.trade.domain.enums.AssetTypeEnum;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
+import com.fota.trade.domain.enums.OrderOperateTypeEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.mapper.UsdkOrderMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -46,10 +48,10 @@ public class UsdkOrderManager {
     private UsdkOrderMapper usdkOrderMapper;
 
     @Autowired
-    private RedisCache redisCache;
+    private RedisManager redisManager;
 
     @Autowired
-    private RedisManager redisManager;
+    private RocketMqManager rocketMqManager;
 
     @Autowired
     private ThriftJ thriftJ;
@@ -150,7 +152,13 @@ public class UsdkOrderManager {
             usdkOrderDTO.setCompleteAmount(BigDecimal.ZERO);
             redisManager.usdkOrderSave(usdkOrderDTO);
             //todo 发送RocketMQ*/
-
+            OrderMessage orderMessage = new OrderMessage();
+            orderMessage.setType(OrderOperateTypeEnum.PLACE_ORDER.getCode());
+            orderMessage.setMessage(usdkOrderDTO);
+            Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", orderMessage);
+            if (!sendRet){
+                log.info("Send RocketMQ Message Failed ");
+            }
         }else {
             resultCode = ResultCode.error(7,"Create UsdkOrder failed");
         }
@@ -206,6 +214,13 @@ public class UsdkOrderManager {
             usdkOrderDTO.setCompleteAmount(matchAmount);
             redisManager.usdkOrderSave(usdkOrderDTO);
             //todo 发送RocketMQ
+            OrderMessage orderMessage = new OrderMessage();
+            orderMessage.setType(OrderOperateTypeEnum.PLACE_ORDER.getCode());
+            orderMessage.setMessage(usdkOrderDTO);
+            Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", orderMessage);
+            if (!sendRet){
+                log.info("Send RocketMQ Message Failed ");
+            }
             resultCode = ResultCode.success();
         }else {
             resultCode = ResultCode.error(12,"usdkOrder update failed");
@@ -227,7 +242,6 @@ public class UsdkOrderManager {
                 throw new RuntimeException("cancelAllOrder failed");
             }else if(ret == 0) {
                 resultCode = ResultCode.success();
-                //todo 发送RocketMQ
             }
         }
 
