@@ -1,13 +1,13 @@
 server:
   thrift:
     port:
-      7878
+      7778
   port: 8999
 fota:
   asset:
     server:
       thrift:
-        port: 7889
+        port: 8889
 spring:
     redis:
       port: 6379
@@ -80,4 +80,4 @@ eureka:
   client:
     region: dev
     availability-zones:
-      dev: jingke-1
+      dev: wangxizhi

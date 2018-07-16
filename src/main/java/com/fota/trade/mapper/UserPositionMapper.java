@@ -63,6 +63,19 @@ public interface UserPositionMapper {
     @ResultMap("BaseResultMap")
     List<UserPositionDO> selectByUserId(Long userId);
 
+    @Select({
+            "select",
+            "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, locked_amount, ",
+            "unfilled_amount, position_type, status",
+            "from trade_user_position",
+            "where  contract_id = #{contractId,jdbcType=BIGINT}"
+    })
+    @ResultMap("BaseResultMap")
+    List<UserPositionDO> selectByContractId(Long contractId);
+
+
+
+
     int updateByPrimaryKeySelective(UserPositionDO record);
 
     @Update({
