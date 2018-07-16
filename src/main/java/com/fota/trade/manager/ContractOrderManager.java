@@ -179,7 +179,7 @@ public class ContractOrderManager {
         OrderMessage orderMessage = new OrderMessage();
         orderMessage.setEvent(OrderOperateTypeEnum.PLACE_ORDER.getCode());
         orderMessage.setUserId(contractOrderDTO.getUserId());
-        orderMessage.setSubjectId(contractOrderDTO.getContractId());
+        orderMessage.setSubjectId(contractOrderDO.getContractId().intValue());
         Boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder", orderMessage);
         if (!sendRet){
             log.info("Send RocketMQ Message Failed ");
@@ -228,7 +228,7 @@ public class ContractOrderManager {
         OrderMessage orderMessage = new OrderMessage();
         orderMessage.setEvent(OrderOperateTypeEnum.CANCLE_ORDER.getCode());
         orderMessage.setUserId(contractOrderDTO.getUserId());
-        orderMessage.setSubjectId(contractOrderDTO.getContractId());
+        orderMessage.setSubjectId(contractOrderDO.getContractId().intValue());
         Boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder", orderMessage);
         if (!sendRet){
             log.info("Send RocketMQ Message Failed ");

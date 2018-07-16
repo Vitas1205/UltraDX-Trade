@@ -43,7 +43,7 @@ public class ContractTest {
             contractOrderDTO.setOperateType(1);
             contractOrderDTO.setOperateDirection(1);
             contractOrderDTO.setOrderType(1);
-            contractOrderDTO.setTotalAmount(40);
+            contractOrderDTO.setTotalAmount(10);
             contractOrderDTO.setPrice("10");
             contractOrderService.order(contractOrderDTO);
         }
