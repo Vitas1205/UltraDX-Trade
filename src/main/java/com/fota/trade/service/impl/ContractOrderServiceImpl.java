@@ -259,11 +259,18 @@ public class ContractOrderServiceImpl implements com.fota.trade.service.Contract
         long filledAmount = matchedOrderDTO.getFilledAmount();
         BigDecimal filledPrice = new BigDecimal(matchedOrderDTO.getFilledPrice());
         BigDecimal fee = contractOrderDO.getFee();
-        BigDecimal actualFee = filledPrice.multiply(new BigDecimal(filledAmount)).multiply(fee);
+        BigDecimal actualFee = filledPrice.multiply(new BigDecimal(filledAmount)).multiply(fee).multiply(new BigDecimal(0.01));
         BigDecimal addedTotalAmount = new BigDecimal(oldPositionAmount - newPositionAmount)
-                .multiply(filledPrice).subtract(actualFee);
-        BigDecimal entrustFee = contractOrderDO.getPrice().multiply(new BigDecimal(filledAmount)).multiply(fee);
-        BigDecimal addedTotalLocked = new BigDecimal(filledAmount).multiply(contractOrderDO.getPrice()).add(entrustFee);
+                .multiply(filledPrice)
+                .multiply(new BigDecimal(0.01))
+                .multiply(new BigDecimal(0.1))
+                .subtract(actualFee);
+        BigDecimal entrustFee = contractOrderDO.getPrice().multiply(new BigDecimal(filledAmount)).multiply(fee).multiply(new BigDecimal(0.01));
+        BigDecimal addedTotalLocked = new BigDecimal(filledAmount)
+                .multiply(contractOrderDO.getPrice())
+                .multiply(new BigDecimal(0.01))
+                .multiply(new BigDecimal(0.1))
+                .add(entrustFee).negate();
         //todo 更新余额s
         try {
             getContractService().updateContractBalance(contractOrderDO.getUserId(),

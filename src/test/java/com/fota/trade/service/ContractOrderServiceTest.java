@@ -58,12 +58,12 @@ public class ContractOrderServiceTest {
 //        public int contractType;
 
         ContractMatchedOrderDTO  contractMatchedOrderDTO = new ContractMatchedOrderDTO();
-        contractMatchedOrderDTO.setAskOrderId(361);
-        contractMatchedOrderDTO.setBidOrderId(426);
-        contractMatchedOrderDTO.setFilledPrice("6000");
-        contractMatchedOrderDTO.setFilledAmount(15);
-        contractMatchedOrderDTO.setBidOrderPrice("6100");
-        contractMatchedOrderDTO.setAskOrderPrice("6000");
+        contractMatchedOrderDTO.setAskOrderId(428);
+        contractMatchedOrderDTO.setBidOrderId(430);
+        contractMatchedOrderDTO.setFilledPrice("6500");
+        contractMatchedOrderDTO.setFilledAmount(5);
+        contractMatchedOrderDTO.setBidOrderPrice("6510");
+        contractMatchedOrderDTO.setAskOrderPrice("6500");
         ResultCode resultCode = contractOrderService.updateOrderByMatch(contractMatchedOrderDTO);
 
 
