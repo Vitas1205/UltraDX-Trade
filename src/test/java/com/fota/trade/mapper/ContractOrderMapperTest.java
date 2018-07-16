@@ -38,11 +38,11 @@ public class ContractOrderMapperTest {
         contractOrderDO.setContractName("BTC0930");
         contractOrderDO.setFee(new BigDecimal("0.01"));
         contractOrderDO.setLever(10);
-        contractOrderDO.setOrderDirection(OrderDirectionEnum.ASK.getCode());
+        contractOrderDO.setOrderDirection(OrderDirectionEnum.BID.getCode());
         contractOrderDO.setPrice(new BigDecimal("6000.1"));
         contractOrderDO.setTotalAmount(100L);
         contractOrderDO.setUnfilledAmount(100L);
-        contractOrderDO.setUserId(9527L);
+        contractOrderDO.setUserId(9528L);
         contractOrderDO.setStatus(OrderStatusEnum.COMMIT.getCode());
         int insertRet = contractOrderMapper.insert(contractOrderDO);
         Assert.assertTrue(insertRet > 0);

@@ -16,14 +16,8 @@
 
 package com.fota.fotatrade.thriftserver;
 
-import com.fota.trade.service.ContractCategoryService;
-import com.fota.trade.service.ContractOrderService;
-import com.fota.trade.service.UsdkOrderService;
-import com.fota.trade.service.UserPositionService;
-import com.fota.trade.service.impl.ContractCategoryServiceImpl;
-import com.fota.trade.service.impl.ContractOrderServiceImpl;
-import com.fota.trade.service.impl.UsdkOrderServiceImpl;
-import com.fota.trade.service.impl.UserPositionServiceImpl;
+import com.fota.trade.service.*;
+import com.fota.trade.service.impl.*;
 import org.apache.thrift.TMultiplexedProcessor;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TBinaryProtocol;
@@ -58,6 +52,8 @@ public class ThriftServer implements Runnable {
     private UserPositionServiceImpl userPositionServiceImpl;
     @Autowired
     private ContractOrderServiceImpl contractOrderServiceImpl;
+    @Autowired
+    private UserContractLeverServiceImpl userContractLeverServiceImpl;
 
     @Override
     public void run() {
@@ -73,10 +69,12 @@ public class ThriftServer implements Runnable {
             TProcessor usdkOrderService = new UsdkOrderService.Processor<UsdkOrderService.Iface>(usdkOrderServiceImpl);
             TProcessor userPositionService = new UserPositionService.Processor<UserPositionService.Iface>(userPositionServiceImpl);
             TProcessor contractOrderService = new ContractOrderService.Processor<ContractOrderService.Iface>(contractOrderServiceImpl);
+            TProcessor userContractLeverService = new UserContractLeverService.Processor<UserContractLeverService.Iface>(userContractLeverServiceImpl);
             multiplexedProcessor.registerProcessor("contractCategoryService", contractCategoryService);
             multiplexedProcessor.registerProcessor("contractOrderService", contractOrderService);
             multiplexedProcessor.registerProcessor("usdkOrderService", usdkOrderService);
             multiplexedProcessor.registerProcessor("userPositionService", userPositionService);
+            multiplexedProcessor.registerProcessor("userContractLeverService", userContractLeverService);
             TNonblockingServerSocket serverTransport = new TNonblockingServerSocket(serverPort);
             LOGGER.info("server port " + serverPort);
             TTransportFactory transportFactory = new TFramedTransport.Factory();

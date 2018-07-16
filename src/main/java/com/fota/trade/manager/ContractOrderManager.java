@@ -2,20 +2,20 @@ package com.fota.trade.manager;
 
 import com.fota.asset.domain.UserContractDTO;
 import com.fota.asset.service.AssetService;
-import com.fota.asset.service.CapitalService;
-import com.fota.client.common.ResultCode;
+import com.fota.asset.service.ContractService;
+import com.fota.trade.common.Constant;
+import com.fota.trade.domain.ContractCategoryDO;
+import com.fota.trade.domain.OrderMessage;
+import com.fota.trade.domain.ResultCode;
 import com.fota.client.domain.ContractOrderDTO;
-import com.fota.client.domain.UsdkOrderDTO;
 import com.fota.thrift.ThriftJ;
 import com.fota.trade.domain.ContractOrderDO;
-import com.fota.trade.domain.UsdkOrderDO;
-import com.fota.trade.domain.UserPositionDO;
+import com.fota.trade.domain.enums.OrderOperateTypeEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
+import com.fota.trade.mapper.ContractCategoryMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,7 +26,6 @@ import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -44,10 +43,19 @@ public class ContractOrderManager {
     private ContractOrderMapper contractOrderMapper;
 
     @Autowired
+    private ContractLeverManager contractLeverManager;
+
+    @Autowired
     private UserPositionMapper userPositionMapper;
 
     @Autowired
     private RedisManager redisManager;
+
+    @Autowired
+    private ContractCategoryMapper contractCategoryMapper;
+
+    @Autowired
+    private RocketMqManager rocketMqManager;
 
     @Autowired
     private ThriftJ thriftJ;
@@ -57,12 +65,12 @@ public class ContractOrderManager {
     public void init() {
         thriftJ.initService("FOTA-ASSET", thriftPort);
     }
-    /*private CapitalService.Client getCapitalService() {
-        CapitalService.Client serviceClient =
+    private ContractService.Client getContractService() {
+        ContractService.Client serviceClient =
                 thriftJ.getServiceClient("FOTA-ASSET")
-                        .iface(CapitalService.Client.class, "capitalService");
+                        .iface(ContractService.Client.class, "contractService");
         return serviceClient;
-    }*/
+    }
     private AssetService.Client getAssetService() {
         AssetService.Client serviceClient =
                 thriftJ.getServiceClient("FOTA-ASSET")
@@ -84,8 +92,8 @@ public class ContractOrderManager {
         return notMatchOrderList;
     }
 
-    @Transactional(rollbackFor = {Exception.class ,RuntimeException.class})
-    public ResultCode placeOrder(ContractOrderDO contractOrderDO) throws Exception{
+
+    /*public ResultCode placeOrder(ContractOrderDO contractOrderDO) throws Exception{
         ResultCode resultCode = new ResultCode();
         Long userId = contractOrderDO.getUserId();
         BigDecimal toatlLockAmount = getTotalLockAmount(contractOrderDO);
@@ -116,8 +124,6 @@ public class ContractOrderManager {
         //todo 调用RPC接口冻结合约账户（加锁）
         long gmtModified =  userContractDTO.getGmtModified();
         BigDecimal addLockedBalance = toatlLockAmount.subtract(lockedAmount);
-
-
         //插入合约订单
         int insertContractOrderRet = contractOrderMapper.insertSelective(contractOrderDO);
         if (insertContractOrderRet <= 0){
@@ -127,12 +133,62 @@ public class ContractOrderManager {
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO );
         contractOrderDTO.setCompleteAmount(BigDecimal.ZERO);
         redisManager.contractOrderSave(contractOrderDTO);
-        resultCode = ResultCode.success();
+        resultCode = resultCode.setCode(0).setMessage("success");
 
+        return resultCode;
+    }*/
+
+    @Transactional(rollbackFor = {Exception.class,RuntimeException.class})
+    public ResultCode placeOrder(ContractOrderDO contractOrderDO) throws Exception{
+        ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractOrderDO.getContractId());
+        if (contractCategoryDO == null){
+            throw new RuntimeException("Contract Name Is Null");
+        }
+        contractOrderDO.setContractName(contractCategoryDO.getContractName());
+        ResultCode resultCode = new ResultCode();
+        Long userId = contractOrderDO.getUserId();
+        BigDecimal toatlLockAmount = getTotalLockAmount(contractOrderDO);
+        //插入合约订单
+        contractOrderDO.setStatus(8);
+        contractOrderDO.setFee(Constant.FEE_RATE);
+        contractOrderDO.setUnfilledAmount(contractOrderDO.getTotalAmount());
+        int insertContractOrderRet = contractOrderMapper.insertSelective(contractOrderDO);
+        if (insertContractOrderRet <= 0){
+            throw new RuntimeException("insert contractOrder failed");
+        }
+        //查询合约账户
+        UserContractDTO userContractDTO = getAssetService().getContractAccount(userId);
+        BigDecimal lockedAmount = new BigDecimal(userContractDTO.getLockedAmount());
+        BigDecimal amount = new BigDecimal(userContractDTO.getAmount());
+        BigDecimal availableAmount = amount.subtract(lockedAmount);
+        if (availableAmount.compareTo(toatlLockAmount) < 0){
+            throw new RuntimeException("ContractAccount USDK Not Enough");
+        }
+        //todo 调用RPC接口冻结合约账户（加锁）
+        long gmtModified =  userContractDTO.getGmtModified();
+        Boolean lockContractAmountRet = getContractService().lockContractAmount(userId,toatlLockAmount.toString(),gmtModified);
+        if (!lockContractAmountRet){
+            throw new RuntimeException("Lock ContractAmount Failed");
+        }
+
+        ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
+        BeanUtils.copyProperties(contractOrderDO, contractOrderDTO );
+        contractOrderDTO.setCompleteAmount(BigDecimal.ZERO);
+        redisManager.contractOrderSave(contractOrderDTO);
+        //todo 推送MQ消息
+        OrderMessage orderMessage = new OrderMessage();
+        orderMessage.setEvent(OrderOperateTypeEnum.PLACE_ORDER.getCode());
+        orderMessage.setUserId(contractOrderDTO.getUserId());
+        orderMessage.setSubjectId(contractOrderDTO.getContractId());
+        Boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder", orderMessage);
+        if (!sendRet){
+            log.info("Send RocketMQ Message Failed ");
+        }
+        resultCode = resultCode.setCode(0).setMessage("success");
         return resultCode;
     }
 
-
+    @Transactional(rollbackFor = {Exception.class,RuntimeException.class})
     public ResultCode cancelOrder(Long userId, Long orderId) throws Exception{
         ResultCode resultCode = new ResultCode();
         ContractOrderDO contractOrderDO = contractOrderMapper.selectByIdAndUserId(orderId, userId);
@@ -143,30 +199,41 @@ public class ContractOrderManager {
             contractOrderDO.setStatus(OrderStatusEnum.PART_CANCEL.getCode());
         }else if (status == OrderStatusEnum.MATCH.getCode()){
             contractOrderDO.setStatus(OrderStatusEnum.MATCH.getCode());
+            resultCode = resultCode.setCode(8).setMessage("There is no order to be withdrawn");
+            return resultCode;
         }else {
-            resultCode = ResultCode.error(13,"contractOrder status illegal");
+            resultCode = resultCode.setCode(13).setMessage("contractOrder status illegal");
+            return resultCode;
         }
         int ret = contractOrderMapper.updateByOpLock(contractOrderDO);
         if (ret > 0){
-            //判断是否需要解冻合约账户
-            //获取总共冻结金额
-            BigDecimal totalLockAmount = getTotalLockAmount(contractOrderDO);
-            //查询合约账户
-            UserContractDTO userContractDTO = getAssetService().getContractAccount(userId);
-            BigDecimal lockedAmount = new BigDecimal(userContractDTO.getLockedAmount());
-            if (totalLockAmount.compareTo(lockedAmount) < 0){
-                BigDecimal reduceLockAmount = lockedAmount.subtract(totalLockAmount);
-                long gmtModified =  userContractDTO.getGmtModified();
-                //todo 调用RPC解冻合约账户
+            Long unfilledAmount = contractOrderDO.getUnfilledAmount();
+            BigDecimal price = contractOrderDO.getPrice();
+            BigDecimal lever = new BigDecimal(contractLeverManager.getLeverByContractId(contractOrderDO.getUserId(),contractOrderDO.getContractId()));
+            BigDecimal unlockPrice = new BigDecimal(unfilledAmount).multiply(price).multiply(new BigDecimal(0.01)).divide(lever);
+            BigDecimal unlockFee = unlockPrice.multiply(Constant.FEE_RATE).multiply(lever);
+            BigDecimal totalUnlockPrice = unlockPrice.add(unlockFee);
+            Boolean lockContractAmountRet =  getContractService().lockContractAmount(userId,totalUnlockPrice.negate().toString(),0L);
+            if (!lockContractAmountRet){
+                throw new RuntimeException("lockContractAmountRet failed");
             }
         }else {
-            resultCode = ResultCode.error(14,"update contractOrder Failed");
+            resultCode = resultCode.setCode(14).setMessage("update contractOrder Failed");
         }
-
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO );
         contractOrderDTO.setCompleteAmount(new BigDecimal(contractOrderDTO.getTotalAmount()-contractOrderDTO.getUnfilledAmount()));
         redisManager.contractOrderSave(contractOrderDTO);
+        //todo 推送MQ消息
+        OrderMessage orderMessage = new OrderMessage();
+        orderMessage.setEvent(OrderOperateTypeEnum.CANCLE_ORDER.getCode());
+        orderMessage.setUserId(contractOrderDTO.getUserId());
+        orderMessage.setSubjectId(contractOrderDTO.getContractId());
+        Boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder", orderMessage);
+        if (!sendRet){
+            log.info("Send RocketMQ Message Failed ");
+        }
+        resultCode = resultCode.setCode(0).setMessage("success");
         return resultCode;
     }
 
@@ -179,15 +246,11 @@ public class ContractOrderManager {
             Long orderId = contractOrderDO.getId();
             resultCode = cancelOrder(userId, orderId);
             ret = resultCode.getCode();
-            if (ret != ResultCode.success().getCode() && ret != 8){
+            if (ret != 0 && ret != 8 && ret != 13){
                 throw new RuntimeException("cancelAllOrder failed");
-            }else if(ret == 0) {
-                resultCode = ResultCode.success();
-                //redisManager.usdkOrderSave(usdkOrderDTO);
-                //todo 发送RocketMQ
             }
         }
-
+        resultCode = resultCode.setCode(0).setMessage("success");
         return resultCode;
     }
 
@@ -198,7 +261,7 @@ public class ContractOrderManager {
     }
 
     //todo 下单获取所需冻结总金额 (下单)
-    public BigDecimal getTotalLockAmount(ContractOrderDO contractOrderDO){
+   /* public BigDecimal getTotalLockAmount(ContractOrderDO contractOrderDO){
         BigDecimal totalLockAmount = BigDecimal.ZERO;
         BigDecimal singleLockAmount;
         BigDecimal singleEarnestAmount;
@@ -254,6 +317,14 @@ public class ContractOrderManager {
 
 
         return totalLockAmount;
+    }*/
+
+    public BigDecimal getTotalLockAmount(ContractOrderDO contractOrderDO){
+        Integer lever = contractLeverManager.getLeverByContractId(contractOrderDO.getUserId(),contractOrderDO.getContractId());
+        BigDecimal totalValue = contractOrderDO.getPrice().multiply(new BigDecimal(contractOrderDO.getTotalAmount()))
+                .multiply(new BigDecimal(0.01)).divide(new BigDecimal(lever));
+        BigDecimal fee = totalValue.multiply(Constant.FEE_RATE).multiply(new BigDecimal(lever));
+        return totalValue.add(fee);
     }
 
 

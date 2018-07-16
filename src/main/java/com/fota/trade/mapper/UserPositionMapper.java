@@ -36,7 +36,7 @@ public interface UserPositionMapper {
     @Select({
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, locked_amount, ",
-            "unfilled_amount, position_type, status",
+            "unfilled_amount, position_type, average_price, status, lever",
             "from trade_user_position",
             "where id = #{id,jdbcType=BIGINT}"
     })
@@ -46,12 +46,14 @@ public interface UserPositionMapper {
     @Select({
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, locked_amount, ",
-            "unfilled_amount, position_type, status",
+            "unfilled_amount, position_type, average_price, status, lever",
             "from trade_user_position",
-            "where contrant_id = #{contrantId,jdbcType=BIGINT} and user_id = #{userId,jdbcType=BIGINT}"
+            "where contract_id = #{contractId,jdbcType=BIGINT} and user_id = #{userId,jdbcType=BIGINT}"
     })
     @ResultMap("BaseResultMap")
-    UserPositionDO selectByUserIdAndId(@Param("userId") Long userId, @Param("contrantId") Integer contrantId);
+
+    UserPositionDO selectByUserIdAndId(@Param("userId") Long userId, @Param("contractId") Integer contrantId);
+
 
     @Select({
             "select",
