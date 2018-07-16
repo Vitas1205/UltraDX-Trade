@@ -36,7 +36,7 @@ public class EntrustDepthServiceImpl implements EntrustDepthService {
     private static final Logger log = LoggerFactory.getLogger(EntrustDepthServiceImpl.class);
 
     @Autowired
-    private com.fota.trade.service.ContractCategoryService.Iface contractCategoryService;
+    private com.fota.trade.service.ContractCategoryService contractCategoryService;
 
     @Autowired
     private ContractOrderManager contractOrderManager;

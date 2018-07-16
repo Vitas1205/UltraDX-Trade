@@ -31,7 +31,7 @@ public class RocketMqTest {
         String topic = "order";
         String tag = "UsdkOrder";
         UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
-        usdkOrderDTO.setUserId(1);
+        usdkOrderDTO.setUserId(1l);
         usdkOrderDTO.setAssetId(2);
         usdkOrderDTO.setAssetName("BTC");
         OrderMessage orderMessage = new OrderMessage();

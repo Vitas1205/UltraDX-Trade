@@ -2,14 +2,14 @@ package com.fota.trade.service.impl;
 
 import com.fota.asset.domain.BalanceTransferDTO;
 import com.fota.asset.service.CapitalService;
-import com.fota.client.common.*;
 
+import com.fota.client.common.ResultCodeEnum;
+import com.fota.common.Page;
 import com.fota.thrift.ThriftJ;
 import com.fota.trade.common.BeanUtils;
 import com.fota.trade.common.Constant;
 import com.fota.trade.common.ParamUtil;
 import com.fota.trade.domain.*;
-import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.manager.UsdkOrderManager;
@@ -21,7 +21,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
@@ -37,7 +36,7 @@ import java.util.List;
  */
 @Service
 @Data
-public class UsdkOrderServiceImpl implements com.fota.trade.service.UsdkOrderService.Iface {
+public class UsdkOrderServiceImpl implements com.fota.trade.service.UsdkOrderService {
 
     private static final Logger log = LoggerFactory.getLogger(UsdkOrderServiceImpl.class);
 
@@ -67,8 +66,8 @@ public class UsdkOrderServiceImpl implements com.fota.trade.service.UsdkOrderSer
 
 
     @Override
-    public UsdkOrderDTOPage listUsdkOrderByQuery(UsdkOrderQuery usdkOrderQuery) {
-        UsdkOrderDTOPage usdkOrderDTOPage = new UsdkOrderDTOPage();
+    public Page<UsdkOrderDTO> listUsdkOrderByQuery(BaseQuery usdkOrderQuery) {
+        Page<UsdkOrderDTO> usdkOrderDTOPage = new Page<UsdkOrderDTO>();
         if (usdkOrderQuery == null || usdkOrderQuery.getUserId() <= 0) {
             return usdkOrderDTOPage;
         }

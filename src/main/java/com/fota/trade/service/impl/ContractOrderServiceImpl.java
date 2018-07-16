@@ -1,10 +1,8 @@
 package com.fota.trade.service.impl;
 
-import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
-import com.fota.client.common.Page;
-import com.fota.client.common.Result;
 import com.fota.client.common.ResultCodeEnum;
+import com.fota.common.Page;
 import com.fota.thrift.ThriftJ;
 import com.fota.trade.common.BeanUtils;
 import com.fota.trade.common.Constant;
@@ -14,7 +12,7 @@ import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
-import org.apache.thrift.TException;
+import com.fota.trade.service.ContractOrderService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,7 +33,7 @@ import com.fota.trade.domain.ResultCode;
  * @Modified:
  */
 @Service("ContractOrderService")
-public class ContractOrderServiceImpl implements com.fota.trade.service.ContractOrderService.Iface {
+public class ContractOrderServiceImpl implements ContractOrderService {
 
     private static final Logger log = LoggerFactory.getLogger(ContractOrderServiceImpl.class);
 
@@ -64,13 +62,12 @@ public class ContractOrderServiceImpl implements com.fota.trade.service.Contract
     }
 
     @Override
-    public ContractOrderDTOPage listContractOrderByQuery(ContractOrderQueryDTO contractOrderQueryDTO) {
-        ContractOrderDTOPage contractOrderDTOPageRet = new ContractOrderDTOPage();
-        Result<Page<ContractOrderDTO>> result = Result.create();
+    public Page<ContractOrderDTO> listContractOrderByQuery(BaseQuery contractOrderQueryDTO) {
+        Page<ContractOrderDTO> contractOrderDTOPage = new Page<ContractOrderDTO>();
+
         if (contractOrderQueryDTO.getUserId() <= 0) {
             return null;
         }
-        ContractOrderDTOPage contractOrderDTOPage = new ContractOrderDTOPage();
         if (contractOrderQueryDTO.getPageNo() <= 0) {
             contractOrderQueryDTO.setPageNo(Constant.DEFAULT_PAGE_NO);
         }
@@ -88,11 +85,11 @@ public class ContractOrderServiceImpl implements com.fota.trade.service.Contract
             total = contractOrderMapper.countByQuery(ParamUtil.objectToMap(contractOrderQueryDTO));
         } catch (Exception e) {
             log.error("contractOrderMapper.countByQuery({})", contractOrderQueryDTO, e);
-            return contractOrderDTOPageRet;
+            return contractOrderDTOPage;
         }
         contractOrderDTOPage.setTotal(total);
         if (total == 0) {
-            return contractOrderDTOPageRet;
+            return contractOrderDTOPage;
         }
         List<ContractOrderDO> contractOrderDOList = null;
         List<com.fota.trade.domain.ContractOrderDTO> list = new ArrayList<>();
@@ -106,15 +103,10 @@ public class ContractOrderServiceImpl implements com.fota.trade.service.Contract
             }
         } catch (Exception e) {
             log.error("contractOrderMapper.listByQuery({})", contractOrderQueryDTO, e);
-            return contractOrderDTOPageRet;
+            return contractOrderDTOPage;
         }
         List<ContractOrderDTO> contractOrderDTOList = null;
-//        try {
-//            contractOrderDTOList = BeanUtils.copyList(contractOrderDOList, ContractOrderDTO.class);
-//        } catch (Exception e) {
-//            log.error("bean copy exception", e);
-//            return contractOrderDTOPageRet
-//        }
+
         contractOrderDTOPage.setData(list);
         return contractOrderDTOPage;
     }

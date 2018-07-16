@@ -184,7 +184,8 @@ public class ContractOrderManager {
         if (!sendRet){
             log.info("Send RocketMQ Message Failed ");
         }
-        resultCode = resultCode.setCode(0).setMessage("success");
+        resultCode.setCode(0);
+        resultCode.setMessage("success");
         return resultCode;
     }
 
@@ -199,10 +200,12 @@ public class ContractOrderManager {
             contractOrderDO.setStatus(OrderStatusEnum.PART_CANCEL.getCode());
         }else if (status == OrderStatusEnum.MATCH.getCode()){
             contractOrderDO.setStatus(OrderStatusEnum.MATCH.getCode());
-            resultCode = resultCode.setCode(8).setMessage("There is no order to be withdrawn");
+            resultCode.setCode(8);
+            resultCode.setMessage("There is no order to be withdrawn");
             return resultCode;
         }else {
-            resultCode = resultCode.setCode(13).setMessage("contractOrder status illegal");
+            resultCode.setCode(13);
+            resultCode.setMessage("contractOrder status illegal");
             return resultCode;
         }
         int ret = contractOrderMapper.updateByOpLock(contractOrderDO);
@@ -218,7 +221,8 @@ public class ContractOrderManager {
                 throw new RuntimeException("lockContractAmountRet failed");
             }
         }else {
-            resultCode = resultCode.setCode(14).setMessage("update contractOrder Failed");
+            resultCode.setCode(14);
+            resultCode.setMessage("update contractOrder Failed");
         }
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO );
@@ -233,7 +237,8 @@ public class ContractOrderManager {
         if (!sendRet){
             log.info("Send RocketMQ Message Failed ");
         }
-        resultCode = resultCode.setCode(0).setMessage("success");
+        resultCode.setCode(0);
+        resultCode.setMessage("success");
         return resultCode;
     }
 
@@ -250,7 +255,8 @@ public class ContractOrderManager {
                 throw new RuntimeException("cancelAllOrder failed");
             }
         }
-        resultCode = resultCode.setCode(0).setMessage("success");
+        resultCode.setCode(0);
+        resultCode.setMessage("success");
         return resultCode;
     }
 

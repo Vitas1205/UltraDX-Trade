@@ -16,6 +16,7 @@
 
 package com.fota.fotatrade.thriftserver;
 
+import com.fota.fotarpc.ProviderService;
 import com.fota.trade.service.*;
 import com.fota.trade.service.impl.*;
 import org.apache.thrift.TMultiplexedProcessor;
@@ -65,34 +66,14 @@ public class ThriftServer implements Runnable {
 
         try {
             TMultiplexedProcessor multiplexedProcessor = new TMultiplexedProcessor();
-            TProcessor contractCategoryService = new ContractCategoryService.Processor<ContractCategoryService.Iface>(contractCategoryServiceImpl);
-            TProcessor usdkOrderService = new UsdkOrderService.Processor<UsdkOrderService.Iface>(usdkOrderServiceImpl);
-            TProcessor userPositionService = new UserPositionService.Processor<UserPositionService.Iface>(userPositionServiceImpl);
-            TProcessor contractOrderService = new ContractOrderService.Processor<ContractOrderService.Iface>(contractOrderServiceImpl);
-            TProcessor userContractLeverService = new UserContractLeverService.Processor<UserContractLeverService.Iface>(userContractLeverServiceImpl);
-            multiplexedProcessor.registerProcessor("contractCategoryService", contractCategoryService);
-            multiplexedProcessor.registerProcessor("contractOrderService", contractOrderService);
-            multiplexedProcessor.registerProcessor("usdkOrderService", usdkOrderService);
-            multiplexedProcessor.registerProcessor("userPositionService", userPositionService);
-            multiplexedProcessor.registerProcessor("userContractLeverService", userContractLeverService);
-            TNonblockingServerSocket serverTransport = new TNonblockingServerSocket(serverPort);
-            LOGGER.info("server port " + serverPort);
-            TTransportFactory transportFactory = new TFramedTransport.Factory();
+            ProviderService ps = new ProviderService();
+            ps.init(ContractCategoryService.class, null, serverPort, contractCategoryServiceImpl);
+            ps.init(UsdkOrderService.class, null,serverPort, usdkOrderServiceImpl);
+            ps.init(UserPositionService.class, null, serverPort, userPositionServiceImpl);
+            ps.init(ContractOrderService.class, null, serverPort, contractOrderServiceImpl);
+            ps.init(UserContractLeverService.class, null, serverPort, userContractLeverServiceImpl);
 
-            TBinaryProtocol.Factory factory = new TBinaryProtocol.Factory();
-
-            TThreadedSelectorServer.Args tArgs = new TThreadedSelectorServer.Args(serverTransport);
-            //客户端协议要一致
-            tArgs.protocolFactory(factory);
-            tArgs.transportFactory(transportFactory);
-            tArgs.processor(multiplexedProcessor);
-
-            // 线程池服务模型，使用标准的阻塞式IO，预先创建一组线程处理请求。
-            TServer server = new TThreadedSelectorServer(tArgs);
-
-            server.serve();
-
-        } catch (TTransportException e) {
+        } catch (Exception e) {
             LOGGER.error("Starting Thrift Server......Error!!!", e);
         }
     }

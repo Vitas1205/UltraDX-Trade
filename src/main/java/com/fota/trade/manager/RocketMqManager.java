@@ -1,16 +1,12 @@
 package com.fota.trade.manager;
 
-import com.alibaba.rocketmq.client.producer.SendResult;
-import com.alibaba.rocketmq.shade.com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.JSONObject;
 import com.fota.trade.common.RocketMqProducer;
 import com.fota.trade.domain.OrderMessage;
-import com.fota.trade.domain.enums.OrderOperateTypeEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * @Author: Harry Wang

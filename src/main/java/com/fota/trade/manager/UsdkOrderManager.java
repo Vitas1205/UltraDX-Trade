@@ -1,6 +1,5 @@
 package com.fota.trade.manager;
 
-import com.alibaba.rocketmq.shade.com.alibaba.fastjson.JSONObject;
 import com.fota.asset.domain.UserCapitalDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.CapitalService;
@@ -55,6 +54,7 @@ public class UsdkOrderManager {
 
     @Autowired
     private ThriftJ thriftJ;
+
     @Value("${fota.asset.server.thrift.port}")
     private int thriftPort;
     @PostConstruct

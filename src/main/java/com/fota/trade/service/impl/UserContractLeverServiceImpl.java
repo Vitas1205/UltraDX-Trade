@@ -26,7 +26,7 @@ import static org.bouncycastle.asn1.x500.style.RFC4519Style.l;
  */
 @Service
 @Slf4j
-public class UserContractLeverServiceImpl implements UserContractLeverService.Iface  {
+public class UserContractLeverServiceImpl implements UserContractLeverService  {
 
     @Resource
     private UserContractLeverMapper userContractLeverMapper;
@@ -48,24 +48,25 @@ public class UserContractLeverServiceImpl implements UserContractLeverService.If
 
 
     @Override
-    public List<UserContractLeverDTO> listUserContractLever(long userId) throws TException {
+    public List<UserContractLeverDTO> listUserContractLever(long userId) {
         List<UserContractLeverDTO> resultList = new ArrayList<>();
         List<UserContractLeverDO> list;
-        List<AssetCategoryDTO> assetList = getAssetService().getAssetList();
-        for (AssetCategoryDTO assetCategoryDTO : assetList) {
-            if (assetCategoryDTO != null && !assetCategoryDTO.getName().toUpperCase().equals("USDK")) {
-                UserContractLeverDO userContractLeverDO = userContractLeverMapper.selectUserContractLever(userId, assetCategoryDTO.getId());
-                if (userContractLeverDO == null) {
-                    UserContractLeverDO newUserContractLeverDO = new UserContractLeverDO();
-                    newUserContractLeverDO.setUserId(userId);
-                    newUserContractLeverDO.setAssetId(assetCategoryDTO.getId());
-                    newUserContractLeverDO.setAssetName(assetCategoryDTO.getName());
-                    newUserContractLeverDO.setLever(10);
-                    userContractLeverMapper.insert(newUserContractLeverDO);
+        try {
+
+            List<AssetCategoryDTO> assetList = getAssetService().getAssetList();
+            for (AssetCategoryDTO assetCategoryDTO : assetList) {
+                if (assetCategoryDTO != null && !assetCategoryDTO.getName().toUpperCase().equals("USDK")) {
+                    UserContractLeverDO userContractLeverDO = userContractLeverMapper.selectUserContractLever(userId, assetCategoryDTO.getId());
+                    if (userContractLeverDO == null) {
+                        UserContractLeverDO newUserContractLeverDO = new UserContractLeverDO();
+                        newUserContractLeverDO.setUserId(userId);
+                        newUserContractLeverDO.setAssetId(assetCategoryDTO.getId());
+                        newUserContractLeverDO.setAssetName(assetCategoryDTO.getName());
+                        newUserContractLeverDO.setLever(10);
+                        userContractLeverMapper.insert(newUserContractLeverDO);
+                    }
                 }
             }
-        }
-        try {
             list = userContractLeverMapper.listUserContractLever(userId);
             if (list != null && list.size() > 0) {
                 for (UserContractLeverDO userContractLeverDO : list) {
@@ -83,7 +84,7 @@ public class UserContractLeverServiceImpl implements UserContractLeverService.If
     }
 
     @Override
-    public boolean setUserContractLever(long userId, List<UserContractLeverDTO> list) throws TException {
+    public boolean setUserContractLever(long userId, List<UserContractLeverDTO> list) {
         if (userId <= 0 || list == null || list.size() <= 0) {
             return false;
         }

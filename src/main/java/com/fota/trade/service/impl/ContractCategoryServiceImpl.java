@@ -5,9 +5,7 @@ import com.fota.trade.domain.ContractCategoryDO;
 import com.fota.trade.domain.ContractCategoryDTO;
 import com.fota.trade.domain.enums.ContractStatusEnum;
 import com.fota.trade.mapper.ContractCategoryMapper;
-import com.fota.client.service.ContractCategoryService;
-import org.apache.commons.lang.StringUtils;
-import org.apache.thrift.TException;
+import com.fota.trade.service.ContractCategoryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -21,9 +19,9 @@ import java.util.List;
  * @Date 2018/7/5
  */
 @Service("contractCategoryService")
-public class ContractCategoryServiceImpl implements com.fota.trade.service.ContractCategoryService.Iface {
+public class ContractCategoryServiceImpl implements ContractCategoryService {
 
-    private static final Logger log = LoggerFactory.getLogger(ContractCategoryService.class);
+    private static final Logger log = LoggerFactory.getLogger(ContractCategoryServiceImpl.class);
 
     @Resource
     private ContractCategoryMapper contractCategoryMapper;
@@ -89,7 +87,7 @@ public class ContractCategoryServiceImpl implements com.fota.trade.service.Contr
     }
 
     @Override
-    public ContractCategoryDTO getPreviousContract(long l) throws TException {
+    public ContractCategoryDTO getPreviousContract(long l) {
         return null;
     }
 
