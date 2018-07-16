@@ -52,7 +52,8 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
         }
         page.setPageNo(userPositionQuery.getPageNo());
         page.setPageSize(userPositionQuery.getPageSize());
-
+        userPositionQuery.setStartRow((userPositionQuery.getPageNo() - 1) * userPositionQuery.getPageSize());
+        userPositionQuery.setEndRow(userPositionQuery.getStartRow() + userPositionQuery.getPageSize());
         int total = 0;
         try {
             total = userPositionMapper.countByQuery(ParamUtil.objectToMap(userPositionQuery));
