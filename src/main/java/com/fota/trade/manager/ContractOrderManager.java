@@ -92,7 +92,7 @@ public class ContractOrderManager {
         return notMatchOrderList;
     }
 
-    @Transactional(rollbackFor = {Exception.class ,RuntimeException.class})
+
     /*public ResultCode placeOrder(ContractOrderDO contractOrderDO) throws Exception{
         ResultCode resultCode = new ResultCode();
         Long userId = contractOrderDO.getUserId();
@@ -138,6 +138,7 @@ public class ContractOrderManager {
         return resultCode;
     }*/
 
+    @Transactional(rollbackFor = {Exception.class,RuntimeException.class})
     public ResultCode placeOrder(ContractOrderDO contractOrderDO) throws Exception{
         ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractOrderDO.getContractId());
         if (contractCategoryDO == null){
