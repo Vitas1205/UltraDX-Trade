@@ -153,6 +153,7 @@ public class UsdkOrderManager {
             redisManager.usdkOrderSave(usdkOrderDTO);
             //todo 发送RocketMQ
             OrderMessage orderMessage = new OrderMessage();
+            orderMessage.setOrderId(usdkOrderDTO.getId());
             orderMessage.setEvent(OrderOperateTypeEnum.PLACE_ORDER.getCode());
             orderMessage.setUserId(usdkOrderDTO.getUserId());
             orderMessage.setSubjectId(usdkOrderDTO.getAssetId());
@@ -216,6 +217,7 @@ public class UsdkOrderManager {
             redisManager.usdkOrderSave(usdkOrderDTO);
             //todo 发送RocketMQ
             OrderMessage orderMessage = new OrderMessage();
+            orderMessage.setOrderId(usdkOrderDTO.getId());
             orderMessage.setEvent(OrderOperateTypeEnum.CANCLE_ORDER.getCode());
             orderMessage.setUserId(usdkOrderDTO.getUserId());
             orderMessage.setSubjectId(usdkOrderDTO.getAssetId());

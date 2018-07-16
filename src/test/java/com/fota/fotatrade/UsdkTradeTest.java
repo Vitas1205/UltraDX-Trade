@@ -54,13 +54,13 @@ public class UsdkTradeTest {
     @Test
     public void orderTest() throws Exception{
         UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
-        usdkOrderDO.setPrice(BigDecimal.valueOf(2));
+        usdkOrderDO.setPrice(BigDecimal.valueOf(100));
         usdkOrderDO.setAssetId(2);
-        usdkOrderDO.setAssetName("ETH");
+        usdkOrderDO.setAssetName("BTC");
         usdkOrderDO.setTotalAmount(BigDecimal.valueOf(5));
         usdkOrderDO.setOrderType(1);
         usdkOrderDO.setOrderDirection(1);
-        usdkOrderDO.setUserId(9527L);
+        usdkOrderDO.setUserId(282L);
 //        UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
 //        BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
 //        log.info("======================="+usdkOrderDTO.getAssetName());
@@ -74,7 +74,7 @@ public class UsdkTradeTest {
 
     @Test
     public void cancelTest() throws Exception{
-        usdkOrderManager.cancelOrder(3L,7L);
+        usdkOrderManager.cancelAllOrder(175L);
     }
 
 
