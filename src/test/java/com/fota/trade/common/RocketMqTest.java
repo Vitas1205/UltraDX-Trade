@@ -35,8 +35,9 @@ public class RocketMqTest {
         usdkOrderDTO.setAssetId(2);
         usdkOrderDTO.setAssetName("BTC");
         OrderMessage orderMessage = new OrderMessage();
-        //orderMessage.setType(OrderOperateTypeEnum.PLACE_ORDER.getCode());
-        //orderMessage.setMessage(usdkOrderDTO);
+        orderMessage.setEvent(OrderOperateTypeEnum.PLACE_ORDER.getCode());
+        orderMessage.setUserId(001);
+        orderMessage.setSubjectId(2);
         Boolean ret = rocketMqManager.sendMessage(topic,tag,orderMessage);
     }
 }

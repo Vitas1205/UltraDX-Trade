@@ -10,7 +10,7 @@
       <arg column="contract_id" jdbcType="BIGINT" javaType="java.lang.Long" />
       <arg column="contract_name" jdbcType="VARCHAR" javaType="java.lang.String" />
       <arg column="locked_amount" jdbcType="DECIMAL" javaType="java.math.BigDecimal" />
-      <arg column="unfilled_amount" jdbcType="DECIMAL" javaType="java.math.BigDecimal" />
+      <arg column="unfilled_amount" jdbcType="BIGINT" javaType="java.lang.Long" />
       <arg column="position_type" jdbcType="INTEGER" javaType="java.lang.Integer" />
       <arg column="average_price" jdbcType="DECIMAL" javaType="java.math.BigDecimal" />
       <arg column="status" jdbcType="INTEGER" javaType="java.lang.Integer" />
