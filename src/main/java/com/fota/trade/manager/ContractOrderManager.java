@@ -3,9 +3,9 @@ package com.fota.trade.manager;
 import com.fota.asset.domain.UserContractDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
-import com.fota.client.domain.OrderMessage;
 import com.fota.trade.common.Constant;
 import com.fota.trade.domain.ContractCategoryDO;
+import com.fota.trade.domain.OrderMessage;
 import com.fota.trade.domain.ResultCode;
 import com.fota.client.domain.ContractOrderDTO;
 import com.fota.thrift.ThriftJ;
@@ -177,8 +177,9 @@ public class ContractOrderManager {
         redisManager.contractOrderSave(contractOrderDTO);
         //todo 推送MQ消息
         OrderMessage orderMessage = new OrderMessage();
-        orderMessage.setType(OrderOperateTypeEnum.PLACE_ORDER.getCode());
-        orderMessage.setMessage(contractOrderDTO);
+        orderMessage.setEvent(OrderOperateTypeEnum.PLACE_ORDER.getCode());
+        orderMessage.setUserId(contractOrderDTO.getUserId());
+        orderMessage.setSubjectId(contractOrderDTO.getContractId());
         Boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder", orderMessage);
         if (!sendRet){
             log.info("Send RocketMQ Message Failed ");
@@ -225,8 +226,9 @@ public class ContractOrderManager {
         redisManager.contractOrderSave(contractOrderDTO);
         //todo 推送MQ消息
         OrderMessage orderMessage = new OrderMessage();
-        orderMessage.setType(OrderOperateTypeEnum.PLACE_ORDER.getCode());
-        orderMessage.setMessage(contractOrderDTO);
+        orderMessage.setEvent(OrderOperateTypeEnum.CANCLE_ORDER.getCode());
+        orderMessage.setUserId(contractOrderDTO.getUserId());
+        orderMessage.setSubjectId(contractOrderDTO.getContractId());
         Boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder", orderMessage);
         if (!sendRet){
             log.info("Send RocketMQ Message Failed ");

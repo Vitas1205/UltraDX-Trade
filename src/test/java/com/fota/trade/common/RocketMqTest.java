@@ -1,7 +1,7 @@
 package com.fota.trade.common;
 
-import com.alibaba.rocketmq.client.producer.SendResult;
-import com.fota.client.domain.OrderMessage;
+
+import com.fota.trade.domain.OrderMessage;
 import com.fota.trade.domain.UsdkOrderDTO;
 import com.fota.trade.domain.enums.OrderOperateTypeEnum;
 import com.fota.trade.manager.RocketMqManager;
@@ -35,8 +35,8 @@ public class RocketMqTest {
         usdkOrderDTO.setAssetId(2);
         usdkOrderDTO.setAssetName("BTC");
         OrderMessage orderMessage = new OrderMessage();
-        orderMessage.setType(OrderOperateTypeEnum.PLACE_ORDER.getCode());
-        orderMessage.setMessage(usdkOrderDTO);
+        //orderMessage.setType(OrderOperateTypeEnum.PLACE_ORDER.getCode());
+        //orderMessage.setMessage(usdkOrderDTO);
         Boolean ret = rocketMqManager.sendMessage(topic,tag,orderMessage);
     }
 }

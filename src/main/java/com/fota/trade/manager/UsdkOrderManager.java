@@ -5,11 +5,11 @@ import com.fota.asset.domain.UserCapitalDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.CapitalService;
 import com.fota.client.common.ResultCode;
-import com.fota.client.domain.OrderMessage;
 import com.fota.client.domain.UsdkOrderDTO;
 import com.fota.thrift.ThriftJ;
 import com.fota.trade.common.Constant;
 import com.fota.trade.common.RocketMqProducer;
+import com.fota.trade.domain.OrderMessage;
 import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.trade.domain.enums.AssetTypeEnum;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
@@ -151,10 +151,11 @@ public class UsdkOrderManager {
             resultCode = ResultCode.success();
             usdkOrderDTO.setCompleteAmount(BigDecimal.ZERO);
             redisManager.usdkOrderSave(usdkOrderDTO);
-            //todo 发送RocketMQ*/
+            //todo 发送RocketMQ
             OrderMessage orderMessage = new OrderMessage();
-            orderMessage.setType(OrderOperateTypeEnum.PLACE_ORDER.getCode());
-            orderMessage.setMessage(usdkOrderDTO);
+            orderMessage.setEvent(OrderOperateTypeEnum.PLACE_ORDER.getCode());
+            orderMessage.setUserId(usdkOrderDTO.getUserId());
+            orderMessage.setSubjectId(usdkOrderDTO.getAssetId());
             Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", orderMessage);
             if (!sendRet){
                 log.info("Send RocketMQ Message Failed ");
@@ -215,8 +216,9 @@ public class UsdkOrderManager {
             redisManager.usdkOrderSave(usdkOrderDTO);
             //todo 发送RocketMQ
             OrderMessage orderMessage = new OrderMessage();
-            orderMessage.setType(OrderOperateTypeEnum.PLACE_ORDER.getCode());
-            orderMessage.setMessage(usdkOrderDTO);
+            orderMessage.setEvent(OrderOperateTypeEnum.CANCLE_ORDER.getCode());
+            orderMessage.setUserId(usdkOrderDTO.getUserId());
+            orderMessage.setSubjectId(usdkOrderDTO.getAssetId());
             Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", orderMessage);
             if (!sendRet){
                 log.info("Send RocketMQ Message Failed ");
