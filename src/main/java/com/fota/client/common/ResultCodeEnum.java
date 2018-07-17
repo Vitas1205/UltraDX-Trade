@@ -7,7 +7,7 @@ import lombok.Getter;
  * @Date 2018/7/7
  */
 public enum  ResultCodeEnum {
-
+    SUCCESS(0,"SUCCESS"),
     // 参数异常
     ILLEGAL_PARAM(11001, "ILLEGAL_PARAM"),
     DATABASE_EXCEPTION(11002, "DATABASE_EXCEPTION"),

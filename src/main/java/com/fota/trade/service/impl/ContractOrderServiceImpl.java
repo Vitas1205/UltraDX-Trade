@@ -166,7 +166,8 @@ public class ContractOrderServiceImpl implements com.fota.trade.service.Contract
         ContractOrderDO bidUsdkOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
         updateContractAccount(askUsdkOrder, contractMatchedOrderDTO);
         updateContractAccount(bidUsdkOrder, contractMatchedOrderDTO);
-        return null;
+        resultCode.setCode(ResultCodeEnum.SUCCESS.getCode());
+        return resultCode;
     }
 
     void updateContractAccount(ContractOrderDO contractOrderDO, ContractMatchedOrderDTO contractMatchedOrderDTO) {
