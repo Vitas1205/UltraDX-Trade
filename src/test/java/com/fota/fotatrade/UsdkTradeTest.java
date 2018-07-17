@@ -2,6 +2,7 @@ package com.fota.fotatrade;
 
 import com.fota.client.domain.UsdkOrderDTO;
 import com.fota.trade.domain.UsdkOrderDO;
+import com.fota.trade.manager.RedisManager;
 import com.fota.trade.manager.UsdkOrderManager;
 import com.fota.trade.mapper.UsdkOrderMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +32,9 @@ public class UsdkTradeTest {
 
     @Autowired
     private UsdkOrderManager usdkOrderManager;
+
+    @Autowired
+    private RedisManager redisManager;
 
     @Test
     public void InsertTest() {
@@ -69,7 +73,7 @@ public class UsdkTradeTest {
 
     @Test
     public void updateTest(){
-
+        log.info("---------"+redisManager.get("fota_usdk_entrust_61"));
     }
 
     @Test
