@@ -129,6 +129,7 @@ public class ContractOrderManager {
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO );
         contractOrderDTO.setCompleteAmount(BigDecimal.ZERO);
+        contractOrderDTO.setContractId(contractOrderDO.getContractId().intValue());
         redisManager.contractOrderSave(contractOrderDTO);
         //todo 推送MQ消息
         OrderMessage orderMessage = new OrderMessage();
@@ -179,6 +180,7 @@ public class ContractOrderManager {
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO );
         contractOrderDTO.setCompleteAmount(new BigDecimal(contractOrderDTO.getTotalAmount()-contractOrderDTO.getUnfilledAmount()));
+        contractOrderDTO.setContractId(contractOrderDO.getContractId().intValue());
         redisManager.contractOrderSave(contractOrderDTO);
         //todo 推送MQ消息
         OrderMessage orderMessage = new OrderMessage();

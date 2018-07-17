@@ -73,7 +73,7 @@ public class UsdkTradeTest {
 
     @Test
     public void updateTest(){
-        log.info("---------"+redisManager.get("fota_usdk_entrust_61"));
+        log.info("---------"+redisManager.get("fota_usdk_entrust_1"));
     }
 
     @Test
