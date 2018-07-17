@@ -12,6 +12,7 @@ import com.fota.trade.common.ParamUtil;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.manager.ContractOrderManager;
+import com.fota.trade.manager.RedisManager;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
 import org.apache.thrift.TException;
@@ -46,6 +47,9 @@ public class ContractOrderServiceImpl implements com.fota.trade.service.Contract
     private ContractOrderManager contractOrderManager;
     @Resource
     private UserPositionMapper userPositionMapper;
+
+    @Autowired
+    private RedisManager redisManager;
 
     @Autowired
     private ThriftJ thriftJ;
@@ -166,6 +170,17 @@ public class ContractOrderServiceImpl implements com.fota.trade.service.Contract
         ContractOrderDO bidUsdkOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
         updateContractAccount(askUsdkOrder, contractMatchedOrderDTO);
         updateContractAccount(bidUsdkOrder, contractMatchedOrderDTO);
+
+        com.fota.client.domain.ContractOrderDTO bidContractOrderDTO = new com.fota.client.domain.ContractOrderDTO();
+        com.fota.client.domain.ContractOrderDTO askContractOrderDTO = new com.fota.client.domain.ContractOrderDTO();
+        org.springframework.beans.BeanUtils.copyProperties(askUsdkOrder, askContractOrderDTO);
+        askContractOrderDTO.setContractId(askUsdkOrder.getContractId().intValue());
+        org.springframework.beans.BeanUtils.copyProperties(bidUsdkOrder, bidContractOrderDTO);
+        bidContractOrderDTO.setContractId(bidUsdkOrder.getContractId().intValue());
+        askContractOrderDTO.setCompleteAmount(new BigDecimal(contractMatchedOrderDTO.getFilledAmount()));
+        bidContractOrderDTO.setCompleteAmount(new BigDecimal(contractMatchedOrderDTO.getFilledAmount()));
+        redisManager.contractOrderSave(askContractOrderDTO);
+        redisManager.contractOrderSave(bidContractOrderDTO);
         resultCode.setCode(ResultCodeEnum.SUCCESS.getCode());
         return resultCode;
     }

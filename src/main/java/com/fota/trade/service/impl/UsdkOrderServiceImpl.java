@@ -48,7 +48,7 @@ public class UsdkOrderServiceImpl implements com.fota.trade.service.UsdkOrderSer
     private UsdkOrderManager usdkOrderManager;
 
     @Autowired
-    RedisManager redisManager;
+    private RedisManager redisManager;
 
     @Autowired
     private ThriftJ thriftJ;
@@ -208,8 +208,8 @@ public class UsdkOrderServiceImpl implements com.fota.trade.service.UsdkOrderSer
         //todo 存redis，发消息？
         org.springframework.beans.BeanUtils.copyProperties(askUsdkOrder, askUsdkOrderDTO);
         org.springframework.beans.BeanUtils.copyProperties(bidUsdkOrder, bidUsdkOrderDTO);
-        askUsdkOrderDTO.setMatchAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
-        bidUsdkOrderDTO.setMatchAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
+        askUsdkOrderDTO.setCompleteAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
+        bidUsdkOrderDTO.setCompleteAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
         redisManager.usdkOrderSave(askUsdkOrderDTO);
         redisManager.usdkOrderSave(bidUsdkOrderDTO);
         return BeanUtils.copy(com.fota.client.common.ResultCode.success());
