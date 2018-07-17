@@ -195,7 +195,7 @@ public class UsdkOrderServiceImpl implements com.fota.trade.service.UsdkOrderSer
 
         boolean updateRet = false;
         try {
-            log.info("--------------------"+balanceTransferDTO.toString());
+            log.info("----------------------"+balanceTransferDTO.toString());
             updateRet = getService().updateBalance(balanceTransferDTO);
         } catch (TException e) {
             log.error("capitalService.updateBalance({})", balanceTransferDTO, e);
