@@ -90,55 +90,12 @@ public class ContractOrderManager {
     }
 
 
-    /*public ResultCode placeOrder(ContractOrderDO contractOrderDO) throws Exception{
-        ResultCode resultCode = new ResultCode();
-        Long userId = contractOrderDO.getUserId();
-        BigDecimal toatlLockAmount = getTotalLockAmount(contractOrderDO);
-        //查询合约账户
-        UserContractDTO userContractDTO = getAssetService().getContractAccount(userId);
-        //查询持仓，统计所有保证金
-        List<UserPositionDO> list = userPositionMapper.selectByUserId(userId);
-        BigDecimal tatalEarnestAmount = BigDecimal.ZERO;
-        BigDecimal earnestAmount = BigDecimal.ZERO;
-        //todo 合约的买一卖一价格从入参获取
-        BigDecimal contractValue = BigDecimal.ZERO;
-        for(UserPositionDO userPositionDO : list){
-            Long contractId = userPositionDO.getContractId();
-            Long unfillesAmount = userPositionDO.getUnfilledAmount();
-            Integer lever = userPositionDO.getLever();
-            earnestAmount = getEarnestAmount(contractId, lever, unfillesAmount, contractValue);
-            tatalEarnestAmount = earnestAmount.add(tatalEarnestAmount);
-        }
-        //判断是否需要追加冻结
-        BigDecimal lockedAmount = new BigDecimal(userContractDTO.getLockedAmount());
-        if (toatlLockAmount.compareTo(lockedAmount) > 0){
-            //需要追加冻结判断余额是否足够
-            BigDecimal rights = new BigDecimal(userContractDTO.getAmount());
-            if (rights.subtract(tatalEarnestAmount).compareTo(toatlLockAmount) < 0){
-                throw new RuntimeException("ContractAccount Available Amount Not Enough");
-            }
-        }
-        //todo 调用RPC接口冻结合约账户（加锁）
-        long gmtModified =  userContractDTO.getGmtModified();
-        BigDecimal addLockedBalance = toatlLockAmount.subtract(lockedAmount);
-        //插入合约订单
-        int insertContractOrderRet = contractOrderMapper.insertSelective(contractOrderDO);
-        if (insertContractOrderRet <= 0){
-            throw new RuntimeException("insert contractOrder failed");
-        }
-        ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
-        BeanUtils.copyProperties(contractOrderDO, contractOrderDTO );
-        contractOrderDTO.setCompleteAmount(BigDecimal.ZERO);
-        redisManager.contractOrderSave(contractOrderDTO);
-        resultCode = resultCode.setCode(0).setMessage("success");
-
-        return resultCode;
-    }*/
 
     @Transactional(rollbackFor = {Exception.class,RuntimeException.class})
     public ResultCode placeOrder(ContractOrderDO contractOrderDO) throws Exception{
         ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractOrderDO.getContractId());
         if (contractCategoryDO == null){
+            log.error("Contract Name Is Null");
             throw new RuntimeException("Contract Name Is Null");
         }
         contractOrderDO.setContractName(contractCategoryDO.getContractName());
@@ -151,6 +108,7 @@ public class ContractOrderManager {
         contractOrderDO.setUnfilledAmount(contractOrderDO.getTotalAmount());
         int insertContractOrderRet = contractOrderMapper.insertSelective(contractOrderDO);
         if (insertContractOrderRet <= 0){
+            log.error("insert contractOrder failed");
             throw new RuntimeException("insert contractOrder failed");
         }
         //查询合约账户
@@ -424,6 +382,7 @@ public class ContractOrderManager {
         contractOrderDO.setUnfilledAmount(contractOrderDO.getTotalAmount());
         int insertContractOrderRet = contractOrderMapper.insertSelective(contractOrderDO);
         if (insertContractOrderRet <= 0){
+            log.error("insert contractOrder failed");
             throw new RuntimeException("insert contractOrder failed");
         }
     }

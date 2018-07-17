@@ -88,6 +88,7 @@ public class UsdkOrderManager {
         return notMatchOrderList;
     }
 
+    @Transactional(rollbackFor={RuntimeException.class, Exception.class})
     public ResultCode placeOrder(UsdkOrderDO usdkOrderDO)throws Exception {
         ResultCode resultCode = new ResultCode();
         Integer assetId = usdkOrderDO.getAssetId();

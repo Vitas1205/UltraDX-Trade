@@ -3,6 +3,7 @@
 <mapper namespace="com.fota.trade.mapper.UserPositionMapper" >
   <resultMap id="BaseResultMap" type="com.fota.trade.domain.UserPositionDO" >
     <constructor >
+
       <idArg column="id" jdbcType="BIGINT" javaType="java.lang.Long" />
       <arg column="gmt_create" jdbcType="TIMESTAMP" javaType="java.util.Date" />
       <arg column="gmt_modified" jdbcType="TIMESTAMP" javaType="java.util.Date" />
