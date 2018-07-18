@@ -28,6 +28,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import com.fota.trade.domain.ResultCode;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * @Author: JianLi.Gao
@@ -160,23 +161,38 @@ public class ContractOrderServiceImpl implements com.fota.trade.service.Contract
     }
 
     @Override
+    @Transactional(rollbackFor = {Exception.class, RuntimeException.class, TException.class})
     public ResultCode updateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO) {
         ResultCode resultCode = new ResultCode();
         if (contractMatchedOrderDTO == null) {
             resultCode.setCode(ResultCodeEnum.ILLEGAL_PARAM.getCode());
             return resultCode;
         }
-        ContractOrderDO askUsdkOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getAskOrderId());
-        ContractOrderDO bidUsdkOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
-        updateContractAccount(askUsdkOrder, contractMatchedOrderDTO);
-        updateContractAccount(bidUsdkOrder, contractMatchedOrderDTO);
+        ContractOrderDO askContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getAskOrderId());
+        ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
+        if (askContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0
+                || bidContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0){
+            return BeanUtils.copy(com.fota.client.common.ResultCode.error(ResultCodeEnum.ORDER_UNFILLEDAMOUNT_NOT_ENOUGHT));
+        }
+        if (askContractOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && askContractOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()
+                && bidContractOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && bidContractOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()){
+            return BeanUtils.copy(com.fota.client.common.ResultCode.error(ResultCodeEnum.ASK_AND_BID_ILLEGAL));
+        }
+        if (askContractOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && askContractOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()){
+            return BeanUtils.copy(com.fota.client.common.ResultCode.error(ResultCodeEnum.ASK_ILLEGAL));
+        }
+        if (bidContractOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && bidContractOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()){
+            return BeanUtils.copy(com.fota.client.common.ResultCode.error(ResultCodeEnum.BID_ILLEGAL));
+        }
+        updateContractAccount(askContractOrder, contractMatchedOrderDTO);
+        updateContractAccount(bidContractOrder, contractMatchedOrderDTO);
 
         com.fota.client.domain.ContractOrderDTO bidContractOrderDTO = new com.fota.client.domain.ContractOrderDTO();
         com.fota.client.domain.ContractOrderDTO askContractOrderDTO = new com.fota.client.domain.ContractOrderDTO();
-        org.springframework.beans.BeanUtils.copyProperties(askUsdkOrder, askContractOrderDTO);
-        askContractOrderDTO.setContractId(askUsdkOrder.getContractId().intValue());
-        org.springframework.beans.BeanUtils.copyProperties(bidUsdkOrder, bidContractOrderDTO);
-        bidContractOrderDTO.setContractId(bidUsdkOrder.getContractId().intValue());
+        org.springframework.beans.BeanUtils.copyProperties(askContractOrder, askContractOrderDTO);
+        askContractOrderDTO.setContractId(askContractOrder.getContractId().intValue());
+        org.springframework.beans.BeanUtils.copyProperties(bidContractOrder, bidContractOrderDTO);
+        bidContractOrderDTO.setContractId(bidContractOrder.getContractId().intValue());
         askContractOrderDTO.setCompleteAmount(new BigDecimal(contractMatchedOrderDTO.getFilledAmount()));
         bidContractOrderDTO.setCompleteAmount(new BigDecimal(contractMatchedOrderDTO.getFilledAmount()));
         redisManager.contractOrderSave(askContractOrderDTO);
@@ -185,7 +201,7 @@ public class ContractOrderServiceImpl implements com.fota.trade.service.Contract
         return resultCode;
     }
 
-    void updateContractAccount(ContractOrderDO contractOrderDO, ContractMatchedOrderDTO contractMatchedOrderDTO) {
+    private void updateContractAccount(ContractOrderDO contractOrderDO, ContractMatchedOrderDTO contractMatchedOrderDTO) {
         BigDecimal filledAmount = new BigDecimal(contractMatchedOrderDTO.getFilledAmount());
         BigDecimal filledPrice = new BigDecimal(contractMatchedOrderDTO.getFilledPrice());
         Long userId = contractOrderDO.getUserId();
@@ -314,6 +330,6 @@ public class ContractOrderServiceImpl implements com.fota.trade.service.Contract
             contractOrderDO.setStatus(OrderStatusEnum.PART_MATCH.getCode());
         }
         contractOrderDO.setUnfilledAmount(contractOrderDO.getUnfilledAmount() - filledAmount);
-        return contractOrderMapper.updateByPrimaryKey(contractOrderDO);
+        return contractOrderMapper.updateByPrimaryKeyAndOpLock(contractOrderDO);
     }
 }

@@ -152,8 +152,8 @@ public class UsdkOrderServiceImpl implements com.fota.trade.service.UsdkOrderSer
     }
 
     @Override
-    //@Transactional(rollbackFor = {Exception.class,RuntimeException.class})
-    public ResultCode updateOrderByMatch(UsdkMatchedOrderDTO usdkMatchedOrderDTO) {
+    @Transactional(rollbackFor = {Exception.class, RuntimeException.class, TException.class})
+    public ResultCode updateOrderByMatch(UsdkMatchedOrderDTO usdkMatchedOrderDTO) throws TException {
         if (usdkMatchedOrderDTO == null) {
             return BeanUtils.copy(com.fota.client.common.ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM));
         }
@@ -161,13 +161,30 @@ public class UsdkOrderServiceImpl implements com.fota.trade.service.UsdkOrderSer
         com.fota.client.domain.UsdkOrderDTO askUsdkOrderDTO = new com.fota.client.domain.UsdkOrderDTO();
         UsdkOrderDO askUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getAskOrderId());
         UsdkOrderDO bidUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getBidOrderId());
+        if (askUsdkOrder.getUnfilledAmount().compareTo(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount())) < 0
+                || bidUsdkOrder.getUnfilledAmount().compareTo(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount())) < 0){
+            return BeanUtils.copy(com.fota.client.common.ResultCode.error(ResultCodeEnum.ORDER_UNFILLEDAMOUNT_NOT_ENOUGHT));
+        }
+        if (askUsdkOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && askUsdkOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()
+                && bidUsdkOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && bidUsdkOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()){
+            return BeanUtils.copy(com.fota.client.common.ResultCode.error(ResultCodeEnum.ASK_AND_BID_ILLEGAL));
+        }
+        if (askUsdkOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && askUsdkOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()){
+            return BeanUtils.copy(com.fota.client.common.ResultCode.error(ResultCodeEnum.ASK_ILLEGAL));
+        }
+        if (bidUsdkOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && bidUsdkOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()){
+            return BeanUtils.copy(com.fota.client.common.ResultCode.error(ResultCodeEnum.BID_ILLEGAL));
+        }
         BigDecimal filledAmount = new BigDecimal(usdkMatchedOrderDTO.getFilledAmount());
         BigDecimal filledPrice = new BigDecimal(usdkMatchedOrderDTO.getFilledPrice());
-        updateSingleOrderByFilledAmount(askUsdkOrder, filledAmount);
-        updateSingleOrderByFilledAmount(bidUsdkOrder, filledAmount);
-
-
-
+        int updateAskOrderRet = updateSingleOrderByFilledAmount(askUsdkOrder, filledAmount);
+        if (updateAskOrderRet <= 0){
+            throw new RuntimeException("ask:"+ResultCodeEnum.UPDATE_USDKORDER_FAILED.getMessage());
+        }
+        int updateBIdOrderRet = updateSingleOrderByFilledAmount(bidUsdkOrder, filledAmount);
+        if (updateBIdOrderRet <= 0){
+            throw new RuntimeException("bid:"+ResultCodeEnum.UPDATE_USDKORDER_FAILED.getMessage());
+        }
         // todo 买币 bid +totalAsset = filledAmount - filledAmount * feeRate
         // todo 买币 bid -totalUsdk = filledAmount * filledPrice
         // todo 买币 bid -lockedUsdk = filledAmount * bidOrderPrice
@@ -194,15 +211,9 @@ public class UsdkOrderServiceImpl implements com.fota.trade.service.UsdkOrderSer
         balanceTransferDTO.setBidUserId(bidUsdkOrder.getUserId());
 
         boolean updateRet = false;
-        try {
-            log.info("----------------------"+balanceTransferDTO.toString());
-            updateRet = getService().updateBalance(balanceTransferDTO);
-        } catch (TException e) {
-            log.error("capitalService.updateBalance({})", balanceTransferDTO, e);
-            return BeanUtils.copy(com.fota.client.common.ResultCode.error(ResultCodeEnum.SERVICE_EXCEPTION));
-        }
+        updateRet = getService().updateBalance(balanceTransferDTO);
         if (!updateRet) {
-            return BeanUtils.copy(com.fota.client.common.ResultCode.error(ResultCodeEnum.SERVICE_FAILED));
+            throw new RuntimeException("update balance failed");
         }
 
         //todo 存redis，发消息？
@@ -230,6 +241,6 @@ public class UsdkOrderServiceImpl implements com.fota.trade.service.UsdkOrderSer
             usdkOrderDO.setStatus(OrderStatusEnum.PART_MATCH.getCode());
         }
         usdkOrderDO.setUnfilledAmount(usdkOrderDO.getUnfilledAmount().subtract(filledAmount));
-        return usdkOrderMapper.updateByPrimaryKey(usdkOrderDO);
+        return usdkOrderMapper.updateByPrimaryKeyAndOpLock(usdkOrderDO);
     }
 }
