@@ -170,6 +170,9 @@ public class ContractOrderServiceImpl implements com.fota.trade.service.Contract
         }
         ContractOrderDO askContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getAskOrderId());
         ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
+        log.info("---------------"+contractMatchedOrderDTO.toString());
+        log.info("---------------"+askContractOrder.toString());
+        log.info("---------------"+bidContractOrder.toString());
         if (askContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0
                 || bidContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0){
             return BeanUtils.copy(com.fota.client.common.ResultCode.error(ResultCodeEnum.ORDER_UNFILLEDAMOUNT_NOT_ENOUGHT));

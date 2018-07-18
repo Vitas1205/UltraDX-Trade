@@ -161,6 +161,9 @@ public class UsdkOrderServiceImpl implements com.fota.trade.service.UsdkOrderSer
         com.fota.client.domain.UsdkOrderDTO askUsdkOrderDTO = new com.fota.client.domain.UsdkOrderDTO();
         UsdkOrderDO askUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getAskOrderId());
         UsdkOrderDO bidUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getBidOrderId());
+        log.info("---------------"+usdkMatchedOrderDTO.toString());
+        log.info("---------------"+askUsdkOrder.toString());
+        log.info("---------------"+bidUsdkOrder.toString());
         if (askUsdkOrder.getUnfilledAmount().compareTo(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount())) < 0
                 || bidUsdkOrder.getUnfilledAmount().compareTo(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount())) < 0){
             return BeanUtils.copy(com.fota.client.common.ResultCode.error(ResultCodeEnum.ORDER_UNFILLEDAMOUNT_NOT_ENOUGHT));
