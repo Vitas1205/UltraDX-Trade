@@ -101,4 +101,34 @@ public class UserContractLeverServiceImpl implements UserContractLeverService.If
         }
         return true;
     }
+
+    @Override
+    public UserContractLeverDTO getLeverByAssetId(long userId, int assetId) throws TException {
+        if (userId <= 0 || assetId <= 0) {
+            return null;
+        }
+        try {
+            UserContractLeverDO userContractLeverDO = userContractLeverMapper.selectUserContractLever(userId, assetId);
+            if (userContractLeverDO != null) {
+                UserContractLeverDTO userContractLeverDTO = new UserContractLeverDTO();
+                userContractLeverDTO.setAssetId(userContractLeverDO.getAssetId());
+                userContractLeverDTO.setAssetName(userContractLeverDO.getAssetName());
+                userContractLeverDTO.setLever(userContractLeverDO.getLever());
+                return userContractLeverDTO;
+            }
+        } catch (Exception e) {
+            log.error("userContractLeverMapper.selectUserContractLever exception", e);
+        }
+        return null;
+    }
+
+    @Override
+    public UserContractLeverDTO getLeverByContractId(long userId, long contractId) throws TException {
+        //
+
+
+        return null;
+    }
+
+
 }
