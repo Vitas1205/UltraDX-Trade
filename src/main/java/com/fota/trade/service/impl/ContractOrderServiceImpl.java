@@ -272,9 +272,12 @@ public class ContractOrderServiceImpl implements com.fota.trade.service.Contract
 
     private int updateUserPosition(UserPositionDO userPositionDO, BigDecimal oldTotalPrice, BigDecimal addedTotalPrice, long newTotalAmount) {
         BigDecimal newTotalPrice = oldTotalPrice.add(addedTotalPrice);
-        BigDecimal newAvaeragePrice = newTotalPrice.divide(new BigDecimal(newTotalAmount), 8,BigDecimal.ROUND_DOWN);
+        if (newTotalAmount != 0){
+            BigDecimal newAvaeragePrice = newTotalPrice.divide(new BigDecimal(newTotalAmount), 8,BigDecimal.ROUND_DOWN);
+            userPositionDO.setAveragePrice(newAvaeragePrice);
+        }
         userPositionDO.setUnfilledAmount(newTotalAmount);
-        userPositionDO.setAveragePrice(newAvaeragePrice);
+
         int updateRet = 0;
         try {
             updateRet = userPositionMapper.updateByPrimaryKey(userPositionDO);
