@@ -3,6 +3,7 @@ package com.fota.trade.manager;
 import com.fota.asset.domain.UserContractDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
+import com.fota.client.common.ResultCodeEnum;
 import com.fota.trade.common.Constant;
 import com.fota.trade.domain.*;
 import com.fota.client.domain.ContractOrderDTO;
@@ -129,6 +130,7 @@ public class ContractOrderManager {
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO );
         contractOrderDTO.setCompleteAmount(BigDecimal.ZERO);
+        contractOrderDTO.setContractId(contractOrderDO.getContractId().intValue());
         redisManager.contractOrderSave(contractOrderDTO);
         //todo 推送MQ消息
         OrderMessage orderMessage = new OrderMessage();
@@ -138,7 +140,7 @@ public class ContractOrderManager {
         orderMessage.setSubjectId(contractOrderDO.getContractId().intValue());
         Boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder", orderMessage);
         if (!sendRet){
-            log.info("Send RocketMQ Message Failed ");
+            log.error("Send RocketMQ Message Failed ");
         }
         resultCode = resultCode.setCode(0).setMessage("success");
         return resultCode;
@@ -155,10 +157,10 @@ public class ContractOrderManager {
             contractOrderDO.setStatus(OrderStatusEnum.PART_CANCEL.getCode());
         }else if (status == OrderStatusEnum.MATCH.getCode()){
             contractOrderDO.setStatus(OrderStatusEnum.MATCH.getCode());
-            resultCode = resultCode.setCode(8).setMessage("There is no order to be withdrawn");
+            resultCode = resultCode.setCode(ResultCodeEnum.ORDER_IS_CANCLED.getCode()).setMessage(ResultCodeEnum.ORDER_IS_CANCLED.getMessage());
             return resultCode;
         }else {
-            resultCode = resultCode.setCode(13).setMessage("contractOrder status illegal");
+            resultCode = resultCode.setCode(ResultCodeEnum.ORDER_STATUS_ILLEGAL.getCode()).setMessage(ResultCodeEnum.ORDER_STATUS_ILLEGAL.getMessage());
             return resultCode;
         }
         int ret = contractOrderMapper.updateByOpLock(contractOrderDO);
@@ -166,7 +168,7 @@ public class ContractOrderManager {
             Long unfilledAmount = contractOrderDO.getUnfilledAmount();
             BigDecimal price = contractOrderDO.getPrice();
             BigDecimal lever = new BigDecimal(contractLeverManager.getLeverByContractId(contractOrderDO.getUserId(),contractOrderDO.getContractId()));
-            BigDecimal unlockPrice = new BigDecimal(unfilledAmount).multiply(price).multiply(new BigDecimal(0.01)).divide(lever);
+            BigDecimal unlockPrice = new BigDecimal(unfilledAmount).multiply(price).multiply(new BigDecimal(0.01)).divide(lever, 8,BigDecimal.ROUND_DOWN);
             BigDecimal unlockFee = unlockPrice.multiply(Constant.FEE_RATE).multiply(lever);
             BigDecimal totalUnlockPrice = unlockPrice.add(unlockFee);
             Boolean lockContractAmountRet =  getContractService().lockContractAmount(userId,totalUnlockPrice.negate().toString(),0L);
@@ -179,6 +181,7 @@ public class ContractOrderManager {
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO );
         contractOrderDTO.setCompleteAmount(new BigDecimal(contractOrderDTO.getTotalAmount()-contractOrderDTO.getUnfilledAmount()));
+        contractOrderDTO.setContractId(contractOrderDO.getContractId().intValue());
         redisManager.contractOrderSave(contractOrderDTO);
         //todo 推送MQ消息
         OrderMessage orderMessage = new OrderMessage();
@@ -198,14 +201,18 @@ public class ContractOrderManager {
     public ResultCode cancelAllOrder(Long userId) throws Exception{
         ResultCode resultCode = null;
         List<ContractOrderDO> list = contractOrderMapper.selectByUserId(userId);
-        int ret = -1;
-        for(ContractOrderDO contractOrderDO : list){
-            Long orderId = contractOrderDO.getId();
-            resultCode = cancelOrder(userId, orderId);
-            ret = resultCode.getCode();
-            if (ret != 0 && ret != 8 && ret != 13){
-                throw new RuntimeException("cancelAllOrder failed");
+        int i = 0;
+        if (list != null){
+            for(ContractOrderDO contractOrderDO : list){
+                if (contractOrderDO.getStatus() == OrderStatusEnum.COMMIT.getCode() || contractOrderDO.getStatus() == OrderStatusEnum.PART_MATCH.getCode()){
+                    i++;
+                    Long orderId = contractOrderDO.getId();
+                    cancelOrder(userId, orderId);
+                }
             }
+        }
+        if (i == 0){
+            return resultCode.setCode(ResultCodeEnum.NO_CANCELLABLE_ORDERS.getCode()).setMessage(ResultCodeEnum.NO_CANCELLABLE_ORDERS.getMessage());
         }
         resultCode = resultCode.setCode(0).setMessage("success");
         return resultCode;
@@ -221,7 +228,7 @@ public class ContractOrderManager {
             BigDecimal entrustPrice = contractOrderDO.getPrice();
             BigDecimal lever = new BigDecimal(contractLeverManager.getLeverByContractId(userId,contractId));
             insertOrderRecord(contractOrderDO);
-            BigDecimal orderValue = orderAmount.multiply(entrustPrice).divide(lever);
+            BigDecimal orderValue = orderAmount.multiply(entrustPrice).divide(lever, 8,BigDecimal.ROUND_DOWN);
             BigDecimal orderFee = orderValue.multiply(lever).multiply(Constant.FEE_RATE);
             BigDecimal totalLockAmount = orderValue.add(orderFee);
             //查询用户合约冻结金额
@@ -246,7 +253,7 @@ public class ContractOrderManager {
                 BigDecimal positionUnfilledAmount = new BigDecimal(userPositionDO.getUnfilledAmount());
                 List <ContractOrderDO> contractOrderList = contractOrderMapper.selectByContractIdAndUserId(contractId, userId);
                 if (positionType ==1){          //多仓位，可以和卖单冲抵
-                    BigDecimal bidPositionEntrustAmount = positionUnfilledAmount.multiply(bidCurrentPrice).divide(lever);
+                    BigDecimal bidPositionEntrustAmount = positionUnfilledAmount.multiply(bidCurrentPrice).divide(lever, 8,BigDecimal.ROUND_DOWN);
                     if (contractOrderList != null){
                         for (ContractOrderDO contractOrder : contractOrderList){
                             Integer orderDerection = contractOrder.getOrderDirection();
@@ -259,7 +266,7 @@ public class ContractOrderManager {
                         totalAskExtraEntrustAmount = totalAskExtraEntrustAmount.add(getAskExtraEntrustAmount(bidList,askList,positionType,positionUnfilledAmount,bidPositionEntrustAmount,lever));
                     }
                 }else if (positionType == 2){   //空仓位，可以和买单冲抵
-                    BigDecimal askPositionEntrustAmount = positionUnfilledAmount.multiply(askCurrentPrice).divide(lever);
+                    BigDecimal askPositionEntrustAmount = positionUnfilledAmount.multiply(askCurrentPrice).divide(lever, 8,BigDecimal.ROUND_DOWN);
                     if (contractOrderList != null){
                         for (ContractOrderDO contractOrder : contractOrderList){
                             Integer orderDerection = contractOrder.getOrderDirection();
@@ -301,11 +308,11 @@ public class ContractOrderManager {
                 for (int i = 0;i < sortedAskList.size();i++){
                     bidPositionUnfilledAmount = bidPositionUnfilledAmount.subtract(new BigDecimal(sortedAskList.get(i).getUnfilledAmount()));
                     if (bidPositionUnfilledAmount.compareTo(BigDecimal.ZERO) <= 0){
-                        BigDecimal restAmount = bidPositionUnfilledAmount.negate().multiply(sortedAskList.get(i).getPrice()).divide(lever);
+                        BigDecimal restAmount = bidPositionUnfilledAmount.negate().multiply(sortedAskList.get(i).getPrice()).divide(lever, 8,BigDecimal.ROUND_DOWN);
                         BigDecimal restFee = restAmount.multiply(lever).multiply(Constant.FEE_RATE);
                         BigDecimal totalRest = restAmount.add(restFee);
                         for (int j = i + 1;j < sortedAskList.size();j++){
-                            BigDecimal orderAmount = sortedAskList.get(j).getPrice().multiply(new BigDecimal(sortedAskList.get(j).getUnfilledAmount())).divide(lever);
+                            BigDecimal orderAmount = sortedAskList.get(j).getPrice().multiply(new BigDecimal(sortedAskList.get(j).getUnfilledAmount())).divide(lever, 8,BigDecimal.ROUND_DOWN);
                             BigDecimal orderFee = orderAmount.multiply(Constant.FEE_RATE);
                             AskEntrustAmount = AskEntrustAmount.add(orderAmount.add(orderFee));
                         }
@@ -319,7 +326,7 @@ public class ContractOrderManager {
             }
             if (bidList != null){
                 for (int i = 0;i < bidList.size();i++){
-                    BigDecimal orderAmount = bidList.get(i).getPrice().multiply(new BigDecimal(bidList.get(i).getUnfilledAmount())).divide(lever);
+                    BigDecimal orderAmount = bidList.get(i).getPrice().multiply(new BigDecimal(bidList.get(i).getUnfilledAmount())).divide(lever, 8,BigDecimal.ROUND_DOWN);
                     BigDecimal orderFee = orderAmount.multiply(Constant.FEE_RATE);
                     totalBidEntrustAmount = totalBidEntrustAmount.add(orderAmount.add(orderFee));
                 }
@@ -342,11 +349,11 @@ public class ContractOrderManager {
                 for (int i = 0;i < sortedBidList.size();i++){
                     askPositionUnfilledAmount = askPositionUnfilledAmount.subtract(new BigDecimal(sortedBidList.get(i).getUnfilledAmount()));
                     if (askPositionUnfilledAmount.compareTo(BigDecimal.ZERO) <= 0){
-                        BigDecimal restAmount = askPositionUnfilledAmount.negate().multiply(sortedBidList.get(i).getPrice()).divide(lever);
+                        BigDecimal restAmount = askPositionUnfilledAmount.negate().multiply(sortedBidList.get(i).getPrice()).divide(lever, 8,BigDecimal.ROUND_DOWN);
                         BigDecimal restFee = restAmount.multiply(lever).multiply(Constant.FEE_RATE);
                         BigDecimal totalRest = restAmount.add(restFee);
                         for (int j = i + 1;j < sortedBidList.size();j++){
-                            BigDecimal orderAmount = sortedBidList.get(j).getPrice().multiply(new BigDecimal(sortedBidList.get(j).getUnfilledAmount())).divide(lever);
+                            BigDecimal orderAmount = sortedBidList.get(j).getPrice().multiply(new BigDecimal(sortedBidList.get(j).getUnfilledAmount())).divide(lever, 8,BigDecimal.ROUND_DOWN);
                             BigDecimal orderFee = orderAmount.multiply(Constant.FEE_RATE);
                             BidEntrustAmount = BidEntrustAmount.add(orderAmount.add(orderFee));
                         }
@@ -360,7 +367,7 @@ public class ContractOrderManager {
             }
             if (askList != null){
                 for (int i = 0;i < askList.size();i++){
-                    BigDecimal orderAmount = askList.get(i).getPrice().multiply(new BigDecimal(askList.get(i).getUnfilledAmount())).divide(lever);
+                    BigDecimal orderAmount = askList.get(i).getPrice().multiply(new BigDecimal(askList.get(i).getUnfilledAmount())).divide(lever, 8,BigDecimal.ROUND_DOWN);
                     BigDecimal orderFee = orderAmount.multiply(Constant.FEE_RATE);
                     totalAskEntrustAmount = totalAskEntrustAmount.add(orderAmount.add(orderFee));
                 }
@@ -420,7 +427,7 @@ public class ContractOrderManager {
     public BigDecimal getTotalLockAmount(ContractOrderDO contractOrderDO){
         Integer lever = contractLeverManager.getLeverByContractId(contractOrderDO.getUserId(),contractOrderDO.getContractId());
         BigDecimal totalValue = contractOrderDO.getPrice().multiply(new BigDecimal(contractOrderDO.getTotalAmount()))
-                .multiply(new BigDecimal(0.01)).divide(new BigDecimal(lever));
+                .multiply(new BigDecimal(0.01)).divide(new BigDecimal(lever), 8,BigDecimal.ROUND_DOWN);
         BigDecimal fee = totalValue.multiply(Constant.FEE_RATE).multiply(new BigDecimal(lever));
         return totalValue.add(fee);
     }

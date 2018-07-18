@@ -3,7 +3,9 @@ package com.fota.trade.config;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
@@ -15,6 +17,8 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
  * @Date: Create in 2018/7/9 23:28
  * @Modified:
  */
+@Configuration
+@RefreshScope
 public class RedisConfig {
 
     @Bean
