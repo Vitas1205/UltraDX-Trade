@@ -5,6 +5,7 @@ import com.fota.asset.domain.UserCapitalDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.CapitalService;
 import com.fota.client.common.ResultCode;
+import com.fota.client.common.ResultCodeEnum;
 import com.fota.client.domain.UsdkOrderDTO;
 import com.fota.thrift.ThriftJ;
 import com.fota.trade.common.Constant;
@@ -118,12 +119,10 @@ public class UsdkOrderManager {
                             Long gmtModified = userCapitalDTO.getGmtModified();
                             Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId, userCapitalDTO.getAssetId(), String.valueOf(orderValue), gmtModified);
                             if (!updateLockedAmountRet){
-                                resultCode = ResultCode.error(3,"update USDKCapital LockedAmount failed");
-                                return resultCode;
+                                throw new RuntimeException("update USDKCapital LockedAmount failed");
                             }
                         }else {
-                            resultCode = ResultCode.error(4,"USDK Capital Amount Not Enough");
-                            return resultCode;
+                            throw new RuntimeException("USDK Capital Amount Not Enough");
                         }
                     }
                 }
@@ -139,12 +138,10 @@ public class UsdkOrderManager {
                             Long gmtModified = userCapitalDTO.getGmtModified();
                             Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId, userCapitalDTO.getAssetId(), String.valueOf(usdkOrderDO.getTotalAmount()), gmtModified);
                             if (!updateLockedAmountRet){
-                                resultCode = ResultCode.error(5,"update CoinCapital LockedAmount failed");
-                                return resultCode;
+                                throw new RuntimeException("update Coin Capital LockedAmount failed");
                             }
                         }else {
-                            resultCode = ResultCode.error(6, "Coin Capital Amount Not Enough");
-                            return resultCode;
+                            throw new RuntimeException("Coin Capital Amount Not Enough");
                         }
                     }
                 }
@@ -163,7 +160,7 @@ public class UsdkOrderManager {
                 log.info("Send RocketMQ Message Failed ");
             }
         }else {
-            resultCode = ResultCode.error(7,"Create UsdkOrder failed");
+            resultCode = ResultCode.error(ResultCodeEnum.CREATE_USDKORDER_FAILED.getCode(),ResultCodeEnum.CREATE_USDKORDER_FAILED.getMessage());
         }
         return resultCode;
     }
@@ -178,15 +175,14 @@ public class UsdkOrderManager {
         }else if (status == OrderStatusEnum.PART_MATCH.getCode()){
             usdkOrderDO.setStatus(OrderStatusEnum.PART_CANCEL.getCode());
         }else if (status == OrderStatusEnum.MATCH.getCode() || status == OrderStatusEnum.PART_CANCEL.getCode()  | status == OrderStatusEnum.CANCEL.getCode()){
-            resultCode = ResultCode.error(8,"There is no order to be withdrawn");
+            resultCode = ResultCode.error(ResultCodeEnum.ORDER_IS_CANCLED.getCode(),ResultCodeEnum.ORDER_IS_CANCLED.getMessage());
             return resultCode;
         }else {
-            resultCode = ResultCode.error(9,"usdkOrder status illegal");
+            resultCode = ResultCode.error(ResultCodeEnum.ORDER_STATUS_ILLEGAL.getCode(),ResultCodeEnum.ORDER_STATUS_ILLEGAL.getMessage());
             return resultCode;
         }
         int ret = usdkOrderMapper.updateByOpLock(usdkOrderDO);
         if (ret > 0){
-            //解冻对应账户的冻结资产
             Integer orderDirection = usdkOrderDO.getOrderDirection();
             Integer assetId = 0;
             BigDecimal unlockAmount = BigDecimal.ZERO;
@@ -198,8 +194,7 @@ public class UsdkOrderManager {
                 //解冻USDK钱包账户
                 Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,AssetTypeEnum.USDK.getCode(),unlockAmount.negate().toString(), 0L);
                 if (!updateLockedAmountRet){
-                    resultCode = ResultCode.error(10,"Update USDK LockedAmount Failed");
-                    throw new RuntimeException("update Locked Amount failed");
+                    throw new RuntimeException("Update USDK LockedAmount Failed");
                 }
             }else if (orderDirection == OrderDirectionEnum.ASK.getCode()){
                 assetId = usdkOrderDO.getAssetId();
@@ -207,8 +202,7 @@ public class UsdkOrderManager {
                 //解冻Coin钱包账户
                 Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,assetId,unlockAmount.negate().toString(), 0L);
                 if (!updateLockedAmountRet){
-                    resultCode = ResultCode.error(11,"Update Coin LockedAmount Failed");
-                    return resultCode;
+                    throw new RuntimeException("Update Coin LockedAmount Failed");
                 }
             }
             UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
@@ -224,11 +218,11 @@ public class UsdkOrderManager {
             orderMessage.setSubjectId(usdkOrderDTO.getAssetId());
             Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", orderMessage);
             if (!sendRet){
-                log.info("Send RocketMQ Message Failed ");
+                log.error("Send RocketMQ Message Failed ");
             }
             resultCode = ResultCode.success();
         }else {
-            resultCode = ResultCode.error(12,"usdkOrder update failed");
+            resultCode = ResultCode.error(ResultCodeEnum.UPDATE_USDKORDER_FAILED.getCode(),ResultCodeEnum.UPDATE_USDKORDER_FAILED.getMessage());
         }
 
         return resultCode;
@@ -238,18 +232,21 @@ public class UsdkOrderManager {
     public ResultCode cancelAllOrder(Long userId) throws Exception{
         ResultCode resultCode = null;
         List<UsdkOrderDO> list = usdkOrderMapper.selectByUserId(userId);
-        int ret = -1;
-        for(UsdkOrderDO usdkOrderDO : list){
-            Long orderId = usdkOrderDO.getId();
-            resultCode = cancelOrder(userId, orderId);
-            ret = resultCode.getCode();
-            if (ret != ResultCode.success().getCode() && ret != 8){
-                throw new RuntimeException("cancelAllOrder failed");
-            }else if(ret == 0) {
-                resultCode = ResultCode.success();
+        int i = 0;
+        if (list != null){
+            for(UsdkOrderDO usdkOrderDO : list){
+                if (usdkOrderDO.getStatus() == OrderStatusEnum.COMMIT.getCode() || usdkOrderDO.getStatus() == OrderStatusEnum.PART_MATCH.getCode()) {
+                    i++;
+                    Long orderId = usdkOrderDO.getId();
+                    cancelOrder(userId, orderId);
+                }
             }
         }
-
+        if (i == 0){
+            resultCode = ResultCode.error(ResultCodeEnum.NO_CANCELLABLE_ORDERS.getCode(), ResultCodeEnum.NO_CANCELLABLE_ORDERS.getMessage());
+            return resultCode;
+        }
+        resultCode = ResultCode.success();
         return resultCode;
     }
 

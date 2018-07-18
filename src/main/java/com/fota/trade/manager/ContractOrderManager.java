@@ -3,6 +3,7 @@ package com.fota.trade.manager;
 import com.fota.asset.domain.UserContractDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
+import com.fota.client.common.ResultCodeEnum;
 import com.fota.trade.common.Constant;
 import com.fota.trade.domain.*;
 import com.fota.client.domain.ContractOrderDTO;
@@ -139,7 +140,7 @@ public class ContractOrderManager {
         orderMessage.setSubjectId(contractOrderDO.getContractId().intValue());
         Boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder", orderMessage);
         if (!sendRet){
-            log.info("Send RocketMQ Message Failed ");
+            log.error("Send RocketMQ Message Failed ");
         }
         resultCode = resultCode.setCode(0).setMessage("success");
         return resultCode;
@@ -156,10 +157,10 @@ public class ContractOrderManager {
             contractOrderDO.setStatus(OrderStatusEnum.PART_CANCEL.getCode());
         }else if (status == OrderStatusEnum.MATCH.getCode()){
             contractOrderDO.setStatus(OrderStatusEnum.MATCH.getCode());
-            resultCode = resultCode.setCode(8).setMessage("There is no order to be withdrawn");
+            resultCode = resultCode.setCode(ResultCodeEnum.ORDER_IS_CANCLED.getCode()).setMessage(ResultCodeEnum.ORDER_IS_CANCLED.getMessage());
             return resultCode;
         }else {
-            resultCode = resultCode.setCode(13).setMessage("contractOrder status illegal");
+            resultCode = resultCode.setCode(ResultCodeEnum.ORDER_STATUS_ILLEGAL.getCode()).setMessage(ResultCodeEnum.ORDER_STATUS_ILLEGAL.getMessage());
             return resultCode;
         }
         int ret = contractOrderMapper.updateByOpLock(contractOrderDO);
@@ -200,14 +201,18 @@ public class ContractOrderManager {
     public ResultCode cancelAllOrder(Long userId) throws Exception{
         ResultCode resultCode = null;
         List<ContractOrderDO> list = contractOrderMapper.selectByUserId(userId);
-        int ret = -1;
-        for(ContractOrderDO contractOrderDO : list){
-            Long orderId = contractOrderDO.getId();
-            resultCode = cancelOrder(userId, orderId);
-            ret = resultCode.getCode();
-            if (ret != 0 && ret != 8 && ret != 13){
-                throw new RuntimeException("cancelAllOrder failed");
+        int i = 0;
+        if (list != null){
+            for(ContractOrderDO contractOrderDO : list){
+                if (contractOrderDO.getStatus() == OrderStatusEnum.COMMIT.getCode() || contractOrderDO.getStatus() == OrderStatusEnum.PART_MATCH.getCode()){
+                    i++;
+                    Long orderId = contractOrderDO.getId();
+                    cancelOrder(userId, orderId);
+                }
             }
+        }
+        if (i == 0){
+            return resultCode.setCode(ResultCodeEnum.NO_CANCELLABLE_ORDERS.getCode()).setMessage(ResultCodeEnum.NO_CANCELLABLE_ORDERS.getMessage());
         }
         resultCode = resultCode.setCode(0).setMessage("success");
         return resultCode;
