@@ -3,8 +3,10 @@ package com.fota.trade.service.impl;
 import com.fota.asset.domain.AssetCategoryDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.thrift.ThriftJ;
+import com.fota.trade.domain.ContractCategoryDO;
 import com.fota.trade.domain.UserContractLeverDO;
 import com.fota.trade.domain.UserContractLeverDTO;
+import com.fota.trade.mapper.ContractCategoryMapper;
 import com.fota.trade.mapper.UserContractLeverMapper;
 import com.fota.trade.service.UserContractLeverService;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +32,8 @@ public class UserContractLeverServiceImpl implements UserContractLeverService.If
 
     @Resource
     private UserContractLeverMapper userContractLeverMapper;
+    @Resource
+    private ContractCategoryMapper contractCategoryMapper;
     @Autowired
     private ThriftJ thriftJ;
     @Value("${fota.asset.server.thrift.port}")
@@ -124,11 +128,22 @@ public class UserContractLeverServiceImpl implements UserContractLeverService.If
 
     @Override
     public UserContractLeverDTO getLeverByContractId(long userId, long contractId) throws TException {
-        //
-
-
-        return null;
+        if (userId <= 0 || contractId <= 0) {
+            return null;
+        }
+        ContractCategoryDO contractCategoryDO = null;
+        try {
+            contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractId);
+        } catch (Exception e) {
+            log.error("contractCategoryMapper.selectByPrimaryKey exception", e);
+        }
+        if (contractCategoryDO == null ||
+                contractCategoryDO.getAssetId() == null ||
+                contractCategoryDO.getAssetId() <= 0) {
+            log.error("illegal contractCategory, contractId :{}", contractId);
+            return null;
+        }
+        return getLeverByAssetId(userId, contractCategoryDO.getAssetId());
     }
-
 
 }
