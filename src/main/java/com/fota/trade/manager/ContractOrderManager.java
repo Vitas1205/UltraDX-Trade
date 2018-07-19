@@ -8,6 +8,7 @@ import com.fota.trade.common.Constant;
 import com.fota.trade.domain.*;
 import com.fota.client.domain.ContractOrderDTO;
 import com.fota.thrift.ThriftJ;
+import com.fota.trade.domain.enums.CloseTypeEnum;
 import com.fota.trade.domain.enums.OrderOperateTypeEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.mapper.ContractCategoryMapper;
@@ -107,7 +108,7 @@ public class ContractOrderManager {
         contractOrderDO.setStatus(8);
         contractOrderDO.setFee(Constant.FEE_RATE);
         contractOrderDO.setUnfilledAmount(contractOrderDO.getTotalAmount());
-        contractOrderDO.setCloseType(1);
+        contractOrderDO.setCloseType(CloseTypeEnum.USER_ENTRUST.getCode());
         int insertContractOrderRet = contractOrderMapper.insertSelective(contractOrderDO);
         if (insertContractOrderRet <= 0){
             log.error("insert contractOrder failed");
