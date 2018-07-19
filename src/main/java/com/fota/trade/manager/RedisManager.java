@@ -56,15 +56,15 @@ public class RedisManager {
     }
 
     public void usdkOrderSave(UsdkOrderDTO usdkOrderDTO){
-        Long count = getCount(Constant.REDIS_KEY);
+        Long count = getCount(Constant.USDK_REDIS_KEY);
         String key = Constant.USDK_ORDER_HEAD + count;
         String usdkOrderDTOStr = JSONObject.toJSONString(usdkOrderDTO);
         set(key,usdkOrderDTOStr);
     }
 
     public void contractOrderSave(ContractOrderDTO contractOrderDTO){
-        Long count = getCount(Constant.REDIS_KEY);
-        String key = Constant.USDK_ORDER_HEAD + count;
+        Long count = getCount(Constant.CONTRACT_REDIS_KEY);
+        String key = Constant.CONTRACT_ORDER_HEAD + count;
         String usdkOrderDTOStr = JSONObject.toJSONString(contractOrderDTO);
         set(key,usdkOrderDTOStr);
     }

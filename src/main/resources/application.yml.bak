@@ -14,8 +14,8 @@ spring:
       host: 39.104.117.144
       password:
     rocketmq:
-            namesrv_addr: 47.98.235.246:9876
-            group: fota-trade-group
+      namesrv_addr: 47.98.235.246:9876
+      group: fota-trade-group
     cloud:
       config:
         allow-override: true # 远端配置是否允许覆盖，默认是 true

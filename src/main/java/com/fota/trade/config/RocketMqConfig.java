@@ -24,6 +24,8 @@ public class RocketMqConfig {
 
     @Bean
     public DefaultMQProducer getRocketMQProducer() {
+        log.error("------------" + namesrvAddr);
+        log.error("------------" + group);
         DefaultMQProducer producer = new DefaultMQProducer(group);
         producer.setNamesrvAddr(namesrvAddr);
         //producer.setSendMsgTimeout(1000);

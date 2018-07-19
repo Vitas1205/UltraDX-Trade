@@ -1,27 +1,28 @@
 package com.fota.trade.service.impl;
 
 import com.fota.asset.service.ContractService;
+import com.fota.client.common.Page;
 import com.fota.client.common.ResultCodeEnum;
-import com.fota.common.Page;
 import com.fota.trade.common.BeanUtils;
 import com.fota.trade.common.Constant;
 import com.fota.trade.common.ParamUtil;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.manager.ContractOrderManager;
+import com.fota.trade.manager.RedisManager;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.service.ContractOrderService;
+import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import com.fota.trade.domain.ResultCode;
+
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * @Author: JianLi.Gao
@@ -29,7 +30,6 @@ import com.fota.trade.domain.ResultCode;
  * @Date: Create in 下午11:16 2018/7/5
  * @Modified:
  */
-@Service("ContractOrderService")
 public class ContractOrderServiceImpl implements ContractOrderService {
 
     private static final Logger log = LoggerFactory.getLogger(ContractOrderServiceImpl.class);
@@ -43,19 +43,22 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     private UserPositionMapper userPositionMapper;
 
     @Autowired
-    private ContractService contractService;
+    private RedisManager redisManager;
 
+    @Autowired
+    private ContractService contractService;
     private ContractService getContractService() {
         return contractService;
     }
 
-    @Override
-    public Page<ContractOrderDTO> listContractOrderByQuery(BaseQuery contractOrderQueryDTO) {
-        Page<ContractOrderDTO> contractOrderDTOPage = new Page<ContractOrderDTO>();
 
+    @Override
+    public com.fota.common.Page<ContractOrderDTO> listContractOrderByQuery(BaseQuery contractOrderQueryDTO) {
+        com.fota.common.Page<ContractOrderDTO> contractOrderDTOPageRet = new com.fota.common.Page<>();
         if (contractOrderQueryDTO.getUserId() <= 0) {
             return null;
         }
+        com.fota.common.Page<ContractOrderDTO> contractOrderDTOPage = new com.fota.common.Page<>();
         if (contractOrderQueryDTO.getPageNo() <= 0) {
             contractOrderQueryDTO.setPageNo(Constant.DEFAULT_PAGE_NO);
         }
@@ -67,17 +70,17 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         contractOrderDTOPage.setPageNo(contractOrderQueryDTO.getPageNo());
         contractOrderDTOPage.setPageSize(contractOrderQueryDTO.getPageSize());
         contractOrderQueryDTO.setStartRow((contractOrderQueryDTO.getPageNo() - 1) * contractOrderQueryDTO.getPageSize());
-        contractOrderQueryDTO.setEndRow(contractOrderQueryDTO.getStartRow() + contractOrderQueryDTO.getPageSize());
+        contractOrderQueryDTO.setEndRow(contractOrderQueryDTO.getPageSize());
         int total = 0;
         try {
             total = contractOrderMapper.countByQuery(ParamUtil.objectToMap(contractOrderQueryDTO));
         } catch (Exception e) {
             log.error("contractOrderMapper.countByQuery({})", contractOrderQueryDTO, e);
-            return contractOrderDTOPage;
+            return contractOrderDTOPageRet;
         }
         contractOrderDTOPage.setTotal(total);
         if (total == 0) {
-            return contractOrderDTOPage;
+            return contractOrderDTOPageRet;
         }
         List<ContractOrderDO> contractOrderDOList = null;
         List<com.fota.trade.domain.ContractOrderDTO> list = new ArrayList<>();
@@ -91,10 +94,15 @@ public class ContractOrderServiceImpl implements ContractOrderService {
             }
         } catch (Exception e) {
             log.error("contractOrderMapper.listByQuery({})", contractOrderQueryDTO, e);
-            return contractOrderDTOPage;
+            return contractOrderDTOPageRet;
         }
         List<ContractOrderDTO> contractOrderDTOList = null;
-
+//        try {
+//            contractOrderDTOList = BeanUtils.copyList(contractOrderDOList, ContractOrderDTO.class);
+//        } catch (Exception e) {
+//            log.error("bean copy exception", e);
+//            return contractOrderDTOPageRet
+//        }
         contractOrderDTOPage.setData(list);
         return contractOrderDTOPage;
     }
@@ -136,20 +144,50 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     }
 
     @Override
+    @Transactional(rollbackFor = {Exception.class, RuntimeException.class, TException.class})
     public ResultCode updateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO) {
         ResultCode resultCode = new ResultCode();
         if (contractMatchedOrderDTO == null) {
             resultCode.setCode(ResultCodeEnum.ILLEGAL_PARAM.getCode());
             return resultCode;
         }
-        ContractOrderDO askUsdkOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getAskOrderId());
-        ContractOrderDO bidUsdkOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
-        updateContractAccount(askUsdkOrder, contractMatchedOrderDTO);
-        updateContractAccount(bidUsdkOrder, contractMatchedOrderDTO);
-        return null;
+        ContractOrderDO askContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getAskOrderId());
+        ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
+        log.info("---------------"+contractMatchedOrderDTO.toString());
+        log.info("---------------"+askContractOrder.toString());
+        log.info("---------------"+bidContractOrder.toString());
+        if (askContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0
+                || bidContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0){
+            return BeanUtils.copy(com.fota.client.common.ResultCode.error(ResultCodeEnum.ORDER_UNFILLEDAMOUNT_NOT_ENOUGHT));
+        }
+        if (askContractOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && askContractOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()
+                && bidContractOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && bidContractOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()){
+            return BeanUtils.copy(com.fota.client.common.ResultCode.error(ResultCodeEnum.ASK_AND_BID_ILLEGAL));
+        }
+        if (askContractOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && askContractOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()){
+            return BeanUtils.copy(com.fota.client.common.ResultCode.error(ResultCodeEnum.ASK_ILLEGAL));
+        }
+        if (bidContractOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && bidContractOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()){
+            return BeanUtils.copy(com.fota.client.common.ResultCode.error(ResultCodeEnum.BID_ILLEGAL));
+        }
+        updateContractAccount(askContractOrder, contractMatchedOrderDTO);
+        updateContractAccount(bidContractOrder, contractMatchedOrderDTO);
+
+        com.fota.client.domain.ContractOrderDTO bidContractOrderDTO = new com.fota.client.domain.ContractOrderDTO();
+        com.fota.client.domain.ContractOrderDTO askContractOrderDTO = new com.fota.client.domain.ContractOrderDTO();
+        org.springframework.beans.BeanUtils.copyProperties(askContractOrder, askContractOrderDTO);
+        askContractOrderDTO.setContractId(askContractOrder.getContractId().intValue());
+        org.springframework.beans.BeanUtils.copyProperties(bidContractOrder, bidContractOrderDTO);
+        bidContractOrderDTO.setContractId(bidContractOrder.getContractId().intValue());
+        askContractOrderDTO.setCompleteAmount(new BigDecimal(contractMatchedOrderDTO.getFilledAmount()));
+        bidContractOrderDTO.setCompleteAmount(new BigDecimal(contractMatchedOrderDTO.getFilledAmount()));
+        redisManager.contractOrderSave(askContractOrderDTO);
+        redisManager.contractOrderSave(bidContractOrderDTO);
+        resultCode.setCode(ResultCodeEnum.SUCCESS.getCode());
+        return resultCode;
     }
 
-    void updateContractAccount(ContractOrderDO contractOrderDO, ContractMatchedOrderDTO contractMatchedOrderDTO) {
+    private void updateContractAccount(ContractOrderDO contractOrderDO, ContractMatchedOrderDTO contractMatchedOrderDTO) {
         BigDecimal filledAmount = new BigDecimal(contractMatchedOrderDTO.getFilledAmount());
         BigDecimal filledPrice = new BigDecimal(contractMatchedOrderDTO.getFilledPrice());
         Long userId = contractOrderDO.getUserId();
@@ -217,9 +255,12 @@ public class ContractOrderServiceImpl implements ContractOrderService {
 
     private int updateUserPosition(UserPositionDO userPositionDO, BigDecimal oldTotalPrice, BigDecimal addedTotalPrice, long newTotalAmount) {
         BigDecimal newTotalPrice = oldTotalPrice.add(addedTotalPrice);
-        BigDecimal newAvaeragePrice = newTotalPrice.divide(new BigDecimal(newTotalAmount));
+        if (newTotalAmount != 0){
+            BigDecimal newAvaeragePrice = newTotalPrice.divide(new BigDecimal(newTotalAmount), 8,BigDecimal.ROUND_DOWN);
+            userPositionDO.setAveragePrice(newAvaeragePrice);
+        }
         userPositionDO.setUnfilledAmount(newTotalAmount);
-        userPositionDO.setAveragePrice(newAvaeragePrice);
+
         int updateRet = 0;
         try {
             updateRet = userPositionMapper.updateByPrimaryKey(userPositionDO);
@@ -278,6 +319,6 @@ public class ContractOrderServiceImpl implements ContractOrderService {
             contractOrderDO.setStatus(OrderStatusEnum.PART_MATCH.getCode());
         }
         contractOrderDO.setUnfilledAmount(contractOrderDO.getUnfilledAmount() - filledAmount);
-        return contractOrderMapper.updateByPrimaryKey(contractOrderDO);
+        return contractOrderMapper.updateByPrimaryKeyAndOpLock(contractOrderDO);
     }
 }
