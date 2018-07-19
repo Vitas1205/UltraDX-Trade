@@ -8,7 +8,6 @@ import com.fota.trade.domain.ContractCategoryDO;
 import com.fota.trade.domain.OrderMessage;
 import com.fota.trade.domain.ResultCode;
 import com.fota.client.domain.ContractOrderDTO;
-import com.fota.thrift.ThriftJ;
 import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.domain.enums.OrderOperateTypeEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
@@ -18,14 +17,13 @@ import com.fota.trade.mapper.UserPositionMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -56,26 +54,16 @@ public class ContractOrderManager {
 
     @Autowired
     private RocketMqManager rocketMqManager;
-
     @Autowired
-    private ThriftJ thriftJ;
-    @Value("${fota.asset.server.thrift.port}")
-    private int thriftPort;
-    @PostConstruct
-    public void init() {
-        thriftJ.initService("FOTA-ASSET", thriftPort);
+    private ContractService contractService;
+    @Autowired
+    private AssetService assetService;
+
+    private ContractService getContractService() {
+        return contractService;
     }
-    private ContractService.Client getContractService() {
-        ContractService.Client serviceClient =
-                thriftJ.getServiceClient("FOTA-ASSET")
-                        .iface(ContractService.Client.class, "contractService");
-        return serviceClient;
-    }
-    private AssetService.Client getAssetService() {
-        AssetService.Client serviceClient =
-                thriftJ.getServiceClient("FOTA-ASSET")
-                        .iface(AssetService.Client.class, "assetService");
-        return serviceClient;
+    private AssetService getAssetService() {
+        return assetService;
     }
 
     public List<ContractOrderDO> listNotMatchOrder(Long contractOrderIndex, Integer orderDirection) {
@@ -165,7 +153,7 @@ public class ContractOrderManager {
             throw new RuntimeException("ContractAccount USDK Not Enough");
         }
         //todo 调用RPC接口冻结合约账户（加锁）
-        long gmtModified =  userContractDTO.getGmtModified();
+        Date gmtModified =  userContractDTO.getGmtModified();
         Boolean lockContractAmountRet = getContractService().lockContractAmount(userId,toatlLockAmount.toString(),gmtModified);
         if (!lockContractAmountRet){
             throw new RuntimeException("Lock ContractAmount Failed");

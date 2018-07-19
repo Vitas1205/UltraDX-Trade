@@ -18,7 +18,6 @@ import java.util.List;
  * @author Gavin Shen
  * @Date 2018/7/5
  */
-@Service("contractCategoryService")
 public class ContractCategoryServiceImpl implements ContractCategoryService {
 
     private static final Logger log = LoggerFactory.getLogger(ContractCategoryServiceImpl.class);

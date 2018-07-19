@@ -3,7 +3,6 @@ package com.fota.trade.service.impl;
 import com.fota.asset.service.ContractService;
 import com.fota.client.common.ResultCodeEnum;
 import com.fota.common.Page;
-import com.fota.thrift.ThriftJ;
 import com.fota.trade.common.BeanUtils;
 import com.fota.trade.common.Constant;
 import com.fota.trade.common.ParamUtil;
@@ -16,10 +15,8 @@ import com.fota.trade.service.ContractOrderService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -46,18 +43,9 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     private UserPositionMapper userPositionMapper;
 
     @Autowired
-    private ThriftJ thriftJ;
-    @Value("${fota.asset.server.thrift.port}")
-    private int thriftPort;
-    @PostConstruct
-    public void init() {
-        thriftJ.initService("FOTA-ASSET", thriftPort);
-    }
+    private ContractService contractService;
 
-    private ContractService.Client getContractService() {
-        ContractService.Client contractService =
-                thriftJ.getServiceClient("FOTA-ASSET")
-                        .iface(ContractService.Client.class, "contractService");
+    private ContractService getContractService() {
         return contractService;
     }
 

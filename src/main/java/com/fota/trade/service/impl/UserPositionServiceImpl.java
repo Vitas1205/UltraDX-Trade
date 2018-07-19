@@ -20,7 +20,6 @@ import java.util.List;
  * @Date 2018/7/7
  */
 
-@Service
 @Slf4j
 public class UserPositionServiceImpl implements com.fota.trade.service.UserPositionService {
 

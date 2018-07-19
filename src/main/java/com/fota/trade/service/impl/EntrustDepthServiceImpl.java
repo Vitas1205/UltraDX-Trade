@@ -30,7 +30,6 @@ import java.util.Map;
  * @Date: Create in 下午9:37 2018/7/5
  * @Modified:
  */
-@Service
 public class EntrustDepthServiceImpl implements EntrustDepthService {
 
     private static final Logger log = LoggerFactory.getLogger(EntrustDepthServiceImpl.class);

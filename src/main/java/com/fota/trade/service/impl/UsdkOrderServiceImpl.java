@@ -5,7 +5,6 @@ import com.fota.asset.service.CapitalService;
 
 import com.fota.client.common.ResultCodeEnum;
 import com.fota.common.Page;
-import com.fota.thrift.ThriftJ;
 import com.fota.trade.common.BeanUtils;
 import com.fota.trade.common.Constant;
 import com.fota.trade.common.ParamUtil;
@@ -14,15 +13,12 @@ import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.manager.UsdkOrderManager;
 import com.fota.trade.mapper.UsdkOrderMapper;
-import lombok.Data;
+import com.fota.trade.service.UsdkOrderService;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,9 +30,7 @@ import java.util.List;
  * @Date: Create in 下午3:22 2018/7/6
  * @Modified:
  */
-@Service
-@Data
-public class UsdkOrderServiceImpl implements com.fota.trade.service.UsdkOrderService {
+public class UsdkOrderServiceImpl implements UsdkOrderService {
 
     private static final Logger log = LoggerFactory.getLogger(UsdkOrderServiceImpl.class);
 
@@ -50,18 +44,9 @@ public class UsdkOrderServiceImpl implements com.fota.trade.service.UsdkOrderSer
     RedisManager redisManager;
 
     @Autowired
-    private ThriftJ thriftJ;
-    @Value("${fota.asset.server.thrift.port}")
-    private int thriftPort;
-    @PostConstruct
-    public void init() {
-        thriftJ.initService("FOTA-ASSET", thriftPort);
-    }
-    private CapitalService.Client getService() {
-        CapitalService.Client serviceClient =
-                thriftJ.getServiceClient("FOTA-ASSET")
-                        .iface(CapitalService.Client.class, "capitalService");
-        return serviceClient;
+    private CapitalService capitalService;
+    private CapitalService getService() {
+        return capitalService;
     }
 
 

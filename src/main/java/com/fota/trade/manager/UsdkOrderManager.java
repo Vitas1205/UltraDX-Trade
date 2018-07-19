@@ -5,9 +5,6 @@ import com.fota.asset.service.AssetService;
 import com.fota.asset.service.CapitalService;
 import com.fota.client.common.ResultCode;
 import com.fota.client.domain.UsdkOrderDTO;
-import com.fota.thrift.ThriftJ;
-import com.fota.trade.common.Constant;
-import com.fota.trade.common.RocketMqProducer;
 import com.fota.trade.domain.OrderMessage;
 import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.trade.domain.enums.AssetTypeEnum;
@@ -21,10 +18,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.Assert;
 
 import javax.annotation.PostConstruct;
-import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,27 +46,16 @@ public class UsdkOrderManager {
 
     @Autowired
     private RocketMqManager rocketMqManager;
-
     @Autowired
-    private ThriftJ thriftJ;
+    private CapitalService capitalService;
+    @Autowired
+    private AssetService assetService;
 
-    @Value("${fota.asset.server.thrift.port}")
-    private int thriftPort;
-    @PostConstruct
-    public void init() {
-        thriftJ.initService("FOTA-ASSET", thriftPort);
+    private CapitalService getCapitalService() {
+        return capitalService;
     }
-    private CapitalService.Client getCapitalService() {
-        CapitalService.Client serviceClient =
-                thriftJ.getServiceClient("FOTA-ASSET")
-                        .iface(CapitalService.Client.class, "capitalService");
-        return serviceClient;
-    }
-    private AssetService.Client getAssetService() {
-        AssetService.Client serviceClient =
-                thriftJ.getServiceClient("FOTA-ASSET")
-                        .iface(AssetService.Client.class, "assetService");
-        return serviceClient;
+    private AssetService getAssetService() {
+        return assetService;
     }
 
     public List<UsdkOrderDO> listNotMatchOrder(Long contractOrderIndex, Integer orderDirection) {
