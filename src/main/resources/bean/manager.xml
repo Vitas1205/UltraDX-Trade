@@ -25,7 +25,6 @@
     <dubbo:service interface="com.fota.trade.service.UserContractLeverService" ref="userContractLeverService" registry="zkreg" group="fota-trade" version="1.0.0"/>
 
 
-    <dubbo:protocol name="dubbo" port="7889" id="consumer"/>
     <dubbo:reference interface="com.fota.asset.service.AssetService" id="AssetService" registry="zkreg" group="fota-asset" version="1.0.0"/>
     <dubbo:reference interface="com.fota.asset.service.CapitalService" id="capitalService" registry="zkreg" group="fota-asset" version="1.0.0"/>
     <dubbo:reference interface="com.fota.asset.service.ContractService" id="contractService" registry="zkreg" group="fota-asset" version="1.0.0" />
