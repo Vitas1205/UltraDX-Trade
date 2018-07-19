@@ -6,7 +6,6 @@
        http://dubbo.apache.org/schema/dubbo http://dubbo.apache.org/schema/dubbo/dubbo.xsd">
 
     <dubbo:application name="fota-trade" id="fota-trade"/>
-    <dubbo:protocol name="dubbo" port="9002" id="provider" />
 
     <bean id="contractCategoryService" class="com.fota.trade.service.impl.ContractCategoryServiceImpl" />
     <bean id="usdkOrderService" class="com.fota.trade.service.impl.UsdkOrderServiceImpl"  />
@@ -18,10 +17,11 @@
         <dubbo:parameter key="qos.enable" value="false"/>
     </dubbo:registry>
 
-    <dubbo:service interface="com.fota.trade.service.ContractCategoryService" protocol="provider" ref="contractCategoryService" registry="zkreg" group="fota-trade" version="1.0.0"/>
-    <dubbo:service interface="com.fota.trade.service.UsdkOrderService" protocol="provider" ref="usdkOrderService" registry="zkreg" group="fota-trade"  version="1.0.0"/>
-    <dubbo:service interface="com.fota.trade.service.UserPositionService" protocol="provider" ref="userPositionService" registry="zkreg" group="fota-trade" version="1.0.0"/>
-    <dubbo:service interface="com.fota.trade.service.ContractOrderService" protocol="provider" ref="contractOrderService" registry="zkreg" group="fota-trade" version="1.0.0"/>
-    <dubbo:service interface="com.fota.trade.service.UserContractLeverService" protocol="provider" ref="userContractLeverService" registry="zkreg" group="fota-trade" version="1.0.0"/>
+    <dubbo:protocol name="dubbo" port="9002" id="provider"/>
+    <dubbo:service interface="com.fota.trade.service.ContractCategoryService"  ref="contractCategoryService" registry="zkreg" group="fota-trade"  version="1.0.0"/>
+    <dubbo:service interface="com.fota.trade.service.UsdkOrderService"  ref="usdkOrderService" registry="zkreg" group="fota-trade"  version="1.0.0"/>
+    <dubbo:service interface="com.fota.trade.service.UserPositionService" ref="userPositionService" registry="zkreg" group="fota-trade" version="1.0.0"/>
+    <dubbo:service interface="com.fota.trade.service.ContractOrderService"  ref="contractOrderService" registry="zkreg" group="fota-trade" version="1.0.0"/>
+    <dubbo:service interface="com.fota.trade.service.UserContractLeverService" ref="userContractLeverService" registry="zkreg" group="fota-trade" version="1.0.0"/>
 
 </beans>
