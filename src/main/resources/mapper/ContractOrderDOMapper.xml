@@ -222,12 +222,12 @@
     <if test="userId > 0" >
       and user_id=#{userId,jdbcType=BIGINT}
     </if>
-    <!--<if test="startTime != null" >-->
-      <!--and gmt_create > #{startTime,jdbcType=TIMESTAMP}-->
-    <!--</if>-->
-    <!--<if test="endTime != null" >-->
-      <!--and gmt_create &lt; #{endTime,jdbcType=TIMESTAMP}-->
-    <!--</if>-->
+    <if test="startTime > 0">
+      and gmt_create &gt;= from_unixtime(#{startTime})
+    </if>
+    <if test="endTime > 0">
+      and gmt_create &lt; from_unixtime(#{endTime})
+    </if>
     <if test="orderStatus != null and orderStatus.size != 0" >
       and status in
       <foreach item="item" index="index" collection="orderStatus" open="(" separator="," close=")">
@@ -247,12 +247,12 @@
     <if test="userId > 0" >
       and user_id=#{userId,jdbcType=BIGINT}
     </if>
-    <!--<if test="startTime != null" >
-      and gmt_create > #{startTime,jdbcType=TIMESTAMP}
+    <if test="startTime > 0">
+      and gmt_create &gt;= from_unixtime(#{startTime})
     </if>
-    <if test="endTime != null" >
-      and gmt_create &lt; #{endTime,jdbcType=TIMESTAMP}
-    </if>-->
+    <if test="endTime > 0">
+      and gmt_create &lt; from_unixtime(#{endTime})
+    </if>
     <if test="orderStatus != null and orderStatus.size != 0" >
       and status in
       <foreach item="item" index="index" collection="orderStatus" open="(" separator="," close=")">
