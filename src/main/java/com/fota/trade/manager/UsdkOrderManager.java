@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 
@@ -98,8 +99,9 @@ public class UsdkOrderManager {
                         BigDecimal availableAmount = amount.subtract(lockedAmount);
                         //判断账户可用余额是否大于orderValue
                         if (availableAmount.compareTo(orderValue) >= 0){
-                            Long gmtModified = userCapitalDTO.getGmtModified();
-                            Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId, userCapitalDTO.getAssetId(), String.valueOf(orderValue), gmtModified);
+                            Date gmtModified = userCapitalDTO.getGmtModified();
+                            Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,
+                                    userCapitalDTO.getAssetId(), String.valueOf(orderValue), gmtModified.getTime());
                             if (!updateLockedAmountRet){
                                 resultCode = ResultCode.error(3,"update USDKCapital LockedAmount failed");
                                 return resultCode;
@@ -119,8 +121,9 @@ public class UsdkOrderManager {
                         BigDecimal availableAmount = amount.subtract(lockedAmount);
                         //断账户可用余额是否大于tatalValue
                         if (availableAmount.compareTo(usdkOrderDO.getTotalAmount()) >= 0){
-                            Long gmtModified = userCapitalDTO.getGmtModified();
-                            Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId, userCapitalDTO.getAssetId(), String.valueOf(usdkOrderDO.getTotalAmount()), gmtModified);
+                            Date gmtModified = userCapitalDTO.getGmtModified();
+                            Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,
+                                    userCapitalDTO.getAssetId(), String.valueOf(usdkOrderDO.getTotalAmount()), gmtModified.getTime());
                             if (!updateLockedAmountRet){
                                 resultCode = ResultCode.error(5,"update CoinCapital LockedAmount failed");
                                 return resultCode;
