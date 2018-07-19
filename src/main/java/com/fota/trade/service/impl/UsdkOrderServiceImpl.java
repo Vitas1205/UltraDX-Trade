@@ -180,7 +180,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         boolean updateRet = false;
         try {
             updateRet = getService().updateBalance(balanceTransferDTO);
-        } catch (TException e) {
+        } catch (Exception e) {
             log.error("capitalService.updateBalance({})", balanceTransferDTO, e);
             return BeanUtils.copy(com.fota.client.common.ResultCode.error(ResultCodeEnum.SERVICE_EXCEPTION));
         }

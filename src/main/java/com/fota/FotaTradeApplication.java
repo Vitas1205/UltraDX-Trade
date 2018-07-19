@@ -5,6 +5,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
+import org.springframework.context.annotation.ImportResource;
 
 import javax.annotation.PostConstruct;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -16,6 +17,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @SpringBootApplication
 @EnableAutoConfiguration
 @RefreshScope
+@ImportResource("classpath:application-context.xml")
 public class FotaTradeApplication {
 
 

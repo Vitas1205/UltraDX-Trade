@@ -154,7 +154,7 @@ public class ContractOrderManager {
         }
         //todo 调用RPC接口冻结合约账户（加锁）
         Date gmtModified =  userContractDTO.getGmtModified();
-        Boolean lockContractAmountRet = getContractService().lockContractAmount(userId,toatlLockAmount.toString(),gmtModified);
+        Boolean lockContractAmountRet = getContractService().lockContractAmount(userId,toatlLockAmount.toString(),gmtModified.getTime());
         if (!lockContractAmountRet){
             throw new RuntimeException("Lock ContractAmount Failed");
         }

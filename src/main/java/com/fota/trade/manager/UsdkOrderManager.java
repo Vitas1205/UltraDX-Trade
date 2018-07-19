@@ -98,7 +98,7 @@ public class UsdkOrderManager {
                         BigDecimal availableAmount = amount.subtract(lockedAmount);
                         //判断账户可用余额是否大于orderValue
                         if (availableAmount.compareTo(orderValue) >= 0){
-                            Long gmtModified = userCapitalDTO.getGmtModified();
+                            Long gmtModified = userCapitalDTO.getGmtModified().getTime();
                             Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId, userCapitalDTO.getAssetId(), String.valueOf(orderValue), gmtModified);
                             if (!updateLockedAmountRet){
                                 resultCode = ResultCode.error(3,"update USDKCapital LockedAmount failed");
@@ -119,7 +119,7 @@ public class UsdkOrderManager {
                         BigDecimal availableAmount = amount.subtract(lockedAmount);
                         //断账户可用余额是否大于tatalValue
                         if (availableAmount.compareTo(usdkOrderDO.getTotalAmount()) >= 0){
-                            Long gmtModified = userCapitalDTO.getGmtModified();
+                            Long gmtModified = userCapitalDTO.getGmtModified().getTime();
                             Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId, userCapitalDTO.getAssetId(), String.valueOf(usdkOrderDO.getTotalAmount()), gmtModified);
                             if (!updateLockedAmountRet){
                                 resultCode = ResultCode.error(5,"update CoinCapital LockedAmount failed");
