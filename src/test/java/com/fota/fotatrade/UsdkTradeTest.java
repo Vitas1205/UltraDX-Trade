@@ -84,8 +84,9 @@ public class UsdkTradeTest {
 
     @Test
     public void getByUserIdTest(){
-        Long userId = 1L;
-        List<UsdkOrderDO> list = usdkOrderMapper.selectByUserId(userId);
-        log.info("------------------"+list.size());
+        BigDecimal a = new BigDecimal("2.3");
+        BigDecimal b = new BigDecimal("2.300");
+        log.info("--------"+a.hashCode());
+        log.info("--------"+b.hashCode());
     }
 }

@@ -107,6 +107,7 @@ public class ContractOrderManager {
         contractOrderDO.setStatus(8);
         contractOrderDO.setFee(Constant.FEE_RATE);
         contractOrderDO.setUnfilledAmount(contractOrderDO.getTotalAmount());
+        contractOrderDO.setCloseType(1);
         int insertContractOrderRet = contractOrderMapper.insertSelective(contractOrderDO);
         if (insertContractOrderRet <= 0){
             log.error("insert contractOrder failed");

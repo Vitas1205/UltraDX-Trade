@@ -170,11 +170,11 @@
     <if test="userId > 0" >
       and user_id=#{userId,jdbcType=BIGINT}
     </if>
-    <if test="startTime > 0" >
-      and gmt_create > #{startTime,jdbcType=TIMESTAMP}
+    <if test="startTime > 0">
+      and gmt_create &gt;= from_unixtime(#{startTime})
     </if>
-    <if test="endTime > 0" >
-      and gmt_create &lt; #{endTime,jdbcType=TIMESTAMP}
+    <if test="endTime > 0">
+      and gmt_create &lt;= from_unixtime(#{endTime})
     </if>
     <if test="orderStatus != null and orderStatus.size != 0" >
       and status in
@@ -195,11 +195,11 @@
     <if test="userId > 0" >
       and user_id=#{userId,jdbcType=BIGINT}
     </if>
-    <if test="startTime > 0" >
-      and gmt_create > #{startTime,jdbcType=TIMESTAMP}
+    <if test="startTime > 0">
+      and gmt_create &gt;= from_unixtime(#{startTime})
     </if>
-    <if test="endTime > 0" >
-      and gmt_create &lt; #{endTime,jdbcType=TIMESTAMP}
+    <if test="endTime > 0">
+      and gmt_create &lt;= from_unixtime(#{endTime})
     </if>
     <if test="orderStatus != null and orderStatus.size != 0" >
       and status in
