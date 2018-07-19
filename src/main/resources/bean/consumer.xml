@@ -6,12 +6,12 @@
        http://dubbo.apache.org/schema/dubbo http://dubbo.apache.org/schema/dubbo/dubbo.xsd">
 
 
-    <dubbo:protocol name="dubbo" port="7889" id="consumer"/>
 
     <dubbo:registry address="47.98.100.103:2181,118.31.20.172:2181,116.62.196.53:2181" protocol="zookeeper" id="zkreg2" >
         <dubbo:parameter key="qos.enable" value="false"/>
     </dubbo:registry>
 
+    <dubbo:protocol name="dubbo" port="7889" id="consumer"/>
     <dubbo:reference interface="com.fota.asset.service.AssetService" id="AssetService" registry="zkreg2" group="fota-asset" version="1.0.0"/>
     <dubbo:reference interface="com.fota.asset.service.CapitalService" id="capitalService" registry="zkreg2" group="fota-asset" version="1.0.0"/>
     <dubbo:reference interface="com.fota.asset.service.ContractService" id="contractService" registry="zkreg2" group="fota-asset" version="1.0.0"/>
