@@ -16,6 +16,6 @@ public class Constant {
     public static final String USDK_REDIS_KEY = "usdk_key";
     public static final String CONTRACT_REDIS_KEY = "contract_key";
 
-    public static final BigDecimal FEE_RATE = new BigDecimal("0.01");
+    public static final BigDecimal FEE_RATE = new BigDecimal("0.001");
 
 }
