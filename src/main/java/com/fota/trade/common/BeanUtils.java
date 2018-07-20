@@ -159,13 +159,13 @@ public class BeanUtils {
 
     public static ContractOrderDO copy(com.fota.trade.domain.ContractOrderDTO contractOrderDTO) {
         ContractOrderDO contractOrderDO = new ContractOrderDO();
-        if (contractOrderDTO.getId() > 0) {
+        if (contractOrderDTO.getId() != null) {
             contractOrderDO.setId(contractOrderDTO.getId());
         }
-        if (contractOrderDTO.getGmtCreate() > 0) {
+        if (contractOrderDTO.getGmtCreate() != null) {
             contractOrderDO.setGmtCreate(new Date(contractOrderDTO.getGmtCreate()));
         }
-        if (contractOrderDTO.getGmtModified() > 0) {
+        if (contractOrderDTO.getGmtModified() != null) {
             contractOrderDO.setGmtModified(new Date(contractOrderDTO.getGmtModified()));
         }
         contractOrderDO.setUserId(contractOrderDTO.getUserId());

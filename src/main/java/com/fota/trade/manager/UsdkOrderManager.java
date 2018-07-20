@@ -6,6 +6,7 @@ import com.fota.asset.service.CapitalService;
 import com.fota.client.common.ResultCode;
 import com.fota.client.common.ResultCodeEnum;
 import com.fota.client.domain.UsdkOrderDTO;
+import com.fota.trade.common.BusinessException;
 import com.fota.trade.domain.OrderMessage;
 import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.trade.domain.enums.AssetTypeEnum;
@@ -74,7 +75,7 @@ public class UsdkOrderManager {
         return notMatchOrderList;
     }
 
-    @Transactional(rollbackFor={RuntimeException.class, Exception.class})
+    @Transactional(rollbackFor={RuntimeException.class, Exception.class, BusinessException.class})
     public ResultCode placeOrder(UsdkOrderDO usdkOrderDO)throws Exception {
         ResultCode resultCode = new ResultCode();
         Integer assetId = usdkOrderDO.getAssetId();
@@ -105,10 +106,10 @@ public class UsdkOrderManager {
                             Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,
                                     userCapitalDTO.getAssetId(), String.valueOf(orderValue), gmtModified.getTime());
                             if (!updateLockedAmountRet){
-                                throw new RuntimeException("update USDKCapital LockedAmount failed");
+                                throw new BusinessException(ResultCodeEnum.UPDATE_USDK_CAPITAL_LOCKEDAMOUNT_FAILED.getCode(), ResultCodeEnum.UPDATE_USDK_CAPITAL_LOCKEDAMOUNT_FAILED.getMessage());
                             }
                         }else {
-                            throw new RuntimeException("USDK Capital Amount Not Enough");
+                            throw new BusinessException(ResultCodeEnum.USDK_CAPITAL_AMOUNT_NOT_ENOUGH.getCode(), ResultCodeEnum.USDK_CAPITAL_AMOUNT_NOT_ENOUGH.getMessage());
                         }
                     }
                 }
@@ -125,10 +126,10 @@ public class UsdkOrderManager {
                             Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,
                                     userCapitalDTO.getAssetId(), String.valueOf(usdkOrderDO.getTotalAmount()), gmtModified.getTime());
                             if (!updateLockedAmountRet){
-                                throw new RuntimeException("update Coin Capital LockedAmount failed");
+                                throw new BusinessException(ResultCodeEnum.UPDATE_COIN_CAPITAL_LOCKEDAMOUNT_FAILED.getCode(), ResultCodeEnum.UPDATE_COIN_CAPITAL_LOCKEDAMOUNT_FAILED.getMessage());
                             }
                         }else {
-                            throw new RuntimeException("Coin Capital Amount Not Enough");
+                            throw new BusinessException(ResultCodeEnum.COIN_CAPITAL_AMOUNT_NOT_ENOUGH.getCode(), ResultCodeEnum.COIN_CAPITAL_AMOUNT_NOT_ENOUGH.getMessage());
                         }
                     }
                 }
@@ -152,7 +153,7 @@ public class UsdkOrderManager {
         return resultCode;
     }
 
-    @Transactional(rollbackFor={RuntimeException.class, Exception.class})
+    @Transactional(rollbackFor={RuntimeException.class, Exception.class, BusinessException.class})
     public ResultCode cancelOrder(Long userId, Long orderId) throws Exception{
         ResultCode resultCode = new ResultCode();
         UsdkOrderDO usdkOrderDO = usdkOrderMapper.selectByIdAndUserId(orderId, userId);
@@ -181,7 +182,7 @@ public class UsdkOrderManager {
                 //解冻USDK钱包账户
                 Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,AssetTypeEnum.USDK.getCode(),unlockAmount.negate().toString(), 0L);
                 if (!updateLockedAmountRet){
-                    throw new RuntimeException("Update USDK LockedAmount Failed");
+                    throw new BusinessException(ResultCodeEnum.UPDATE_USDK_CAPITAL_LOCKEDAMOUNT_FAILED.getCode(), ResultCodeEnum.UPDATE_USDK_CAPITAL_LOCKEDAMOUNT_FAILED.getMessage());
                 }
             }else if (orderDirection == OrderDirectionEnum.ASK.getCode()){
                 assetId = usdkOrderDO.getAssetId();
@@ -189,7 +190,7 @@ public class UsdkOrderManager {
                 //解冻Coin钱包账户
                 Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,assetId,unlockAmount.negate().toString(), 0L);
                 if (!updateLockedAmountRet){
-                    throw new RuntimeException("Update Coin LockedAmount Failed");
+                    throw new BusinessException(ResultCodeEnum.UPDATE_COIN_CAPITAL_LOCKEDAMOUNT_FAILED.getCode(), ResultCodeEnum.UPDATE_COIN_CAPITAL_LOCKEDAMOUNT_FAILED.getMessage());
                 }
             }
             UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
