@@ -95,9 +95,11 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
     public long getTotalPositionByContractId(long contractId) throws TException {
         long totalPosition = 0L;
         List<UserPositionDO> userPositionDOList = userPositionMapper.selectByContractId(contractId);
-        for (UserPositionDO userPositionDO : userPositionDOList){
-            if (userPositionDO.getContractId().equals(contractId) && userPositionDO.getPositionType() == 1){
-                totalPosition += userPositionDO.getUnfilledAmount();
+        if (userPositionDOList != null && userPositionDOList.size() > 0) {
+            for (UserPositionDO userPositionDO : userPositionDOList) {
+                if (userPositionDO.getContractId().equals(contractId) && userPositionDO.getPositionType() == 1) {
+                    totalPosition += userPositionDO.getUnfilledAmount();
+                }
             }
         }
 
