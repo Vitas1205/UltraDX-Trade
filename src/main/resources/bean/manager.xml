@@ -25,8 +25,8 @@
     <dubbo:service interface="com.fota.trade.service.UserContractLeverService" ref="userContractLeverService" registry="zkreg" group="fota-trade" version="1.0.0"/>
 
 
-    <dubbo:reference interface="com.fota.asset.service.AssetService" id="AssetService" check="false" registry="zkreg" group="fota-asset" version="1.0.1"/>
-    <dubbo:reference interface="com.fota.asset.service.CapitalService" id="capitalService" check="false"  registry="zkreg" group="fota-asset" version="1.0.1"/>
-    <dubbo:reference interface="com.fota.asset.service.ContractService" id="contractService" check="false"  registry="zkreg" group="fota-asset" version="1.0.1" />
+    <dubbo:reference interface="com.fota.asset.service.AssetService" id="AssetService" check="false" registry="zkreg" group="fota-asset" version="1.0.0"/>
+    <dubbo:reference interface="com.fota.asset.service.CapitalService" id="capitalService" check="false"  registry="zkreg" group="fota-asset" version="1.0.0"/>
+    <dubbo:reference interface="com.fota.asset.service.ContractService" id="contractService" check="false"  registry="zkreg" group="fota-asset" version="1.0.0" />
 
 </beans>
