@@ -6,6 +6,7 @@ import com.fota.asset.service.CapitalService;
 import com.fota.client.common.ResultCodeEnum;
 import com.fota.common.Page;
 import com.fota.trade.common.BeanUtils;
+import com.fota.trade.common.BusinessException;
 import com.fota.trade.common.Constant;
 import com.fota.trade.common.ParamUtil;
 import com.fota.trade.domain.*;
@@ -14,7 +15,6 @@ import com.fota.trade.manager.RedisManager;
 import com.fota.trade.manager.UsdkOrderManager;
 import com.fota.trade.mapper.UsdkOrderMapper;
 import com.fota.trade.service.UsdkOrderService;
-import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -99,12 +99,18 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
 
     @Override
     public ResultCode order(UsdkOrderDTO usdkOrderDTO) {
+        ResultCode resultCode = new ResultCode();
         try {
             return BeanUtils.copy(usdkOrderManager.placeOrder(BeanUtils.copy(usdkOrderDTO)));
         }catch (Exception e){
+            if (e instanceof BusinessException){
+                BusinessException businessException = (BusinessException) e;
+                resultCode.setCode(businessException.getCode());
+                resultCode.setMessage(businessException.getMessage());
+                return resultCode;
+            }
             log.error("USDK order() failed", e);
         }
-        ResultCode resultCode = new ResultCode();
         resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
         resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());
         return resultCode;
@@ -115,6 +121,13 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         try {
             return BeanUtils.copy(usdkOrderManager.cancelOrder(userId, orderId));
         }catch (Exception e){
+            if (e instanceof BusinessException){
+                BusinessException businessException = (BusinessException) e;
+                ResultCode resultCode = new ResultCode();
+                resultCode.setCode(businessException.getCode());
+                resultCode.setMessage(businessException.getMessage());
+                return resultCode;
+            }
             log.error("USDK cancelOrder() failed", e);
         }
         ResultCode resultCode = new ResultCode();
@@ -125,93 +138,40 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
 
     @Override
     public ResultCode cancelAllOrder(long userId) {
+        ResultCode resultCode = new ResultCode();
         try {
             return BeanUtils.copy(usdkOrderManager.cancelAllOrder(userId));
         }catch (Exception e){
+            if (e instanceof BusinessException){
+                BusinessException businessException = (BusinessException) e;
+                resultCode.setCode(businessException.getCode());
+                resultCode.setMessage(businessException.getMessage());
+                return resultCode;
+            }
             log.error("USDK cancelAllOrder() failed", e);
         }
-        ResultCode resultCode = new ResultCode();
         resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
         resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());
         return resultCode;
     }
 
     @Override
-    @Transactional(rollbackFor = {Exception.class, RuntimeException.class})
     public ResultCode updateOrderByMatch(UsdkMatchedOrderDTO usdkMatchedOrderDTO) {
-        if (usdkMatchedOrderDTO == null) {
-            return BeanUtils.copy(com.fota.client.common.ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM));
+        ResultCode resultCode = new ResultCode();
+        try {
+            return usdkOrderManager.updateOrderByMatch(usdkMatchedOrderDTO);
+        }catch (Exception e){
+            if (e instanceof BusinessException){
+                BusinessException businessException = (BusinessException) e;
+                resultCode.setCode(businessException.getCode());
+                resultCode.setMessage(businessException.getMessage());
+                return resultCode;
+            }
+            log.error("USDK order() failed", e);
         }
-        com.fota.client.domain.UsdkOrderDTO bidUsdkOrderDTO = new com.fota.client.domain.UsdkOrderDTO();
-        com.fota.client.domain.UsdkOrderDTO askUsdkOrderDTO = new com.fota.client.domain.UsdkOrderDTO();
-        UsdkOrderDO askUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getAskOrderId());
-        UsdkOrderDO bidUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getBidOrderId());
-        log.info("---------------"+usdkMatchedOrderDTO.toString());
-        log.info("---------------"+askUsdkOrder.toString());
-        log.info("---------------"+bidUsdkOrder.toString());
-        if (askUsdkOrder.getUnfilledAmount().compareTo(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount())) < 0
-                || bidUsdkOrder.getUnfilledAmount().compareTo(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount())) < 0){
-            return BeanUtils.copy(com.fota.client.common.ResultCode.error(ResultCodeEnum.ORDER_UNFILLEDAMOUNT_NOT_ENOUGHT));
-        }
-        if (askUsdkOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && askUsdkOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()
-                && bidUsdkOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && bidUsdkOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()){
-            return BeanUtils.copy(com.fota.client.common.ResultCode.error(ResultCodeEnum.ASK_AND_BID_ILLEGAL));
-        }
-        if (askUsdkOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && askUsdkOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()){
-            return BeanUtils.copy(com.fota.client.common.ResultCode.error(ResultCodeEnum.ASK_ILLEGAL));
-        }
-        if (bidUsdkOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && bidUsdkOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()){
-            return BeanUtils.copy(com.fota.client.common.ResultCode.error(ResultCodeEnum.BID_ILLEGAL));
-        }
-        BigDecimal filledAmount = new BigDecimal(usdkMatchedOrderDTO.getFilledAmount());
-        BigDecimal filledPrice = new BigDecimal(usdkMatchedOrderDTO.getFilledPrice());
-        int updateAskOrderRet = updateSingleOrderByFilledAmount(askUsdkOrder, filledAmount);
-        if (updateAskOrderRet <= 0){
-            throw new RuntimeException("ask:"+ResultCodeEnum.UPDATE_USDKORDER_FAILED.getMessage());
-        }
-        int updateBIdOrderRet = updateSingleOrderByFilledAmount(bidUsdkOrder, filledAmount);
-        if (updateBIdOrderRet <= 0){
-            throw new RuntimeException("bid:"+ResultCodeEnum.UPDATE_USDKORDER_FAILED.getMessage());
-        }
-        // todo 买币 bid +totalAsset = filledAmount - filledAmount * feeRate
-        // todo 买币 bid -totalUsdk = filledAmount * filledPrice
-        // todo 买币 bid -lockedUsdk = filledAmount * bidOrderPrice
-        // todo 卖币 ask +totalUsdk = filledAmount * filledPrice - filledAmount * filledPrice * feeRate
-        // todo 卖币 ask -lockedAsset = filledAmount
-        // todo 卖币 ask -totalAsset = filledAmount
-        BigDecimal addBidTotalAsset = filledAmount.subtract(filledAmount.multiply(Constant.FEE_RATE));
-        BigDecimal addTotalUsdk = filledAmount.multiply(filledPrice);
-        BigDecimal addLockedUsdk = filledAmount.multiply(new BigDecimal(usdkMatchedOrderDTO.getBidOrderPrice()));
-        BigDecimal addAskTotalUsdk = filledAmount.multiply(filledPrice).multiply(new BigDecimal("1").subtract(Constant.FEE_RATE));
-        BigDecimal addLockedAsset = filledAmount;
-        BigDecimal addTotalAsset = filledAmount;
-
-        BalanceTransferDTO balanceTransferDTO = new BalanceTransferDTO();
-
-        balanceTransferDTO.setBidTotalAsset(addBidTotalAsset.toString());
-        balanceTransferDTO.setBidTotalUsdk(addTotalUsdk.toString());
-        balanceTransferDTO.setBidLockedUsdk(addLockedUsdk.toString());
-        balanceTransferDTO.setAskTotalUsdk(addAskTotalUsdk.toString());
-        balanceTransferDTO.setAskLockedAsset(addLockedAsset.toString());
-        balanceTransferDTO.setAskTotalAsset(addTotalAsset.toString());
-        balanceTransferDTO.setAssetId(usdkMatchedOrderDTO.getAssetId());
-        balanceTransferDTO.setAskUserId(askUsdkOrder.getUserId());
-        balanceTransferDTO.setBidUserId(bidUsdkOrder.getUserId());
-
-        boolean updateRet = false;
-        updateRet = getService().updateBalance(balanceTransferDTO);
-        if (!updateRet) {
-            throw new RuntimeException("update balance failed");
-        }
-
-        //todo 存redis，发消息？
-        org.springframework.beans.BeanUtils.copyProperties(askUsdkOrder, askUsdkOrderDTO);
-        org.springframework.beans.BeanUtils.copyProperties(bidUsdkOrder, bidUsdkOrderDTO);
-        askUsdkOrderDTO.setCompleteAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
-        bidUsdkOrderDTO.setCompleteAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
-        redisManager.usdkOrderSave(askUsdkOrderDTO);
-        redisManager.usdkOrderSave(bidUsdkOrderDTO);
-        return BeanUtils.copy(com.fota.client.common.ResultCode.success());
+        resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
+        resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());
+        return resultCode;
     }
 
     /**

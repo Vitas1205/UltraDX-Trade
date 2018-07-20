@@ -4,6 +4,7 @@ import com.fota.asset.domain.UserContractDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
 import com.fota.client.common.ResultCodeEnum;
+import com.fota.trade.common.BusinessException;
 import com.fota.trade.common.Constant;
 import com.fota.client.domain.ContractOrderDTO;
 import com.fota.trade.domain.*;
@@ -86,12 +87,12 @@ public class ContractOrderManager {
 
 
 
-    @Transactional(rollbackFor = {Exception.class,RuntimeException.class})
+    @Transactional(rollbackFor = {Exception.class, RuntimeException.class, BusinessException.class})
     public ResultCode placeOrder(ContractOrderDO contractOrderDO) throws Exception{
         ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractOrderDO.getContractId());
         if (contractCategoryDO == null){
-            log.error("Contract Name Is Null");
-            throw new RuntimeException("Contract Name Is Null");
+            log.error("Contract Is Null");
+            throw new BusinessException(ResultCodeEnum.CONTRANCT_IS_NULL.getCode(),ResultCodeEnum.CONTRANCT_IS_NULL.getMessage());
         }
         contractOrderDO.setContractName(contractCategoryDO.getContractName());
         ResultCode resultCode = new ResultCode();
@@ -105,7 +106,7 @@ public class ContractOrderManager {
         int insertContractOrderRet = contractOrderMapper.insertSelective(contractOrderDO);
         if (insertContractOrderRet <= 0){
             log.error("insert contractOrder failed");
-            throw new RuntimeException("insert contractOrder failed");
+            throw new BusinessException(ResultCodeEnum.INSERT_CONTRACT_ORDER_FAILED.getCode(),ResultCodeEnum.INSERT_CONTRACT_ORDER_FAILED.getMessage());
         }
         //查询合约账户
         UserContractDTO userContractDTO = getAssetService().getContractAccount(userId);
@@ -113,14 +114,16 @@ public class ContractOrderManager {
         BigDecimal amount = new BigDecimal(userContractDTO.getAmount());
         BigDecimal availableAmount = amount.subtract(lockedAmount);
         if (availableAmount.compareTo(toatlLockAmount) < 0){
-            throw new RuntimeException("ContractAccount USDK Not Enough");
+            log.error("ContractAccount USDK Not Enough");
+            throw new BusinessException(ResultCodeEnum.CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(),ResultCodeEnum.CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
         }
         //todo 调用RPC接口冻结合约账户（加锁）
         Date gmtModified =  userContractDTO.getGmtModified();
         Boolean lockContractAmountRet = getContractService().lockContractAmount(userId,
                                                 toatlLockAmount.toString(),gmtModified.getTime());
         if (!lockContractAmountRet){
-            throw new RuntimeException("Lock ContractAmount Failed");
+            log.error("update contract account lockedAmount failed");
+            throw new BusinessException(ResultCodeEnum.UPDATE_CONTRACT_ACCOUNT_LOCKEDAMOUNT_FAILED.getCode(),ResultCodeEnum.UPDATE_CONTRACT_ACCOUNT_LOCKEDAMOUNT_FAILED.getMessage());
         }
 
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
@@ -143,7 +146,7 @@ public class ContractOrderManager {
         return resultCode;
     }
 
-    @Transactional(rollbackFor = {Exception.class,RuntimeException.class})
+    @Transactional(rollbackFor = {Exception.class, RuntimeException.class, BusinessException.class})
     public ResultCode cancelOrder(Long userId, Long orderId) throws Exception{
         ResultCode resultCode = new ResultCode();
         ContractOrderDO contractOrderDO = contractOrderMapper.selectByIdAndUserId(orderId, userId);
@@ -172,11 +175,12 @@ public class ContractOrderManager {
             BigDecimal totalUnlockPrice = unlockPrice.add(unlockFee);
             Boolean lockContractAmountRet =  getContractService().lockContractAmount(userId,totalUnlockPrice.negate().toString(),0L);
             if (!lockContractAmountRet){
-                throw new RuntimeException("lockContractAmountRet failed");
+                log.error("update contract account lockedAmount failed");
+                throw new BusinessException(ResultCodeEnum.UPDATE_CONTRACT_ACCOUNT_LOCKEDAMOUNT_FAILED.getCode(),ResultCodeEnum.UPDATE_CONTRACT_ACCOUNT_LOCKEDAMOUNT_FAILED.getMessage());
             }
         }else {
-            resultCode.setCode(14);
-            resultCode.setMessage("update contractOrder Failed");
+            log.error("update contractOrder Failed");
+            throw new BusinessException(ResultCodeEnum.UPDATE_CONTRACT_ORDER_FAILED.getCode(),ResultCodeEnum.UPDATE_CONTRACT_ORDER_FAILED.getMessage());
         }
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO );
@@ -213,8 +217,7 @@ public class ContractOrderManager {
             }
         }
         if (i == 0){
-             resultCode.setCode(ResultCodeEnum.NO_CANCELLABLE_ORDERS.getCode());
-
+            resultCode.setCode(ResultCodeEnum.NO_CANCELLABLE_ORDERS.getCode());
             resultCode.setMessage(ResultCodeEnum.NO_CANCELLABLE_ORDERS.getMessage());
             return resultCode;
         }

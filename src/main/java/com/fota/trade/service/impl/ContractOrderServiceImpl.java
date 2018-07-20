@@ -4,6 +4,7 @@ import com.fota.asset.service.ContractService;
 import com.fota.client.common.Page;
 import com.fota.client.common.ResultCodeEnum;
 import com.fota.trade.common.BeanUtils;
+import com.fota.trade.common.BusinessException;
 import com.fota.trade.common.Constant;
 import com.fota.trade.common.ParamUtil;
 import com.fota.trade.domain.*;
@@ -113,8 +114,13 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         ResultCode resultCode = new ResultCode();
         try {
             resultCode = contractOrderManager.placeOrder(BeanUtils.copy(contractOrderDTO));
-            //return resultCode;
         }catch (Exception e){
+            if (e instanceof BusinessException){
+                BusinessException businessException = (BusinessException) e;
+                resultCode.setCode(businessException.getCode());
+                resultCode.setMessage(businessException.getMessage());
+                return resultCode;
+            }
             log.error("Contract order() failed", e);
         }
         return resultCode;
@@ -127,6 +133,12 @@ public class ContractOrderServiceImpl implements ContractOrderService {
             resultCode = contractOrderManager.cancelOrder(userId, orderId);
             return resultCode;
         }catch (Exception e){
+            if (e instanceof BusinessException){
+                BusinessException businessException = (BusinessException) e;
+                resultCode.setCode(businessException.getCode());
+                resultCode.setMessage(businessException.getMessage());
+                return resultCode;
+            }
             log.error("Contract cancelOrder() failed", e);
         }
         return resultCode;
@@ -139,6 +151,12 @@ public class ContractOrderServiceImpl implements ContractOrderService {
             resultCode = contractOrderManager.cancelAllOrder(userId);
             return resultCode;
         }catch (Exception e){
+            if (e instanceof BusinessException){
+                BusinessException businessException = (BusinessException) e;
+                resultCode.setCode(businessException.getCode());
+                resultCode.setMessage(businessException.getMessage());
+                return resultCode;
+            }
             log.error("Contract cancelAllOrder() failed", e);
         }
         return resultCode;
