@@ -170,10 +170,10 @@
     <if test="userId > 0" >
       and user_id=#{userId,jdbcType=BIGINT}
     </if>
-    <if test="startTime > 0">
+    <if test="startTime != null">
       and gmt_create &gt;= #{startTime}
     </if>
-    <if test="endTime > 0">
+    <if test="endTime != null">
       and gmt_create &lt;= #{endTime}
     </if>
     <if test="orderStatus != null and orderStatus.size != 0" >
@@ -190,15 +190,15 @@
     from trade_usdk_order
     where 1=1
     <if test="assetId > 0" >
-      and asset_id=#{assetId,jdbcType=INTEGER}
+      and asset_id=#{assetId}
     </if>
     <if test="userId > 0" >
-      and user_id=#{userId,jdbcType=BIGINT}
+      and user_id=#{userId}
     </if>
-    <if test="startTime > 0">
+    <if test="startTime != null">
       and gmt_create &gt;= #{startTime}
     </if>
-    <if test="endTime > 0">
+    <if test="endTime != null">
       and gmt_create &lt;= #{endTime}
     </if>
     <if test="orderStatus != null and orderStatus.size != 0" >
