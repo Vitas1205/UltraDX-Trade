@@ -10,6 +10,7 @@ import com.fota.trade.domain.UserPositionDTO;
 import com.fota.trade.mapper.UserPositionMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
@@ -86,6 +87,9 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
     public long getTotalPositionByContractId(long contractId) {
         long totalPosition = 0L;
         List<UserPositionDO> userPositionDOList = userPositionMapper.selectByContractId(contractId);
+        if (CollectionUtils.isEmpty(userPositionDOList)) {
+            return 0L;
+        }
         for (UserPositionDO userPositionDO : userPositionDOList){
             if (userPositionDO.getContractId().equals(contractId) && userPositionDO.getPositionType() == 1){
                 totalPosition += userPositionDO.getUnfilledAmount();
