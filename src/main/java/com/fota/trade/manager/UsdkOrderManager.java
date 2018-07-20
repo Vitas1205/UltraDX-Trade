@@ -115,7 +115,7 @@ public class UsdkOrderManager {
             }else if (orderDirection == OrderDirectionEnum.ASK.getCode()){
                 //查询对应资产账户可用余额
                 for (UserCapitalDTO userCapitalDTO : list){
-                    if (assetId == userCapitalDTO.getAssetId()){
+                    if (assetId.equals(userCapitalDTO.getAssetId())){
                         BigDecimal amount = new BigDecimal(userCapitalDTO.getAmount());
                         BigDecimal lockedAmount = new BigDecimal(userCapitalDTO.getLockedAmount());
                         BigDecimal availableAmount = amount.subtract(lockedAmount);
