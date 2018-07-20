@@ -1,15 +1,12 @@
 package com.fota.trade.service;
 
-import com.fota.client.common.Page;
-import com.fota.client.common.Result;
-import com.fota.client.common.ResultCode;
-import com.fota.client.domain.UsdkMatchedOrderDTO;
 import com.fota.client.domain.UsdkOrderDTO;
-import com.fota.client.domain.query.UsdkOrderQuery;
-import com.fota.client.service.UsdkOrderService;
+import com.fota.common.Page;
 import com.fota.trade.common.BeanUtils;
 import com.fota.trade.common.ParamUtil;
 import com.fota.trade.domain.BaseQuery;
+import com.fota.trade.domain.BaseQuery;
+import com.fota.trade.domain.UsdkMatchedOrderDTO;
 import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.mapper.UsdkOrderMapper;
@@ -21,7 +18,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.annotation.Resource;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -79,6 +75,7 @@ public class UsdkOrderServiceTest {
 //        usdkMatchedOrderDTO.setAskUsdkOrder(askUsdkOrderDTO);
 //        usdkMatchedOrderDTO.setBidUsdkOrder(bidUsdkOrderDTO);
 //        ResultCode resultCode = usdkOrderService.updateOrderByMatch(usdkMatchedOrderDTO);
+
 //        Assert.assertTrue(resultCode != null && resultCode.isSuccess());
     }
 

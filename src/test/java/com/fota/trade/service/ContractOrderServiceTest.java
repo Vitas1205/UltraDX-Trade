@@ -6,6 +6,7 @@ import com.fota.trade.domain.ContractMatchedOrderDTO;
 import com.fota.trade.domain.ContractOrderDTO;
 import com.fota.trade.domain.ResultCode;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
+import org.joda.time.LocalDate;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -13,6 +14,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.annotation.Resource;
+import java.util.Arrays;
+import java.util.Date;
+
+import static com.fota.trade.domain.enums.OrderStatusEnum.PART_MATCH;
 
 /**
  * @author Gavin Shen
@@ -31,6 +36,9 @@ public class ContractOrderServiceTest {
         contractOrderQuery.setUserId(9527L);
         contractOrderQuery.setPageSize(20);
         contractOrderQuery.setPageNo(1);
+        contractOrderQuery.setStartTime(new Date());
+        contractOrderQuery.setEndTime(LocalDate.now().plusDays(1).toDate());
+        contractOrderQuery.setOrderStatus(Arrays.asList(PART_MATCH.getCode()));
         Page<ContractOrderDTO> result = contractOrderService.listContractOrderByQuery(contractOrderQuery);
         Assert.assertTrue(result != null && result.getData() != null);
     }
