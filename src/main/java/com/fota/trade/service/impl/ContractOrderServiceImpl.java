@@ -34,12 +34,13 @@ public class ContractOrderServiceImpl implements ContractOrderService {
 
     private static final Logger log = LoggerFactory.getLogger(ContractOrderServiceImpl.class);
 
-    @Resource
+    @Autowired
     private ContractOrderMapper contractOrderMapper;
 
-    @Resource
+    @Autowired
     private ContractOrderManager contractOrderManager;
-    @Resource
+
+    @Autowired
     private UserPositionMapper userPositionMapper;
 
     @Autowired
