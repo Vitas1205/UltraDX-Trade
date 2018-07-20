@@ -223,21 +223,21 @@
     from trade_contract_order
     where 1=1
     <if test="contractId > 0" >
-      and contract_id=#{contractId,jdbcType=INTEGER}
+      and contract_id=#{contractId}
     </if>
     <if test="userId > 0" >
-      and user_id=#{userId,jdbcType=BIGINT}
+      and user_id=#{userId}
     </if>
     <if test="startTime > 0">
-      and gmt_create &gt;= from_unixtime(#{startTime})
+      and gmt_create &gt;= #{startTime}
     </if>
     <if test="endTime > 0">
-      and gmt_create &lt; from_unixtime(#{endTime})
+      and gmt_create &lt; #{endTime}
     </if>
     <if test="orderStatus != null and orderStatus.size != 0" >
       and status in
       <foreach item="item" index="index" collection="orderStatus" open="(" separator="," close=")">
-        #{item,jdbcType=INTEGER}
+        #{item}
       </foreach>
     </if>
   </select>
@@ -254,10 +254,10 @@
       and user_id=#{userId,jdbcType=BIGINT}
     </if>
     <if test="startTime > 0">
-      and gmt_create &gt;= from_unixtime(#{startTime})
+      and gmt_create &gt;= #{startTime}
     </if>
     <if test="endTime > 0">
-      and gmt_create &lt; from_unixtime(#{endTime})
+      and gmt_create &lt; #{endTime}
     </if>
     <if test="orderStatus != null and orderStatus.size != 0" >
       and status in

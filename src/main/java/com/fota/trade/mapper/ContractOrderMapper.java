@@ -4,6 +4,7 @@ import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.mapper.common.BaseMapper;
 import org.apache.ibatis.annotations.*;
 
+import javax.management.Query;
 import java.util.List;
 import java.util.Map;
 
@@ -34,7 +35,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
         "#{operateDirection,jdbcType=TINYINT}, #{lever,jdbcType=INTEGER}, ",
         "#{totalAmount,jdbcType=BIGINT}, #{unfilledAmount,jdbcType=BIGINT}, ",
         "#{price,jdbcType=DECIMAL}, #{fee,jdbcType=DECIMAL}, #{usdkLockedAmount,jdbcType=DECIMAL}, ",
-        "#{positionLockedAmount,jdbcType=DECIMAL}, #{status,jdbcType=INTEGER})"
+        "#{positionLockedAmount,jdbcType=DECIMAL}, #{status})"
     })
     int insert(ContractOrderDO record);
 
@@ -130,7 +131,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
             "usdk_locked_amount = #{usdkLockedAmount,jdbcType=DECIMAL},",
             "position_locked_amount = #{positionLockedAmount,jdbcType=DECIMAL},",
             "status = #{status,jdbcType=INTEGER}",
-            "where id = #{id,jdbcType=BIGINT} and gmt_modified = #{gmtModified,jdbcType=TIMESTAMP}"
+            "where id = #{id,jdbcType=BIGINT} and gmt_modified = #{gmtModified}"
     })
     int updateByPrimaryKeyAndOpLock(ContractOrderDO record);
 
@@ -153,7 +154,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
             "usdk_locked_amount = #{usdkLockedAmount,jdbcType=DECIMAL},",
             "position_locked_amount = #{positionLockedAmount,jdbcType=DECIMAL},",
             "status = #{status,jdbcType=INTEGER}",
-            "where id = #{id,jdbcType=BIGINT} and user_id = #{userId,jdbcType=BIGINT} and gmt_modified = #{gmtModified,jdbcType=TIMESTAMP}"
+            "where id = #{id,jdbcType=BIGINT} and user_id = #{userId,jdbcType=BIGINT} and gmt_modified = #{gmtModified}"
     })
     int updateByOpLock(ContractOrderDO record);
 
