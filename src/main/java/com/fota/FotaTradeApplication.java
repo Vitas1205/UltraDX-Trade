@@ -1,9 +1,10 @@
-package com.fota.fotatrade;
+package com.fota;
 
-import com.fota.fotatrade.thriftserver.ThriftServer;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
+import org.springframework.context.annotation.ImportResource;
 
 import javax.annotation.PostConstruct;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -13,10 +14,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 @SpringBootApplication
+@EnableAutoConfiguration
+@RefreshScope
+@ImportResource("classpath:application-context.xml")
 public class FotaTradeApplication {
 
-	@Autowired
-	ThriftServer thriftServer;
 
 	@PostConstruct
 	public void runServer() {
@@ -25,7 +27,7 @@ public class FotaTradeApplication {
 				new ThreadPoolExecutor(1,
 						1, 0L,
 						TimeUnit.MILLISECONDS, new LinkedBlockingDeque<>(16), nameFactory);
-		singleThreadPool.execute(new Thread(thriftServer));
+//		singleThreadPool.execute(new Thread(thriftServer));
 	}
 
 	public static void main(String[] args) {

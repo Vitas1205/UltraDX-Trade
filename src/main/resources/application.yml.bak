@@ -1,0 +1,86 @@
+server:
+  thrift:
+    port:
+      7778
+  port: 8999
+fota:
+  asset:
+    server:
+      thrift:
+        port: 8889
+spring:
+    redis:
+      port: 6379
+      host: 39.104.117.144
+      password:
+    rocketmq:
+      namesrv_addr: 47.98.235.246:9876
+      group: fota-trade-group
+    cloud:
+      config:
+        allow-override: true # 远端配置是否允许覆盖，默认是 true
+        override-none: true # 远端配置是否为最低优先级，不覆盖任何已存在配置，默认是 false
+        override-system-properties: false # 远端配置是否可以覆盖系统配置，默认是 true (也就是java -Dxxx传入的参数)
+    datasource:
+        type: com.alibaba.druid.pool.DruidDataSource
+        driverClassName: com.mysql.jdbc.Driver
+        druid:
+            fota:
+                jdbc-url: jdbc:mysql://39.104.117.144:3306/fota?autoReconnect=true&useSSL=false&allowMultiQueries=true&useUnicode=true&characterEncoding=utf8
+                username: root
+                password: 123456
+
+        initial-size: 10
+        max-active: 100
+        min-idle: 10
+        max-wait: 60000
+        pool-prepared-statements: true
+        max-pool-prepared-statement-per-connection-size: 20
+        time-between-eviction-runs-millis: 60000
+        min-evictable-idle-time-millis: 300000
+        validation-query: SELECT 1 FROM DUAL
+        test-while-idle: true
+        test-on-borrow: false
+        test-on-return: false
+        stat-view-servlet:
+          enabled: true
+          url-pattern: /admin/druid/*
+        filter:
+          stat:
+            log-slow-sql: true
+            slow-sql-millis: 1000
+            merge-sql: true
+          wall:
+            config:
+              multi-statement-allow: true
+    zipkin:
+      base-url: http://47.98.100.103:9411
+      service:
+        name: fota-asset
+
+      enabled: true
+    sleuth:
+      sampler:
+        probability: 1
+      zuul:
+        enabled: false
+
+mybatis:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  mapper-locations: classpath:mapper/*.xml
+
+#eureka:
+#  client:
+#    prefer-same-zone-eureka: true
+#    dev: jingke
+#    region: dev
+#  instance:
+#    metadata-map:
+#      zone: jingke
+
+eureka:
+  client:
+    region: dev
+    availability-zones:
+      dev: wangxizhi

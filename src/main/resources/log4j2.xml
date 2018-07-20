@@ -2,7 +2,7 @@
 <!-- Configuration后面的status，这个用于设置log4j2自身内部的信息输出，可以不设置，当设置成trace时，
  你会看到log4j2内部各种详细输出。可以设置成OFF(关闭)或Error(只输出错误信息)
 -->
-<Configuration status="OFF">
+<Configuration status="INFO">
     <!-- 日志文件目录和压缩文件目录配置 -->
     <Properties>
         <Property name="fileName">./logs/</Property>
