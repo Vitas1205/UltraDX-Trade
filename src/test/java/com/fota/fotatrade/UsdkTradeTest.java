@@ -1,6 +1,6 @@
 package com.fota.fotatrade;
 
-import com.fota.client.domain.UsdkOrderDTO;
+import com.fota.trade.domain.UsdkOrderDTO;
 import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.manager.UsdkOrderManager;
@@ -88,5 +88,13 @@ public class UsdkTradeTest {
         BigDecimal b = new BigDecimal("2.300");
         log.info("--------"+a.hashCode());
         log.info("--------"+b.hashCode());
+    }
+
+    @Test
+    public void beanUtilCopyTest() throws Exception{
+        UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
+        usdkOrderDTO.setUserId(90L);
+        UsdkOrderDO usdkOrderDO = com.fota.trade.common.BeanUtils.copy(usdkOrderDTO);
+        System.out.println(usdkOrderDO.toString());
     }
 }
