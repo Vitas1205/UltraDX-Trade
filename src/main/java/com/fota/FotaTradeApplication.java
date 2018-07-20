@@ -34,6 +34,9 @@ public class FotaTradeApplication {
 		SpringApplication.run(FotaTradeApplication.class, args);
 	}
 
+
+
+
 	static class FotaThreadFactory implements ThreadFactory {
 		private static AtomicLong id = new AtomicLong(0);
 		@Override

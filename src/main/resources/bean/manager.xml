@@ -18,16 +18,16 @@
     <bean id="userContractLeverService" class="com.fota.trade.service.impl.UserContractLeverServiceImpl" />
 
     <dubbo:protocol name="dubbo" port="9002" id="provider"/>
-    <dubbo:service interface="com.fota.trade.service.ContractCategoryService"  ref="contractCategoryService" registry="zkreg" group="fota-trade"  version="1.0.0"/>
-    <dubbo:service interface="com.fota.trade.service.UsdkOrderService"  ref="usdkOrderService" registry="zkreg" group="fota-trade"  version="1.0.0"/>
-    <dubbo:service interface="com.fota.trade.service.UserPositionService" ref="userPositionService" registry="zkreg" group="fota-trade" version="1.0.0"/>
-    <dubbo:service interface="com.fota.trade.service.ContractOrderService"  ref="contractOrderService" registry="zkreg" group="fota-trade" version="1.0.0"/>
-    <dubbo:service interface="com.fota.trade.service.UserContractLeverService" ref="userContractLeverService" registry="zkreg" group="fota-trade" version="1.0.0"/>
+    <dubbo:service interface="com.fota.trade.service.ContractCategoryService"  ref="contractCategoryService" registry="zkreg" group="${reference-group}"  version="1.0.0"/>
+    <dubbo:service interface="com.fota.trade.service.UsdkOrderService"  ref="usdkOrderService" registry="zkreg" group="${reference-group}"  version="1.0.0"/>
+    <dubbo:service interface="com.fota.trade.service.UserPositionService" ref="userPositionService" registry="zkreg" group="${reference-group}" version="1.0.0"/>
+    <dubbo:service interface="com.fota.trade.service.ContractOrderService"  ref="contractOrderService" registry="zkreg" group="${reference-group}" version="1.0.0"/>
+    <dubbo:service interface="com.fota.trade.service.UserContractLeverService" ref="userContractLeverService" registry="zkreg" group="${reference-group}" version="1.0.0"/>
 
 
-    <dubbo:reference interface="com.fota.asset.service.AssetService" id="AssetService" check="false" registry="zkreg" group="fota-asset" version="1.0.0"/>
-    <dubbo:reference interface="com.fota.asset.service.CapitalService" id="capitalService" check="false"  registry="zkreg" group="fota-asset" version="1.0.0"/>
-    <dubbo:reference interface="com.fota.asset.service.ContractService" id="contractService" check="false"  registry="zkreg" group="fota-asset" version="1.0.0" />
+    <dubbo:reference interface="com.fota.asset.service.AssetService" id="AssetService" check="false" registry="zkreg" group="${reference-group}" version="1.0.0"/>
+    <dubbo:reference interface="com.fota.asset.service.CapitalService" id="capitalService" check="false"  registry="zkreg" group="${reference-group}" version="1.0.0"/>
+    <dubbo:reference interface="com.fota.asset.service.ContractService" id="contractService" check="false"  registry="zkreg" group="${reference-group}" version="1.0.0" />
 
 
 </beans>
