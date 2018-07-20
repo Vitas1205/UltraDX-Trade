@@ -29,4 +29,5 @@
     <dubbo:reference interface="com.fota.asset.service.CapitalService" id="capitalService" check="false"  registry="zkreg" group="fota-asset" version="1.0.0"/>
     <dubbo:reference interface="com.fota.asset.service.ContractService" id="contractService" check="false"  registry="zkreg" group="fota-asset" version="1.0.0" />
 
+
 </beans>
