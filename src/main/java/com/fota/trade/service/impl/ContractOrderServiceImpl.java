@@ -21,6 +21,7 @@ import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.transaction.annotation.Transactional;
 
@@ -71,9 +72,14 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         contractOrderDTOPage.setPageSize(contractOrderQueryDTO.getPageSize());
         contractOrderQueryDTO.setStartRow((contractOrderQueryDTO.getPageNo() - 1) * contractOrderQueryDTO.getPageSize());
         contractOrderQueryDTO.setEndRow(contractOrderQueryDTO.getPageSize());
+
+        Map<String, Object> paramMap = null;
+
         int total = 0;
         try {
-            total = contractOrderMapper.countByQuery(ParamUtil.objectToMap(contractOrderQueryDTO));
+            paramMap = ParamUtil.objectToMap(contractOrderQueryDTO);
+            paramMap.put("contractId", paramMap.get("contractId"));
+            total = contractOrderMapper.countByQuery(paramMap);
         } catch (Exception e) {
             log.error("contractOrderMapper.countByQuery({})", contractOrderQueryDTO, e);
             return contractOrderDTOPageRet;
@@ -85,7 +91,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         List<ContractOrderDO> contractOrderDOList = null;
         List<com.fota.trade.domain.ContractOrderDTO> list = new ArrayList<>();
         try {
-            contractOrderDOList = contractOrderMapper.listByQuery(ParamUtil.objectToMap(contractOrderQueryDTO));
+            contractOrderDOList = contractOrderMapper.listByQuery(paramMap);
             if (contractOrderDOList != null && contractOrderDOList.size() > 0) {
 
                 for (ContractOrderDO contractOrderDO : contractOrderDOList) {

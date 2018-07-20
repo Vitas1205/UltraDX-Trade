@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -69,9 +70,12 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         usdkOrderDTOPage.setPageSize(usdkOrderQuery.getPageSize());
         usdkOrderQuery.setStartRow((usdkOrderQuery.getPageNo() - 1) * usdkOrderQuery.getPageSize());
         usdkOrderQuery.setEndRow(usdkOrderQuery.getPageSize());
+        Map<String, Object> paramMap = null;
         int total = 0;
         try {
-            total = usdkOrderMapper.countByQuery(ParamUtil.objectToMap(usdkOrderQuery));
+            paramMap = ParamUtil.objectToMap(usdkOrderQuery);
+            paramMap.put("assetId", paramMap.get("sourceId"));
+            total = usdkOrderMapper.countByQuery(paramMap);
         } catch (Exception e) {
             log.error("usdkOrderMapper.countByQuery({})", usdkOrderQuery, e);
             return usdkOrderDTOPage;
@@ -82,7 +86,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         }
         List<UsdkOrderDO> usdkOrderDOList = null;
         try {
-            usdkOrderDOList = usdkOrderMapper.listByQuery(ParamUtil.objectToMap(usdkOrderQuery));
+            usdkOrderDOList = usdkOrderMapper.listByQuery(paramMap);
         } catch (Exception e) {
             log.error("usdkOrderMapper.listByQuery({})", usdkOrderQuery, e);
             return usdkOrderDTOPage;
