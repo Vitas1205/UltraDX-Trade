@@ -35,7 +35,7 @@ public class ContractLeverManager {
             ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractId);
             Integer assetId = contractCategoryDO.getAssetId();
             UserContractLeverDO userContractLeverDO = userContractLeverMapper.selectUserContractLever(userId, assetId);
-            if (userContractLeverDO.getLever() == null){
+            if (userContractLeverDO == null || userContractLeverDO.getLever() == null){
                 return DEFAULT_LEVER;
             }
             return userContractLeverDO.getLever();

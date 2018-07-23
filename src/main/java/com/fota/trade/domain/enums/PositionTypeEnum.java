@@ -12,11 +12,11 @@ public enum  PositionTypeEnum {
     /**
      * 多仓
      */
-    OVER(1, "OVER"),
+    OVER(2, "OVER"),
     /**
      * 空仓
      */
-    EMPTY(2, "EMPTY"),
+    EMPTY(1, "EMPTY"),
     ;
 
     @Getter
