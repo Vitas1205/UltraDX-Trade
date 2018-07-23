@@ -1,10 +1,6 @@
 package com.fota.trade.service;
 
-import com.fota.client.common.Page;
-import com.fota.client.common.Result;
-import com.fota.client.domain.UserPositionDTO;
 import com.fota.client.domain.query.UserPositionQuery;
-import com.fota.client.service.UserPositionService;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,10 +23,10 @@ public class UserPositionServiceTest {
     @Test
     public void testListPositionByQuery() throws Exception {
         UserPositionQuery userPositionQuery = new UserPositionQuery();
-        userPositionQuery.setUserId(9527L);
-        userPositionQuery.setContractId(1L);
-        Result<Page<UserPositionDTO>> result = userPositionService.listPositionByQuery(userPositionQuery);
-        Assert.assertTrue(result != null && result.getData() != null && result.getData().getData() != null);
+        userPositionQuery.setUserId(282L);
+        userPositionQuery.setContractId(1001L);
+        com.fota.common.Page<com.fota.trade.domain.UserPositionDTO> page = userPositionService.listPositionByQuery(482,100, 1, 10 );
+        Assert.assertTrue(null != page && null != page.getData());
     }
 
 

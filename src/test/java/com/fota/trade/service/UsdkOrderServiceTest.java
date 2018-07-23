@@ -49,7 +49,7 @@ public class UsdkOrderServiceTest {
         BaseQuery usdkOrderQuery = new BaseQuery();
         usdkOrderQuery.setPageSize(20);
         usdkOrderQuery.setPageNo(1);
-        usdkOrderQuery.setUserId(9527L);
+        usdkOrderQuery.setUserId(282L);
         List<Integer> orderStatus = new ArrayList<>();
         orderStatus.add(OrderStatusEnum.COMMIT.getCode());
         usdkOrderQuery.setOrderStatus(orderStatus);

@@ -1,6 +1,5 @@
 package com.fota.trade.mapper;
 
-import com.fota.client.domain.query.UserPositionQuery;
 import com.fota.trade.domain.UserPositionDO;
 import org.apache.ibatis.annotations.*;
 

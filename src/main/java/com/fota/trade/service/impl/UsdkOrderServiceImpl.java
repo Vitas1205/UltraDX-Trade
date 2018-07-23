@@ -74,7 +74,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         int total = 0;
         try {
             paramMap = ParamUtil.objectToMap(usdkOrderQuery);
-            paramMap.put("assetId", paramMap.get("sourceId"));
+            paramMap.put("assetId", usdkOrderQuery.getSourceId());
             total = usdkOrderMapper.countByQuery(paramMap);
         } catch (Exception e) {
             log.error("usdkOrderMapper.countByQuery({})", usdkOrderQuery, e);

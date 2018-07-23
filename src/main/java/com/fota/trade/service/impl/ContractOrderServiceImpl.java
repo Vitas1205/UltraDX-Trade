@@ -80,7 +80,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         int total = 0;
         try {
             paramMap = ParamUtil.objectToMap(contractOrderQueryDTO);
-            paramMap.put("contractId", paramMap.get("contractId"));
+            paramMap.put("contractId", contractOrderQueryDTO.getSourceId());
             total = contractOrderMapper.countByQuery(paramMap);
         } catch (Exception e) {
             log.error("contractOrderMapper.countByQuery({})", contractOrderQueryDTO, e);
