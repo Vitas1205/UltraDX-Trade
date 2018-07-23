@@ -1,5 +1,6 @@
 package com.fota.trade.common;
 
+import lombok.Data;
 import lombok.Getter;
 
 /**
@@ -8,14 +9,14 @@ import lombok.Getter;
  * @Date: Create in 2018/7/20 16:14
  * @Modified:
  */
+@Data
 public class BusinessException extends Exception{
-    @Getter
     private Integer code;
-    private String mesage;
+    private String message;
 
-    public BusinessException(Integer code,String mesage){
+    public BusinessException(Integer code,String message){
         this.code = code;
-        this.mesage = mesage;
+        this.message = message;
     }
 
 
