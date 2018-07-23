@@ -1,6 +1,6 @@
 package com.fota.trade.manager;
 
-import com.alibaba.rocketmq.shade.com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.JSONObject;
 import com.fota.client.domain.ContractOrderDTO;
 import com.fota.client.domain.UsdkOrderDTO;
 import com.fota.trade.common.Constant;

@@ -1,5 +1,6 @@
 package com.fota.trade.domain.enums;
 
+import lombok.Getter;
 /**
  * @author Gavin Shen
  * @Date 2018/7/7
@@ -19,6 +20,7 @@ public enum OrderCloseTypeEnum {
      */
     EXPIRED(3, "EXPIRED"),
     ;
+    @Getter
     private int code;
     private String desc;
 

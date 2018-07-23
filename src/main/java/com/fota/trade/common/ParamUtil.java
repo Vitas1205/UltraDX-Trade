@@ -1,13 +1,8 @@
 package com.fota.trade.common;
 
-import com.alibaba.rocketmq.shade.com.alibaba.fastjson.JSONObject;
-
 import java.beans.BeanInfo;
-import java.beans.IntrospectionException;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;

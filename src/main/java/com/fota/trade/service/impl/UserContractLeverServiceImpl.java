@@ -2,7 +2,6 @@ package com.fota.trade.service.impl;
 
 import com.fota.asset.domain.AssetCategoryDTO;
 import com.fota.asset.service.AssetService;
-import com.fota.thrift.ThriftJ;
 import com.fota.trade.domain.ContractCategoryDO;
 import com.fota.trade.domain.UserContractLeverDO;
 import com.fota.trade.domain.UserContractLeverDTO;
@@ -10,12 +9,7 @@ import com.fota.trade.mapper.ContractCategoryMapper;
 import com.fota.trade.mapper.UserContractLeverMapper;
 import com.fota.trade.service.UserContractLeverService;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.thrift.TException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
-import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,33 +20,23 @@ import static org.bouncycastle.asn1.x500.style.RFC4519Style.l;
  * @author Gavin Shen
  * @Date 2018/7/12
  */
-@Service
 @Slf4j
-public class UserContractLeverServiceImpl implements UserContractLeverService.Iface  {
+public class UserContractLeverServiceImpl implements UserContractLeverService  {
 
     @Resource
     private UserContractLeverMapper userContractLeverMapper;
     @Resource
     private ContractCategoryMapper contractCategoryMapper;
     @Autowired
-    private ThriftJ thriftJ;
-    @Value("${fota.asset.server.thrift.port}")
-    private int thriftPort;
-    @PostConstruct
-    public void init() {
-        thriftJ.initService("FOTA-ASSET", thriftPort);
-    }
+    private AssetService assetService;
 
-    private AssetService.Client getAssetService() {
-        AssetService.Client serviceClient =
-                thriftJ.getServiceClient("FOTA-ASSET")
-                        .iface(AssetService.Client.class, "assetService");
-        return serviceClient;
+    private AssetService getAssetService() {
+        return assetService;
     }
 
 
     @Override
-    public List<UserContractLeverDTO> listUserContractLever(long userId) throws TException {
+    public List<UserContractLeverDTO> listUserContractLever(long userId) {
         List<UserContractLeverDTO> resultList = new ArrayList<>();
         List<UserContractLeverDO> list;
         List<AssetCategoryDTO> assetList = getAssetService().getAssetList();
@@ -87,7 +71,7 @@ public class UserContractLeverServiceImpl implements UserContractLeverService.If
     }
 
     @Override
-    public boolean setUserContractLever(long userId, List<UserContractLeverDTO> list) throws TException {
+    public boolean setUserContractLever(long userId, List<UserContractLeverDTO> list) {
         if (userId <= 0 || list == null || list.size() <= 0) {
             return false;
         }
@@ -107,7 +91,7 @@ public class UserContractLeverServiceImpl implements UserContractLeverService.If
     }
 
     @Override
-    public UserContractLeverDTO getLeverByAssetId(long userId, int assetId) throws TException {
+    public UserContractLeverDTO getLeverByAssetId(long userId, int assetId) {
         if (userId <= 0 || assetId <= 0) {
             return null;
         }
@@ -127,7 +111,7 @@ public class UserContractLeverServiceImpl implements UserContractLeverService.If
     }
 
     @Override
-    public UserContractLeverDTO getLeverByContractId(long userId, long contractId) throws TException {
+    public UserContractLeverDTO getLeverByContractId(long userId, long contractId) {
         if (userId <= 0 || contractId <= 0) {
             return null;
         }

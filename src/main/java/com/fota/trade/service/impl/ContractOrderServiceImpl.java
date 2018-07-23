@@ -1,12 +1,10 @@
 package com.fota.trade.service.impl;
 
-import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
 import com.fota.client.common.Page;
-import com.fota.client.common.Result;
 import com.fota.client.common.ResultCodeEnum;
-import com.fota.thrift.ThriftJ;
 import com.fota.trade.common.BeanUtils;
+import com.fota.trade.common.BusinessException;
 import com.fota.trade.common.Constant;
 import com.fota.trade.common.ParamUtil;
 import com.fota.trade.domain.*;
@@ -15,19 +13,17 @@ import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
+import com.fota.trade.service.ContractOrderService;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
-import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import com.fota.trade.domain.ResultCode;
+import java.util.Map;
+
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -36,46 +32,36 @@ import org.springframework.transaction.annotation.Transactional;
  * @Date: Create in 下午11:16 2018/7/5
  * @Modified:
  */
-@Service("ContractOrderService")
-public class ContractOrderServiceImpl implements com.fota.trade.service.ContractOrderService.Iface {
+public class ContractOrderServiceImpl implements ContractOrderService {
 
     private static final Logger log = LoggerFactory.getLogger(ContractOrderServiceImpl.class);
 
-    @Resource
+    @Autowired
     private ContractOrderMapper contractOrderMapper;
 
-    @Resource
+    @Autowired
     private ContractOrderManager contractOrderManager;
-    @Resource
+
+    @Autowired
     private UserPositionMapper userPositionMapper;
 
     @Autowired
     private RedisManager redisManager;
 
     @Autowired
-    private ThriftJ thriftJ;
-    @Value("${fota.asset.server.thrift.port}")
-    private int thriftPort;
-    @PostConstruct
-    public void init() {
-        thriftJ.initService("FOTA-ASSET", thriftPort);
-    }
-
-    private ContractService.Client getContractService() {
-        ContractService.Client contractService =
-                thriftJ.getServiceClient("FOTA-ASSET")
-                        .iface(ContractService.Client.class, "contractService");
+    private ContractService contractService;
+    private ContractService getContractService() {
         return contractService;
     }
 
+
     @Override
-    public ContractOrderDTOPage listContractOrderByQuery(ContractOrderQueryDTO contractOrderQueryDTO) {
-        ContractOrderDTOPage contractOrderDTOPageRet = new ContractOrderDTOPage();
-        Result<Page<ContractOrderDTO>> result = Result.create();
+    public com.fota.common.Page<ContractOrderDTO> listContractOrderByQuery(BaseQuery contractOrderQueryDTO) {
+        com.fota.common.Page<ContractOrderDTO> contractOrderDTOPageRet = new com.fota.common.Page<>();
         if (contractOrderQueryDTO.getUserId() <= 0) {
             return null;
         }
-        ContractOrderDTOPage contractOrderDTOPage = new ContractOrderDTOPage();
+        com.fota.common.Page<ContractOrderDTO> contractOrderDTOPage = new com.fota.common.Page<>();
         if (contractOrderQueryDTO.getPageNo() <= 0) {
             contractOrderQueryDTO.setPageNo(Constant.DEFAULT_PAGE_NO);
         }
@@ -88,9 +74,14 @@ public class ContractOrderServiceImpl implements com.fota.trade.service.Contract
         contractOrderDTOPage.setPageSize(contractOrderQueryDTO.getPageSize());
         contractOrderQueryDTO.setStartRow((contractOrderQueryDTO.getPageNo() - 1) * contractOrderQueryDTO.getPageSize());
         contractOrderQueryDTO.setEndRow(contractOrderQueryDTO.getPageSize());
+
+        Map<String, Object> paramMap = null;
+
         int total = 0;
         try {
-            total = contractOrderMapper.countByQuery(ParamUtil.objectToMap(contractOrderQueryDTO));
+            paramMap = ParamUtil.objectToMap(contractOrderQueryDTO);
+            paramMap.put("contractId", paramMap.get("contractId"));
+            total = contractOrderMapper.countByQuery(paramMap);
         } catch (Exception e) {
             log.error("contractOrderMapper.countByQuery({})", contractOrderQueryDTO, e);
             return contractOrderDTOPageRet;
@@ -102,7 +93,7 @@ public class ContractOrderServiceImpl implements com.fota.trade.service.Contract
         List<ContractOrderDO> contractOrderDOList = null;
         List<com.fota.trade.domain.ContractOrderDTO> list = new ArrayList<>();
         try {
-            contractOrderDOList = contractOrderMapper.listByQuery(ParamUtil.objectToMap(contractOrderQueryDTO));
+            contractOrderDOList = contractOrderMapper.listByQuery(paramMap);
             if (contractOrderDOList != null && contractOrderDOList.size() > 0) {
 
                 for (ContractOrderDO contractOrderDO : contractOrderDOList) {
@@ -129,8 +120,13 @@ public class ContractOrderServiceImpl implements com.fota.trade.service.Contract
         ResultCode resultCode = new ResultCode();
         try {
             resultCode = contractOrderManager.placeOrder(BeanUtils.copy(contractOrderDTO));
-            //return resultCode;
         }catch (Exception e){
+            if (e instanceof BusinessException){
+                BusinessException businessException = (BusinessException) e;
+                resultCode.setCode(businessException.getCode());
+                resultCode.setMessage(businessException.getMessage());
+                return resultCode;
+            }
             log.error("Contract order() failed", e);
         }
         return resultCode;
@@ -143,6 +139,12 @@ public class ContractOrderServiceImpl implements com.fota.trade.service.Contract
             resultCode = contractOrderManager.cancelOrder(userId, orderId);
             return resultCode;
         }catch (Exception e){
+            if (e instanceof BusinessException){
+                BusinessException businessException = (BusinessException) e;
+                resultCode.setCode(businessException.getCode());
+                resultCode.setMessage(businessException.getMessage());
+                return resultCode;
+            }
             log.error("Contract cancelOrder() failed", e);
         }
         return resultCode;
@@ -155,6 +157,12 @@ public class ContractOrderServiceImpl implements com.fota.trade.service.Contract
             resultCode = contractOrderManager.cancelAllOrder(userId);
             return resultCode;
         }catch (Exception e){
+            if (e instanceof BusinessException){
+                BusinessException businessException = (BusinessException) e;
+                resultCode.setCode(businessException.getCode());
+                resultCode.setMessage(businessException.getMessage());
+                return resultCode;
+            }
             log.error("Contract cancelAllOrder() failed", e);
         }
         return resultCode;

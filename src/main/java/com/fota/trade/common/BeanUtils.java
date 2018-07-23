@@ -1,9 +1,6 @@
 package com.fota.trade.common;
 
-import com.fota.client.common.*;
-import com.fota.client.domain.ContractOrderDTO;
 import com.fota.trade.domain.*;
-import com.fota.trade.domain.ResultCode;
 import org.springframework.beans.BeansException;
 import org.springframework.util.CollectionUtils;
 
@@ -42,8 +39,8 @@ public class BeanUtils {
     public static ContractCategoryDTO copy(ContractCategoryDO contractCategoryDO) {
         ContractCategoryDTO contractCategoryDTO = new ContractCategoryDTO();
         contractCategoryDTO.setId(contractCategoryDO.getId());
-        contractCategoryDTO.setGmtCreate(contractCategoryDO.getGmtCreate().getTime());
-        contractCategoryDTO.setGmtModified(contractCategoryDO.getGmtModified().getTime());
+        contractCategoryDTO.setGmtCreate(contractCategoryDO.getGmtCreate());
+        contractCategoryDTO.setGmtModified(contractCategoryDO.getGmtModified());
         contractCategoryDTO.setContractName(contractCategoryDO.getContractName());
         contractCategoryDTO.setAssetId(contractCategoryDO.getAssetId());
         contractCategoryDTO.setAssetName(contractCategoryDO.getAssetName());
@@ -58,8 +55,8 @@ public class BeanUtils {
     public static ContractCategoryDO copy(ContractCategoryDTO contractCategoryDTO) {
         ContractCategoryDO contractCategoryDO = new ContractCategoryDO();
         contractCategoryDO.setId((contractCategoryDTO.getId()));
-        contractCategoryDO.setGmtCreate(new Date(contractCategoryDTO.getGmtCreate()));
-        contractCategoryDO.setGmtModified(new Date(contractCategoryDTO.getGmtModified()));
+        contractCategoryDO.setGmtCreate(contractCategoryDTO.getGmtCreate());
+        contractCategoryDO.setGmtModified(contractCategoryDTO.getGmtModified());
         contractCategoryDO.setContractName(contractCategoryDTO.getContractName());
         contractCategoryDO.setAssetId(contractCategoryDTO.getAssetId());
         contractCategoryDO.setTotalAmount(contractCategoryDO.getTotalAmount());
@@ -105,13 +102,13 @@ public class BeanUtils {
 
     public static UsdkOrderDO copy(UsdkOrderDTO usdkOrderDTO) {
         UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
-        if (usdkOrderDTO.getId() > 0) {
+        if (usdkOrderDTO.getId() != null) {
             usdkOrderDO.setId(usdkOrderDTO.getId());
         }
-        if (usdkOrderDTO.getGmtCreate() > 0) {
+        if (usdkOrderDTO.getGmtCreate() != null) {
             usdkOrderDO.setGmtCreate(new Date(usdkOrderDTO.getGmtCreate()));
         }
-        if (usdkOrderDTO.getGmtModified() > 0) {
+        if (usdkOrderDTO.getGmtModified() != null) {
             usdkOrderDO.setGmtModified(new Date(usdkOrderDTO.getGmtModified()));
         }
         usdkOrderDO.setUserId(usdkOrderDTO.getUserId());
@@ -162,13 +159,13 @@ public class BeanUtils {
 
     public static ContractOrderDO copy(com.fota.trade.domain.ContractOrderDTO contractOrderDTO) {
         ContractOrderDO contractOrderDO = new ContractOrderDO();
-        if (contractOrderDTO.getId() > 0) {
+        if (contractOrderDTO.getId() != null) {
             contractOrderDO.setId(contractOrderDTO.getId());
         }
-        if (contractOrderDTO.getGmtCreate() > 0) {
+        if (contractOrderDTO.getGmtCreate() != null) {
             contractOrderDO.setGmtCreate(new Date(contractOrderDTO.getGmtCreate()));
         }
-        if (contractOrderDTO.getGmtModified() > 0) {
+        if (contractOrderDTO.getGmtModified() != null) {
             contractOrderDO.setGmtModified(new Date(contractOrderDTO.getGmtModified()));
         }
         contractOrderDO.setUserId(contractOrderDTO.getUserId());

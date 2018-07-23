@@ -1,20 +1,15 @@
-eureka:
-  client:
-    register-with-eureka: true
-    fetch-registry: true
-    service-url:
-      defaultZone: ${EUREKA_DEFAULT_ZONE:http://118.31.20.172:7999/eureka,http://116.62.196.53:7999/eureka}
-    prefer-same-zone-eureka: true
-  instance:
-    appname: fota-trade
 spring:
   application:
     name: fota-trade
   cloud:
+    zookeeper:
+      connect-string: ${ZOOKEEPER_SERVER:47.98.100.103:2181,118.31.20.172:2181,116.62.196.53:2181}
     config:
       profile: ${SPTRING_PROFILE:dev}
       label: master
       discovery:
         enabled: true
-        service-id: fota-config-server
+        service-id: fota-config-server-zk
 
+service-group:  ${SPRING_SERVICE:dev}
+reference-group: ${SPRING_REFERENCE:dev}

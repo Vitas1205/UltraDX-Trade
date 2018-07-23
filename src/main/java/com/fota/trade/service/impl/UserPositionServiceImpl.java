@@ -1,21 +1,16 @@
 package com.fota.trade.service.impl;
 
-import com.fota.client.common.Page;
-import com.fota.client.common.Result;
-import com.fota.client.common.ResultCodeEnum;
-import com.fota.client.domain.UserPositionDTO;
 import com.fota.client.domain.query.UserPositionQuery;
-import com.fota.client.service.UserPositionService;
+import com.fota.common.Page;
 import com.fota.trade.common.BeanUtils;
 import com.fota.trade.common.Constant;
 import com.fota.trade.common.ParamUtil;
 import com.fota.trade.domain.UserPositionDO;
-import com.fota.trade.domain.UserPositionDTOPage;
-import com.fota.trade.domain.UserPositionQueryDTO;
+import com.fota.trade.domain.UserPositionDTO;
 import com.fota.trade.mapper.UserPositionMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.thrift.TException;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
@@ -26,23 +21,20 @@ import java.util.List;
  * @Date 2018/7/7
  */
 
-@Service
 @Slf4j
-public class UserPositionServiceImpl implements com.fota.trade.service.UserPositionService.Iface {
+public class UserPositionServiceImpl implements com.fota.trade.service.UserPositionService {
 
     @Resource
     private UserPositionMapper userPositionMapper;
 
     @Override
-    public UserPositionDTOPage listPositionByQuery(long userId, long contractId, int pageNo, int pageSize) {
-//        Result<Page<UserPositionDTO>> result = Result.create();
-        UserPositionDTOPage userPositionDTOPage = new UserPositionDTOPage();
+    public Page<UserPositionDTO> listPositionByQuery(long userId, long contractId, int pageNo, int pageSize) {
         UserPositionQuery userPositionQuery = new UserPositionQuery();
         userPositionQuery.setPageNo(pageNo);
         userPositionQuery.setPageSize(pageSize);
         userPositionQuery.setContractId(contractId);
         userPositionQuery.setUserId(userId);
-        UserPositionDTOPage page = new UserPositionDTOPage();
+        Page<UserPositionDTO> page = new Page<UserPositionDTO>();
         if (userPositionQuery.getPageNo() <= 0) {
             userPositionQuery.setPageNo(Constant.DEFAULT_PAGE_NO);
         }
@@ -59,14 +51,14 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
             total = userPositionMapper.countByQuery(ParamUtil.objectToMap(userPositionQuery));
         } catch (Exception e) {
             log.error("userPositionMapper.countByQuery({})", userPositionQuery, e);
-            return userPositionDTOPage;
+            return page;
         }
         page.setTotal(total);
         if (total == 0) {
-            return userPositionDTOPage;
+            return page;
         }
         List<UserPositionDO> userPositionDOList = null;
-        List<com.fota.trade.domain.UserPositionDTO> list = new ArrayList<>();
+        List<UserPositionDTO> list = new ArrayList<>();
         try {
             userPositionDOList = userPositionMapper.listByQuery(ParamUtil.objectToMap(userPositionQuery));
             if (userPositionDOList != null && userPositionDOList.size() > 0) {
@@ -76,7 +68,7 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
             }
         } catch (Exception e) {
             log.error("userPositionMapper.listByQuery({})", userPositionQuery, e);
-            return userPositionDTOPage;
+            return page;
         }
 //        List<UserPositionDTO> userPositionDTOList = null;
 //        try {
@@ -92,7 +84,7 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
 
 
     @Override
-    public long getTotalPositionByContractId(long contractId) throws TException {
+    public long getTotalPositionByContractId(long contractId) {
         long totalPosition = 0L;
         List<UserPositionDO> userPositionDOList = userPositionMapper.selectByContractId(contractId);
         if (userPositionDOList != null && userPositionDOList.size() > 0) {
