@@ -223,7 +223,7 @@ public class ContractOrderManager {
         resultCode.setMessage("success");
         return resultCode;
     }
-
+    @Transactional(rollbackFor = {Exception.class, RuntimeException.class, BusinessException.class})
     public boolean placeOrderWithCompetitorsPrice(ContractOrderDO contractOrderDO, List<CompetitorsPriceDTO> list) throws Exception{
         ResultCode resultCode = null;
         if (contractOrderDO == null){
@@ -245,7 +245,7 @@ public class ContractOrderManager {
         BigDecimal totalLockAmount = BigDecimal.ZERO;
         long userId = contractOrderDO.getUserId();
         List<UserPositionDO> positionlist = userPositionMapper.selectByUserId(userId);
-        if (positionlist == null){
+        if (positionlist == null || positionlist.size() == 0){
             long contractId = contractOrderDO.getContractId();
             BigDecimal orderAmount = new BigDecimal(contractOrderDO.getTotalAmount());
             BigDecimal entrustPrice = contractOrderDO.getPrice();
@@ -255,6 +255,11 @@ public class ContractOrderManager {
             totalLockAmount = orderValue.add(orderFee);
             if (orderOperateType == OrderOperateTypeEnum.CANCLE_ORDER.getCode()){
                 return totalLockAmount.negate();
+            }
+            UserContractDTO userContractDTO = getAssetService().getContractAccount(contractOrderDO.getUserId());
+            BigDecimal lockedAmount = new BigDecimal(userContractDTO.getLockedAmount());
+            if (lockedAmount.compareTo(totalLockAmount) >= 0){
+                return lockedAmount;
             }
             return totalLockAmount;
         }else {
@@ -297,9 +302,9 @@ public class ContractOrderManager {
                     if (contractOrderList != null){
                         for (ContractOrderDO contractOrder : contractOrderList){
                             Integer orderDerection = contractOrder.getOrderDirection();
-                            if (orderDerection == 1){
+                            if (orderDerection == 2){
                                 bidList.add(contractOrder);
-                            }else if (orderDerection == 2){
+                            }else if (orderDerection == 1){
                                 askList.add(contractOrder);
                             }
                         }

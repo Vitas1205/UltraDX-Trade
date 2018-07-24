@@ -3,6 +3,7 @@ package com.fota.trade.service.impl;
 import com.fota.asset.service.ContractService;
 import com.fota.client.common.Page;
 import com.fota.client.common.ResultCodeEnum;
+import com.fota.client.domain.CompetitorsPriceDTO;
 import com.fota.trade.common.BeanUtils;
 import com.fota.trade.common.BusinessException;
 import com.fota.trade.common.Constant;
@@ -120,6 +121,22 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         ResultCode resultCode = new ResultCode();
         try {
             resultCode = contractOrderManager.placeOrder(BeanUtils.copy(contractOrderDTO));
+        }catch (Exception e){
+            if (e instanceof BusinessException){
+                BusinessException businessException = (BusinessException) e;
+                resultCode.setCode(businessException.getCode());
+                resultCode.setMessage(businessException.getMessage());
+                return resultCode;
+            }
+            log.error("Contract order() failed", e);
+        }
+        return resultCode;
+    }
+
+    public ResultCode order(ContractOrderDTO contractOrderDTO, List<CompetitorsPriceDTO> list) {
+        ResultCode resultCode = new ResultCode();
+        try {
+            boolean a = contractOrderManager.placeOrderWithCompetitorsPrice(BeanUtils.copy(contractOrderDTO), list);
         }catch (Exception e){
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;

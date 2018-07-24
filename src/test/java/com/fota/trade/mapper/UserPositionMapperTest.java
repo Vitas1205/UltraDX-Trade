@@ -29,13 +29,13 @@ public class UserPositionMapperTest {
     @Test
     public void testInsert() throws Exception {
         UserPositionDO userPositionDO = new UserPositionDO();
-        userPositionDO.setUserId(9527L);
-        userPositionDO.setContractId(1L);
-        userPositionDO.setContractName("Test");
-        userPositionDO.setLockedAmount(new BigDecimal(5L));
-        userPositionDO.setUnfilledAmount(10L);
+        userPositionDO.setUserId(282L);
+        userPositionDO.setContractId(1000L);
+        userPositionDO.setContractName("BTC/0102");
+        //userPositionDO.setLockedAmount(new BigDecimal(5L));
+        userPositionDO.setUnfilledAmount(3L);
         userPositionDO.setPositionType(1);
-        userPositionDO.setAveragePrice(new BigDecimal("13.123"));
+        userPositionDO.setAveragePrice(new BigDecimal("5000"));
         userPositionDO.setStatus(1);
         int insertRet = userPositionMapper.insert(userPositionDO);
         Assert.assertTrue(insertRet > 0);
