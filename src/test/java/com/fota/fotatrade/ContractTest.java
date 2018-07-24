@@ -1,5 +1,6 @@
 package com.fota.fotatrade;
 
+import com.fota.client.domain.CompetitorsPriceDTO;
 import com.fota.trade.common.BeanUtils;
 import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.domain.ContractOrderDTO;
@@ -13,6 +14,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -35,17 +38,29 @@ public class ContractTest {
     @Test
     public void placeOrder(){
         for (int i = 0;i < 1;i++){
+            List<CompetitorsPriceDTO> list = new ArrayList<>();
+            CompetitorsPriceDTO competitorsPriceDTO1 = new CompetitorsPriceDTO();
+            competitorsPriceDTO1.setId(1000);
+            competitorsPriceDTO1.setOrderDirection(1);
+            competitorsPriceDTO1.setPrice(new BigDecimal("5600.22"));
+            CompetitorsPriceDTO competitorsPriceDTO2 = new CompetitorsPriceDTO();
+            competitorsPriceDTO2.setId(1000);
+            competitorsPriceDTO2.setOrderDirection(2);
+            competitorsPriceDTO2.setPrice(new BigDecimal("6600.22"));
+            list.add(competitorsPriceDTO1);
+            list.add(competitorsPriceDTO2);
+
             ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
             contractOrderDTO.setContractId(1000);
-            contractOrderDTO.setContractName("BTC/01");
-            contractOrderDTO.setUserId(205L);
-            contractOrderDTO.setOrderDirection(2);
+            contractOrderDTO.setContractName("BTC0102");
+            contractOrderDTO.setUserId(282L);
+            contractOrderDTO.setOrderDirection(1);
             contractOrderDTO.setOperateType(1);
-            contractOrderDTO.setOperateDirection(1);
+            contractOrderDTO.setOperateDirection(2);
             contractOrderDTO.setOrderType(1);
             contractOrderDTO.setTotalAmount(2L);
-            contractOrderDTO.setPrice("1");
-            contractOrderService.order(contractOrderDTO);
+            contractOrderDTO.setPrice("7000");
+            contractOrderService.order(contractOrderDTO, list);
         }
         //int insertContractOrderRet = contractOrderMapper.insertSelective(BeanUtils.copy(contractOrderDTO));
     }
