@@ -27,7 +27,7 @@
     SELECT
     <include refid="Base_Column_List" />
     FROM trade_contract_category
-    where deliveryDate > now()
+    where delivery_date > now()
     <if test="id != null" >
       and id=#{id,jdbcType=BIGINT}
     </if>
