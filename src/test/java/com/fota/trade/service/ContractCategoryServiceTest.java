@@ -35,7 +35,7 @@ public class ContractCategoryServiceTest {
 
     @Test
     public void testListActiveContractByAssetName() throws Exception {
-        List<ContractCategoryDTO> list = contractCategoryService.listActiveContractByAssetId(3);
+        List<ContractCategoryDTO> list = contractCategoryService.listActiveContractByAssetId(2);
         Assert.assertTrue(list != null);
     }
 

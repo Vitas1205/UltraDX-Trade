@@ -52,7 +52,7 @@
     <if test="contractType != null" >
       and contract_type=#{contractType,jdbcType=TINYINT}
     </if>
-    order by contract_type
+    order by asset_id, contract_type
   </select>
 
   <insert id="insertSelective" parameterType="com.fota.trade.domain.ContractCategoryDO" >
