@@ -1,5 +1,9 @@
 package com.fota;
 
+import com.fota.trade.Consumer;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.client.exception.MQClientException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -16,9 +20,12 @@ import java.util.concurrent.atomic.AtomicLong;
 @SpringBootApplication
 @EnableAutoConfiguration
 @RefreshScope
+@Slf4j
 @ImportResource("classpath:application-context.xml")
 public class FotaTradeApplication {
 
+	@Autowired
+	Consumer consumer;
 
 	@PostConstruct
 	public void runServer() {
@@ -30,11 +37,19 @@ public class FotaTradeApplication {
 //		singleThreadPool.execute(new Thread(thriftServer));
 	}
 
+
 	public static void main(String[] args) {
 		SpringApplication.run(FotaTradeApplication.class, args);
 	}
 
-
+	@PostConstruct
+	public void  runConsumer(){
+		try {
+			consumer.init();
+		} catch (Exception e) {
+			log.error("runConsumer failed",e);
+		}
+	}
 
 
 	static class FotaThreadFactory implements ThreadFactory {

@@ -39,6 +39,16 @@ public interface ContractCategoryMapper {
 
     List<ContractCategoryDO> listByQuery(ContractCategoryDO contractCategoryDO);
 
+
+    @Select({
+            "select",
+            "id, gmt_create, gmt_modified, contract_name, asset_id, asset_name, total_amount, ",
+            "unfilled_amount, delivery_date, status, contract_type, price",
+            "from trade_contract_category"
+    })
+    @ResultMap("BaseResultMap")
+    List<ContractCategoryDO> getAllContractCategory();
+
     int updateByPrimaryKeySelective(ContractCategoryDO record);
 
     @Update({

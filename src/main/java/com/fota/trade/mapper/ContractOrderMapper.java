@@ -88,6 +88,18 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
     List<ContractOrderDO> selectByUserId(Long userId);
 
 
+    @Select({
+            "select",
+            "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, order_direction, ",
+            "operate_type,order_type,close_type, operate_direction, lever, total_amount, unfilled_amount, price, ",
+            "fee, usdk_locked_amount, position_locked_amount, status",
+            "from trade_contract_order",
+            "where user_id =  #{userId,jdbcType=BIGINT} and status in (8,9)"
+    })
+    @ResultMap("BaseResultMap")
+    List<ContractOrderDO> selectUnfinishedOrderByUserId(Long userId);
+
+
     int updateByPrimaryKeySelective(ContractOrderDO record);
 
 

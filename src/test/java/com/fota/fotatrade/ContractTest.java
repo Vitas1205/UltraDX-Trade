@@ -4,6 +4,7 @@ import com.fota.client.domain.CompetitorsPriceDTO;
 import com.fota.trade.common.BeanUtils;
 import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.domain.ContractOrderDTO;
+import com.fota.trade.domain.ResultCode;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
@@ -35,6 +36,9 @@ public class ContractTest {
     @Autowired
     private ContractOrderMapper contractOrderMapper;
 
+    @Autowired
+    private  ContractOrderManager contractOrderManager;
+
     @Test
     public void placeOrder(){
         for (int i = 0;i < 1;i++){
@@ -54,15 +58,35 @@ public class ContractTest {
             contractOrderDTO.setContractId(1000);
             contractOrderDTO.setContractName("BTC0102");
             contractOrderDTO.setUserId(282L);
-            contractOrderDTO.setOrderDirection(1);
+            contractOrderDTO.setOrderDirection(2);
             contractOrderDTO.setOperateType(1);
             contractOrderDTO.setOperateDirection(2);
             contractOrderDTO.setOrderType(1);
             contractOrderDTO.setTotalAmount(2L);
-            contractOrderDTO.setPrice("7000");
-            contractOrderService.order(contractOrderDTO, list);
+            contractOrderDTO.setPrice("5500");
+            contractOrderService.order(contractOrderDTO);
         }
         //int insertContractOrderRet = contractOrderMapper.insertSelective(BeanUtils.copy(contractOrderDTO));
+    }
+
+    @Test
+    public void cancelOrderWithCompetitorsPrice() throws Exception{
+        List<CompetitorsPriceDTO> list = new ArrayList<>();
+        CompetitorsPriceDTO competitorsPriceDTO1 = new CompetitorsPriceDTO();
+        competitorsPriceDTO1.setId(1000);
+        competitorsPriceDTO1.setOrderDirection(1);
+        competitorsPriceDTO1.setPrice(new BigDecimal("5600.22"));
+        CompetitorsPriceDTO competitorsPriceDTO2 = new CompetitorsPriceDTO();
+        competitorsPriceDTO2.setId(1000);
+        competitorsPriceDTO2.setOrderDirection(2);
+        competitorsPriceDTO2.setPrice(new BigDecimal("6600.22"));
+        list.add(competitorsPriceDTO1);
+        list.add(competitorsPriceDTO2);
+
+        long userId = 282L;
+        long contractId = 276L;
+        ResultCode resultCode = contractOrderManager.cancelOrder(userId,contractId);
+        log.info("-------------------"+resultCode.toString());
     }
 
     @Test
@@ -86,5 +110,7 @@ public class ContractTest {
         List<ContractOrderDO> list = contractOrderMapper.selectByUserId(userId);
         log.info("----------------"+list.size());
     }
+
+
 
 }

@@ -25,4 +25,6 @@ public class RocketMqManager {
         Boolean ret = rocketMqProducer.producer("order", tag, message.toString(), JSONObject.toJSONString(message));
         return ret;
     }
+
+
 }

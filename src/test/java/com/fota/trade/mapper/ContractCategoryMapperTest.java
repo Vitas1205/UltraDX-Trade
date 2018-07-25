@@ -1,6 +1,7 @@
 package com.fota.trade.mapper;
 
 import com.fota.trade.domain.ContractCategoryDO;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -18,6 +19,7 @@ import java.util.List;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
+@Slf4j
 public class ContractCategoryMapperTest {
 
     @Resource
@@ -38,6 +40,12 @@ public class ContractCategoryMapperTest {
         contractCategoryDO.setAssetId(3);
         List<ContractCategoryDO> queryList = contractCategoryMapper.listByQuery(contractCategoryDO);
         Assert.assertTrue(queryList != null && queryList.size() > 0);
+    }
+
+    @Test
+    public void testSelectContractCategory() throws Exception {
+        List<ContractCategoryDO> queryList = contractCategoryMapper.getAllContractCategory();
+        log.info("---------------------"+queryList.size());
     }
 
 }

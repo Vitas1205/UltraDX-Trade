@@ -1,5 +1,8 @@
 package com.fota.trade.service.impl;
 
+import com.alibaba.fastjson.JSON;
+import com.fota.asset.domain.UserContractDTO;
+import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
 import com.fota.client.common.Page;
 import com.fota.client.common.ResultCodeEnum;
@@ -10,6 +13,7 @@ import com.fota.trade.common.Constant;
 import com.fota.trade.common.ParamUtil;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.OrderStatusEnum;
+import com.fota.trade.manager.ContractLeverManager;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.mapper.ContractOrderMapper;
@@ -48,6 +52,13 @@ public class ContractOrderServiceImpl implements ContractOrderService {
 
     @Autowired
     private RedisManager redisManager;
+
+    @Autowired
+    private ContractLeverManager contractLeverManager;
+
+    @Autowired
+    private AssetService assetService;
+    private AssetService getAssetService() { return assetService; }
 
     @Autowired
     private ContractService contractService;
@@ -116,7 +127,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         return contractOrderDTOPage;
     }
 
-    @Override
+    /*@Override
     public ResultCode order(ContractOrderDTO contractOrderDTO) {
         ResultCode resultCode = new ResultCode();
         try {
@@ -131,12 +142,13 @@ public class ContractOrderServiceImpl implements ContractOrderService {
             log.error("Contract order() failed", e);
         }
         return resultCode;
-    }
+    }*/
 
-    public ResultCode order(ContractOrderDTO contractOrderDTO, List<CompetitorsPriceDTO> list) {
+    @Override
+    public ResultCode order(ContractOrderDTO contractOrderDTO) {
         ResultCode resultCode = new ResultCode();
         try {
-            boolean a = contractOrderManager.placeOrderWithCompetitorsPrice(BeanUtils.copy(contractOrderDTO), list);
+            resultCode = contractOrderManager.placeOrder(BeanUtils.copy(contractOrderDTO));
         }catch (Exception e){
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
@@ -286,7 +298,8 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         newUserPositionDO.setContractName(contractOrderDO.getContractName());
         newUserPositionDO.setContractId(contractOrderDO.getContractId());
         //todo fixme 根据接口获取杠杆
-        newUserPositionDO.setLever(10);
+        Integer lever = new Integer(contractLeverManager.getLeverByContractId(contractOrderDO.getUserId(),contractOrderDO.getContractId()));
+        newUserPositionDO.setLever(lever);
         try {
             userPositionMapper.insert(newUserPositionDO);
         } catch (Exception e) {
@@ -320,27 +333,42 @@ public class ContractOrderServiceImpl implements ContractOrderService {
                               long newPositionAmount,
                               ContractMatchedOrderDTO matchedOrderDTO){
         long filledAmount = matchedOrderDTO.getFilledAmount();
+        BigDecimal lever = new BigDecimal(contractLeverManager.getLeverByContractId(contractOrderDO.getUserId(),contractOrderDO.getContractId()));
         BigDecimal filledPrice = new BigDecimal(matchedOrderDTO.getFilledPrice());
         BigDecimal fee = contractOrderDO.getFee();
-        BigDecimal actualFee = filledPrice.multiply(new BigDecimal(filledAmount)).multiply(fee).multiply(new BigDecimal(0.01));
+        BigDecimal actualFee = filledPrice.multiply(new BigDecimal(filledAmount)).multiply(fee).multiply(Constant.CONTRACT_SIZE);
         BigDecimal addedTotalAmount = new BigDecimal(oldPositionAmount - newPositionAmount)
                 .multiply(filledPrice)
-                .multiply(new BigDecimal(0.01))
-                .multiply(new BigDecimal(0.1))
+                .multiply(Constant.CONTRACT_SIZE)
+                .divide(lever, 8, BigDecimal.ROUND_DOWN)
                 .subtract(actualFee);
-        BigDecimal entrustFee = contractOrderDO.getPrice().multiply(new BigDecimal(filledAmount)).multiply(fee).multiply(new BigDecimal(0.01));
+        /*BigDecimal entrustFee = contractOrderDO.getPrice().multiply(new BigDecimal(filledAmount)).multiply(fee).multiply(new BigDecimal(0.01));
         BigDecimal addedTotalLocked = new BigDecimal(filledAmount)
                 .multiply(contractOrderDO.getPrice())
                 .multiply(new BigDecimal(0.01))
                 .multiply(new BigDecimal(0.1))
-                .add(entrustFee).negate();
-        //todo 更新余额s
+                .add(entrustFee).negate();*/
+        Object competiorsPriceObj = redisManager.get(Constant.COMPETITOR_PRICE_KEY);
+        List<CompetitorsPriceDTO> competitorsPriceList = JSON.parseArray(competiorsPriceObj.toString(),CompetitorsPriceDTO.class);
+        if (competitorsPriceList == null || competitorsPriceList.size() == 0){
+            log.error("get competitors price list failed");
+        }
+        UserContractDTO userContractDTO = getAssetService().getContractAccount(contractOrderDO.getUserId());
+        BigDecimal lockedAmount = new BigDecimal(userContractDTO.getLockedAmount());
+        BigDecimal totalLockAmount = null;
+        try {
+            totalLockAmount = contractOrderManager.getTotalLockAmount(contractOrderDO.getUserId());
+        } catch (Exception e) {
+            log.error("get totalLockAmount failed",e);
+        }
+        BigDecimal addedTotalLocked = totalLockAmount.subtract(lockedAmount);
+        //todo 更新余额
         try {
             getContractService().updateContractBalance(contractOrderDO.getUserId(),
                     addedTotalAmount.toString(),
                     addedTotalLocked.toString());
         } catch (Exception e) {
-
+            log.error("update contract balance failed",e);
         }
         updateSingleOrderByFilledAmount(contractOrderDO, matchedOrderDTO.getFilledAmount());
         return 1;
