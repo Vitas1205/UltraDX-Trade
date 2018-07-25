@@ -221,7 +221,7 @@ public class UsdkOrderManager {
 
 
     public ResultCode cancelAllOrder(Long userId) throws Exception{
-        ResultCode resultCode = null;
+        ResultCode resultCode = new ResultCode();
         List<UsdkOrderDO> list = usdkOrderMapper.selectByUserId(userId);
         int i = 0;
         if (list != null){

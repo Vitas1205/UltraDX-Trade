@@ -97,7 +97,7 @@ public class ContractTest {
     }
     @Test
     public void cancleAllOrder(){
-        Long userId = 282L;
+        Long userId = 9527L;
         contractOrderService.cancelAllOrder(userId);
     }
 

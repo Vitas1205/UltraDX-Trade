@@ -203,7 +203,7 @@ public class ContractOrderManager {
 
 
     public ResultCode cancelAllOrder(Long userId) throws Exception{
-        ResultCode resultCode = null;
+        ResultCode resultCode = new ResultCode();
         List<ContractOrderDO> list = contractOrderMapper.selectByUserId(userId);
         int i = 0;
         if (list != null){
@@ -234,7 +234,7 @@ public class ContractOrderManager {
             throw new BusinessException(ResultCodeEnum.CONTRANCT_IS_NULL.getCode(),ResultCodeEnum.CONTRANCT_IS_NULL.getMessage());
         }
         contractOrderDO.setContractName(contractCategoryDO.getContractName());
-        ResultCode resultCode = null;
+        ResultCode resultCode = new ResultCode();
         insertOrderRecord(contractOrderDO);
         BigDecimal totalLockAmount = getTotalLockAmount(contractOrderDO.getUserId());
         //查询用户合约冻结金额
