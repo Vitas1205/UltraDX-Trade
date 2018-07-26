@@ -335,18 +335,27 @@ public class ContractOrderManager {
                 if (orderList != null && orderList.size() != 0){
                     List<ContractOrderDO> bidList = orderList.stream().filter(order-> order.getOrderDirection() == OrderDirectionEnum.BID.getCode()).collect(Collectors.toList());
                     List<ContractOrderDO> askList = orderList.stream().filter(order-> order.getOrderDirection() == OrderDirectionEnum.ASK.getCode()).collect(Collectors.toList());
-                    UserPositionDO userPositionDO = null;
+                    List<UserPositionDO> userPositionDOlist = new ArrayList<>();
                     if (positionlist != null && positionlist.size() != 0){
-                        userPositionDO = positionlist.stream().filter(userPosition-> userPosition.getContractId().equals(contractCategoryDO.getId()))
-                                .limit(1).collect(Collectors.toList()).get(0);
-                        if (userPositionDO != null){
+                        userPositionDOlist = positionlist.stream().filter(userPosition-> userPosition.getContractId().equals(contractCategoryDO.getId()))
+                                .limit(1).collect(Collectors.toList());
+                        if (userPositionDOlist != null && userPositionDOlist.size() != 0){
+                            UserPositionDO userPositionDO = userPositionDOlist.get(0);
                             BigDecimal totalAskExtraEntrustAmount = BigDecimal.ZERO;
                             BigDecimal totalBidExtraEntrustAmount = BigDecimal.ZERO;
                             //todo 获取买一卖一价
-                            BigDecimal askCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice-> competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
-                                    competitorsPrice.getId() == contractId).limit(1).collect(Collectors.toList()).get(0).getPrice();
-                            BigDecimal bidCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice-> competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
-                                    competitorsPrice.getId() == contractId).limit(1).collect(Collectors.toList()).get(0).getPrice();
+                            List<CompetitorsPriceDTO> askCurrentPriceList = competitorsPriceList.stream().filter(competitorsPrice-> competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
+                                    competitorsPrice.getId() == contractId).limit(1).collect(Collectors.toList());
+                            List<CompetitorsPriceDTO> bidCurrentPriceList = competitorsPriceList.stream().filter(competitorsPrice-> competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
+                                    competitorsPrice.getId() == contractId).limit(1).collect(Collectors.toList());
+                            BigDecimal askCurrentPrice = BigDecimal.ZERO;
+                            BigDecimal bidCurrentPrice = BigDecimal.ZERO;
+                            if (askCurrentPriceList != null && askCurrentPriceList.size() != 0){
+                                askCurrentPrice = askCurrentPriceList.get(0).getPrice();
+                            }
+                            if (bidCurrentPriceList != null && bidCurrentPriceList.size() != 0){
+                                bidCurrentPrice = bidCurrentPriceList.get(0).getPrice();
+                            }
                             BigDecimal lever = new BigDecimal(contractLeverManager.getLeverByContractId(userId,contractId));
                             Integer positionType = userPositionDO.getPositionType();
                             BigDecimal positionUnfilledAmount = new BigDecimal(userPositionDO.getUnfilledAmount());
@@ -360,7 +369,7 @@ public class ContractOrderManager {
                             entrustLockAmount = entrustLockAmount.add(totalBidExtraEntrustAmount.add(totalAskExtraEntrustAmount));
                         }
                     }
-                    if(positionlist == null || positionlist.size() == 0 || userPositionDO == null){
+                    if(positionlist == null || positionlist.size() == 0 || userPositionDOlist == null || userPositionDOlist.size() == 0){
                         BigDecimal lever = new BigDecimal(contractLeverManager.getLeverByContractId(userId,contractId));
                         BigDecimal orderValue;
                         BigDecimal orderFee;

@@ -42,7 +42,7 @@ public class ContractTest {
     @Test
     public void placeOrder(){
         for (int i = 0;i < 1;i++){
-            List<CompetitorsPriceDTO> list = new ArrayList<>();
+            /*List<CompetitorsPriceDTO> list = new ArrayList<>();
             CompetitorsPriceDTO competitorsPriceDTO1 = new CompetitorsPriceDTO();
             competitorsPriceDTO1.setId(1000);
             competitorsPriceDTO1.setOrderDirection(1);
@@ -52,18 +52,18 @@ public class ContractTest {
             competitorsPriceDTO2.setOrderDirection(2);
             competitorsPriceDTO2.setPrice(new BigDecimal("6600.22"));
             list.add(competitorsPriceDTO1);
-            list.add(competitorsPriceDTO2);
+            list.add(competitorsPriceDTO2);*/
 
             ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
             contractOrderDTO.setContractId(1000);
             contractOrderDTO.setContractName("BTC0102");
-            contractOrderDTO.setUserId(282L);
-            contractOrderDTO.setOrderDirection(2);
+            contractOrderDTO.setUserId(200L);
+            contractOrderDTO.setOrderDirection(1);
             contractOrderDTO.setOperateType(1);
             contractOrderDTO.setOperateDirection(2);
             contractOrderDTO.setOrderType(1);
-            contractOrderDTO.setTotalAmount(2L);
-            contractOrderDTO.setPrice("5500");
+            contractOrderDTO.setTotalAmount(1L);
+            contractOrderDTO.setPrice("8500");
             contractOrderService.order(contractOrderDTO);
         }
         //int insertContractOrderRet = contractOrderMapper.insertSelective(BeanUtils.copy(contractOrderDTO));
@@ -71,7 +71,7 @@ public class ContractTest {
 
     @Test
     public void cancelOrderWithCompetitorsPrice() throws Exception{
-        List<CompetitorsPriceDTO> list = new ArrayList<>();
+        /*List<CompetitorsPriceDTO> list = new ArrayList<>();
         CompetitorsPriceDTO competitorsPriceDTO1 = new CompetitorsPriceDTO();
         competitorsPriceDTO1.setId(1000);
         competitorsPriceDTO1.setOrderDirection(1);
@@ -81,10 +81,10 @@ public class ContractTest {
         competitorsPriceDTO2.setOrderDirection(2);
         competitorsPriceDTO2.setPrice(new BigDecimal("6600.22"));
         list.add(competitorsPriceDTO1);
-        list.add(competitorsPriceDTO2);
+        list.add(competitorsPriceDTO2);*/
 
-        long userId = 282L;
-        long contractId = 276L;
+        long userId = 200L;
+        long contractId = 332L;
         ResultCode resultCode = contractOrderManager.cancelOrder(userId,contractId);
         log.info("-------------------"+resultCode.toString());
     }
