@@ -165,7 +165,6 @@ public interface UsdkOrderMapper {
 
     @Update({
             "update trade_usdk_order",
-            "set gmt_create = #{gmtCreate,jdbcType=TIMESTAMP},",
             "gmt_modified = now(),",
             "unfilled_amount = unfilled_amount - #{filledAmount,jdbcType=DECIMAL},",
             "status = #{status,jdbcType=INTEGER}",
