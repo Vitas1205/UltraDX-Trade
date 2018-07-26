@@ -344,7 +344,13 @@ public class UsdkOrderManager {
             usdkOrderDO.setStatus(OrderStatusEnum.PART_MATCH.getCode());
         }
         usdkOrderDO.setUnfilledAmount(usdkOrderDO.getUnfilledAmount().subtract(filledAmount));
-        return usdkOrderMapper.updateByPrimaryKeyAndOpLock(usdkOrderDO);
+        int ret = -1;
+        try {
+           ret  = usdkOrderMapper.updateByPrimaryKeyAndOpLock(usdkOrderDO);
+        }catch (Exception e){
+            log.error("失败({})", usdkOrderDO, e);
+        }
+        return ret;
     }
 
 }
