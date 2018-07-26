@@ -6,6 +6,8 @@ import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
 import com.fota.client.common.ResultCodeEnum;
 import com.fota.client.domain.CompetitorsPriceDTO;
+import com.fota.match.service.ContractMatchedOrderService;
+import com.fota.match.service.UsdkMatchedOrderService;
 import com.fota.trade.common.BusinessException;
 import com.fota.trade.common.Constant;
 import com.fota.client.domain.ContractOrderDTO;
@@ -62,6 +64,9 @@ public class ContractOrderManager {
 
     @Autowired
     private ContractService contractService;
+
+    @Autowired
+    private ContractMatchedOrderService contractMatchedOrderService;
 
     private ContractService getContractService() {
         return contractService;
@@ -271,6 +276,12 @@ public class ContractOrderManager {
         ResultCode resultCode = new ResultCode();
         ContractOrderDO contractOrderDO = contractOrderMapper.selectByIdAndUserId(orderId, userId);
         Integer status = contractOrderDO.getStatus();
+        boolean judegRet = getJudegRet(orderId,contractOrderDO.getOrderDirection(),new BigDecimal(contractOrderDO.getUnfilledAmount()));
+        if (!judegRet){
+            resultCode.setCode(ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getCode());
+            resultCode.setMessage(ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getMessage());
+            return resultCode;
+        }
         if (status == OrderStatusEnum.COMMIT.getCode() || status == OrderStatusEnum.CANCEL.getCode()){
             contractOrderDO.setStatus(OrderStatusEnum.CANCEL.getCode());
         }else if (status == OrderStatusEnum.PART_MATCH.getCode() || status == OrderStatusEnum.PART_CANCEL.getCode()){
@@ -315,6 +326,10 @@ public class ContractOrderManager {
         resultCode.setCode(0);
         resultCode.setMessage("success");
         return resultCode;
+    }
+
+    public boolean getJudegRet(Long orderId, Integer orderDeriction, BigDecimal unfilledAmount){
+        return contractMatchedOrderService.cancelOrderContract(orderId, orderDeriction, unfilledAmount);
     }
 
 
