@@ -356,6 +356,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         UserContractDTO userContractDTO = getAssetService().getContractAccount(contractOrderDO.getUserId());
         BigDecimal lockedAmount = new BigDecimal(userContractDTO.getLockedAmount());
         BigDecimal totalLockAmount = null;
+        updateSingleOrderByFilledAmount(contractOrderDO, matchedOrderDTO.getFilledAmount());
         try {
             totalLockAmount = contractOrderManager.getTotalLockAmount(contractOrderDO.getUserId());
         } catch (Exception e) {
@@ -370,7 +371,6 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         } catch (Exception e) {
             log.error("update contract balance failed",e);
         }
-        updateSingleOrderByFilledAmount(contractOrderDO, matchedOrderDTO.getFilledAmount());
         return 1;
     }
 
