@@ -66,7 +66,7 @@ public class Consumer {
                     } catch (UnsupportedEncodingException e) {
                         log.error("get mq message failed",e);
                     }
-                    log.info("bodyByte()------------"+bodyByte);
+                    log.info("bodyStr()------------"+bodyStr);
                     if (TagsTypeEnum.USDK.getDesc().equals(tag)) {
                         UsdkMatchedOrderDTO usdkMatchedOrderDTO = JSON.parseObject(bodyStr,UsdkMatchedOrderDTO.class);
                         usdkOrderService.updateOrderByMatch(usdkMatchedOrderDTO);

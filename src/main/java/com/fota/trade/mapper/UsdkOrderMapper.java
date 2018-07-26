@@ -127,7 +127,7 @@ public interface UsdkOrderMapper {
     })
     int updateByPrimaryKey(UsdkOrderDO record);
 
-    @Update({
+    /*@Update({
         "update trade_usdk_order",
         "set gmt_create = #{gmtCreate,jdbcType=TIMESTAMP},",
           "gmt_modified = now(),",
@@ -142,6 +142,22 @@ public interface UsdkOrderMapper {
           "fee = #{fee,jdbcType=DECIMAL},",
           "status = #{status,jdbcType=INTEGER}",
         "where id = #{id,jdbcType=BIGINT} and gmt_modified = #{gmtModified,jdbcType=TIMESTAMP}"
+    })*/
+    @Update({
+        "update trade_usdk_order",
+        "set gmt_create = #{gmtCreate,jdbcType=TIMESTAMP},",
+          "gmt_modified = now(),",
+          "user_id = #{userId,jdbcType=BIGINT},",
+          "asset_id = #{assetId,jdbcType=INTEGER},",
+          "asset_name = #{assetName,jdbcType=VARCHAR},",
+          "order_direction = #{orderDirection,jdbcType=TINYINT},",
+          "order_type = #{orderType,jdbcType=TINYINT},",
+          "total_amount = #{totalAmount,jdbcType=DECIMAL},",
+          "unfilled_amount = #{unfilledAmount,jdbcType=DECIMAL},",
+          "price = #{price,jdbcType=DECIMAL},",
+          "fee = #{fee,jdbcType=DECIMAL},",
+          "status = #{status,jdbcType=INTEGER}",
+        "where id = #{id,jdbcType=BIGINT}"
     })
     int updateByPrimaryKeyAndOpLock(UsdkOrderDO record);
 
