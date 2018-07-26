@@ -2,11 +2,11 @@ package com.fota.fotatrade;
 
 import com.fota.client.domain.CompetitorsPriceDTO;
 import com.fota.trade.common.BeanUtils;
-import com.fota.trade.domain.ContractOrderDO;
-import com.fota.trade.domain.ContractOrderDTO;
-import com.fota.trade.domain.ResultCode;
+import com.fota.trade.domain.*;
 import com.fota.trade.manager.ContractOrderManager;
+import com.fota.trade.mapper.ContractCategoryMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
+import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -18,6 +18,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @Author: Harry Wang
@@ -38,6 +39,12 @@ public class ContractTest {
 
     @Autowired
     private  ContractOrderManager contractOrderManager;
+
+    @Autowired
+    private UserPositionMapper userPositionMapper;
+
+    @Autowired
+    private ContractCategoryMapper contractCategoryMapper;
 
     @Test
     public void placeOrder(){
@@ -111,6 +118,18 @@ public class ContractTest {
         log.info("----------------"+list.size());
     }
 
+    @Test
+    public void testbug(){
+        long userId = 201L;
+        List<ContractCategoryDO> queryList = contractCategoryMapper.getAllContractCategory();
+        List<UserPositionDO> positionlist = userPositionMapper.selectByUserId(userId);
+        for (ContractCategoryDO contractCategoryDO : queryList){
+            List<UserPositionDO> userPositionDOlist = new ArrayList<>();
+            userPositionDOlist = positionlist.stream().filter(userPosition-> userPosition.getContractId().equals(contractCategoryDO.getId()))
+                    .limit(1).collect(Collectors.toList());
+            log.info("-------------"+userPositionDOlist.size());
+        }
 
+    }
 
 }

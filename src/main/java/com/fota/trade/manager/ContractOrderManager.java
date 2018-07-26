@@ -337,6 +337,8 @@ public class ContractOrderManager {
                     List<ContractOrderDO> askList = orderList.stream().filter(order-> order.getOrderDirection() == OrderDirectionEnum.ASK.getCode()).collect(Collectors.toList());
                     List<UserPositionDO> userPositionDOlist = new ArrayList<>();
                     if (positionlist != null && positionlist.size() != 0){
+                        log.info("positionlist.size()++++++++++++++++++"+positionlist.size());
+                        log.info("contractOrderlist.size()++++++++++++++++++"+contractOrderlist.size());
                         userPositionDOlist = positionlist.stream().filter(userPosition-> userPosition.getContractId().equals(contractCategoryDO.getId()))
                                 .limit(1).collect(Collectors.toList());
                         if (userPositionDOlist != null && userPositionDOlist.size() != 0){
