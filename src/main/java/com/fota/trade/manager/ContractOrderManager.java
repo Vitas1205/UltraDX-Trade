@@ -204,7 +204,7 @@ public class ContractOrderManager {
 
     public ResultCode cancelAllOrder(Long userId) throws Exception{
         ResultCode resultCode = new ResultCode();
-        List<ContractOrderDO> list = contractOrderMapper.selectByUserId(userId);
+        List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByUserId(userId);
         int i = 0;
         if (list != null){
             for(ContractOrderDO contractOrderDO : list){

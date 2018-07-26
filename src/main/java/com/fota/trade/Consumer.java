@@ -34,7 +34,6 @@ public class Consumer {
 
     @Autowired
     ContractOrderServiceImpl contractOrderService;
-
     public void init() throws InterruptedException, MQClientException {
         //声明并初始化一个consumer
         //需要一个consumer group名字作为构造方法的参数，这里为consumer1

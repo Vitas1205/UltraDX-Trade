@@ -7,6 +7,7 @@ import com.fota.asset.service.CapitalService;
 import com.fota.client.common.ResultCode;
 import com.fota.client.common.ResultCodeEnum;
 import com.fota.client.domain.UsdkOrderDTO;
+import com.fota.match.service.UsdkMatchedOrderService;
 import com.fota.trade.common.BusinessException;
 import com.fota.trade.common.Constant;
 import com.fota.trade.domain.OrderMessage;
@@ -52,10 +53,15 @@ public class UsdkOrderManager {
 
     @Autowired
     private RocketMqManager rocketMqManager;
+
     @Autowired
     private CapitalService capitalService;
+
     @Autowired
     private AssetService assetService;
+
+    @Autowired
+    private UsdkMatchedOrderService usdkMatchedOrderService;
 
     private CapitalService getCapitalService() {
         return capitalService;
@@ -161,6 +167,11 @@ public class UsdkOrderManager {
         ResultCode resultCode = new ResultCode();
         UsdkOrderDO usdkOrderDO = usdkOrderMapper.selectByIdAndUserId(orderId, userId);
         Integer status = usdkOrderDO.getStatus();
+        boolean judegRet = getJudegRet(orderId,usdkOrderDO.getOrderDirection(),usdkOrderDO.getUnfilledAmount());
+        if (!judegRet){
+            resultCode = ResultCode.error(ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getCode(),ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getMessage());
+            return resultCode;
+        }
         if (status == OrderStatusEnum.COMMIT.getCode()){
             usdkOrderDO.setStatus(OrderStatusEnum.CANCEL.getCode());
         }else if (status == OrderStatusEnum.PART_MATCH.getCode()){
@@ -219,10 +230,14 @@ public class UsdkOrderManager {
         return resultCode;
     }
 
+    public boolean getJudegRet(Long orderId, Integer orderDeriction, BigDecimal unfilledAmount){
+        return usdkMatchedOrderService.cancelOrderUsdk(orderId, orderDeriction, unfilledAmount);
+    }
+
 
     public ResultCode cancelAllOrder(Long userId) throws Exception{
         ResultCode resultCode = new ResultCode();
-        List<UsdkOrderDO> list = usdkOrderMapper.selectByUserId(userId);
+        List<UsdkOrderDO> list = usdkOrderMapper.selectUnfinishedOrderByUserId(userId);
         int i = 0;
         if (list != null){
             for(UsdkOrderDO usdkOrderDO : list){

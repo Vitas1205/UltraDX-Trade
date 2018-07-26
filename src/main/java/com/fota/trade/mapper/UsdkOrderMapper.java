@@ -67,6 +67,16 @@ public interface UsdkOrderMapper {
     @ResultMap("BaseResultMap")
     UsdkOrderDO selectByPrimaryKey(Long id);
 
+    @Select({
+            "select",
+            "id, gmt_create, gmt_modified, user_id, asset_id, asset_name, order_direction, ",
+            "order_type, total_amount, unfilled_amount, price, fee, status",
+            "from trade_usdk_order",
+            "where user_id =  #{userId,jdbcType=BIGINT} and status in (8,9)"
+    })
+    @ResultMap("BaseResultMap")
+    List<UsdkOrderDO> selectUnfinishedOrderByUserId(Long userId);
+
 
     @Select({
             "select",
