@@ -347,7 +347,8 @@ public class UsdkOrderManager {
         int ret = -1;
         try {
             log.info("打印的内容----------------------"+usdkOrderDO);
-            ret  = usdkOrderMapper.updateByPrimaryKeyAndOpLock(usdkOrderDO);
+//          ret  = usdkOrderMapper.updateByPrimaryKeyAndOpLock(usdkOrderDO);
+            ret  = usdkOrderMapper.updateByFilledAmount(usdkOrderDO.getId(),usdkOrderDO.getStatus(),filledAmount);
         }catch (Exception e){
             log.error("失败({})", usdkOrderDO, e);
         }

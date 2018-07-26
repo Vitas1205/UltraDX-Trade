@@ -4,6 +4,8 @@ import com.fota.client.domain.UsdkOrderDTO;
 import com.fota.client.domain.query.UsdkOrderQuery;
 import com.fota.trade.domain.UsdkOrderDO;
 import org.apache.ibatis.annotations.*;
+
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -144,22 +146,32 @@ public interface UsdkOrderMapper {
         "where id = #{id,jdbcType=BIGINT} and gmt_modified = #{gmtModified,jdbcType=TIMESTAMP}"
     })*/
     @Update({
-        "update trade_usdk_order",
-        "set gmt_create = #{gmtCreate,jdbcType=TIMESTAMP},",
-          "gmt_modified = now(),",
-          "user_id = #{userId,jdbcType=BIGINT},",
-          "asset_id = #{assetId,jdbcType=INTEGER},",
-          "asset_name = #{assetName,jdbcType=VARCHAR},",
-          "order_direction = #{orderDirection,jdbcType=TINYINT},",
-          "order_type = #{orderType,jdbcType=TINYINT},",
-          "total_amount = #{totalAmount,jdbcType=DECIMAL},",
-          "unfilled_amount = #{unfilledAmount,jdbcType=DECIMAL},",
-          "price = #{price,jdbcType=DECIMAL},",
-          "fee = #{fee,jdbcType=DECIMAL},",
-          "status = #{status,jdbcType=INTEGER}",
-        "where id = #{id,jdbcType=BIGINT}"
+            "update trade_usdk_order",
+            "set gmt_create = #{gmtCreate,jdbcType=TIMESTAMP},",
+            "gmt_modified = now(),",
+            "user_id = #{userId,jdbcType=BIGINT},",
+            "asset_id = #{assetId,jdbcType=INTEGER},",
+            "asset_name = #{assetName,jdbcType=VARCHAR},",
+            "order_direction = #{orderDirection,jdbcType=TINYINT},",
+            "order_type = #{orderType,jdbcType=TINYINT},",
+            "total_amount = #{totalAmount,jdbcType=DECIMAL},",
+            "unfilled_amount = #{unfilledAmount,jdbcType=DECIMAL},",
+            "price = #{price,jdbcType=DECIMAL},",
+            "fee = #{fee,jdbcType=DECIMAL},",
+            "status = #{status,jdbcType=INTEGER}",
+            "where id = #{id,jdbcType=BIGINT}"
     })
     int updateByPrimaryKeyAndOpLock(UsdkOrderDO record);
+
+    @Update({
+            "update trade_usdk_order",
+            "set gmt_create = #{gmtCreate,jdbcType=TIMESTAMP},",
+            "gmt_modified = now(),",
+            "unfilled_amount = unfilled_amount - #{filledAmount,jdbcType=DECIMAL},",
+            "status = #{status,jdbcType=INTEGER}",
+            "where id = #{orderId,jdbcType=BIGINT} and unfilled_amount - #{filledAmount,jdbcType=DECIMAL} >= 0"
+    })
+    int updateByFilledAmount(@Param("orderId") Long orderId, @Param("status") Integer status, @Param("filledAmount") BigDecimal filledAmount);
 
     @Update({
             "update trade_usdk_order",
