@@ -64,11 +64,10 @@ public class ContractTest {
             ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
             contractOrderDTO.setContractId(1000);
             contractOrderDTO.setContractName("BTC0102");
-            contractOrderDTO.setUserId(200L);
+            contractOrderDTO.setUserId(282L);
             contractOrderDTO.setOrderDirection(1);
-            contractOrderDTO.setOperateType(1);
-            contractOrderDTO.setOperateDirection(2);
-            contractOrderDTO.setOrderType(1);
+            contractOrderDTO.setOperateType(0);
+            contractOrderDTO.setOrderType(0);
             contractOrderDTO.setTotalAmount(1L);
             contractOrderDTO.setPrice("8500");
             contractOrderService.order(contractOrderDTO);
@@ -104,7 +103,7 @@ public class ContractTest {
     }
     @Test
     public void cancleAllOrder(){
-        Long userId = 9527L;
+        Long userId = 284L;
         contractOrderService.cancelAllOrder(userId);
     }
 

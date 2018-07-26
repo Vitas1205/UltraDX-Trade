@@ -402,8 +402,7 @@ public class ContractOrderManager {
                 totalLockedAmount = totalLockedAmount.add(entrustLockAmount);
             }
         }else {
-            log.error("GET_TOTAL_LOCKEDAMOUNT_FAILED");
-            throw new BusinessException(ResultCodeEnum.GET_TOTAL_LOCKEDAMOUNT_FAILED.getCode(),ResultCodeEnum.GET_TOTAL_LOCKEDAMOUNT_FAILED.getMessage());
+            return BigDecimal.ZERO;
         }
         return totalLockedAmount;
     }
