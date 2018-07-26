@@ -53,12 +53,11 @@ public class Consumer {
         consumer.registerMessageListener(new MessageListenerOrderly() {
             @Override
             public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, ConsumeOrderlyContext consumeOrderlyContext) {
+                consumeOrderlyContext.setAutoCommit(true);
                 if (CollectionUtils.isEmpty(msgs)) {
                     log.error("message error!");
                     return ConsumeOrderlyStatus.SUCCESS;
                 }
-                log.info("msgs.size()------------"+msgs.size());
-                log.info("msgs()------------"+msgs.toString());
                 for (MessageExt messageExt:msgs){
                     String tag = messageExt.getTags();
                     byte[] bodyByte = messageExt.getBody();
@@ -68,8 +67,7 @@ public class Consumer {
                     } catch (UnsupportedEncodingException e) {
                         log.error("get mq message failed",e);
                     }
-                    JSONObject jsonObject = JSONObject.parseObject(bodyStr);
-
+                    log.info("bodyByte()------------"+bodyByte);
                     if (TagsTypeEnum.USDK.getDesc().equals(tag)) {
                         UsdkMatchedOrderDTO usdkMatchedOrderDTO = JSON.parseObject(bodyStr,UsdkMatchedOrderDTO.class);
                         usdkOrderService.updateOrderByMatch(usdkMatchedOrderDTO);
