@@ -234,7 +234,7 @@ public class ContractOrderManager {
             throw new BusinessException(ResultCodeEnum.CONTRANCT_IS_NULL.getCode(),ResultCodeEnum.CONTRANCT_IS_NULL.getMessage());
         }
         contractOrderDO.setContractName(contractCategoryDO.getContractName());
-        contractOrderDO.setCloseType(1);
+        contractOrderDO.setCloseType(OrderCloseTypeEnum.MANUAL.getCode());
         ResultCode resultCode = new ResultCode();
         insertOrderRecord(contractOrderDO);
         BigDecimal totalLockAmount = getTotalLockAmount(contractOrderDO.getUserId());
