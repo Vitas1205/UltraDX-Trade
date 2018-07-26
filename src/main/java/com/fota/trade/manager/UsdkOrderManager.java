@@ -285,11 +285,13 @@ public class UsdkOrderManager {
         BigDecimal filledAmount = new BigDecimal(usdkMatchedOrderDTO.getFilledAmount());
         BigDecimal filledPrice = new BigDecimal(usdkMatchedOrderDTO.getFilledPrice());
         int updateAskOrderRet = updateSingleOrderByFilledAmount(askUsdkOrder, filledAmount);
+        log.info("updateAskOrderRet----------------------------"+updateAskOrderRet);
         if (updateAskOrderRet <= 0){
             log.error("update ask order failed");
             throw new BusinessException(ResultCodeEnum.UPDATE_USDK_ORDER_FAILED.getCode(), ResultCodeEnum.UPDATE_USDK_ORDER_FAILED.getMessage());
         }
         int updateBIdOrderRet = updateSingleOrderByFilledAmount(bidUsdkOrder, filledAmount);
+        log.info("updateBIdOrderRet----------------------------"+updateBIdOrderRet);
         if (updateBIdOrderRet <= 0){
             log.error("update bid order failed");
             throw new BusinessException(ResultCodeEnum.UPDATE_USDK_ORDER_FAILED.getCode(), ResultCodeEnum.UPDATE_USDK_ORDER_FAILED.getMessage());
