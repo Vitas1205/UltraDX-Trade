@@ -125,7 +125,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
     })
     int updateByPrimaryKey(ContractOrderDO record);
 
-    @Update({
+    /*@Update({
             "update trade_contract_order",
             "set gmt_create = #{gmtCreate,jdbcType=TIMESTAMP},",
             "gmt_modified = now(),",
@@ -144,6 +144,27 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
             "position_locked_amount = #{positionLockedAmount,jdbcType=DECIMAL},",
             "status = #{status,jdbcType=INTEGER}",
             "where id = #{id,jdbcType=BIGINT} and gmt_modified = #{gmtModified}"
+    })*/
+
+    @Update({
+            "update trade_contract_order",
+            "set gmt_create = #{gmtCreate,jdbcType=TIMESTAMP},",
+            "gmt_modified = now(),",
+            "user_id = #{userId,jdbcType=BIGINT},",
+            "contract_id = #{contractId,jdbcType=INTEGER},",
+            "contract_name = #{contractName,jdbcType=VARCHAR},",
+            "order_direction = #{orderDirection,jdbcType=TINYINT},",
+            "operate_type = #{operateType,jdbcType=TINYINT},",
+            "operate_direction = #{operateDirection,jdbcType=TINYINT},",
+            "lever = #{lever,jdbcType=INTEGER},",
+            "total_amount = #{totalAmount,jdbcType=BIGINT},",
+            "unfilled_amount = #{unfilledAmount,jdbcType=BIGINT},",
+            "price = #{price,jdbcType=DECIMAL},",
+            "fee = #{fee,jdbcType=DECIMAL},",
+            "usdk_locked_amount = #{usdkLockedAmount,jdbcType=DECIMAL},",
+            "position_locked_amount = #{positionLockedAmount,jdbcType=DECIMAL},",
+            "status = #{status,jdbcType=INTEGER}",
+            "where id = #{id,jdbcType=BIGINT}"
     })
     int updateByPrimaryKeyAndOpLock(ContractOrderDO record);
 
