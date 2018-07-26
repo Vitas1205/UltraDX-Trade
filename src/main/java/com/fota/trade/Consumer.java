@@ -41,7 +41,7 @@ public class Consumer {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("fota-trade-test");
         //同样也要设置NameServer地址
         consumer.setNamesrvAddr("47.98.235.246:9876");
-        consumer.setMaxReconsumeTimes(10);
+        consumer.setMaxReconsumeTimes(30);
         //这里设置的是一个consumer的消费策略
         //CONSUME_FROM_LAST_OFFSET 默认策略，从该队列最尾开始消费，即跳过历史消息
         //CONSUME_FROM_FIRST_OFFSET 从队列最开始开始消费，即历史消息（还储存在broker的）全部消费一遍
