@@ -173,7 +173,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
                 resultCode.setMessage(businessException.getMessage());
                 return resultCode;
             }
-            log.error("USDK order() failed", e);
+            log.error("USDK updateOrderByMatch() failed", e);
         }
         resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
         resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());
