@@ -268,4 +268,10 @@
     order by gmt_create desc
     limit #{startRow,jdbcType=INTEGER}, #{endRow,jdbcType=INTEGER}
   </select>
+
+  <update id="updateByFilledAmount">
+    update trade_contract_order
+    set gmt_modified = now(), unfilled_amount = unfilled_amount - #{filledAmount}, status = #{status}
+    where id = #{orderId} and unfilled_amount - #{filledAmount} >= 0
+  </update>
 </mapper>

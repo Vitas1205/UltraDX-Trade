@@ -5,6 +5,7 @@ import com.fota.trade.mapper.common.BaseMapper;
 import org.apache.ibatis.annotations.*;
 
 import javax.management.Query;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -169,6 +170,9 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
             "where id = #{id,jdbcType=BIGINT} and user_id = #{userId,jdbcType=BIGINT} and gmt_modified = #{gmtModified}"
     })
     int updateByOpLock(ContractOrderDO record);
+
+
+    int updateByFilledAmount(@Param("orderId") Long orderId, @Param("status") Integer status, @Param("filledAmount") long filledAmount);
 
     List<ContractOrderDO> notMatchOrderList(
             @Param("placeOrder") Integer placeOrder, @Param("partialSuccess") Integer partialSuccess,

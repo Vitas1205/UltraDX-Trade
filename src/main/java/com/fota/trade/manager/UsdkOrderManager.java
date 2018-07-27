@@ -344,8 +344,8 @@ public class UsdkOrderManager {
             usdkOrderDO.setStatus(OrderStatusEnum.MATCH.getCode());
         } else if (usdkOrderDO.getStatus() == OrderStatusEnum.COMMIT.getCode()) {
             usdkOrderDO.setStatus(OrderStatusEnum.PART_MATCH.getCode());
-        }*/
-        usdkOrderDO.setUnfilledAmount(usdkOrderDO.getUnfilledAmount().subtract(filledAmount));
+        }
+        usdkOrderDO.setUnfilledAmount(usdkOrderDO.getUnfilledAmount().subtract(filledAmount));*/
         int ret = -1;
         try {
             log.info("打印的内容----------------------"+usdkOrderDO);

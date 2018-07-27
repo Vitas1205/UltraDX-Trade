@@ -224,6 +224,8 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         if (bidContractOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && bidContractOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()){
             return BeanUtils.copy(com.fota.client.common.ResultCode.error(ResultCodeEnum.BID_ILLEGAL));
         }
+        askContractOrder.setStatus(contractMatchedOrderDTO.getAskOrderStatus());
+        bidContractOrder.setStatus(contractMatchedOrderDTO.getBidOrderStatus());
         updateContractAccount(askContractOrder, contractMatchedOrderDTO);
         updateContractAccount(bidContractOrder, contractMatchedOrderDTO);
 
@@ -383,12 +385,19 @@ public class ContractOrderServiceImpl implements ContractOrderService {
      * @return
      */
     private int updateSingleOrderByFilledAmount(ContractOrderDO contractOrderDO, long filledAmount) {
-        if (contractOrderDO.getUnfilledAmount() == filledAmount) {
+        /*if (contractOrderDO.getUnfilledAmount() == filledAmount) {
             contractOrderDO.setStatus(OrderStatusEnum.MATCH.getCode());
         } else if (contractOrderDO.getStatus() == OrderStatusEnum.COMMIT.getCode()) {
             contractOrderDO.setStatus(OrderStatusEnum.PART_MATCH.getCode());
+        }*/
+        //contractOrderDO.setUnfilledAmount(contractOrderDO.getUnfilledAmount() - filledAmount);
+        int ret = -1;
+        try {
+            log.info("打印的内容----------------------"+contractOrderDO);
+            ret  = contractOrderMapper.updateByFilledAmount(contractOrderDO.getId(), contractOrderDO.getStatus(), filledAmount);
+        }catch (Exception e){
+            log.error("失败({})", contractOrderDO, e);
         }
-        contractOrderDO.setUnfilledAmount(contractOrderDO.getUnfilledAmount() - filledAmount);
-        return contractOrderMapper.updateByPrimaryKeyAndOpLock(contractOrderDO);
+        return ret;
     }
 }
