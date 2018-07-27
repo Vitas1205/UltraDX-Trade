@@ -264,9 +264,7 @@ public class UsdkOrderManager {
         com.fota.client.domain.UsdkOrderDTO bidUsdkOrderDTO = new com.fota.client.domain.UsdkOrderDTO();
         com.fota.client.domain.UsdkOrderDTO askUsdkOrderDTO = new com.fota.client.domain.UsdkOrderDTO();
         UsdkOrderDO askUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getAskOrderId());
-        askUsdkOrder.setStatus(usdkMatchedOrderDTO.getAskOrderStatus());
         UsdkOrderDO bidUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getBidOrderId());
-        bidUsdkOrder.setStatus(usdkMatchedOrderDTO.getBidOrderStatus());
         log.info("---------------"+usdkMatchedOrderDTO.toString());
         log.info("---------------"+askUsdkOrder.toString());
         log.info("---------------"+bidUsdkOrder.toString());
@@ -286,12 +284,14 @@ public class UsdkOrderManager {
         }
         BigDecimal filledAmount = new BigDecimal(usdkMatchedOrderDTO.getFilledAmount());
         BigDecimal filledPrice = new BigDecimal(usdkMatchedOrderDTO.getFilledPrice());
+        askUsdkOrder.setStatus(usdkMatchedOrderDTO.getAskOrderStatus());
         int updateAskOrderRet = updateSingleOrderByFilledAmount(askUsdkOrder, filledAmount);
         log.info("updateAskOrderRet----------------------------"+updateAskOrderRet);
         if (updateAskOrderRet <= 0){
             log.error("update ask order failed");
             throw new BusinessException(ResultCodeEnum.UPDATE_USDK_ORDER_FAILED.getCode(), ResultCodeEnum.UPDATE_USDK_ORDER_FAILED.getMessage());
         }
+        bidUsdkOrder.setStatus(usdkMatchedOrderDTO.getBidOrderStatus());
         int updateBIdOrderRet = updateSingleOrderByFilledAmount(bidUsdkOrder, filledAmount);
         log.info("updateBIdOrderRet----------------------------"+updateBIdOrderRet);
         if (updateBIdOrderRet <= 0){
