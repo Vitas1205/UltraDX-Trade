@@ -15,11 +15,12 @@
       <arg column="status" jdbcType="INTEGER" javaType="java.lang.Integer" />
       <arg column="contract_type" jdbcType="TINYINT" javaType="java.lang.Integer" />
       <arg column="price" jdbcType="DECIMAL" javaType="java.math.BigDecimal" />
+      <arg column="contract_size" jdbcType="DECIMAL" javaType="java.math.BigDecimal" />
     </constructor>
   </resultMap>
   <sql id="Base_Column_List" >
     id, gmt_create, gmt_modified, contract_name, asset_id, asset_name, total_amount, 
-    unfilled_amount, delivery_date, status, contract_type, price
+    unfilled_amount, delivery_date, status, contract_type, price, contract_size
   </sql>
 
 
@@ -95,6 +96,9 @@
       <if test="price != null" >
         price,
       </if>
+      <if test="contractSize != null" >
+        contract_size,
+      </if>
     </trim>
     <trim prefix="values (" suffix=")" suffixOverrides="," >
       <if test="id != null" >
@@ -133,6 +137,9 @@
       <if test="price != null" >
         #{price,jdbcType=DECIMAL},
       </if>
+      <if test="contractSize != null" >
+        #{contractSize,jdbcType=DECIMAL},
+      </if>
     </trim>
   </insert>
   <update id="updateByPrimaryKeySelective" parameterType="com.fota.trade.domain.ContractCategoryDO" >
@@ -170,6 +177,9 @@
       </if>
       <if test="price != null" >
         price = #{price,jdbcType=DECIMAL},
+      </if>
+      <if test="contractSize != null" >
+        contract_size = #{contractSize,jdbcType=DECIMAL},
       </if>
     </set>
     where id = #{id,jdbcType=BIGINT}

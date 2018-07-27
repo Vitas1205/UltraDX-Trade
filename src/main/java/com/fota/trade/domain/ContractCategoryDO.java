@@ -22,4 +22,5 @@ public class ContractCategoryDO {
     private Integer status;
     private Integer contractType;
     private BigDecimal price;
+    private BigDecimal contractSize;
 }

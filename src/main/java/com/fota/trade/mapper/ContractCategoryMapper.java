@@ -30,7 +30,7 @@ public interface ContractCategoryMapper {
     @Select({
         "select",
         "id, gmt_create, gmt_modified, contract_name, asset_id, asset_name, total_amount, ",
-        "unfilled_amount, delivery_date, status, contract_type, price",
+        "unfilled_amount, delivery_date, status, contract_type, price, contract_size",
         "from trade_contract_category",
         "where id = #{id,jdbcType=BIGINT}"
     })
@@ -43,11 +43,20 @@ public interface ContractCategoryMapper {
     @Select({
             "select",
             "id, gmt_create, gmt_modified, contract_name, asset_id, asset_name, total_amount, ",
-            "unfilled_amount, delivery_date, status, contract_type, price",
+            "unfilled_amount, delivery_date, status, contract_type, price, contract_size",
             "from trade_contract_category"
     })
     @ResultMap("BaseResultMap")
     List<ContractCategoryDO> getAllContractCategory();
+
+    @Select({
+            "select",
+            "id, gmt_create, gmt_modified, contract_name, asset_id, asset_name, total_amount, ",
+            "unfilled_amount, delivery_date, status, contract_type, price, contract_size",
+            "from trade_contract_category where id = #{contractId}"
+    })
+    @ResultMap("BaseResultMap")
+    ContractCategoryDO getContractCategoryById(long contractId);
 
     int updateByPrimaryKeySelective(ContractCategoryDO record);
 

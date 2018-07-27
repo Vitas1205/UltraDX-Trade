@@ -144,4 +144,17 @@ public class ContractTest {
 
     }
 
+    @Test
+    public void updateByFilledAmount(){
+        int ret = contractOrderMapper.updateByFilledAmount(1L,9,2L);
+        log.info("--------"+ret);
+    }
+
+    @Test
+    public void getContractSize(){
+        long contractId = 1000L;
+        ContractCategoryDO contractCategoryDO = contractCategoryMapper.getContractCategoryById(contractId);
+        log.info("--------"+contractCategoryDO.getContractSize());
+    }
+
 }
