@@ -103,4 +103,10 @@ public class UsdkTradeTest {
         boolean ret = usdkOrderManager.getJudegRet(10L,2,new BigDecimal(7));
         log.info("--------"+ret);
     }
+
+    @Test
+    public void update(){
+        int ret = usdkOrderMapper.updateByFilledAmount(117L,9,new BigDecimal("1"));
+        log.info("--------"+ret);
+    }
 }
