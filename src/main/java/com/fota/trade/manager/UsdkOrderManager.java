@@ -264,7 +264,9 @@ public class UsdkOrderManager {
         com.fota.client.domain.UsdkOrderDTO bidUsdkOrderDTO = new com.fota.client.domain.UsdkOrderDTO();
         com.fota.client.domain.UsdkOrderDTO askUsdkOrderDTO = new com.fota.client.domain.UsdkOrderDTO();
         UsdkOrderDO askUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getAskOrderId());
+        askUsdkOrder.setStatus(usdkMatchedOrderDTO.getAskOrderStatus());
         UsdkOrderDO bidUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getBidOrderId());
+        bidUsdkOrder.setStatus(usdkMatchedOrderDTO.getBidOrderStatus());
         log.info("---------------"+usdkMatchedOrderDTO.toString());
         log.info("---------------"+askUsdkOrder.toString());
         log.info("---------------"+bidUsdkOrder.toString());
@@ -338,16 +340,16 @@ public class UsdkOrderManager {
     }
 
     private int updateSingleOrderByFilledAmount(UsdkOrderDO usdkOrderDO, BigDecimal filledAmount) {
-        if (usdkOrderDO.getUnfilledAmount().compareTo(filledAmount) == 0) {
+        /*if (usdkOrderDO.getUnfilledAmount().compareTo(filledAmount) == 0) {
             usdkOrderDO.setStatus(OrderStatusEnum.MATCH.getCode());
         } else if (usdkOrderDO.getStatus() == OrderStatusEnum.COMMIT.getCode()) {
             usdkOrderDO.setStatus(OrderStatusEnum.PART_MATCH.getCode());
-        }
+        }*/
         usdkOrderDO.setUnfilledAmount(usdkOrderDO.getUnfilledAmount().subtract(filledAmount));
         int ret = -1;
         try {
             log.info("打印的内容----------------------"+usdkOrderDO);
-            ret  = usdkOrderMapper.updateByPrimaryKeyAndOpLock(usdkOrderDO);
+            ret  = usdkOrderMapper.updateByFilledAmount(usdkOrderDO.getId(), usdkOrderDO.getStatus(), filledAmount);
         }catch (Exception e){
             log.error("失败({})", usdkOrderDO, e);
         }

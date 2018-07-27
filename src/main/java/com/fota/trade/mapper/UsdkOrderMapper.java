@@ -152,7 +152,7 @@ public interface UsdkOrderMapper {
             "gmt_modified = now(),",
             "unfilled_amount = unfilled_amount - #{filledAmount,jdbcType=DECIMAL},",
             "status = #{status,jdbcType=INTEGER}",
-            "where id = #{orderId,jdbcType=BIGINT} and unfilled_amount - #{filledAmount,jdbcType=DECIMAL} >= 0"
+            "where id = #{orderId,jdbcType=BIGINT} and unfilled_amount >= #{filledAmount,jdbcType=DECIMAL}"
     })
     int updateByFilledAmount(@Param("orderId") Long orderId, @Param("status") Integer status, @Param("filledAmount") BigDecimal filledAmount);
 

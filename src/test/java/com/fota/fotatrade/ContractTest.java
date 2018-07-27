@@ -1,9 +1,12 @@
 package com.fota.fotatrade;
 
+import com.alibaba.fastjson.JSON;
 import com.fota.client.domain.CompetitorsPriceDTO;
 import com.fota.trade.common.BeanUtils;
+import com.fota.trade.common.Constant;
 import com.fota.trade.domain.*;
 import com.fota.trade.manager.ContractOrderManager;
+import com.fota.trade.manager.RedisManager;
 import com.fota.trade.mapper.ContractCategoryMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
@@ -45,6 +48,9 @@ public class ContractTest {
 
     @Autowired
     private ContractCategoryMapper contractCategoryMapper;
+
+    @Autowired
+    private RedisManager redisManager;
 
     @Test
     public void placeOrder(){
@@ -105,6 +111,13 @@ public class ContractTest {
     public void cancleAllOrder(){
         Long userId = 284L;
         contractOrderService.cancelAllOrder(userId);
+    }
+
+    @Test
+    public void competitorsPriceList_test(){
+        Object competiorsPriceObj = redisManager.get(Constant.COMPETITOR_PRICE_KEY);
+        List<CompetitorsPriceDTO> competitorsPriceList = JSON.parseArray(competiorsPriceObj.toString(),CompetitorsPriceDTO.class);
+        log.info("---------------"+competitorsPriceList);
     }
 
     @Test
