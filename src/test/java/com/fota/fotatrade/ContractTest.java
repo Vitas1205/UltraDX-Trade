@@ -146,8 +146,8 @@ public class ContractTest {
 
     @Test
     public void updateByFilledAmount(){
-        int ret = contractOrderMapper.updateByFilledAmount(1L,9,2L);
-        log.info("--------"+ret);
+        /*int ret = contractOrderMapper.updateByFilledAmount(1L,9,2L);
+        log.info("--------"+ret);*/
     }
 
     @Test
