@@ -23,4 +23,5 @@ public class UserPositionDO {
     private BigDecimal averagePrice;
     private Integer status;
     private Integer lever;
+    private BigDecimal contractSize;
 }
