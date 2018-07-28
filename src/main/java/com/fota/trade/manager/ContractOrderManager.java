@@ -16,6 +16,8 @@ import com.fota.trade.domain.enums.*;
 import com.fota.trade.mapper.ContractCategoryMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
+import com.fota.trade.util.PriceUtil;
+import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -560,6 +562,229 @@ public class ContractOrderManager {
                 .multiply(new BigDecimal(0.01)).divide(new BigDecimal(lever), 8,BigDecimal.ROUND_DOWN);
         BigDecimal fee = totalValue.multiply(Constant.FEE_RATE).multiply(new BigDecimal(lever));
         return totalValue.add(fee);
+    }
+
+
+    //成交
+    @Transactional(rollbackFor = {Exception.class, RuntimeException.class, TException.class})
+    public ResultCode updateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO) {
+        ResultCode resultCode = new ResultCode();
+        if (contractMatchedOrderDTO == null) {
+            log.error(ResultCodeEnum.ILLEGAL_PARAM.getMessage());
+            throw new RuntimeException(ResultCodeEnum.ILLEGAL_PARAM.getMessage());
+        }
+        ContractOrderDO askContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getAskOrderId());
+        ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
+        log.info("---------------"+contractMatchedOrderDTO.toString());
+        log.info("---------------"+askContractOrder.toString());
+        log.info("---------------"+bidContractOrder.toString());
+        if (askContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0
+                || bidContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0){
+            log.error(ResultCodeEnum.ORDER_UNFILLEDAMOUNT_NOT_ENOUGHT.getMessage());
+            throw new RuntimeException(ResultCodeEnum.ORDER_UNFILLEDAMOUNT_NOT_ENOUGHT.getMessage());
+        }
+        if (askContractOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && askContractOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()
+                && bidContractOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && bidContractOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()){
+            log.error(ResultCodeEnum.ASK_AND_BID_ILLEGAL.getMessage());
+            throw new RuntimeException(ResultCodeEnum.ASK_AND_BID_ILLEGAL.getMessage());
+        }
+        if (askContractOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && askContractOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()){
+            log.error(ResultCodeEnum.ASK_ILLEGAL.getMessage());
+            throw new RuntimeException(ResultCodeEnum.ASK_ILLEGAL.getMessage());
+        }
+        if (bidContractOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && bidContractOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()){
+            log.error(ResultCodeEnum.BID_ILLEGAL.getMessage());
+            throw new RuntimeException(ResultCodeEnum.BID_ILLEGAL.getMessage());
+        }
+        askContractOrder.setStatus(contractMatchedOrderDTO.getAskOrderStatus());
+        bidContractOrder.setStatus(contractMatchedOrderDTO.getBidOrderStatus());
+        updateContractAccount(askContractOrder, contractMatchedOrderDTO);
+        updateContractAccount(bidContractOrder, contractMatchedOrderDTO);
+        //存入缓存
+        com.fota.client.domain.ContractOrderDTO bidContractOrderDTO = new com.fota.client.domain.ContractOrderDTO();
+        com.fota.client.domain.ContractOrderDTO askContractOrderDTO = new com.fota.client.domain.ContractOrderDTO();
+        org.springframework.beans.BeanUtils.copyProperties(askContractOrder, askContractOrderDTO);
+        askContractOrderDTO.setContractId(askContractOrder.getContractId().intValue());
+        org.springframework.beans.BeanUtils.copyProperties(bidContractOrder, bidContractOrderDTO);
+        bidContractOrderDTO.setContractId(bidContractOrder.getContractId().intValue());
+        askContractOrderDTO.setCompleteAmount(new BigDecimal(contractMatchedOrderDTO.getFilledAmount()));
+        bidContractOrderDTO.setCompleteAmount(new BigDecimal(contractMatchedOrderDTO.getFilledAmount()));
+        redisManager.contractOrderSave(askContractOrderDTO);
+        redisManager.contractOrderSave(bidContractOrderDTO);
+        resultCode.setCode(ResultCodeEnum.SUCCESS.getCode());
+        return resultCode;
+    }
+
+    private void updateContractAccount(ContractOrderDO contractOrderDO, ContractMatchedOrderDTO contractMatchedOrderDTO) {
+        BigDecimal filledAmount = new BigDecimal(contractMatchedOrderDTO.getFilledAmount());
+        BigDecimal filledPrice = new BigDecimal(contractMatchedOrderDTO.getFilledPrice());
+        Long userId = contractOrderDO.getUserId();
+        Long contractId = contractOrderDO.getContractId();
+        UserPositionDO userPositionDO = null;
+
+        try {
+            userPositionDO = userPositionMapper.selectByUserIdAndId(userId, contractId.intValue());
+        } catch (Exception e) {
+            log.error("userPositionMapper.selectByUserIdAndId({}, {})", userId, contractId, e);
+            return;
+        }
+        BigDecimal contractSize = getContractSize(contractOrderDO.getContractId());
+        Integer lever = new Integer(contractLeverManager.getLeverByContractId(contractOrderDO.getUserId(),contractOrderDO.getContractId()));
+        if (userPositionDO == null) {
+            // 建仓
+            buildPosition(contractOrderDO, contractMatchedOrderDTO, contractSize, lever);
+            return;
+        }
+        long oldPositionAmount = userPositionDO.getUnfilledAmount();
+        if (contractOrderDO.getOrderDirection().equals(userPositionDO.getPositionType())) {
+            //todo 成交单和持仓是同方向
+            long newTotalAmount = userPositionDO.getUnfilledAmount() + filledAmount.longValue();
+            BigDecimal oldTotalPrice = userPositionDO.getAveragePrice().multiply(new BigDecimal(userPositionDO.getUnfilledAmount()));
+            BigDecimal addedTotalPrice = filledPrice.multiply(filledAmount);
+            updateUserPosition(userPositionDO, oldTotalPrice, addedTotalPrice, newTotalAmount);
+            updateBalance(contractOrderDO, oldPositionAmount, userPositionDO.getUnfilledAmount(), contractMatchedOrderDTO, lever);
+            return;
+        }
+
+        //成交单和持仓是反方向 （平仓）
+        if (filledAmount.longValue() - userPositionDO.getUnfilledAmount() <= 0) {
+            //todo 不改变仓位方向
+            long newTotalAmount = userPositionDO.getUnfilledAmount() - filledAmount.longValue();
+            BigDecimal oldTotalPrice = userPositionDO.getAveragePrice().multiply(new BigDecimal(userPositionDO.getUnfilledAmount()));
+            BigDecimal addedTotalPrice = filledPrice.multiply(filledAmount).negate();
+            updateUserPosition(userPositionDO, oldTotalPrice, addedTotalPrice, newTotalAmount);
+            updateBalance(contractOrderDO, oldPositionAmount, userPositionDO.getUnfilledAmount(), contractMatchedOrderDTO, lever);
+        } else {
+            //todo 改变仓位方向
+            long newTotalAmount = filledAmount.longValue() - userPositionDO.getUnfilledAmount();
+            BigDecimal oldTotalPrice = userPositionDO.getAveragePrice().multiply(new BigDecimal(userPositionDO.getUnfilledAmount())).negate();
+            BigDecimal addedTotalPrice = filledPrice.multiply(filledAmount);
+            userPositionDO.setPositionType(contractOrderDO.getOrderDirection());
+            updateUserPosition(userPositionDO, oldTotalPrice, addedTotalPrice, newTotalAmount);
+            updateBalance(contractOrderDO, oldPositionAmount, userPositionDO.getUnfilledAmount(), contractMatchedOrderDTO, lever);
+        }
+    }
+
+    private void buildPosition(ContractOrderDO contractOrderDO, ContractMatchedOrderDTO matchedOrderDTO,
+                               BigDecimal contractSize, Integer lever) {
+        UserPositionDO newUserPositionDO = new UserPositionDO();
+        newUserPositionDO.setPositionType(contractOrderDO.getOrderDirection());
+        newUserPositionDO.setAveragePrice(new BigDecimal(matchedOrderDTO.getFilledPrice()));
+        newUserPositionDO.setUnfilledAmount(matchedOrderDTO.getFilledAmount());
+        newUserPositionDO.setStatus(1);
+        newUserPositionDO.setUserId(contractOrderDO.getUserId());
+        newUserPositionDO.setContractName(contractOrderDO.getContractName());
+        newUserPositionDO.setContractId(contractOrderDO.getContractId());
+        newUserPositionDO.setContractSize(contractSize);
+        newUserPositionDO.setLever(lever);
+        try {
+            int insertRet = userPositionMapper.insert(newUserPositionDO);
+            if (insertRet != 1){
+                log.error("buildPosition failed");
+            }
+        } catch (Exception e) {
+            log.error("userPositionMapper.insert({})", newUserPositionDO, e);
+        }
+        int updateBalanceRet =  updateBalance(contractOrderDO, 0L, matchedOrderDTO.getFilledAmount(), matchedOrderDTO, lever);
+        if (updateBalanceRet != 1){
+            log.error("buildPosition updateBalance failed");
+        }
+    }
+
+    private int updateUserPosition(UserPositionDO userPositionDO, BigDecimal oldTotalPrice, BigDecimal addedTotalPrice, long newTotalAmount) {
+        BigDecimal newTotalPrice = oldTotalPrice.add(addedTotalPrice);
+        if (newTotalAmount != 0){
+            BigDecimal newAvaeragePrice = newTotalPrice.divide(new BigDecimal(newTotalAmount), 8,BigDecimal.ROUND_DOWN);
+            userPositionDO.setAveragePrice(newAvaeragePrice);
+        }
+        userPositionDO.setUnfilledAmount(newTotalAmount);
+
+        int updateRet = 0;
+        try {
+            updateRet = userPositionMapper.updateByPrimaryKey(userPositionDO);
+            if (updateRet != 1){
+                log.error("updateUserPosition failed");
+            }
+        } catch (Exception e) {
+            log.error("userPositionMapper.update({})", userPositionDO, e);
+        }
+        return updateRet;
+    }
+
+
+    //todo 合约账户amoutn: + (oldPositionAmount - 当前持仓)*合约价格 - 手续费
+    //todo 合约账户冻结：解冻委托价*合约份数 + 手续费
+    private int updateBalance(ContractOrderDO contractOrderDO,
+                              long oldPositionAmount,
+                              long newPositionAmount,
+                              ContractMatchedOrderDTO matchedOrderDTO,
+                              Integer lever){
+        long filledAmount = matchedOrderDTO.getFilledAmount();
+        BigDecimal filledPrice = new BigDecimal(matchedOrderDTO.getFilledPrice());
+        BigDecimal fee = contractOrderDO.getFee();
+        BigDecimal contractSize = getContractSize(contractOrderDO.getContractId());
+        BigDecimal actualFee = filledPrice.multiply(new BigDecimal(filledAmount)).multiply(fee).multiply(contractSize);
+        BigDecimal addedTotalAmount = new BigDecimal(oldPositionAmount - newPositionAmount)
+                .multiply(filledPrice)
+                .multiply(contractSize)
+                .divide(new BigDecimal(lever), 8, BigDecimal.ROUND_DOWN)
+                .subtract(actualFee);
+        UserContractDTO userContractDTO = new UserContractDTO();
+        try {
+            userContractDTO = getAssetService().getContractAccount(contractOrderDO.getUserId());
+        }catch (Exception e){
+            log.error(ResultCodeEnum.ASSET_SERVICE_FAILED.getMessage());
+            throw new RuntimeException(ResultCodeEnum.ASSET_SERVICE_FAILED.getMessage());
+        }
+        BigDecimal lockedAmount = new BigDecimal(userContractDTO.getLockedAmount());
+        BigDecimal totalLockAmount = null;
+        int updateRet = updateSingleOrderByFilledAmount(contractOrderDO, matchedOrderDTO.getFilledAmount(), matchedOrderDTO.getFilledPrice());
+        if (updateRet != 1){
+            log.error("updateSingleOrderByFilledAmount failed");
+            throw new RuntimeException("updateSingleOrderByFilledAmount failed");
+        }
+        try {
+            totalLockAmount = getTotalLockAmount(contractOrderDO.getUserId());
+        } catch (Exception e) {
+            log.error("get totalLockAmount failed",e);
+        }
+        BigDecimal addedTotalLocked = totalLockAmount.subtract(lockedAmount);
+        //todo 更新余额
+        try {
+            boolean updateContractRet = getContractService().updateContractBalance(contractOrderDO.getUserId(),
+                    addedTotalAmount.toString(),
+                    addedTotalLocked.toString());
+            if (!updateContractRet){
+                log.error("update contract balance failed");
+            }
+        } catch (Exception e) {
+            log.error("update contract balance failed",e);
+        }
+        return 1;
+    }
+
+    /**
+     * 如果撮合的量等于unfilled的量，则更新状态为已成
+     * 如果撮合的量小于unfilled的量并且状态为已报，增更新状态为部成，
+     * 更新unfilledAmount为减去成交量后的值
+     * @param contractOrderDO
+     * @param filledAmount
+     * @return
+     */
+    private int updateSingleOrderByFilledAmount(ContractOrderDO contractOrderDO, long filledAmount, String filledPrice) {
+        int ret = -1;
+        try {
+            log.info("打印的内容----------------------"+contractOrderDO);
+            BigDecimal averagePrice = PriceUtil.getAveragePrice(contractOrderDO.getAveragePrice(),
+                    new BigDecimal(contractOrderDO.getTotalAmount()),
+                    new BigDecimal(filledAmount),
+                    new BigDecimal(filledPrice));
+            ret = contractOrderMapper.updateByFilledAmount(contractOrderDO.getId(), contractOrderDO.getStatus(), filledAmount, averagePrice);
+        }catch (Exception e){
+            log.error(ResultCodeEnum.ASSET_SERVICE_FAILED.getMessage());
+            throw new RuntimeException(ResultCodeEnum.ASSET_SERVICE_FAILED.getMessage());
+        }
+        return ret;
     }
 
 
