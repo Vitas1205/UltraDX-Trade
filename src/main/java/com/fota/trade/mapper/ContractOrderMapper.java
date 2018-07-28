@@ -169,7 +169,6 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
             "usdk_locked_amount = #{usdkLockedAmount,jdbcType=DECIMAL},",
             "position_locked_amount = #{positionLockedAmount,jdbcType=DECIMAL},",
             "status = #{status,jdbcType=INTEGER}",
-            "average_price = #{averagePrice,jdbcType=DECIMAL}",
             "where id = #{id,jdbcType=BIGINT} and user_id = #{userId,jdbcType=BIGINT} and gmt_modified = #{gmtModified}"
     })
     int updateByOpLock(ContractOrderDO record);

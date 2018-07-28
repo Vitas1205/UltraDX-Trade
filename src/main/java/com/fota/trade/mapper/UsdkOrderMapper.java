@@ -171,7 +171,6 @@ public interface UsdkOrderMapper {
             "price = #{price,jdbcType=DECIMAL},",
             "fee = #{fee,jdbcType=DECIMAL},",
             "status = #{status,jdbcType=INTEGER}",
-            "average_price = #{averagePrice,jdbcType=DECIMAL}",
             "where id = #{id,jdbcType=BIGINT} and user_id = #{userId,jdbcType=BIGINT} and gmt_modified = #{gmtModified,jdbcType=TIMESTAMP}"
     })
     int updateByOpLock(UsdkOrderDO record);
