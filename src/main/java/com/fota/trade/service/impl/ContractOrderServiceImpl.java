@@ -339,10 +339,11 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         BigDecimal lever = new BigDecimal(contractLeverManager.getLeverByContractId(contractOrderDO.getUserId(),contractOrderDO.getContractId()));
         BigDecimal filledPrice = new BigDecimal(matchedOrderDTO.getFilledPrice());
         BigDecimal fee = contractOrderDO.getFee();
-        BigDecimal actualFee = filledPrice.multiply(new BigDecimal(filledAmount)).multiply(fee).multiply(Constant.CONTRACT_SIZE);
+        BigDecimal contractSize = contractOrderManager.getContractSize(contractOrderDO.getContractId());
+        BigDecimal actualFee = filledPrice.multiply(new BigDecimal(filledAmount)).multiply(fee).multiply(contractSize);
         BigDecimal addedTotalAmount = new BigDecimal(oldPositionAmount - newPositionAmount)
                 .multiply(filledPrice)
-                .multiply(Constant.CONTRACT_SIZE)
+                .multiply(contractSize)
                 .divide(lever, 8, BigDecimal.ROUND_DOWN)
                 .subtract(actualFee);
         /*BigDecimal entrustFee = contractOrderDO.getPrice().multiply(new BigDecimal(filledAmount)).multiply(fee).multiply(new BigDecimal(0.01));
