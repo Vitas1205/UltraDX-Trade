@@ -352,7 +352,7 @@ public class UsdkOrderManager {
         try {
             log.info("打印的内容----------------------"+usdkOrderDO);
             BigDecimal averagePrice = PriceUtil.getAveragePrice(usdkOrderDO.getAveragePrice(),
-                    usdkOrderDO.getTotalAmount(),
+                    usdkOrderDO.getTotalAmount().subtract(usdkOrderDO.getUnfilledAmount()),
                     filledAmount,
                     new BigDecimal(filledPrice));
             ret  = usdkOrderMapper.updateByFilledAmount(usdkOrderDO.getId(), usdkOrderDO.getStatus(), filledAmount, averagePrice);
