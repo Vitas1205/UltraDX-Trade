@@ -41,7 +41,7 @@ public interface UsdkOrderMapper {
         "#{assetId,jdbcType=INTEGER}, #{assetName,jdbcType=VARCHAR}, ",
         "#{orderDirection,jdbcType=TINYINT}, #{orderType,jdbcType=TINYINT}, ",
         "#{totalAmount,jdbcType=DECIMAL}, #{unfilledAmount,jdbcType=DECIMAL}, ",
-        "#{price,jdbcType=DECIMAL}, #{fee,jdbcType=DECIMAL}, #{status,jdbcType=INTEGER})"
+        "#{price,jdbcType=DECIMAL}, #{fee,jdbcType=DECIMAL}, #{status,jdbcType=INTEGER}, #{averagePrice,jdbcType=DECIMAL})"
     })
     int insert(UsdkOrderDO record);
 
@@ -62,7 +62,7 @@ public interface UsdkOrderMapper {
     @Select({
         "select",
         "id, gmt_create, gmt_modified, user_id, asset_id, asset_name, order_direction, ",
-        "order_type, total_amount, unfilled_amount, price, fee, status",
+        "order_type, total_amount, unfilled_amount, price, fee, status, average_price",
         "from trade_usdk_order",
         "where id = #{id,jdbcType=BIGINT}"
     })
@@ -72,7 +72,7 @@ public interface UsdkOrderMapper {
     @Select({
             "select",
             "id, gmt_create, gmt_modified, user_id, asset_id, asset_name, order_direction, ",
-            "order_type, total_amount, unfilled_amount, price, fee, status",
+            "order_type, total_amount, unfilled_amount, price, fee, status, average_price",
             "from trade_usdk_order",
             "where user_id =  #{userId,jdbcType=BIGINT} and status in (8,9)"
     })
@@ -83,7 +83,7 @@ public interface UsdkOrderMapper {
     @Select({
             "select",
             "id, gmt_create, gmt_modified, user_id, asset_id, asset_name, order_direction, ",
-            "order_type, total_amount, unfilled_amount, price, fee, status",
+            "order_type, total_amount, unfilled_amount, price, fee, status, average_price",
             "from trade_usdk_order",
             "where id = #{id,jdbcType=BIGINT} and user_id =  #{userId,jdbcType=BIGINT}"
     })
@@ -125,6 +125,7 @@ public interface UsdkOrderMapper {
           "price = #{price,jdbcType=DECIMAL},",
           "fee = #{fee,jdbcType=DECIMAL},",
           "status = #{status,jdbcType=INTEGER}",
+          "average_price = #{averagePrice,jdbcType=DECIMAL}",
         "where id = #{id,jdbcType=BIGINT}"
     })
     int updateByPrimaryKey(UsdkOrderDO record);
@@ -143,11 +144,18 @@ public interface UsdkOrderMapper {
           "price = #{price,jdbcType=DECIMAL},",
           "fee = #{fee,jdbcType=DECIMAL},",
           "status = #{status,jdbcType=INTEGER}",
+          "average_price = #{averagePrice,jdbcType=DECIMAL}",
         "where id = #{id,jdbcType=BIGINT} and gmt_modified = #{gmtModified,jdbcType=TIMESTAMP}"
     })
     int updateByPrimaryKeyAndOpLock(UsdkOrderDO record);
 
-    int updateByFilledAmount(@Param("orderId") Long orderId, @Param("status") Integer status, @Param("filledAmount") BigDecimal filledAmount);
+//    int updateByFilledAmount(@Param("orderId") Long orderId, @Param("status") Integer status, @Param("filledAmount") BigDecimal filledAmount);
+
+    int updateByFilledAmount(@Param("orderId") Long orderId,
+                             @Param("status") Integer status,
+                             @Param("filledAmount") BigDecimal filledAmount,
+                             @Param("averagePrice") BigDecimal averagePrice
+    );
 
     @Update({
             "update trade_usdk_order",
@@ -163,6 +171,7 @@ public interface UsdkOrderMapper {
             "price = #{price,jdbcType=DECIMAL},",
             "fee = #{fee,jdbcType=DECIMAL},",
             "status = #{status,jdbcType=INTEGER}",
+            "average_price = #{averagePrice,jdbcType=DECIMAL}",
             "where id = #{id,jdbcType=BIGINT} and user_id = #{userId,jdbcType=BIGINT} and gmt_modified = #{gmtModified,jdbcType=TIMESTAMP}"
     })
     int updateByOpLock(UsdkOrderDO record);

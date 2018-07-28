@@ -15,6 +15,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.annotation.Order;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.annotation.Resource;
@@ -49,9 +50,11 @@ public class UsdkOrderServiceTest {
         BaseQuery usdkOrderQuery = new BaseQuery();
         usdkOrderQuery.setPageSize(20);
         usdkOrderQuery.setPageNo(1);
-        usdkOrderQuery.setUserId(282L);
+        usdkOrderQuery.setUserId(200L);
         List<Integer> orderStatus = new ArrayList<>();
         orderStatus.add(OrderStatusEnum.COMMIT.getCode());
+        orderStatus.add(OrderStatusEnum.MATCH.getCode());
+
         usdkOrderQuery.setOrderStatus(orderStatus);
         com.fota.common.Page<com.fota.trade.domain.UsdkOrderDTO> result = usdkOrderService.listUsdkOrderByQuery(usdkOrderQuery);
         Assert.assertTrue(result != null && result.getData() != null && result.getData() != null);

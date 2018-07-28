@@ -19,6 +19,7 @@ import com.fota.trade.manager.RedisManager;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.service.ContractOrderService;
+import com.fota.trade.util.PriceUtil;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -358,7 +359,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         UserContractDTO userContractDTO = getAssetService().getContractAccount(contractOrderDO.getUserId());
         BigDecimal lockedAmount = new BigDecimal(userContractDTO.getLockedAmount());
         BigDecimal totalLockAmount = null;
-        updateSingleOrderByFilledAmount(contractOrderDO, matchedOrderDTO.getFilledAmount());
+        updateSingleOrderByFilledAmount(contractOrderDO, matchedOrderDTO.getFilledAmount(), matchedOrderDTO.getFilledPrice());
         try {
             totalLockAmount = contractOrderManager.getTotalLockAmount(contractOrderDO.getUserId());
         } catch (Exception e) {
@@ -384,7 +385,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
      * @param filledAmount
      * @return
      */
-    private int updateSingleOrderByFilledAmount(ContractOrderDO contractOrderDO, long filledAmount) {
+    private int updateSingleOrderByFilledAmount(ContractOrderDO contractOrderDO, long filledAmount, String filledPrice) {
         /*if (contractOrderDO.getUnfilledAmount() == filledAmount) {
             contractOrderDO.setStatus(OrderStatusEnum.MATCH.getCode());
         } else if (contractOrderDO.getStatus() == OrderStatusEnum.COMMIT.getCode()) {
@@ -394,7 +395,11 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         int ret = -1;
         try {
             log.info("打印的内容----------------------"+contractOrderDO);
-            ret  = contractOrderMapper.updateByFilledAmount(contractOrderDO.getId(), contractOrderDO.getStatus(), filledAmount);
+            BigDecimal averagePrice = PriceUtil.getAveragePrice(contractOrderDO.getAveragePrice(),
+                    new BigDecimal(contractOrderDO.getTotalAmount()),
+                    new BigDecimal(filledAmount),
+                    new BigDecimal(filledPrice));
+            ret = contractOrderMapper.updateByFilledAmount(contractOrderDO.getId(), contractOrderDO.getStatus(), filledAmount, averagePrice);
         }catch (Exception e){
             log.error("失败({})", contractOrderDO, e);
         }

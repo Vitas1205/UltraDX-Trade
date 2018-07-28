@@ -28,7 +28,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
         "operate_direction, lever, ",
         "total_amount, unfilled_amount, ",
         "price, fee, usdk_locked_amount, ",
-        "position_locked_amount, status)",
+        "position_locked_amount, status, average_price)",
         "values (#{id,jdbcType=BIGINT}, now(), ",
         "now(), #{userId,jdbcType=BIGINT}, ",
         "#{contractId,jdbcType=INTEGER}, #{contractName,jdbcType=VARCHAR}, ",
@@ -36,7 +36,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
         "#{operateDirection,jdbcType=TINYINT}, #{lever,jdbcType=INTEGER}, ",
         "#{totalAmount,jdbcType=BIGINT}, #{unfilledAmount,jdbcType=BIGINT}, ",
         "#{price,jdbcType=DECIMAL}, #{fee,jdbcType=DECIMAL}, #{usdkLockedAmount,jdbcType=DECIMAL}, ",
-        "#{positionLockedAmount,jdbcType=DECIMAL}, #{status})"
+        "#{positionLockedAmount,jdbcType=DECIMAL}, #{status}, #{averagePrice,jdbcType=DECIMAL})"
     })
     int insert(ContractOrderDO record);
 
@@ -48,7 +48,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
         "select",
         "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, order_direction, ",
         "operate_type, operate_direction, lever, total_amount, unfilled_amount, price, ",
-        "fee, usdk_locked_amount, position_locked_amount, status, order_type, close_type",
+        "fee, usdk_locked_amount, position_locked_amount, status, order_type, close_type, average_price",
         "from trade_contract_order",
         "where id = #{id,jdbcType=BIGINT}"
     })
@@ -59,7 +59,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, order_direction, ",
             "operate_type, order_type, operate_direction, lever, total_amount, unfilled_amount, close_type, price, ",
-            "fee, usdk_locked_amount, position_locked_amount, status",
+            "fee, usdk_locked_amount, position_locked_amount, status, average_price",
             "from trade_contract_order",
             "where id = #{id,jdbcType=BIGINT} and user_id =  #{userId,jdbcType=BIGINT}"
     })
@@ -70,7 +70,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, order_direction, ",
             "operate_type,order_type,close_type, operate_direction, lever, total_amount, unfilled_amount, price, ",
-            "fee, usdk_locked_amount, position_locked_amount, status",
+            "fee, usdk_locked_amount, position_locked_amount, status, average_price",
             "from trade_contract_order",
             "where contract_id = #{contractId,jdbcType=BIGINT} and user_id =  #{userId,jdbcType=BIGINT}"
     })
@@ -81,7 +81,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, order_direction, ",
             "operate_type,order_type,close_type, operate_direction, lever, total_amount, unfilled_amount, price, ",
-            "fee, usdk_locked_amount, position_locked_amount, status",
+            "fee, usdk_locked_amount, position_locked_amount, status, average_price",
             "from trade_contract_order",
             "where user_id =  #{userId,jdbcType=BIGINT}"
     })
@@ -93,7 +93,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, order_direction, ",
             "operate_type,order_type,close_type, operate_direction, lever, total_amount, unfilled_amount, price, ",
-            "fee, usdk_locked_amount, position_locked_amount, status",
+            "fee, usdk_locked_amount, position_locked_amount, status, average_price",
             "from trade_contract_order",
             "where user_id =  #{userId,jdbcType=BIGINT} and status in (8,9)"
     })
@@ -122,6 +122,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
           "usdk_locked_amount = #{usdkLockedAmount,jdbcType=DECIMAL},",
           "position_locked_amount = #{positionLockedAmount,jdbcType=DECIMAL},",
           "status = #{status,jdbcType=INTEGER}",
+          "average_price = #{averagePrice,jdbcType=DECIMAL}",
         "where id = #{id,jdbcType=BIGINT}"
     })
     int updateByPrimaryKey(ContractOrderDO record);
@@ -144,6 +145,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
             "usdk_locked_amount = #{usdkLockedAmount,jdbcType=DECIMAL},",
             "position_locked_amount = #{positionLockedAmount,jdbcType=DECIMAL},",
             "status = #{status,jdbcType=INTEGER}",
+            "average_price = #{averagePrice,jdbcType=DECIMAL}",
             "where id = #{id,jdbcType=BIGINT} and gmt_modified = #{gmtModified}"
     })
     int updateByPrimaryKeyAndOpLock(ContractOrderDO record);
@@ -167,12 +169,18 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
             "usdk_locked_amount = #{usdkLockedAmount,jdbcType=DECIMAL},",
             "position_locked_amount = #{positionLockedAmount,jdbcType=DECIMAL},",
             "status = #{status,jdbcType=INTEGER}",
+            "average_price = #{averagePrice,jdbcType=DECIMAL}",
             "where id = #{id,jdbcType=BIGINT} and user_id = #{userId,jdbcType=BIGINT} and gmt_modified = #{gmtModified}"
     })
     int updateByOpLock(ContractOrderDO record);
 
 
-    int updateByFilledAmount(@Param("orderId") Long orderId, @Param("status") Integer status, @Param("filledAmount") long filledAmount);
+//    int updateByFilledAmount(@Param("orderId") Long orderId, @Param("status") Integer status, @Param("filledAmount") long filledAmount);
+
+    int updateByFilledAmount(@Param("orderId") Long orderId,
+                             @Param("status") Integer status,
+                             @Param("filledAmount") long filledAmount,
+                             @Param("averagePrice") BigDecimal averagePrice);
 
     List<ContractOrderDO> notMatchOrderList(
             @Param("placeOrder") Integer placeOrder, @Param("partialSuccess") Integer partialSuccess,

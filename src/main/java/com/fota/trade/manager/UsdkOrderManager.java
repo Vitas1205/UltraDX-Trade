@@ -18,6 +18,7 @@ import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderOperateTypeEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.mapper.UsdkOrderMapper;
+import com.fota.trade.util.PriceUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -285,14 +286,14 @@ public class UsdkOrderManager {
         BigDecimal filledAmount = new BigDecimal(usdkMatchedOrderDTO.getFilledAmount());
         BigDecimal filledPrice = new BigDecimal(usdkMatchedOrderDTO.getFilledPrice());
         askUsdkOrder.setStatus(usdkMatchedOrderDTO.getAskOrderStatus());
-        int updateAskOrderRet = updateSingleOrderByFilledAmount(askUsdkOrder, filledAmount);
+        int updateAskOrderRet = updateSingleOrderByFilledAmount(askUsdkOrder, filledAmount, usdkMatchedOrderDTO.getFilledPrice());
         log.info("updateAskOrderRet----------------------------"+updateAskOrderRet);
         if (updateAskOrderRet <= 0){
             log.error("update ask order failed");
             throw new BusinessException(ResultCodeEnum.UPDATE_USDK_ORDER_FAILED.getCode(), ResultCodeEnum.UPDATE_USDK_ORDER_FAILED.getMessage());
         }
         bidUsdkOrder.setStatus(usdkMatchedOrderDTO.getBidOrderStatus());
-        int updateBIdOrderRet = updateSingleOrderByFilledAmount(bidUsdkOrder, filledAmount);
+        int updateBIdOrderRet = updateSingleOrderByFilledAmount(bidUsdkOrder, filledAmount, usdkMatchedOrderDTO.getFilledPrice());
         log.info("updateBIdOrderRet----------------------------"+updateBIdOrderRet);
         if (updateBIdOrderRet <= 0){
             log.error("update bid order failed");
@@ -339,7 +340,7 @@ public class UsdkOrderManager {
         return com.fota.trade.common.BeanUtils.copy(com.fota.client.common.ResultCode.success());
     }
 
-    private int updateSingleOrderByFilledAmount(UsdkOrderDO usdkOrderDO, BigDecimal filledAmount) {
+    private int updateSingleOrderByFilledAmount(UsdkOrderDO usdkOrderDO, BigDecimal filledAmount, String filledPrice) {
         /*if (usdkOrderDO.getUnfilledAmount().compareTo(filledAmount) == 0) {
             usdkOrderDO.setStatus(OrderStatusEnum.MATCH.getCode());
         } else if (usdkOrderDO.getStatus() == OrderStatusEnum.COMMIT.getCode()) {
@@ -347,9 +348,14 @@ public class UsdkOrderManager {
         }
         usdkOrderDO.setUnfilledAmount(usdkOrderDO.getUnfilledAmount().subtract(filledAmount));*/
         int ret = -1;
+        //todo update 均价
         try {
             log.info("打印的内容----------------------"+usdkOrderDO);
-            ret  = usdkOrderMapper.updateByFilledAmount(usdkOrderDO.getId(), usdkOrderDO.getStatus(), filledAmount);
+            BigDecimal averagePrice = PriceUtil.getAveragePrice(usdkOrderDO.getAveragePrice(),
+                    usdkOrderDO.getTotalAmount(),
+                    filledAmount,
+                    new BigDecimal(filledPrice));
+            ret  = usdkOrderMapper.updateByFilledAmount(usdkOrderDO.getId(), usdkOrderDO.getStatus(), filledAmount, averagePrice);
         }catch (Exception e){
             log.error("失败({})", usdkOrderDO, e);
         }
