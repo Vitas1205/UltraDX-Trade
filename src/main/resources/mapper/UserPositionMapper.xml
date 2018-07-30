@@ -159,7 +159,7 @@
   <select id="countByQuery" parameterType="com.fota.client.domain.query.UserPositionQuery" resultType="java.lang.Integer">
     select count(*)
     from trade_user_position
-    where 1=1
+    where unfilled_amount != 0
     <if test="contractId > 0" >
       and contract_id=#{contractId,jdbcType=INTEGER}
     </if>
@@ -172,8 +172,7 @@
     select
     <include refid="Base_Column_List"/>
     from trade_user_position
-    where 1=1
-    and unfilled_amount != 0
+    where unfilled_amount != 0
     <if test="contractId > 0" >
       and contract_id=#{contractId,jdbcType=BIGINT}
     </if>
