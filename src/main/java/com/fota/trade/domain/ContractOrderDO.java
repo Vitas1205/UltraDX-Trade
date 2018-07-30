@@ -30,4 +30,5 @@ public class ContractOrderDO {
     private BigDecimal usdkLockedAmount;
     private BigDecimal positionLockedAmount;
     private Integer status;
+    private BigDecimal averagePrice;
 }

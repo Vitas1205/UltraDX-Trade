@@ -36,4 +36,12 @@ public class RedisTest {
             log.info("fota_usdk_entrust_"+count);
         }
     }
+
+    @Test
+    public void RedisGetTest(){
+        String redisKey = "fota_competitor_price";
+        Object obj = redisManager.get(redisKey);
+        log.info("---------------"+obj);
+
+    }
 }

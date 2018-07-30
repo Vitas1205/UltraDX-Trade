@@ -1,6 +1,5 @@
 package com.fota.trade.mapper;
 
-import com.fota.client.domain.query.UserPositionQuery;
 import com.fota.trade.domain.UserPositionDO;
 import org.apache.ibatis.annotations.*;
 
@@ -22,12 +21,12 @@ public interface UserPositionMapper {
         "gmt_modified, user_id, ",
         "contract_id, contract_name, ",
         "locked_amount, unfilled_amount, average_price,",
-        "position_type, status)",
+        "position_type, status, lever, contract_size)",
         "values (#{id,jdbcType=BIGINT}, now(), ",
         "now(), #{userId,jdbcType=BIGINT}, ",
         "#{contractId,jdbcType=INTEGER}, #{contractName,jdbcType=VARCHAR}, ",
         "#{lockedAmount,jdbcType=DECIMAL}, #{unfilledAmount,jdbcType=DECIMAL}, #{averagePrice,jdbcType=DECIMAL}, ",
-        "#{positionType,jdbcType=INTEGER}, #{status,jdbcType=INTEGER})"
+        "#{positionType,jdbcType=INTEGER}, #{status,jdbcType=INTEGER}, #{lever,jdbcType=INTEGER}, #{contractSize,jdbcType=DECIMAL})"
     })
     int insert(UserPositionDO record);
 
@@ -36,7 +35,7 @@ public interface UserPositionMapper {
     @Select({
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, locked_amount, ",
-            "unfilled_amount, position_type, average_price, status, lever",
+            "unfilled_amount, position_type, average_price, status, lever, contract_size",
             "from trade_user_position",
             "where id = #{id,jdbcType=BIGINT}"
     })
@@ -46,7 +45,7 @@ public interface UserPositionMapper {
     @Select({
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, locked_amount, ",
-            "unfilled_amount, position_type, average_price, status, lever",
+            "unfilled_amount, position_type, average_price, status, lever, contract_size",
             "from trade_user_position",
             "where contract_id = #{contractId,jdbcType=BIGINT} and user_id = #{userId,jdbcType=BIGINT}"
     })
@@ -58,7 +57,7 @@ public interface UserPositionMapper {
     @Select({
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, locked_amount, ",
-            "unfilled_amount, position_type, average_price, status, lever",
+            "unfilled_amount, position_type, average_price, status, lever, contract_size",
             "from trade_user_position",
             "where  user_id = #{userId,jdbcType=BIGINT}"
     })
@@ -68,7 +67,7 @@ public interface UserPositionMapper {
     @Select({
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, locked_amount, ",
-            "unfilled_amount, position_type, average_price,status,lever",
+            "unfilled_amount, position_type, average_price,status,lever,contract_size",
             "from trade_user_position",
             "where  contract_id = #{contractId,jdbcType=BIGINT}"
     })

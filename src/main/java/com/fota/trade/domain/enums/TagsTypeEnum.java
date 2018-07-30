@@ -5,25 +5,26 @@ import lombok.Getter;
 /**
  * @Author: Harry Wang
  * @Descripyion:
- * @Date: Create in 2018/7/20 14:07
+ * @Date: Create in 2018/7/25 21:26
  * @Modified:
  */
-public enum  PositionTypeEnum {
+public enum TagsTypeEnum {
     /**
-     * 多仓
+     * USDK成交
      */
-    OVER(2, "OVER"),
+    USDK(1, "usdk"),
     /**
-     * 空仓
+     * 合约成交
      */
-    EMPTY(1, "EMPTY"),
+    CONTRACT(1, "contract"),
     ;
 
     @Getter
     private int code;
+    @Getter
     private String desc;
 
-    PositionTypeEnum(int code, String desc) {
+    TagsTypeEnum(int code, String desc) {
         this.code = code;
         this.desc = desc;
     }

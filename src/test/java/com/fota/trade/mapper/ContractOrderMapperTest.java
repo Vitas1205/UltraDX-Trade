@@ -8,6 +8,7 @@ import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderPriceTypeEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
@@ -18,6 +19,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author Gavin Shen
@@ -25,6 +27,7 @@ import java.util.List;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
+@Slf4j
 public class ContractOrderMapperTest {
 
     @Resource
@@ -70,9 +73,23 @@ public class ContractOrderMapperTest {
     }
 
 
-    @After
-    public void testDelete() throws Exception {
+    @Test
+    public void testSelectUnfinishedOrder() throws Exception {
+        List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByUserId(282L);
+        log.info("----------------------------"+list.size());
+    }
 
+    @Test
+    public void testLamda() throws Exception {
+        long userId = 282L;
+        List<ContractOrderDO> orderList = null;
+        /*List<ContractOrderDO> bidList = orderList.stream().filter(order-> order.getUsdkLockedAmount().compareTo(BigDecimal.ZERO)>0)
+                .collect(Collectors.toList());*/
+        if (orderList != null &&orderList.size()!=0){
+            log.info("----------------------------");
+        }else {
+            log.info("++++++++++++++++++++++++++++");
+        }
     }
 
 }

@@ -97,4 +97,16 @@ public class UsdkTradeTest {
         UsdkOrderDO usdkOrderDO = com.fota.trade.common.BeanUtils.copy(usdkOrderDTO);
         System.out.println(usdkOrderDO.toString());
     }
+
+    @Test
+    public void getJudgeTest(){
+        boolean ret = usdkOrderManager.getJudegRet(10L,2,new BigDecimal(7));
+        log.info("--------"+ret);
+    }
+
+    @Test
+    public void update(){
+        int ret = usdkOrderMapper.updateByFilledAmount(117L,9,new BigDecimal("1"), new BigDecimal("1"));
+        log.info("--------"+ret);
+    }
 }

@@ -74,7 +74,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         int total = 0;
         try {
             paramMap = ParamUtil.objectToMap(usdkOrderQuery);
-            paramMap.put("assetId", paramMap.get("sourceId"));
+            paramMap.put("assetId", usdkOrderQuery.getSourceId());
             total = usdkOrderMapper.countByQuery(paramMap);
         } catch (Exception e) {
             log.error("usdkOrderMapper.countByQuery({})", usdkOrderQuery, e);
@@ -163,7 +163,9 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     public ResultCode updateOrderByMatch(UsdkMatchedOrderDTO usdkMatchedOrderDTO) {
         ResultCode resultCode = new ResultCode();
         try {
-            return usdkOrderManager.updateOrderByMatch(usdkMatchedOrderDTO);
+            resultCode =  usdkOrderManager.updateOrderByMatch(usdkMatchedOrderDTO);
+            log.info("resultCode----------------------"+resultCode.toString());
+            return resultCode;
         }catch (Exception e){
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
@@ -171,7 +173,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
                 resultCode.setMessage(businessException.getMessage());
                 return resultCode;
             }
-            log.error("USDK order() failed", e);
+            log.error("USDK updateOrderByMatch() failed", e);
         }
         resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
         resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());

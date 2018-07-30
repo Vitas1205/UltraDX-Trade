@@ -17,6 +17,7 @@ import javax.annotation.Resource;
 import java.util.Arrays;
 import java.util.Date;
 
+import static com.fota.trade.domain.enums.OrderStatusEnum.COMMIT;
 import static com.fota.trade.domain.enums.OrderStatusEnum.PART_MATCH;
 
 /**
@@ -33,12 +34,12 @@ public class ContractOrderServiceTest {
     @Test
     public void testListContractOrderByQuery() throws Exception {
         BaseQuery contractOrderQuery = new BaseQuery();
-        contractOrderQuery.setUserId(9527L);
+        contractOrderQuery.setUserId(282L);
         contractOrderQuery.setPageSize(20);
         contractOrderQuery.setPageNo(1);
-        contractOrderQuery.setStartTime(new Date());
         contractOrderQuery.setEndTime(LocalDate.now().plusDays(1).toDate());
-        contractOrderQuery.setOrderStatus(Arrays.asList(PART_MATCH.getCode()));
+        contractOrderQuery.setSourceId(1000);
+        contractOrderQuery.setOrderStatus(Arrays.asList(PART_MATCH.getCode(), COMMIT.getCode()));
         Page<ContractOrderDTO> result = contractOrderService.listContractOrderByQuery(contractOrderQuery);
         Assert.assertTrue(result != null && result.getData() != null);
     }
