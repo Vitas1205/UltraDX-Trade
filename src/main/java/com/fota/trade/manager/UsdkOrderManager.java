@@ -364,11 +364,13 @@ public class UsdkOrderManager {
         usdkMatchedOrderMarketDTO.setUsdkMatchedOrderId(usdkMatchedOrderDO.getId());
         usdkMatchedOrderMarketDTO.setAssetId(askUsdkOrder.getAssetId().longValue());
         usdkMatchedOrderMarketDTO.setAssetName(usdkMatchedOrderDO.getAssetName());
-        usdkMatchedOrderMarketDTO.setFilledPrice(String.valueOf(filledPrice));
-        usdkMatchedOrderMarketDTO.setFilledAmount(String.valueOf(filledAmount));
+        usdkMatchedOrderMarketDTO.setFilledPrice(filledPrice);
+        usdkMatchedOrderMarketDTO.setFilledAmount(filledAmount);
         usdkMatchedOrderMarketDTO.setFilledDate(usdkMatchedOrderDO.getGmtCreate());
         usdkMatchedOrderMarketDTO.setBidUserId(bidUsdkOrder.getUserId());
         usdkMatchedOrderMarketDTO.setAskUserId(askUsdkOrder.getUserId());
+        usdkMatchedOrderMarketDTO.setBidOrderId(bidUsdkOrder.getId());
+        usdkMatchedOrderMarketDTO.setAskOrderId(askUsdkOrder.getId());
         rocketMqManager.producer("trade", "contract", usdkMatchedOrderMarketDTO.getUsdkMatchedOrderId().toString(),
                 JSONObject.toJSONString(usdkMatchedOrderMarketDTO));
 
@@ -378,8 +380,8 @@ public class UsdkOrderManager {
         usdkMatchedOrderTradeDTO.setUsdkMatchedOrderId(usdkMatchedOrderDO.getId());
         usdkMatchedOrderTradeDTO.setAskOrderId(usdkMatchedOrderDO.getAskOrderId());
         usdkMatchedOrderTradeDTO.setBidOrderId(usdkMatchedOrderDO.getBidOrderId());
-        usdkMatchedOrderTradeDTO.setFilledPrice(String.valueOf(usdkMatchedOrderDO.getFilledPrice()));
-        usdkMatchedOrderTradeDTO.setFilledAmount(String.valueOf(usdkMatchedOrderDO.getFilledAmount()));
+        usdkMatchedOrderTradeDTO.setFilledPrice(usdkMatchedOrderDO.getFilledPrice());
+        usdkMatchedOrderTradeDTO.setFilledAmount(usdkMatchedOrderDO.getFilledAmount());
         usdkMatchedOrderTradeDTO.setFilledDate(usdkMatchedOrderDO.getGmtCreate());
         usdkMatchedOrderTradeDTO.setMatchType(usdkMatchedOrderDO.getMatchType().intValue());
         usdkMatchedOrderTradeDTO.setAssetId(bidUsdkOrder.getAssetId().longValue());

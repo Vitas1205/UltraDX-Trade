@@ -632,13 +632,15 @@ public class ContractOrderManager {
         contractMatchedOrderMarketDTO.setContractMatchedOrderId(contractMatchedOrderDO.getId());
         contractMatchedOrderMarketDTO.setContractId(askContractOrder.getContractId());
         contractMatchedOrderMarketDTO.setContractName(askContractOrder.getContractName());
-        contractMatchedOrderMarketDTO.setFilledPrice(contractMatchedOrderDTO.getFilledPrice());
-        contractMatchedOrderMarketDTO.setFilledAmount(String.valueOf(contractMatchedOrderDTO.getFilledAmount()));
+        contractMatchedOrderMarketDTO.setFilledPrice(new BigDecimal(contractMatchedOrderDTO.getFilledPrice()));
+        contractMatchedOrderMarketDTO.setFilledAmount(new BigDecimal(contractMatchedOrderDTO.getFilledAmount()));
         contractMatchedOrderMarketDTO.setFilledDate(contractMatchedOrderDO.getGmtCreate());
         contractMatchedOrderMarketDTO.setAssetName(contractCategoryDO.getAssetName());
         contractMatchedOrderMarketDTO.setContractType(contractCategoryDO.getContractType());
         contractMatchedOrderMarketDTO.setBidUserId(bidContractOrder.getUserId());
         contractMatchedOrderMarketDTO.setAskUserId(askContractOrder.getUserId());
+        contractMatchedOrderMarketDTO.setAskOrderId(askContractOrder.getId());
+        contractMatchedOrderMarketDTO.setBidOrderId(bidContractOrder.getId());
         rocketMqManager.producer("trade", "contract", contractMatchedOrderMarketDTO.getContractMatchedOrderId().toString(),
                 JSONObject.toJSONString(contractMatchedOrderMarketDTO));
 
@@ -647,8 +649,8 @@ public class ContractOrderManager {
         contractMatchedOrderTradeDTO.setContractMatchedOrderId(contractMatchedOrderDO.getId());
         contractMatchedOrderTradeDTO.setAskOrderId(contractMatchedOrderDO.getAskOrderId());
         contractMatchedOrderTradeDTO.setBidOrderId(contractMatchedOrderDO.getBidOrderId());
-        contractMatchedOrderTradeDTO.setFilledAmount(String.valueOf(contractMatchedOrderDO.getFilledAmount()));
-        contractMatchedOrderTradeDTO.setFilledPrice(String.valueOf(contractMatchedOrderDO.getFilledPrice()));
+        contractMatchedOrderTradeDTO.setFilledAmount(contractMatchedOrderDO.getFilledAmount());
+        contractMatchedOrderTradeDTO.setFilledPrice(contractMatchedOrderDO.getFilledPrice());
         contractMatchedOrderTradeDTO.setFilledDate(contractMatchedOrderDO.getGmtCreate());
         contractMatchedOrderTradeDTO.setMatchType((int)contractMatchedOrderDO.getMatchType());
         contractMatchedOrderTradeDTO.setContractId((long)askContractOrder.getContractId());
