@@ -344,7 +344,7 @@ public class ContractOrderManager {
 
     //获取追加冻结金额
     public BigDecimal getTotalLockAmount(long userId) throws Exception{
-        Object competiorsPriceObj = redisManager.get(Constant.COMPETITOR_PRICE_KEY);
+        Object competiorsPriceObj = redisManager.get(Constant.CONTRACT_COMPETITOR_PRICE_KEY);
         List<CompetitorsPriceDTO> competitorsPriceList = JSON.parseArray(competiorsPriceObj.toString(),CompetitorsPriceDTO.class);
         //获取所有合约类型列表
         BigDecimal totalLockedAmount = BigDecimal.ZERO;
