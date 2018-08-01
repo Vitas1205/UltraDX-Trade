@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fota.match.mapper.UsdkMatchedOrderMapper">
+    <resultMap id="BaseResultMap" type="com.fota.trade.domain.UsdkMatchedOrderDO">
+        <id column="id" jdbcType="BIGINT" property="id" />
+        <result column="gmt_create" jdbcType="TIMESTAMP" property="gmtCreate" />
+        <result column="gmt_modified" jdbcType="TIMESTAMP" property="gmtModified" />
+        <result column="ask_order_id" jdbcType="BIGINT" property="askOrderId" />
+        <result column="ask_order_price" jdbcType="DECIMAL" property="askOrderPrice" />
+        <result column="ask_close_type" jdbcType="TINYINT" property="askCloseType" />
+        <result column="bid_order_id" jdbcType="BIGINT" property="bidOrderId" />
+        <result column="bid_order_price" jdbcType="DECIMAL" property="bidOrderPrice" />
+        <result column="bid_close_type" jdbcType="TINYINT" property="bidCloseType" />
+        <result column="match_type" jdbcType="TINYINT" property="matchType" />
+        <result column="filled_price" jdbcType="DECIMAL" property="filledPrice" />
+        <result column="filled_amount" jdbcType="DECIMAL" property="filledAmount" />
+        <result column="ask_user_id" jdbcType="BIGINT" property="askUserId" />
+        <result column="bid_user_id" jdbcType="BIGINT" property="bidUserId" />
+        <result column="asset_name" jdbcType="VARCHAR" property="assetName" />
+    </resultMap>
+    <insert id="insert" parameterType="com.fota.trade.domain.UsdkMatchedOrderDO">
+        <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Long">
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+        insert into usdk_matched_order (gmt_create, gmt_modified, ask_order_id,
+        ask_order_price, ask_close_type, bid_order_id,
+        bid_order_price, bid_close_type, match_type,
+        filled_price, filled_amount, ask_user_id,
+        bid_user_id, asset_name)
+        values (now(), now(), #{askOrderId,jdbcType=BIGINT},
+        #{askOrderPrice,jdbcType=DECIMAL}, #{askCloseType,jdbcType=TINYINT}, #{bidOrderId,jdbcType=BIGINT},
+        #{bidOrderPrice,jdbcType=DECIMAL}, #{bidCloseType,jdbcType=TINYINT}, #{matchType,jdbcType=TINYINT},
+        #{filledPrice,jdbcType=DECIMAL}, #{filledAmount,jdbcType=DECIMAL}, #{askUserId,jdbcType=BIGINT},
+        #{bidUserId,jdbcType=BIGINT}, #{assetName,jdbcType=VARCHAR})
+    </insert>
+</mapper>

@@ -100,7 +100,7 @@ public class UsdkTradeTest {
 
     @Test
     public void getJudgeTest(){
-        boolean ret = usdkOrderManager.getJudegRet(10L,2,new BigDecimal(7));
+        boolean ret = usdkOrderManager.getJudegRet(614L,2,new BigDecimal(1));
         log.info("--------"+ret);
     }
 

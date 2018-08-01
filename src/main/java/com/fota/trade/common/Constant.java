@@ -18,5 +18,7 @@ public class Constant {
     public static final String COMPETITOR_PRICE_KEY = "fota_competitor_price";
     public static final BigDecimal CONTRACT_SIZE = new BigDecimal("0.01");
     public static final BigDecimal FEE_RATE = new BigDecimal("0.001");
+    public static final String CACHE_KEY_MATCH_CONTRACT = "CACHE_KEY_MATCH_CONTRACT_";
+    public static final String CACHE_KEY_MATCH_USDK = "CACHE_KEY_MATCH_USDK_";
 
 }

@@ -1,5 +1,6 @@
 package com.fota.trade.manager;
 
+import com.alibaba.fastjson.JSONObject;
 import com.fota.asset.domain.BalanceTransferDTO;
 import com.fota.asset.domain.UserCapitalDTO;
 import com.fota.asset.service.AssetService;
@@ -7,16 +8,20 @@ import com.fota.asset.service.CapitalService;
 import com.fota.client.common.ResultCode;
 import com.fota.client.common.ResultCodeEnum;
 import com.fota.client.domain.UsdkOrderDTO;
+import com.fota.match.domain.UsdkMatchedOrderMarketDTO;
+import com.fota.match.domain.UsdkMatchedOrderTradeDTO;
 import com.fota.match.service.UsdkMatchedOrderService;
 import com.fota.trade.common.BusinessException;
 import com.fota.trade.common.Constant;
 import com.fota.trade.domain.OrderMessage;
+import com.fota.trade.domain.UsdkMatchedOrderDO;
 import com.fota.trade.domain.UsdkMatchedOrderDTO;
 import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.trade.domain.enums.AssetTypeEnum;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderOperateTypeEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
+import com.fota.trade.mapper.UsdkMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkOrderMapper;
 import com.fota.trade.util.PriceUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -44,7 +49,7 @@ import java.util.List;
 @Slf4j
 public class UsdkOrderManager {
 
-    private static BigDecimal usdkFee = BigDecimal.valueOf(0.001);
+    private static BigDecimal usdkFee = BigDecimal.valueOf(0);
 
     @Autowired
     private UsdkOrderMapper usdkOrderMapper;
@@ -63,6 +68,9 @@ public class UsdkOrderManager {
 
     @Autowired
     private UsdkMatchedOrderService usdkMatchedOrderService;
+
+    @Autowired
+    private UsdkMatchedOrderMapper usdkMatchedOrder;
 
     private CapitalService getCapitalService() {
         return capitalService;
@@ -310,10 +318,10 @@ public class UsdkOrderManager {
         // todo 卖币 ask +totalUsdk = filledAmount * filledPrice - filledAmount * filledPrice * feeRate
         // todo 卖币 ask -lockedAsset = filledAmount
         // todo 卖币 ask -totalAsset = filledAmount
-        BigDecimal addBidTotalAsset = filledAmount.subtract(filledAmount.multiply(Constant.FEE_RATE));
+        BigDecimal addBidTotalAsset = filledAmount.subtract(BigDecimal.ZERO);
         BigDecimal addTotalUsdk = filledAmount.multiply(filledPrice);
         BigDecimal addLockedUsdk = filledAmount.multiply(new BigDecimal(usdkMatchedOrderDTO.getBidOrderPrice()));
-        BigDecimal addAskTotalUsdk = filledAmount.multiply(filledPrice).multiply(new BigDecimal("1").subtract(Constant.FEE_RATE));
+        BigDecimal addAskTotalUsdk = filledAmount.multiply(filledPrice);
         BigDecimal addLockedAsset = filledAmount;
         BigDecimal addTotalAsset = filledAmount;
         BalanceTransferDTO balanceTransferDTO = new BalanceTransferDTO();
@@ -333,6 +341,63 @@ public class UsdkOrderManager {
             log.error(ResultCodeEnum.ORDER_MATCH_UPDATE_BALANCE_FAILED.getMessage());
             throw new RuntimeException(ResultCodeEnum.ORDER_MATCH_UPDATE_BALANCE_FAILED.getMessage());
         }
+
+        UsdkMatchedOrderDO usdkMatchedOrderDO = com.fota.trade.common.BeanUtils.copy(usdkMatchedOrderDTO);
+        usdkMatchedOrderDO.setAskUserId(askUsdkOrder.getUserId());
+        usdkMatchedOrderDO.setBidUserId(bidUsdkOrder.getUserId());
+        usdkMatchedOrderDO.setAskCloseType(new Byte("0"));
+        usdkMatchedOrderDO.setBidCloseType(new Byte("0"));
+
+        // 保存订单数据到数据库
+        try {
+            int ret = usdkMatchedOrder.insert(usdkMatchedOrderDO);
+            if (ret < 1){
+                log.error("保存usdk订单数据到数据库失败({})", usdkMatchedOrderDO);
+                throw new RuntimeException(ResultCodeEnum.UPDATE_MATCH_ORDER_FAILED.getMessage());
+            }
+        } catch (Exception e) {
+            log.error("保存USDK订单数据到数据库失败({})", usdkMatchedOrderDO, e);
+        }
+
+        // 向MQ推送消息
+        UsdkMatchedOrderMarketDTO usdkMatchedOrderMarketDTO = new UsdkMatchedOrderMarketDTO();
+        usdkMatchedOrderMarketDTO.setUsdkMatchedOrderId(usdkMatchedOrderDO.getId());
+        usdkMatchedOrderMarketDTO.setAssetId(askUsdkOrder.getAssetId().longValue());
+        usdkMatchedOrderMarketDTO.setAssetName(usdkMatchedOrderDO.getAssetName());
+        usdkMatchedOrderMarketDTO.setFilledPrice(String.valueOf(filledPrice));
+        usdkMatchedOrderMarketDTO.setFilledAmount(String.valueOf(filledAmount));
+        usdkMatchedOrderMarketDTO.setFilledDate(usdkMatchedOrderDO.getGmtCreate());
+        usdkMatchedOrderMarketDTO.setBidUserId(bidUsdkOrder.getUserId());
+        usdkMatchedOrderMarketDTO.setAskUserId(askUsdkOrder.getUserId());
+        rocketMqManager.producer("trade", "contract", usdkMatchedOrderMarketDTO.getUsdkMatchedOrderId().toString(),
+                JSONObject.toJSONString(usdkMatchedOrderMarketDTO));
+
+
+        // 向Redis存储消息
+        UsdkMatchedOrderTradeDTO usdkMatchedOrderTradeDTO = new UsdkMatchedOrderTradeDTO();
+        usdkMatchedOrderTradeDTO.setUsdkMatchedOrderId(usdkMatchedOrderDO.getId());
+        usdkMatchedOrderTradeDTO.setAskOrderId(usdkMatchedOrderDO.getAskOrderId());
+        usdkMatchedOrderTradeDTO.setBidOrderId(usdkMatchedOrderDO.getBidOrderId());
+        usdkMatchedOrderTradeDTO.setFilledPrice(String.valueOf(usdkMatchedOrderDO.getFilledPrice()));
+        usdkMatchedOrderTradeDTO.setFilledAmount(String.valueOf(usdkMatchedOrderDO.getFilledAmount()));
+        usdkMatchedOrderTradeDTO.setFilledDate(usdkMatchedOrderDO.getGmtCreate());
+        usdkMatchedOrderTradeDTO.setMatchType(usdkMatchedOrderDO.getMatchType().intValue());
+        usdkMatchedOrderTradeDTO.setAssetId(bidUsdkOrder.getAssetId().longValue());
+        usdkMatchedOrderTradeDTO.setAssetName(usdkMatchedOrderDO.getAssetName());
+        try {
+            String key = Constant.CACHE_KEY_MATCH_USDK + usdkMatchedOrderDO.getId();
+            Object value = JSONObject.toJSONString(usdkMatchedOrderTradeDTO);
+            log.info("向Redis存储消息,key:{},value:{}", key, value);
+            boolean re = redisManager.set(key,value);
+            if (!re){
+                log.error("向Redis存储消息失败");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.error("向Redis存储USDK撮合订单信息失败，订单id为 {}", usdkMatchedOrderDO.getId());
+        }
+        log.info("========完成撮合({})=======", System.currentTimeMillis());
+
         org.springframework.beans.BeanUtils.copyProperties(askUsdkOrder, askUsdkOrderDTO);
         org.springframework.beans.BeanUtils.copyProperties(bidUsdkOrder, bidUsdkOrderDTO);
         askUsdkOrderDTO.setCompleteAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));

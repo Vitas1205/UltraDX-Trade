@@ -1,11 +1,14 @@
 package com.fota.trade.manager;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.fota.asset.domain.UserContractDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
 import com.fota.client.common.ResultCodeEnum;
 import com.fota.client.domain.CompetitorsPriceDTO;
+import com.fota.match.domain.ContractMatchedOrderMarketDTO;
+import com.fota.match.domain.ContractMatchedOrderTradeDTO;
 import com.fota.match.service.ContractMatchedOrderService;
 import com.fota.match.service.UsdkMatchedOrderService;
 import com.fota.trade.common.BusinessException;
@@ -14,6 +17,7 @@ import com.fota.client.domain.ContractOrderDTO;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.*;
 import com.fota.trade.mapper.ContractCategoryMapper;
+import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.util.PriceUtil;
@@ -69,6 +73,9 @@ public class ContractOrderManager {
 
     @Autowired
     private ContractMatchedOrderService contractMatchedOrderService;
+
+    @Autowired
+    private ContractMatchedOrderMapper contractMatchedOrderMapper;
 
     private ContractService getContractService() {
         return contractService;
@@ -600,6 +607,66 @@ public class ContractOrderManager {
         bidContractOrder.setStatus(contractMatchedOrderDTO.getBidOrderStatus());
         updateContractAccount(askContractOrder, contractMatchedOrderDTO);
         updateContractAccount(bidContractOrder, contractMatchedOrderDTO);
+
+        ContractMatchedOrderDO contractMatchedOrderDO = com.fota.trade.common.BeanUtils.copy(contractMatchedOrderDTO);
+        contractMatchedOrderDO.setFee(Constant.FEE_RATE);
+        contractMatchedOrderDO.setAskUserId(askContractOrder.getUserId());
+        contractMatchedOrderDO.setBidUserId(bidContractOrder.getUserId());
+        contractMatchedOrderDO.setAskCloseType(askContractOrder.getCloseType().byteValue());
+        contractMatchedOrderDO.setBidCloseType(bidContractOrder.getCloseType().byteValue());
+
+        try {
+            int ret = contractMatchedOrderMapper.insert(contractMatchedOrderDO);
+            if (ret < 1){
+                log.error("保存Contract订单数据到数据库失败({})", contractMatchedOrderDO);
+                throw new RuntimeException(ResultCodeEnum.UPDATE_MATCH_ORDER_FAILED.getMessage());
+            }
+        } catch (Exception e) {
+            log.error("保存Contract订单数据到数据库失败({})", contractMatchedOrderDO, e);
+            throw new RuntimeException(ResultCodeEnum.UPDATE_MATCH_ORDER_FAILED.getMessage());
+        }
+
+        // 向MQ推送消息
+        ContractCategoryDO contractCategoryDO = contractCategoryMapper.getContractCategoryById(askContractOrder.getContractId());
+        ContractMatchedOrderMarketDTO contractMatchedOrderMarketDTO =new ContractMatchedOrderMarketDTO();
+        contractMatchedOrderMarketDTO.setContractMatchedOrderId(contractMatchedOrderDO.getId());
+        contractMatchedOrderMarketDTO.setContractId(askContractOrder.getContractId());
+        contractMatchedOrderMarketDTO.setContractName(askContractOrder.getContractName());
+        contractMatchedOrderMarketDTO.setFilledPrice(contractMatchedOrderDTO.getFilledPrice());
+        contractMatchedOrderMarketDTO.setFilledAmount(String.valueOf(contractMatchedOrderDTO.getFilledAmount()));
+        contractMatchedOrderMarketDTO.setFilledDate(contractMatchedOrderDO.getGmtCreate());
+        contractMatchedOrderMarketDTO.setAssetName(contractCategoryDO.getAssetName());
+        contractMatchedOrderMarketDTO.setContractType(contractCategoryDO.getContractType());
+        contractMatchedOrderMarketDTO.setBidUserId(bidContractOrder.getUserId());
+        contractMatchedOrderMarketDTO.setAskUserId(askContractOrder.getUserId());
+        rocketMqManager.producer("trade", "contract", contractMatchedOrderMarketDTO.getContractMatchedOrderId().toString(),
+                JSONObject.toJSONString(contractMatchedOrderMarketDTO));
+
+        // 向Redis存储消息
+        ContractMatchedOrderTradeDTO contractMatchedOrderTradeDTO = new ContractMatchedOrderTradeDTO();
+        contractMatchedOrderTradeDTO.setContractMatchedOrderId(contractMatchedOrderDO.getId());
+        contractMatchedOrderTradeDTO.setAskOrderId(contractMatchedOrderDO.getAskOrderId());
+        contractMatchedOrderTradeDTO.setBidOrderId(contractMatchedOrderDO.getBidOrderId());
+        contractMatchedOrderTradeDTO.setFilledAmount(String.valueOf(contractMatchedOrderDO.getFilledAmount()));
+        contractMatchedOrderTradeDTO.setFilledPrice(String.valueOf(contractMatchedOrderDO.getFilledPrice()));
+        contractMatchedOrderTradeDTO.setFilledDate(contractMatchedOrderDO.getGmtCreate());
+        contractMatchedOrderTradeDTO.setMatchType((int)contractMatchedOrderDO.getMatchType());
+        contractMatchedOrderTradeDTO.setContractId((long)askContractOrder.getContractId());
+        contractMatchedOrderTradeDTO.setContractName(contractMatchedOrderDO.getContractName());
+        try {
+            String key = Constant.CACHE_KEY_MATCH_CONTRACT + contractMatchedOrderDO.getId();
+            Object value = JSONObject.toJSONString(contractMatchedOrderTradeDTO);
+            log.info("向Redis存储消息,key:{},value:{}", key, value);
+            boolean re = redisManager.set(key,value);
+            if (!re) {
+                log.error("向Redis存储消息失败");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.error("向Redis存储USDK撮合订单信息失败，订单id为 {}", contractMatchedOrderDO.getId());
+        }
+        log.info("========完成撮合({})=======", System.currentTimeMillis());
+
         //存入缓存
         com.fota.client.domain.ContractOrderDTO bidContractOrderDTO = new com.fota.client.domain.ContractOrderDTO();
         com.fota.client.domain.ContractOrderDTO askContractOrderDTO = new com.fota.client.domain.ContractOrderDTO();

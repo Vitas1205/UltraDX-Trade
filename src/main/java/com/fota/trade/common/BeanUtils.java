@@ -202,6 +202,33 @@ public class BeanUtils {
         return userPositionDTO;
     }
 
+    public static ContractMatchedOrderDO copy(ContractMatchedOrderDTO contractMatchedOrderDTO) {
+        ContractMatchedOrderDO contractMatchedOrderDO = new ContractMatchedOrderDO();
+        contractMatchedOrderDO.setAskOrderId(contractMatchedOrderDTO.getAskOrderId());
+        contractMatchedOrderDO.setAskOrderPrice(new BigDecimal(contractMatchedOrderDTO.getAskOrderPrice()));
+        contractMatchedOrderDO.setBidOrderId(contractMatchedOrderDTO.getBidOrderId());
+        contractMatchedOrderDO.setBidOrderPrice(new BigDecimal(contractMatchedOrderDTO.getBidOrderPrice()));
+        contractMatchedOrderDO.setMatchType(contractMatchedOrderDTO.getMatchType().byteValue());
+        contractMatchedOrderDO.setFilledPrice(new BigDecimal(contractMatchedOrderDTO.getFilledPrice()));
+        contractMatchedOrderDO.setFilledAmount(new BigDecimal(contractMatchedOrderDTO.getFilledAmount()));
+        contractMatchedOrderDO.setContractName(contractMatchedOrderDTO.getContractName());
+        return contractMatchedOrderDO;
+    }
+
+    public static UsdkMatchedOrderDO copy(UsdkMatchedOrderDTO usdkMatchedOrderDTO) {
+        UsdkMatchedOrderDO usdkMatchedOrderDO = new UsdkMatchedOrderDO();
+        usdkMatchedOrderDO.setAssetName(usdkMatchedOrderDTO.getAssetName());
+        usdkMatchedOrderDO.setAskOrderPrice(new BigDecimal(usdkMatchedOrderDTO.getAskOrderPrice()));
+        usdkMatchedOrderDO.setAskOrderId(usdkMatchedOrderDTO.getAskOrderId());
+        usdkMatchedOrderDO.setBidOrderId(usdkMatchedOrderDTO.getBidOrderId());
+        usdkMatchedOrderDO.setBidOrderPrice(new BigDecimal(usdkMatchedOrderDTO.getBidOrderPrice()));
+        usdkMatchedOrderDO.setFilledAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
+        usdkMatchedOrderDO.setFilledPrice(new BigDecimal(usdkMatchedOrderDTO.getFilledPrice()));
+        usdkMatchedOrderDO.setMatchType(usdkMatchedOrderDTO.getMatchType().byteValue());
+        usdkMatchedOrderDO.setGmtCreate(usdkMatchedOrderDTO.getGmtCreate());
+        return usdkMatchedOrderDO;
+    }
+
 
 
 }
