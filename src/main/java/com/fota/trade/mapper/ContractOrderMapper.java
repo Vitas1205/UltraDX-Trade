@@ -1,6 +1,7 @@
 package com.fota.trade.mapper;
 
 import com.fota.trade.domain.ContractOrderDO;
+import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.trade.mapper.common.BaseMapper;
 import org.apache.ibatis.annotations.*;
 
@@ -188,4 +189,6 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
     int countByQuery(Map<String, Object> param);
 
     List<ContractOrderDO> listByQuery(Map<String, Object> param);
+
+    int updateStatus(ContractOrderDO record);
 }

@@ -66,9 +66,13 @@ public class UsdkOrderMapperTest {
     }
 
 
-    @After
-    public void testDelete() throws Exception {
-
+    @Test
+    public void testupdateStatus() throws Exception {
+        UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
+        usdkOrderDO.setStatus(OrderStatusEnum.MATCH.getCode());
+        usdkOrderDO.setId(929L);
+        usdkOrderDO.setUserId(205L);
+        usdkOrderMapper.updateStatus(usdkOrderDO);
     }
 
 }

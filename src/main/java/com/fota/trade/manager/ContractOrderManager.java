@@ -849,6 +849,13 @@ public class ContractOrderManager {
                     new BigDecimal(filledAmount),
                     new BigDecimal(filledPrice));
             ret = contractOrderMapper.updateByFilledAmount(contractOrderDO.getId(), contractOrderDO.getStatus(), filledAmount, averagePrice);
+            if (ret >0){
+                ContractOrderDO contractOrderDO2 = contractOrderMapper.selectByPrimaryKey(contractOrderDO.getId());
+                if (contractOrderDO2.getUnfilledAmount().equals(BigDecimal.ZERO)){
+                    contractOrderDO2.setStatus(OrderStatusEnum.MATCH.getCode());
+                    contractOrderMapper.updateStatus(contractOrderDO2);
+                }
+            }
         }catch (Exception e){
             log.error(ResultCodeEnum.ASSET_SERVICE_FAILED.getMessage());
             throw new RuntimeException(ResultCodeEnum.ASSET_SERVICE_FAILED.getMessage());

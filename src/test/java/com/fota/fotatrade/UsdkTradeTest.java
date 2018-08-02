@@ -106,7 +106,7 @@ public class UsdkTradeTest {
 
     @Test
     public void update(){
-        int ret = usdkOrderMapper.updateByFilledAmount(117L,9,new BigDecimal("1"), new BigDecimal("1"));
-        log.info("--------"+ret);
+        //int ret = usdkOrderMapper.updateByFilledAmount(117L,9,new BigDecimal("1"), new BigDecimal("1"));
+        //log.info("--------"+ret);
     }
 }

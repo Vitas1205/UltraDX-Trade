@@ -175,6 +175,8 @@ public interface UsdkOrderMapper {
     })
     int updateByOpLock(UsdkOrderDO record);
 
+    int updateStatus(UsdkOrderDO record);
+
 
     List<UsdkOrderDO> notMatchOrderList(@Param("placeOrder") Integer placeOrder, @Param("partialSuccess") Integer partialSuccess,
                                         @Param("contractOrderIndex") Long contractOrderIndex, @Param("orderDirection") Integer orderDirection);

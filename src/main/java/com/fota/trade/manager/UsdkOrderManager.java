@@ -420,6 +420,13 @@ public class UsdkOrderManager {
                     filledAmount,
                     new BigDecimal(filledPrice));
             ret  = usdkOrderMapper.updateByFilledAmount(usdkOrderDO.getId(), usdkOrderDO.getStatus(), filledAmount, averagePrice);
+            if (ret >0){
+                UsdkOrderDO usdkOrderDO2 = usdkOrderMapper.selectByPrimaryKey(usdkOrderDO.getId());
+                if (usdkOrderDO2.getUnfilledAmount().equals(BigDecimal.ZERO)){
+                    usdkOrderDO2.setStatus(OrderStatusEnum.MATCH.getCode());
+                    usdkOrderMapper.updateStatus(usdkOrderDO2);
+                }
+            }
         }catch (Exception e){
             log.error(ResultCodeEnum.ASSET_SERVICE_FAILED.getMessage());
             throw new RuntimeException(ResultCodeEnum.ASSET_SERVICE_FAILED.getMessage());
