@@ -852,7 +852,7 @@ public class ContractOrderManager {
             ret = contractOrderMapper.updateByFilledAmount(contractOrderDO.getId(), contractOrderDO.getStatus(), filledAmount, averagePrice);
             if (ret >0){
                 ContractOrderDO contractOrderDO2 = contractOrderMapper.selectByPrimaryKey(contractOrderDO.getId());
-                if (contractOrderDO2.getUnfilledAmount().equals(BigDecimal.ZERO)){
+                if (contractOrderDO2.getUnfilledAmount().equals(0L)){
                     contractOrderDO2.setStatus(OrderStatusEnum.MATCH.getCode());
                     contractOrderMapper.updateStatus(contractOrderDO2);
                 }

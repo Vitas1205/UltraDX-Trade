@@ -422,7 +422,7 @@ public class UsdkOrderManager {
             ret  = usdkOrderMapper.updateByFilledAmount(usdkOrderDO.getId(), usdkOrderDO.getStatus(), filledAmount, averagePrice);
             if (ret >0){
                 UsdkOrderDO usdkOrderDO2 = usdkOrderMapper.selectByPrimaryKey(usdkOrderDO.getId());
-                if (usdkOrderDO2.getUnfilledAmount().equals(BigDecimal.ZERO)){
+                if (usdkOrderDO2.getUnfilledAmount().equals(0L)){
                     usdkOrderDO2.setStatus(OrderStatusEnum.MATCH.getCode());
                     usdkOrderMapper.updateStatus(usdkOrderDO2);
                 }
