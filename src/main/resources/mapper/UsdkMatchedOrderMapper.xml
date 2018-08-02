@@ -27,7 +27,7 @@
         bid_order_price, bid_close_type, match_type,
         filled_price, filled_amount, ask_user_id,
         bid_user_id, asset_name)
-        values (now(), now(), #{askOrderId,jdbcType=BIGINT},
+        values (#{gmtCreate,jdbcType=TIMESTAMP}, now(), #{askOrderId,jdbcType=BIGINT},
         #{askOrderPrice,jdbcType=DECIMAL}, #{askCloseType,jdbcType=TINYINT}, #{bidOrderId,jdbcType=BIGINT},
         #{bidOrderPrice,jdbcType=DECIMAL}, #{bidCloseType,jdbcType=TINYINT}, #{matchType,jdbcType=TINYINT},
         #{filledPrice,jdbcType=DECIMAL}, #{filledAmount,jdbcType=DECIMAL}, #{askUserId,jdbcType=BIGINT},

@@ -347,7 +347,7 @@ public class UsdkOrderManager {
         usdkMatchedOrderDO.setBidUserId(bidUsdkOrder.getUserId());
         usdkMatchedOrderDO.setAskCloseType(new Byte("0"));
         usdkMatchedOrderDO.setBidCloseType(new Byte("0"));
-
+        usdkMatchedOrderDO.setGmtCreate(new Date());
         // 保存订单数据到数据库
         try {
             int ret = usdkMatchedOrder.insert(usdkMatchedOrderDO);
