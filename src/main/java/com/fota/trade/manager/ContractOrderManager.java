@@ -609,7 +609,8 @@ public class ContractOrderManager {
         updateContractAccount(bidContractOrder, contractMatchedOrderDTO);
 
         ContractMatchedOrderDO contractMatchedOrderDO = com.fota.trade.common.BeanUtils.copy(contractMatchedOrderDTO);
-        contractMatchedOrderDO.setFee(Constant.FEE_RATE);
+        BigDecimal fillMul = contractMatchedOrderDO.getFilledAmount().multiply(contractMatchedOrderDO.getFilledPrice()).multiply(Constant.FEE_RATE).setScale(2, BigDecimal.ROUND_UP);
+        contractMatchedOrderDO.setFee(fillMul);
         contractMatchedOrderDO.setAskUserId(askContractOrder.getUserId());
         contractMatchedOrderDO.setBidUserId(bidContractOrder.getUserId());
         contractMatchedOrderDO.setAskCloseType(askContractOrder.getCloseType().byteValue());
