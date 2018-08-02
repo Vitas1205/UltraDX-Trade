@@ -172,18 +172,27 @@ public class BeanUtils {
         if (contractOrderDTO.getGmtModified() != null) {
             contractOrderDO.setGmtModified(new Date(contractOrderDTO.getGmtModified()));
         }
-        contractOrderDO.setUserId(contractOrderDTO.getUserId());
+        if (contractOrderDTO.getUserId() != null) {
+            contractOrderDO.setUserId(contractOrderDTO.getUserId());
+        }if (contractOrderDTO.getOrderDirection() != null) {
+            contractOrderDO.setOrderDirection(contractOrderDTO.getOrderDirection());
+        }if (contractOrderDTO.getOrderType() != null) {
+            contractOrderDO.setOrderType(contractOrderDTO.getOrderType());
+        }if (contractOrderDTO.getOperateType() != null) {
+            contractOrderDO.setOperateType(contractOrderDTO.getOperateType());
+        }if (contractOrderDTO.getOperateDirection() != null) {
+            contractOrderDO.setOperateDirection(contractOrderDTO.getOperateDirection());
+        }if (contractOrderDTO.getUnfilledAmount() != null) {
+            contractOrderDO.setUnfilledAmount(contractOrderDTO.getUnfilledAmount());
+        }if (contractOrderDTO.getCloseType() != null) {
+            contractOrderDO.setCloseType(contractOrderDTO.getCloseType());
+        }if (contractOrderDTO.getAveragePrice() != null) {
+            contractOrderDO.setAveragePrice(contractOrderDTO.getAveragePrice());
+        }
         contractOrderDO.setContractId((long)contractOrderDTO.getContractId());
         contractOrderDO.setContractName(contractOrderDTO.getContractName());
-        contractOrderDO.setOrderDirection(contractOrderDTO.getOrderDirection());
-        contractOrderDO.setOrderType(contractOrderDTO.getOrderType());
-        contractOrderDO.setOperateType(contractOrderDTO.getOrderType());
-        contractOrderDO.setOperateDirection(contractOrderDTO.getOperateDirection());
         contractOrderDO.setTotalAmount(contractOrderDTO.getTotalAmount());
-        contractOrderDO.setUnfilledAmount(contractOrderDTO.getUnfilledAmount());
         contractOrderDO.setPrice(new BigDecimal(contractOrderDTO.getPrice()));
-        contractOrderDO.setCloseType(contractOrderDTO.getCloseType());
-        contractOrderDO.setAveragePrice(contractOrderDTO.getAveragePrice());
         return contractOrderDO;
     }
 
