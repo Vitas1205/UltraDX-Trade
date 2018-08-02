@@ -371,7 +371,7 @@ public class UsdkOrderManager {
         usdkMatchedOrderMarketDTO.setAskUserId(askUsdkOrder.getUserId());
         usdkMatchedOrderMarketDTO.setBidOrderId(bidUsdkOrder.getId());
         usdkMatchedOrderMarketDTO.setAskOrderId(askUsdkOrder.getId());
-        rocketMqManager.producer("trade", "contract", usdkMatchedOrderMarketDTO.getUsdkMatchedOrderId().toString(),
+        rocketMqManager.producer("trade", "usdk", usdkMatchedOrderMarketDTO.getUsdkMatchedOrderId().toString(),
                 JSONObject.toJSONString(usdkMatchedOrderMarketDTO));
 
 
