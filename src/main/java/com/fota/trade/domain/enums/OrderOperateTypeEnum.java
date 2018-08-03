@@ -18,6 +18,10 @@ public enum OrderOperateTypeEnum {
      * 撤单
      */
     CANCLE_ORDER(2, "CANCLE_ORDER"),
+    /**
+     * 成交
+     */
+    DEAL_ORDER(3, "DEAL_ORDER"),
 
     ;
     @Getter

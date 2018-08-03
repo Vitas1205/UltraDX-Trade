@@ -275,6 +275,15 @@ public class UsdkOrderManager {
         com.fota.client.domain.UsdkOrderDTO askUsdkOrderDTO = new com.fota.client.domain.UsdkOrderDTO();
         UsdkOrderDO askUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getAskOrderId());
         UsdkOrderDO bidUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getBidOrderId());
+        //先存Redis
+        org.springframework.beans.BeanUtils.copyProperties(askUsdkOrder, askUsdkOrderDTO);
+        org.springframework.beans.BeanUtils.copyProperties(bidUsdkOrder, bidUsdkOrderDTO);
+        askUsdkOrderDTO.setCompleteAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
+        bidUsdkOrderDTO.setCompleteAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
+        askUsdkOrderDTO.setStatus(usdkMatchedOrderDTO.getAskOrderStatus());
+        bidUsdkOrderDTO.setStatus(usdkMatchedOrderDTO.getAskOrderStatus());
+        redisManager.usdkOrderSave(askUsdkOrderDTO);
+        redisManager.usdkOrderSave(bidUsdkOrderDTO);
         log.info("---------------"+usdkMatchedOrderDTO.toString());
         log.info("---------------"+askUsdkOrder.toString());
         log.info("---------------"+bidUsdkOrder.toString());
@@ -399,13 +408,6 @@ public class UsdkOrderManager {
             log.error("向Redis存储USDK撮合订单信息失败，订单id为 {}", usdkMatchedOrderDO.getId());
         }
         log.info("========完成撮合({})=======", System.currentTimeMillis());
-
-        org.springframework.beans.BeanUtils.copyProperties(askUsdkOrder, askUsdkOrderDTO);
-        org.springframework.beans.BeanUtils.copyProperties(bidUsdkOrder, bidUsdkOrderDTO);
-        askUsdkOrderDTO.setCompleteAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
-        bidUsdkOrderDTO.setCompleteAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
-        redisManager.usdkOrderSave(askUsdkOrderDTO);
-        redisManager.usdkOrderSave(bidUsdkOrderDTO);
         return com.fota.trade.common.BeanUtils.copy(com.fota.client.common.ResultCode.success());
     }
 

@@ -582,6 +582,19 @@ public class ContractOrderManager {
         }
         ContractOrderDO askContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getAskOrderId());
         ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
+        //存入Redis缓存
+        com.fota.client.domain.ContractOrderDTO bidContractOrderDTO = new com.fota.client.domain.ContractOrderDTO();
+        com.fota.client.domain.ContractOrderDTO askContractOrderDTO = new com.fota.client.domain.ContractOrderDTO();
+        org.springframework.beans.BeanUtils.copyProperties(askContractOrder, askContractOrderDTO);
+        askContractOrderDTO.setContractId(askContractOrder.getContractId().intValue());
+        org.springframework.beans.BeanUtils.copyProperties(bidContractOrder, bidContractOrderDTO);
+        bidContractOrderDTO.setContractId(bidContractOrder.getContractId().intValue());
+        askContractOrderDTO.setCompleteAmount(new BigDecimal(contractMatchedOrderDTO.getFilledAmount()));
+        bidContractOrderDTO.setCompleteAmount(new BigDecimal(contractMatchedOrderDTO.getFilledAmount()));
+        bidContractOrderDTO.setStatus(contractMatchedOrderDTO.getBidOrderStatus());
+        askContractOrderDTO.setStatus(contractMatchedOrderDTO.getAskOrderStatus());
+        redisManager.contractOrderSave(askContractOrderDTO);
+        redisManager.contractOrderSave(bidContractOrderDTO);
         log.info("---------------"+contractMatchedOrderDTO.toString());
         log.info("---------------"+askContractOrder.toString());
         log.info("---------------"+bidContractOrder.toString());
@@ -670,17 +683,6 @@ public class ContractOrderManager {
         }
         log.info("========完成撮合({})=======", System.currentTimeMillis());
 
-        //存入缓存
-        com.fota.client.domain.ContractOrderDTO bidContractOrderDTO = new com.fota.client.domain.ContractOrderDTO();
-        com.fota.client.domain.ContractOrderDTO askContractOrderDTO = new com.fota.client.domain.ContractOrderDTO();
-        org.springframework.beans.BeanUtils.copyProperties(askContractOrder, askContractOrderDTO);
-        askContractOrderDTO.setContractId(askContractOrder.getContractId().intValue());
-        org.springframework.beans.BeanUtils.copyProperties(bidContractOrder, bidContractOrderDTO);
-        bidContractOrderDTO.setContractId(bidContractOrder.getContractId().intValue());
-        askContractOrderDTO.setCompleteAmount(new BigDecimal(contractMatchedOrderDTO.getFilledAmount()));
-        bidContractOrderDTO.setCompleteAmount(new BigDecimal(contractMatchedOrderDTO.getFilledAmount()));
-        redisManager.contractOrderSave(askContractOrderDTO);
-        redisManager.contractOrderSave(bidContractOrderDTO);
         resultCode.setCode(ResultCodeEnum.SUCCESS.getCode());
         return resultCode;
     }
