@@ -2,6 +2,7 @@ package com.fota.fotatrade;
 
 import com.fota.trade.domain.UsdkOrderDTO;
 import com.fota.trade.domain.UsdkOrderDO;
+import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.manager.UsdkOrderManager;
 import com.fota.trade.mapper.UsdkOrderMapper;
@@ -106,7 +107,13 @@ public class UsdkTradeTest {
 
     @Test
     public void update(){
-        //int ret = usdkOrderMapper.updateByFilledAmount(117L,9,new BigDecimal("1"), new BigDecimal("1"));
-        //log.info("--------"+ret);
+        UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
+        usdkOrderDO.setId(46L);
+        UsdkOrderDO usdkOrderDO2 = usdkOrderMapper.selectByPrimaryKey(usdkOrderDO.getId());
+        log.info("更新后的记录"+usdkOrderDO.getId()+":"+usdkOrderDO2);
+        if (usdkOrderDO2.getUnfilledAmount().compareTo(BigDecimal.ZERO) == 0){
+            usdkOrderDO2.setStatus(OrderStatusEnum.MATCH.getCode());
+            usdkOrderMapper.updateStatus(usdkOrderDO2);
+        }
     }
 }
