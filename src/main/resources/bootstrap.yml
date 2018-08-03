@@ -5,11 +5,11 @@ spring:
     zookeeper:
       connect-string: ${ZOOKEEPER_SERVER:47.98.100.103:2181,118.31.20.172:2181,116.62.196.53:2181}
     config:
-      profile: ${SPTRING_PROFILE:dev}
+      profile: ${SPRING_PROFILE:dev}
       label: master
       discovery:
         enabled: true
         service-id: fota-config-server-zk
 
 service-group:  ${SPRING_SERVICE:dev}
-reference-group: ${SPRING_REFERENCE:daily}
+reference-group: ${SPRING_REFERENCE:dev}
