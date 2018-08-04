@@ -1,13 +1,6 @@
 package com.fota.trade.service;
 
-import com.fota.client.domain.UsdkOrderDTO;
-import com.fota.common.Page;
-import com.fota.trade.common.BeanUtils;
-import com.fota.trade.common.ParamUtil;
 import com.fota.trade.domain.BaseQuery;
-import com.fota.trade.domain.BaseQuery;
-import com.fota.trade.domain.UsdkMatchedOrderDTO;
-import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.mapper.UsdkOrderMapper;
 import com.fota.trade.service.impl.UsdkOrderServiceImpl;

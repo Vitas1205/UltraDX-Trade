@@ -5,16 +5,14 @@ import com.alibaba.fastjson.JSONObject;
 import com.fota.asset.domain.UserContractDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
-import com.fota.client.common.ResultCodeEnum;
-import com.fota.client.domain.CompetitorsPriceDTO;
 import com.fota.match.domain.ContractMatchedOrderMarketDTO;
 import com.fota.match.domain.ContractMatchedOrderTradeDTO;
 import com.fota.match.service.ContractMatchedOrderService;
-import com.fota.match.service.UsdkMatchedOrderService;
 import com.fota.trade.common.BusinessException;
 import com.fota.trade.common.Constant;
-import com.fota.client.domain.ContractOrderDTO;
+import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.domain.*;
+import com.fota.trade.domain.dto.CompetitorsPriceDTO;
 import com.fota.trade.domain.enums.*;
 import com.fota.trade.mapper.ContractCategoryMapper;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
@@ -261,7 +259,7 @@ public class ContractOrderManager {
 
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO );
-        contractOrderDTO.setCompleteAmount(BigDecimal.ZERO);
+        contractOrderDTO.setCompleteAmount(0L);
         contractOrderDTO.setContractId(contractOrderDO.getContractId().intValue());
         redisManager.contractOrderSave(contractOrderDTO);
         //推送MQ消息
@@ -319,7 +317,7 @@ public class ContractOrderManager {
         }
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO );
-        contractOrderDTO.setCompleteAmount(new BigDecimal(contractOrderDTO.getTotalAmount()-contractOrderDTO.getUnfilledAmount()));
+        contractOrderDTO.setCompleteAmount(contractOrderDTO.getTotalAmount()-contractOrderDTO.getUnfilledAmount());
         contractOrderDTO.setContractId(contractOrderDO.getContractId().intValue());
         redisManager.contractOrderSave(contractOrderDTO);
         //todo 推送MQ消息
@@ -583,14 +581,14 @@ public class ContractOrderManager {
         ContractOrderDO askContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getAskOrderId());
         ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
         //存入Redis缓存
-        com.fota.client.domain.ContractOrderDTO bidContractOrderDTO = new com.fota.client.domain.ContractOrderDTO();
-        com.fota.client.domain.ContractOrderDTO askContractOrderDTO = new com.fota.client.domain.ContractOrderDTO();
+        ContractOrderDTO bidContractOrderDTO = new ContractOrderDTO();
+        ContractOrderDTO askContractOrderDTO = new ContractOrderDTO();
         org.springframework.beans.BeanUtils.copyProperties(askContractOrder, askContractOrderDTO);
         askContractOrderDTO.setContractId(askContractOrder.getContractId().intValue());
         org.springframework.beans.BeanUtils.copyProperties(bidContractOrder, bidContractOrderDTO);
         bidContractOrderDTO.setContractId(bidContractOrder.getContractId().intValue());
-        askContractOrderDTO.setCompleteAmount(new BigDecimal(contractMatchedOrderDTO.getFilledAmount()));
-        bidContractOrderDTO.setCompleteAmount(new BigDecimal(contractMatchedOrderDTO.getFilledAmount()));
+        askContractOrderDTO.setCompleteAmount(contractMatchedOrderDTO.getFilledAmount());
+        bidContractOrderDTO.setCompleteAmount(contractMatchedOrderDTO.getFilledAmount());
         bidContractOrderDTO.setStatus(contractMatchedOrderDTO.getBidOrderStatus());
         askContractOrderDTO.setStatus(contractMatchedOrderDTO.getAskOrderStatus());
         redisManager.contractOrderSave(askContractOrderDTO);

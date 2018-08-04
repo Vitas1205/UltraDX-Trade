@@ -1,20 +1,17 @@
 package com.fota.trade.manager;
 
 import com.alibaba.fastjson.JSONObject;
-import com.fota.client.domain.ContractOrderDTO;
-import com.fota.client.domain.UsdkOrderDTO;
 import com.fota.trade.common.Constant;
+import com.fota.trade.domain.ContractOrderDTO;
+import com.fota.trade.domain.UsdkOrderDTO;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.ListOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Component;
-
 import javax.annotation.Resource;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 

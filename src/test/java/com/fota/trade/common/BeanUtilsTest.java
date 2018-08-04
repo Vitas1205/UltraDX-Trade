@@ -1,7 +1,7 @@
 package com.fota.trade.common;
 
-import com.fota.client.domain.ContractCategoryDTO;
 import com.fota.trade.domain.ContractCategoryDO;
+import com.fota.trade.domain.ContractCategoryDTO;
 import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.trade.domain.UsdkOrderDTO;
 import org.junit.Assert;

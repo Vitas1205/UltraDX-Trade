@@ -1,11 +1,11 @@
 package com.fota.trade.mapper;
 
-import com.fota.client.domain.query.UsdkOrderQuery;
 import com.fota.trade.common.ParamUtil;
 import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderPriceTypeEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
+import com.fota.trade.domain.query.UsdkOrderQuery;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;

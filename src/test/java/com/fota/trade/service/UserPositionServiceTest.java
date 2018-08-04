@@ -1,6 +1,6 @@
 package com.fota.trade.service;
 
-import com.fota.client.domain.query.UserPositionQuery;
+import com.fota.trade.domain.query.UserPositionQuery;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;

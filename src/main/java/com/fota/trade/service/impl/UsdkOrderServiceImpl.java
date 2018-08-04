@@ -2,14 +2,10 @@ package com.fota.trade.service.impl;
 
 import com.fota.asset.domain.BalanceTransferDTO;
 import com.fota.asset.service.CapitalService;
-
-import com.fota.client.common.ResultCodeEnum;
 import com.fota.common.Page;
-import com.fota.trade.common.BeanUtils;
-import com.fota.trade.common.BusinessException;
-import com.fota.trade.common.Constant;
-import com.fota.trade.common.ParamUtil;
+import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
+import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.manager.UsdkOrderManager;
@@ -105,7 +101,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     public ResultCode order(UsdkOrderDTO usdkOrderDTO) {
         ResultCode resultCode = new ResultCode();
         try {
-            return BeanUtils.copy(usdkOrderManager.placeOrder(BeanUtils.copy(usdkOrderDTO)));
+            return usdkOrderManager.placeOrder(BeanUtils.copy(usdkOrderDTO));
         }catch (Exception e){
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
@@ -123,7 +119,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     @Override
     public ResultCode cancelOrder(long userId, long orderId) {
         try {
-            return BeanUtils.copy(usdkOrderManager.cancelOrder(userId, orderId));
+            return usdkOrderManager.cancelOrder(userId, orderId);
         }catch (Exception e){
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
@@ -144,7 +140,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     public ResultCode cancelAllOrder(long userId) {
         ResultCode resultCode = new ResultCode();
         try {
-            return BeanUtils.copy(usdkOrderManager.cancelAllOrder(userId));
+            return usdkOrderManager.cancelAllOrder(userId);
         }catch (Exception e){
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;

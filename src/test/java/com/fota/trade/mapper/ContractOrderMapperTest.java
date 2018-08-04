@@ -1,15 +1,11 @@
 package com.fota.trade.mapper;
 
-import com.fota.client.domain.query.ContractOrderQuery;
-import com.fota.client.domain.query.UsdkOrderQuery;
 import com.fota.trade.common.ParamUtil;
 import com.fota.trade.domain.ContractOrderDO;
-import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
-import com.fota.trade.domain.enums.OrderPriceTypeEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
+import com.fota.trade.domain.query.ContractOrderQuery;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;

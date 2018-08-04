@@ -1,4 +1,4 @@
-package com.fota.client.common;
+package com.fota.trade.common;
 
 import lombok.Getter;
 
@@ -6,7 +6,7 @@ import lombok.Getter;
  * @author Gavin Shen
  * @Date 2018/7/7
  */
-public enum  ResultCodeEnum {
+public enum ResultCodeEnum {
     SUCCESS(0,"SUCCESS"),
     // 参数异常
     ILLEGAL_PARAM(11001, "ILLEGAL_PARAM"),

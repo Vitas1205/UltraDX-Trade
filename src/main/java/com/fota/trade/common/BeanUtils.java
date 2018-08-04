@@ -127,20 +127,6 @@ public class BeanUtils {
         return usdkOrderDO;
     }
 
-    public static ResultCode copy(com.fota.client.common.ResultCode resultCode) {
-        ResultCode targetResultCode = new ResultCode();
-        targetResultCode.setCode(resultCode.getCode());
-        targetResultCode.setMessage(resultCode.getMessage());
-        return targetResultCode;
-    }
-
-    public static com.fota.client.common.ResultCode copy(ResultCode resultCode) {
-        com.fota.client.common.ResultCode targetResultCode = new com.fota.client.common.ResultCode();
-        targetResultCode.setCode(resultCode.getCode());
-        targetResultCode.setMessage(resultCode.getMessage());
-        return targetResultCode;
-    }
-
     public static com.fota.trade.domain.ContractOrderDTO copy(ContractOrderDO contractOrderDO) {
         com.fota.trade.domain.ContractOrderDTO contractOrderDTO = new com.fota.trade.domain.ContractOrderDTO();
         contractOrderDTO.setId(contractOrderDO.getId());

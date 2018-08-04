@@ -1,6 +1,6 @@
-package com.fota.client.domain.query;
+package com.fota.trade.domain.query;
 
-import com.fota.client.common.PageQuery;
+import com.fota.trade.common.PageQuery;
 import lombok.Data;
 
 import java.io.Serializable;

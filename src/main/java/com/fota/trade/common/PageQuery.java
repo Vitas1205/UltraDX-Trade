@@ -1,4 +1,4 @@
-package com.fota.client.common;
+package com.fota.trade.common;
 
 import lombok.Data;
 

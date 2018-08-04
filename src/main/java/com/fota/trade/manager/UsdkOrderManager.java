@@ -5,18 +5,14 @@ import com.fota.asset.domain.BalanceTransferDTO;
 import com.fota.asset.domain.UserCapitalDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.CapitalService;
-import com.fota.client.common.ResultCode;
-import com.fota.client.common.ResultCodeEnum;
-import com.fota.client.domain.UsdkOrderDTO;
+
 import com.fota.match.domain.UsdkMatchedOrderMarketDTO;
 import com.fota.match.domain.UsdkMatchedOrderTradeDTO;
 import com.fota.match.service.UsdkMatchedOrderService;
 import com.fota.trade.common.BusinessException;
 import com.fota.trade.common.Constant;
-import com.fota.trade.domain.OrderMessage;
-import com.fota.trade.domain.UsdkMatchedOrderDO;
-import com.fota.trade.domain.UsdkMatchedOrderDTO;
-import com.fota.trade.domain.UsdkOrderDO;
+import com.fota.trade.common.ResultCodeEnum;
+import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.AssetTypeEnum;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderOperateTypeEnum;
@@ -153,7 +149,7 @@ public class UsdkOrderManager {
                 }
             }
             resultCode = ResultCode.success();
-            usdkOrderDTO.setCompleteAmount(BigDecimal.ZERO);
+            usdkOrderDTO.setCompleteAmount("0");
             redisManager.usdkOrderSave(usdkOrderDTO);
             //todo 发送RocketMQ
             OrderMessage orderMessage = new OrderMessage();
@@ -218,8 +214,8 @@ public class UsdkOrderManager {
             }
             UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
             BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
-            BigDecimal matchAmount = usdkOrderDTO.getTotalAmount().subtract(usdkOrderDTO.getUnfilledAmount());
-            usdkOrderDTO.setCompleteAmount(matchAmount);
+            BigDecimal matchAmount = new BigDecimal(usdkOrderDTO.getTotalAmount()).subtract(new BigDecimal(usdkOrderDTO.getUnfilledAmount()));
+            usdkOrderDTO.setCompleteAmount(String.valueOf(matchAmount));
             redisManager.usdkOrderSave(usdkOrderDTO);
             //todo 发送RocketMQ
             OrderMessage orderMessage = new OrderMessage();
@@ -271,15 +267,15 @@ public class UsdkOrderManager {
             log.error(ResultCodeEnum.ILLEGAL_PARAM.getMessage());
             throw new RuntimeException(ResultCodeEnum.ILLEGAL_PARAM.getMessage());
         }
-        com.fota.client.domain.UsdkOrderDTO bidUsdkOrderDTO = new com.fota.client.domain.UsdkOrderDTO();
-        com.fota.client.domain.UsdkOrderDTO askUsdkOrderDTO = new com.fota.client.domain.UsdkOrderDTO();
+        UsdkOrderDTO bidUsdkOrderDTO = new UsdkOrderDTO();
+        UsdkOrderDTO askUsdkOrderDTO = new UsdkOrderDTO();
         UsdkOrderDO askUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getAskOrderId());
         UsdkOrderDO bidUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getBidOrderId());
         //先存Redis
         org.springframework.beans.BeanUtils.copyProperties(askUsdkOrder, askUsdkOrderDTO);
         org.springframework.beans.BeanUtils.copyProperties(bidUsdkOrder, bidUsdkOrderDTO);
-        askUsdkOrderDTO.setCompleteAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
-        bidUsdkOrderDTO.setCompleteAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
+        askUsdkOrderDTO.setCompleteAmount(usdkMatchedOrderDTO.getFilledAmount());
+        bidUsdkOrderDTO.setCompleteAmount(usdkMatchedOrderDTO.getFilledAmount());
         askUsdkOrderDTO.setStatus(usdkMatchedOrderDTO.getAskOrderStatus());
         bidUsdkOrderDTO.setStatus(usdkMatchedOrderDTO.getAskOrderStatus());
         redisManager.usdkOrderSave(askUsdkOrderDTO);
@@ -408,7 +404,7 @@ public class UsdkOrderManager {
             log.error("向Redis存储USDK撮合订单信息失败，订单id为 {}", usdkMatchedOrderDO.getId());
         }
         log.info("========完成撮合({})=======", System.currentTimeMillis());
-        return com.fota.trade.common.BeanUtils.copy(com.fota.client.common.ResultCode.success());
+        return ResultCode.success();
     }
 
 

@@ -1,11 +1,9 @@
 package com.fota.trade.mapper;
 
-import com.fota.client.domain.query.UserPositionQuery;
 import com.fota.trade.common.ParamUtil;
 import com.fota.trade.domain.UserPositionDO;
-import org.junit.After;
+import com.fota.trade.domain.query.UserPositionQuery;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;

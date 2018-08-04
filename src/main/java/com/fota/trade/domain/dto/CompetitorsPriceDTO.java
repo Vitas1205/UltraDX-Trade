@@ -1,4 +1,4 @@
-package com.fota.client.domain;
+package com.fota.trade.domain.dto;
 
 import lombok.Data;
 

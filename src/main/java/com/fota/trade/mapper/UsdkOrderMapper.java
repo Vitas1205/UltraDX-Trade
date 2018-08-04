@@ -1,7 +1,5 @@
 package com.fota.trade.mapper;
 
-import com.fota.client.domain.UsdkOrderDTO;
-import com.fota.client.domain.query.UsdkOrderQuery;
 import com.fota.trade.domain.UsdkOrderDO;
 import org.apache.ibatis.annotations.*;
 
