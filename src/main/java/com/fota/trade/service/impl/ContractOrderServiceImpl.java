@@ -128,22 +128,6 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         return contractOrderDTOPage;
     }
 
-    /*@Override
-    public ResultCode order(ContractOrderDTO contractOrderDTO) {
-        ResultCode resultCode = new ResultCode();
-        try {
-            resultCode = contractOrderManager.placeOrder(BeanUtils.copy(contractOrderDTO));
-        }catch (Exception e){
-            if (e instanceof BusinessException){
-                BusinessException businessException = (BusinessException) e;
-                resultCode.setCode(businessException.getCode());
-                resultCode.setMessage(businessException.getMessage());
-                return resultCode;
-            }
-            log.error("Contract order() failed", e);
-        }
-        return resultCode;
-    }*/
 
     @Override
     public ResultCode order(ContractOrderDTO contractOrderDTO) {
