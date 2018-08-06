@@ -276,11 +276,11 @@ public class ContractOrderManager {
                             BigDecimal positionUnfilledAmount = new BigDecimal(userPositionDO.getUnfilledAmount());
                             BigDecimal contractSize = contractCategoryDO.getContractSize();
                             if (positionType == PositionTypeEnum.OVER.getCode()){
-                                BigDecimal askPositionEntrustAmount = positionUnfilledAmount.multiply(contractSize).multiply(askCurrentPrice).divide(lever, 8,BigDecimal.ROUND_DOWN);
-                                totalAskExtraEntrustAmount = totalAskExtraEntrustAmount.add(getExtraEntrustAmount(bidList,askList,positionType,positionUnfilledAmount,askPositionEntrustAmount,lever,contractSize));
-                            }else if (positionType == PositionTypeEnum.EMPTY.getCode()){
                                 BigDecimal bidPositionEntrustAmount = positionUnfilledAmount.multiply(contractSize).multiply(bidCurrentPrice).divide(lever, 8,BigDecimal.ROUND_DOWN);
-                                totalBidExtraEntrustAmount = totalBidExtraEntrustAmount.add(getExtraEntrustAmount(bidList,askList,positionType,positionUnfilledAmount,bidPositionEntrustAmount,lever,contractSize));
+                                totalAskExtraEntrustAmount = totalAskExtraEntrustAmount.add(getExtraEntrustAmount(bidList,askList,positionType,positionUnfilledAmount,bidPositionEntrustAmount,lever,contractSize));
+                            }else if (positionType == PositionTypeEnum.EMPTY.getCode()){
+                                BigDecimal askPositionEntrustAmount = positionUnfilledAmount.multiply(contractSize).multiply(askCurrentPrice).divide(lever, 8,BigDecimal.ROUND_DOWN);
+                                totalBidExtraEntrustAmount = totalBidExtraEntrustAmount.add(getExtraEntrustAmount(bidList,askList,positionType,positionUnfilledAmount,askPositionEntrustAmount,lever,contractSize));
                             }
                             entrustLockAmount = entrustLockAmount.add(totalBidExtraEntrustAmount.add(totalAskExtraEntrustAmount));
                         }
