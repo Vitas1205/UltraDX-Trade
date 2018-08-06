@@ -348,8 +348,9 @@ public class ContractOrderManager {
         BigDecimal totalLockedAmount = BigDecimal.ZERO;
         List<ContractCategoryDO> queryList = contractCategoryMapper.getAllContractCategory();
         List<UserPositionDO> positionlist = userPositionMapper.selectByUserId(userId);
-        log.error("selectUnfinishedOrderByUserId {} ", userId);
         List<ContractOrderDO> contractOrderlist = contractOrderMapper.selectUnfinishedOrderByUserId(userId);
+        log.error("selectUnfinishedOrderByUserId {} contractOrderlist size {}", userId, contractOrderlist.size());
+
         if (queryList != null && queryList.size() != 0 && contractOrderlist != null && contractOrderlist.size() != 0){
             for (ContractCategoryDO contractCategoryDO : queryList){
                 BigDecimal entrustLockAmount = BigDecimal.ZERO;
