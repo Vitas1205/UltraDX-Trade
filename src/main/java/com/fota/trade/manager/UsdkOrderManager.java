@@ -156,10 +156,13 @@ public class UsdkOrderManager {
             orderMessage.setOrderId(usdkOrderDTO.getId());
             orderMessage.setEvent(OrderOperateTypeEnum.PLACE_ORDER.getCode());
             orderMessage.setUserId(usdkOrderDTO.getUserId());
-            orderMessage.setSubjectId(usdkOrderDTO.getAssetId());
+            orderMessage.setSubjectId(usdkOrderDTO.getAssetId().longValue());
+            orderMessage.setAmount(usdkOrderDO.getTotalAmount());
+            orderMessage.setPrice(usdkOrderDO.getPrice());
+            orderMessage.setTransferTime(System.currentTimeMillis());
             Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", orderMessage);
             if (!sendRet){
-                log.info("Send RocketMQ Message Failed ");
+                log.error("Send RocketMQ Message Failed ");
             }
         }else {
             resultCode = ResultCode.error(ResultCodeEnum.INSERT_USDK_ORDER_FAILED.getCode(),ResultCodeEnum.INSERT_USDK_ORDER_FAILED.getMessage());
@@ -222,7 +225,10 @@ public class UsdkOrderManager {
             orderMessage.setOrderId(usdkOrderDTO.getId());
             orderMessage.setEvent(OrderOperateTypeEnum.CANCLE_ORDER.getCode());
             orderMessage.setUserId(usdkOrderDTO.getUserId());
-            orderMessage.setSubjectId(usdkOrderDTO.getAssetId());
+            orderMessage.setSubjectId(usdkOrderDTO.getAssetId().longValue());
+            orderMessage.setAmount(usdkOrderDO.getTotalAmount());
+            orderMessage.setPrice(usdkOrderDO.getPrice());
+            orderMessage.setTransferTime(System.currentTimeMillis());
             Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", orderMessage);
             if (!sendRet){
                 log.error("Send RocketMQ Message Failed ");
@@ -271,15 +277,6 @@ public class UsdkOrderManager {
         UsdkOrderDTO askUsdkOrderDTO = new UsdkOrderDTO();
         UsdkOrderDO askUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getAskOrderId());
         UsdkOrderDO bidUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getBidOrderId());
-        //先存Redis
-        org.springframework.beans.BeanUtils.copyProperties(askUsdkOrder, askUsdkOrderDTO);
-        org.springframework.beans.BeanUtils.copyProperties(bidUsdkOrder, bidUsdkOrderDTO);
-        askUsdkOrderDTO.setCompleteAmount(usdkMatchedOrderDTO.getFilledAmount());
-        bidUsdkOrderDTO.setCompleteAmount(usdkMatchedOrderDTO.getFilledAmount());
-        askUsdkOrderDTO.setStatus(usdkMatchedOrderDTO.getAskOrderStatus());
-        bidUsdkOrderDTO.setStatus(usdkMatchedOrderDTO.getAskOrderStatus());
-        redisManager.usdkOrderSave(askUsdkOrderDTO);
-        redisManager.usdkOrderSave(bidUsdkOrderDTO);
         log.info("---------------"+usdkMatchedOrderDTO.toString());
         log.info("---------------"+askUsdkOrder.toString());
         log.info("---------------"+bidUsdkOrder.toString());
@@ -363,45 +360,30 @@ public class UsdkOrderManager {
         } catch (Exception e) {
             log.error("保存USDK订单数据到数据库失败({})", usdkMatchedOrderDO, e);
         }
-
+        //存Redis
+        org.springframework.beans.BeanUtils.copyProperties(askUsdkOrder, askUsdkOrderDTO);
+        org.springframework.beans.BeanUtils.copyProperties(bidUsdkOrder, bidUsdkOrderDTO);
+        askUsdkOrderDTO.setCompleteAmount(usdkMatchedOrderDTO.getFilledAmount());
+        bidUsdkOrderDTO.setCompleteAmount(usdkMatchedOrderDTO.getFilledAmount());
+        askUsdkOrderDTO.setStatus(usdkMatchedOrderDTO.getAskOrderStatus());
+        bidUsdkOrderDTO.setStatus(usdkMatchedOrderDTO.getAskOrderStatus());
+        redisManager.usdkOrderSave(askUsdkOrderDTO);
+        redisManager.usdkOrderSave(bidUsdkOrderDTO);
         // 向MQ推送消息
-        UsdkMatchedOrderMarketDTO usdkMatchedOrderMarketDTO = new UsdkMatchedOrderMarketDTO();
-        usdkMatchedOrderMarketDTO.setUsdkMatchedOrderId(usdkMatchedOrderDO.getId());
-        usdkMatchedOrderMarketDTO.setAssetId(askUsdkOrder.getAssetId().longValue());
-        usdkMatchedOrderMarketDTO.setAssetName(usdkMatchedOrderDO.getAssetName());
-        usdkMatchedOrderMarketDTO.setFilledPrice(filledPrice);
-        usdkMatchedOrderMarketDTO.setFilledAmount(filledAmount);
-        usdkMatchedOrderMarketDTO.setFilledDate(usdkMatchedOrderDO.getGmtCreate());
-        usdkMatchedOrderMarketDTO.setBidUserId(bidUsdkOrder.getUserId());
-        usdkMatchedOrderMarketDTO.setAskUserId(askUsdkOrder.getUserId());
-        usdkMatchedOrderMarketDTO.setBidOrderId(bidUsdkOrder.getId());
-        usdkMatchedOrderMarketDTO.setAskOrderId(askUsdkOrder.getId());
-        rocketMqManager.producer("trade", "usdk", usdkMatchedOrderMarketDTO.getUsdkMatchedOrderId().toString(),
-                JSONObject.toJSONString(usdkMatchedOrderMarketDTO));
-
-
-        // 向Redis存储消息
-        UsdkMatchedOrderTradeDTO usdkMatchedOrderTradeDTO = new UsdkMatchedOrderTradeDTO();
-        usdkMatchedOrderTradeDTO.setUsdkMatchedOrderId(usdkMatchedOrderDO.getId());
-        usdkMatchedOrderTradeDTO.setAskOrderId(usdkMatchedOrderDO.getAskOrderId());
-        usdkMatchedOrderTradeDTO.setBidOrderId(usdkMatchedOrderDO.getBidOrderId());
-        usdkMatchedOrderTradeDTO.setFilledPrice(usdkMatchedOrderDO.getFilledPrice());
-        usdkMatchedOrderTradeDTO.setFilledAmount(usdkMatchedOrderDO.getFilledAmount());
-        usdkMatchedOrderTradeDTO.setFilledDate(usdkMatchedOrderDO.getGmtCreate());
-        usdkMatchedOrderTradeDTO.setMatchType(usdkMatchedOrderDO.getMatchType().intValue());
-        usdkMatchedOrderTradeDTO.setAssetId(bidUsdkOrder.getAssetId().longValue());
-        usdkMatchedOrderTradeDTO.setAssetName(usdkMatchedOrderDO.getAssetName());
-        try {
-            String key = Constant.CACHE_KEY_MATCH_USDK + usdkMatchedOrderDO.getId();
-            Object value = JSONObject.toJSONString(usdkMatchedOrderTradeDTO);
-            log.info("向Redis存储消息,key:{},value:{}", key, value);
-            boolean re = redisManager.set(key,value);
-            if (!re){
-                log.error("向Redis存储消息失败");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            log.error("向Redis存储USDK撮合订单信息失败，订单id为 {}", usdkMatchedOrderDO.getId());
+        OrderMessage orderMessage = new OrderMessage();
+        orderMessage.setSubjectId(usdkMatchedOrderDTO.getAssetId().longValue());
+        orderMessage.setSubjectName(usdkMatchedOrderDTO.getAssetName());
+        orderMessage.setTransferTime(System.currentTimeMillis());
+        orderMessage.setPrice(new BigDecimal(usdkMatchedOrderDTO.getFilledPrice()));
+        orderMessage.setAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
+        orderMessage.setEvent(OrderOperateTypeEnum.DEAL_ORDER.getCode());
+        orderMessage.setAskOrderId(usdkMatchedOrderDTO.getAskOrderId());
+        orderMessage.setBidOrderId(usdkMatchedOrderDTO.getBidOrderId());
+        orderMessage.setAskUserId(askUsdkOrder.getUserId());
+        orderMessage.setBidUserId(bidUsdkOrder.getUserId());
+        Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", orderMessage);
+        if (!sendRet){
+            log.error("Send RocketMQ Message Failed ");
         }
         log.info("========完成撮合({})=======", System.currentTimeMillis());
         return ResultCode.success();
