@@ -16,6 +16,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +31,7 @@ import java.util.stream.Collectors;
 @SpringBootTest
 @Slf4j
 @RunWith(SpringRunner.class)
+@Transactional
 public class ContractTest {
 
     @Autowired
@@ -66,14 +68,14 @@ public class ContractTest {
             list.add(competitorsPriceDTO2);*/
 
             ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
-            contractOrderDTO.setContractId(1000);
+            //contractOrderDTO.setContractId(1000);
             contractOrderDTO.setContractName("BTC0102");
             contractOrderDTO.setUserId(282L);
             contractOrderDTO.setOrderDirection(1);
             contractOrderDTO.setOperateType(0);
             contractOrderDTO.setOrderType(0);
             contractOrderDTO.setTotalAmount(1L);
-            contractOrderDTO.setPrice("8500");
+            //contractOrderDTO.setPrice("8500");
             contractOrderService.order(contractOrderDTO);
         }
         //int insertContractOrderRet = contractOrderMapper.insertSelective(BeanUtils.copy(contractOrderDTO));

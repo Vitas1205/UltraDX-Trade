@@ -10,6 +10,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 
@@ -21,6 +22,7 @@ import javax.annotation.Resource;
  */
 @SpringBootTest
 @RunWith(SpringRunner.class)
+@Transactional
 public class RocketMqTest {
 
     @Resource
@@ -36,8 +38,8 @@ public class RocketMqTest {
         usdkOrderDTO.setAssetName("BTC");
         OrderMessage orderMessage = new OrderMessage();
         orderMessage.setEvent(OrderOperateTypeEnum.PLACE_ORDER.getCode());
-        orderMessage.setUserId(001);
-        orderMessage.setSubjectId(2);
+        /*orderMessage.setUserId(001);
+        orderMessage.setSubjectId(2);*/
         Boolean ret = rocketMqManager.sendMessage(topic,tag,orderMessage);
     }
 }

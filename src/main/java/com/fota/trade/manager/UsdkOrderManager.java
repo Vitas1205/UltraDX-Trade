@@ -149,7 +149,7 @@ public class UsdkOrderManager {
                 }
             }
             resultCode = ResultCode.success();
-            usdkOrderDTO.setCompleteAmount("0");
+            usdkOrderDTO.setCompleteAmount(BigDecimal.ZERO);
             redisManager.usdkOrderSave(usdkOrderDTO);
             //todo 发送RocketMQ
             OrderMessage orderMessage = new OrderMessage();
@@ -217,8 +217,8 @@ public class UsdkOrderManager {
             }
             UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
             BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
-            BigDecimal matchAmount = new BigDecimal(usdkOrderDTO.getTotalAmount()).subtract(new BigDecimal(usdkOrderDTO.getUnfilledAmount()));
-            usdkOrderDTO.setCompleteAmount(String.valueOf(matchAmount));
+            BigDecimal matchAmount = usdkOrderDTO.getTotalAmount().subtract(usdkOrderDTO.getUnfilledAmount());
+            usdkOrderDTO.setCompleteAmount(matchAmount);
             redisManager.usdkOrderSave(usdkOrderDTO);
             //todo 发送RocketMQ
             OrderMessage orderMessage = new OrderMessage();
@@ -363,8 +363,8 @@ public class UsdkOrderManager {
         //存Redis
         org.springframework.beans.BeanUtils.copyProperties(askUsdkOrder, askUsdkOrderDTO);
         org.springframework.beans.BeanUtils.copyProperties(bidUsdkOrder, bidUsdkOrderDTO);
-        askUsdkOrderDTO.setCompleteAmount(usdkMatchedOrderDTO.getFilledAmount());
-        bidUsdkOrderDTO.setCompleteAmount(usdkMatchedOrderDTO.getFilledAmount());
+        askUsdkOrderDTO.setCompleteAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
+        bidUsdkOrderDTO.setCompleteAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
         askUsdkOrderDTO.setStatus(usdkMatchedOrderDTO.getAskOrderStatus());
         bidUsdkOrderDTO.setStatus(usdkMatchedOrderDTO.getAskOrderStatus());
         redisManager.usdkOrderSave(askUsdkOrderDTO);
