@@ -28,4 +28,5 @@ public class OrderMessage implements Serializable {
   public Long transferTime;
   public String ip;
   public String username;
+  public BigDecimal fee;
 }

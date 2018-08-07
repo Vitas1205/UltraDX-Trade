@@ -497,8 +497,8 @@ public class ContractOrderManager {
         updateContractAccount(bidContractOrder, contractMatchedOrderDTO);
 
         ContractMatchedOrderDO contractMatchedOrderDO = com.fota.trade.common.BeanUtils.copy(contractMatchedOrderDTO);
-        BigDecimal fillMul = contractMatchedOrderDO.getFilledAmount().multiply(contractMatchedOrderDO.getFilledPrice()).multiply(Constant.FEE_RATE).setScale(2, BigDecimal.ROUND_UP);
-        contractMatchedOrderDO.setFee(fillMul);
+        BigDecimal fee = contractMatchedOrderDO.getFilledAmount().multiply(contractMatchedOrderDO.getFilledPrice()).multiply(Constant.FEE_RATE).setScale(2, BigDecimal.ROUND_UP);
+        contractMatchedOrderDO.setFee(fee);
         contractMatchedOrderDO.setAskUserId(askContractOrder.getUserId());
         contractMatchedOrderDO.setBidUserId(bidContractOrder.getUserId());
         contractMatchedOrderDO.setAskCloseType(askContractOrder.getCloseType().byteValue());
@@ -540,6 +540,7 @@ public class ContractOrderManager {
         orderMessage.setBidOrderId(contractMatchedOrderDTO.getBidOrderId());
         orderMessage.setAskUserId(askContractOrder.getUserId());
         orderMessage.setBidUserId(bidContractOrder.getUserId());
+        orderMessage.setFee(fee);
         Boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder", orderMessage);
         if (!sendRet){
             log.error("Send RocketMQ Message Failed ");
