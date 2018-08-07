@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import java.io.UnsupportedEncodingException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -93,6 +94,9 @@ public class Consumer {
                         if (resultCode != null && resultCode.getCode() == 12002){
                             return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                         }
+                    }
+                    if (keyMap == null) {
+                        keyMap = new HashMap<>(1);
                     }
                     keyMap.put(mqKey,0);
                     redisManager.set(Constant.MQ_REPET_JUDGE_KEY, keyMap);
