@@ -67,7 +67,7 @@ public class Consumer {
                 for (MessageExt messageExt:msgs){
                     String mqKey = messageExt.getKeys();
                     Map<String,Integer> keyMap = (Map<String, Integer>) redisManager.get(Constant.MQ_REPET_JUDGE_KEY);
-                    if (keyMap.containsKey(mqKey)){
+                    if (keyMap != null && keyMap.containsKey(mqKey)){
                         return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
                     }
                     String tag = messageExt.getTags();
