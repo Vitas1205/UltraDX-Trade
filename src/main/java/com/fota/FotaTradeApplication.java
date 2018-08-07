@@ -1,8 +1,9 @@
 package com.fota;
 
 import com.fota.trade.Consumer;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.rocketmq.client.exception.MQClientException;
+import com.fota.trade.service.impl.ContractCategoryServiceImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -17,12 +18,13 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-@SpringBootApplication
 @EnableAutoConfiguration
 @RefreshScope
-@Slf4j
+@SpringBootApplication
 @ImportResource("classpath:application-context.xml")
 public class FotaTradeApplication {
+
+	private static final Logger log = LoggerFactory.getLogger(ContractCategoryServiceImpl.class);
 
 	@Autowired
 	Consumer consumer;

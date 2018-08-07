@@ -68,14 +68,14 @@ public class ContractTest {
             list.add(competitorsPriceDTO2);*/
 
             ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
-            contractOrderDTO.setContractId(1000);
+            //contractOrderDTO.setContractId(1000);
             contractOrderDTO.setContractName("BTC0102");
             contractOrderDTO.setUserId(282L);
             contractOrderDTO.setOrderDirection(1);
             contractOrderDTO.setOperateType(0);
             contractOrderDTO.setOrderType(0);
             contractOrderDTO.setTotalAmount(1L);
-            contractOrderDTO.setPrice("8500");
+            //contractOrderDTO.setPrice("8500");
             contractOrderService.order(contractOrderDTO);
         }
         //int insertContractOrderRet = contractOrderMapper.insertSelective(BeanUtils.copy(contractOrderDTO));

@@ -3,6 +3,7 @@ package com.fota.trade.service.impl;
 import com.fota.trade.common.BeanUtils;
 import com.fota.trade.domain.ContractCategoryDO;
 import com.fota.trade.domain.ContractCategoryDTO;
+import com.fota.trade.domain.enums.ContractStatus;
 import com.fota.trade.domain.enums.ContractStatusEnum;
 import com.fota.trade.mapper.ContractCategoryMapper;
 import com.fota.trade.service.ContractCategoryService;
@@ -128,6 +129,18 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
             log.error("contractCategoryMapper.deleteByPrimaryKey({})", id, e);
         }
         return ret;
+    }
+
+    /**
+     * 更新合约状态
+     *
+     * @param id
+     * @param contractStatus
+     * @return
+     */
+    @Override
+    public int updateContractStatus(long id, ContractStatus contractStatus) {
+        return 0;
     }
 
 }

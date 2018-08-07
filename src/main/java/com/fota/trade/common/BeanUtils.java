@@ -93,10 +93,10 @@ public class BeanUtils {
         usdkOrderDTO.setAssetName(usdkOrderDO.getAssetName());
         usdkOrderDTO.setOrderDirection(usdkOrderDO.getOrderDirection());
         usdkOrderDTO.setOrderType(usdkOrderDO.getOrderType());
-        usdkOrderDTO.setTotalAmount(usdkOrderDO.getTotalAmount().toString());
-        usdkOrderDTO.setUnfilledAmount(usdkOrderDO.getUnfilledAmount().toString());
-        usdkOrderDTO.setPrice(usdkOrderDO.getPrice().toString());
-        usdkOrderDTO.setFee(usdkOrderDO.getFee().toString());
+        usdkOrderDTO.setTotalAmount(usdkOrderDO.getTotalAmount());
+        usdkOrderDTO.setUnfilledAmount(usdkOrderDO.getUnfilledAmount());
+        usdkOrderDTO.setPrice(usdkOrderDO.getPrice());
+        usdkOrderDTO.setFee(usdkOrderDO.getFee());
         usdkOrderDTO.setStatus(usdkOrderDO.getStatus());
         usdkOrderDTO.setAveragePrice(usdkOrderDO.getAveragePrice());
         return usdkOrderDTO;
@@ -118,10 +118,10 @@ public class BeanUtils {
         usdkOrderDO.setAssetName(usdkOrderDTO.getAssetName());
         usdkOrderDO.setOrderDirection(usdkOrderDTO.getOrderDirection());
         usdkOrderDO.setOrderType(usdkOrderDTO.getOrderType());
-        usdkOrderDO.setTotalAmount(new BigDecimal(usdkOrderDTO.getTotalAmount()));
-        usdkOrderDO.setUnfilledAmount(new BigDecimal(usdkOrderDTO.getUnfilledAmount()));
-        usdkOrderDO.setPrice(new BigDecimal(usdkOrderDTO.getPrice()));
-        usdkOrderDO.setFee(new BigDecimal(usdkOrderDTO.getFee()));
+        usdkOrderDO.setTotalAmount(usdkOrderDTO.getTotalAmount());
+        usdkOrderDO.setUnfilledAmount(usdkOrderDTO.getUnfilledAmount());
+        usdkOrderDO.setPrice(usdkOrderDTO.getPrice());
+        usdkOrderDO.setFee(usdkOrderDTO.getFee());
         usdkOrderDO.setStatus(usdkOrderDTO.getStatus());
         usdkOrderDO.setAveragePrice(usdkOrderDTO.getAveragePrice());
         return usdkOrderDO;
@@ -130,18 +130,18 @@ public class BeanUtils {
     public static com.fota.trade.domain.ContractOrderDTO copy(ContractOrderDO contractOrderDO) {
         com.fota.trade.domain.ContractOrderDTO contractOrderDTO = new com.fota.trade.domain.ContractOrderDTO();
         contractOrderDTO.setId(contractOrderDO.getId());
-        contractOrderDTO.setGmtCreate(contractOrderDO.getGmtCreate().getTime());
-        contractOrderDTO.setGmtModified(contractOrderDO.getGmtModified().getTime());
+        contractOrderDTO.setGmtCreate(contractOrderDO.getGmtCreate());
+        contractOrderDTO.setGmtModified(contractOrderDO.getGmtModified());
         contractOrderDTO.setUserId(contractOrderDO.getUserId());
-        contractOrderDTO.setContractId(contractOrderDO.getContractId().intValue());
+        contractOrderDTO.setContractId(contractOrderDO.getContractId());
         contractOrderDTO.setContractName(contractOrderDO.getContractName());
         contractOrderDTO.setOrderDirection(contractOrderDO.getOrderDirection());
         contractOrderDTO.setOrderType(contractOrderDO.getOrderType());
         contractOrderDTO.setTotalAmount(contractOrderDO.getTotalAmount());
         contractOrderDTO.setUnfilledAmount(contractOrderDO.getUnfilledAmount());
-        contractOrderDTO.setPrice(contractOrderDO.getPrice().toString());
+        contractOrderDTO.setPrice(contractOrderDO.getPrice());
         contractOrderDTO.setCloseType(contractOrderDO.getCloseType());
-        contractOrderDTO.setFee(contractOrderDO.getFee().toString());
+        contractOrderDTO.setFee(contractOrderDO.getFee());
         contractOrderDTO.setStatus(contractOrderDO.getStatus());
         contractOrderDTO.setAveragePrice(contractOrderDO.getAveragePrice());
         return contractOrderDTO;
@@ -153,10 +153,10 @@ public class BeanUtils {
             contractOrderDO.setId(contractOrderDTO.getId());
         }
         if (contractOrderDTO.getGmtCreate() != null) {
-            contractOrderDO.setGmtCreate(new Date(contractOrderDTO.getGmtCreate()));
+            contractOrderDO.setGmtCreate(contractOrderDTO.getGmtCreate());
         }
         if (contractOrderDTO.getGmtModified() != null) {
-            contractOrderDO.setGmtModified(new Date(contractOrderDTO.getGmtModified()));
+            contractOrderDO.setGmtModified(contractOrderDTO.getGmtModified());
         }
         if (contractOrderDTO.getUserId() != null) {
             contractOrderDO.setUserId(contractOrderDTO.getUserId());
@@ -178,7 +178,7 @@ public class BeanUtils {
         contractOrderDO.setContractId((long)contractOrderDTO.getContractId());
         contractOrderDO.setContractName(contractOrderDTO.getContractName());
         contractOrderDO.setTotalAmount(contractOrderDTO.getTotalAmount());
-        contractOrderDO.setPrice(new BigDecimal(contractOrderDTO.getPrice()));
+        contractOrderDO.setPrice(contractOrderDTO.getPrice());
         return contractOrderDO;
     }
 

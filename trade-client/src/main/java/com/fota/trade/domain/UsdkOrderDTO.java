@@ -17,12 +17,12 @@ public class UsdkOrderDTO implements Serializable {
   public String assetName;
   public Integer orderDirection;
   public Integer orderType;
-  public String totalAmount;
-  public String unfilledAmount;
-  public String price;
-  public String fee;
+  public BigDecimal totalAmount;
+  public BigDecimal unfilledAmount;
+  public BigDecimal price;
+  public BigDecimal fee;
   public Integer status;
   public String matchAmount;
-  public String completeAmount;
+  public BigDecimal completeAmount;
   public BigDecimal averagePrice;
 }
