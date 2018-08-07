@@ -9,7 +9,6 @@ import com.fota.trade.common.BusinessException;
 import com.fota.trade.common.Constant;
 import com.fota.trade.common.ParamUtil;
 import com.fota.trade.domain.*;
-import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.manager.ContractLeverManager;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.RedisManager;
@@ -17,17 +16,13 @@ import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.service.ContractOrderService;
 import com.fota.trade.util.PriceUtil;
-import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * @Author: JianLi.Gao
@@ -125,6 +120,15 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         return contractOrderDTOPage;
     }
 
+    /**
+     * @param contractOrderQuery
+     * @return
+     */
+    @Override
+    public List<ContractOrderDTO> getAllContractOrder(BaseQuery contractOrderQuery) {
+        return null;
+    }
+
 
     @Override
     public ResultCode order(ContractOrderDTO contractOrderDTO) {
@@ -177,6 +181,29 @@ public class ContractOrderServiceImpl implements ContractOrderService {
             log.error("Contract cancelAllOrder() failed", e);
         }
         return resultCode;
+    }
+
+    /**
+     * 撤销用户非强平单
+     *
+     * @param userId
+     * @param orderType
+     * @return
+     */
+    @Override
+    public ResultCode cancelOrderByOrderType(long userId, int orderType) {
+        return null;
+    }
+
+    /**
+     * 撤销该合约的所有委托订单
+     *
+     * @param contractId
+     * @return
+     */
+    @Override
+    public ResultCode cancelOrderByContractId(long contractId) {
+        return null;
     }
 
     @Override

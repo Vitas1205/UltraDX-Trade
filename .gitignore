@@ -4,6 +4,7 @@
 mvnw
 mvnw.cmd
 logs/
+trade-client/target
 
 bootstrap.yml
 application.yml

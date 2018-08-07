@@ -2,7 +2,6 @@ package com.fota.trade.service;
 
 import com.fota.trade.domain.ContractCategoryDTO;
 import com.fota.trade.domain.enums.ContractStatus;
-import com.fota.trade.domain.enums.ContractStatusEnum;
 
 import java.util.List;
 

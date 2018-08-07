@@ -6,6 +6,8 @@ import com.fota.trade.domain.ContractMatchedOrderDTO;
 import com.fota.trade.domain.ContractOrderDTO;
 import com.fota.trade.domain.ResultCode;
 
+import java.util.List;
+
 public interface ContractOrderService {
 
     /**
@@ -13,6 +15,13 @@ public interface ContractOrderService {
      * @return
      */
     Page<ContractOrderDTO> listContractOrderByQuery(BaseQuery contractOrderQuery);
+
+    /**
+     *
+     * @param contractOrderQuery
+     * @return
+     */
+    List<ContractOrderDTO> getAllContractOrder(BaseQuery contractOrderQuery);
 
     /**
      * 合约下单接口

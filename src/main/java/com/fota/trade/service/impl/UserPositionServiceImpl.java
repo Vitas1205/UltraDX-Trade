@@ -4,6 +4,7 @@ import com.fota.common.Page;
 import com.fota.trade.common.BeanUtils;
 import com.fota.trade.common.Constant;
 import com.fota.trade.common.ParamUtil;
+import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.UserPositionDO;
 import com.fota.trade.domain.UserPositionDTO;
 import com.fota.trade.domain.query.UserPositionQuery;
@@ -94,5 +95,15 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
 
 
         return totalPosition;
+    }
+
+    @Override
+    public ResultCode deliveryPosition(long id) {
+        return null;
+    }
+
+    @Override
+    public List<UserPositionDTO> listPositionByUserId(long userId) {
+        return null;
     }
 }
