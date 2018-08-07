@@ -29,4 +29,7 @@ public class OrderMessage implements Serializable {
   public String ip;
   public String username;
   public BigDecimal fee;
+  public Long matchOrderId;
+  public String contractMatchAssetName;
+  public Integer contractType;
 }

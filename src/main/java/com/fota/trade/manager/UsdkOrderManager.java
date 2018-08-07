@@ -17,6 +17,7 @@ import com.fota.trade.domain.enums.AssetTypeEnum;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderOperateTypeEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
+import com.fota.trade.mapper.ContractCategoryMapper;
 import com.fota.trade.mapper.UsdkMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkOrderMapper;
 import com.fota.trade.util.PriceUtil;
@@ -381,7 +382,8 @@ public class UsdkOrderManager {
         orderMessage.setBidOrderId(usdkMatchedOrderDTO.getBidOrderId());
         orderMessage.setAskUserId(askUsdkOrder.getUserId());
         orderMessage.setBidUserId(bidUsdkOrder.getUserId());
-        Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", orderMessage);
+        orderMessage.setMatchOrderId(usdkMatchedOrderDO.getId());
+        Boolean sendRet = rocketMqManager.sendMessage("match", "usdk", orderMessage);
         if (!sendRet){
             log.error("Send RocketMQ Message Failed ");
         }

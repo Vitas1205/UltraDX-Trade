@@ -1,7 +1,5 @@
 package com.fota.trade.service.impl;
 
-import com.alibaba.fastjson.JSON;
-import com.fota.asset.domain.UserContractDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
 import com.fota.trade.common.BeanUtils;
@@ -220,7 +218,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
      */
     @Override
     public BigDecimal getTodayFee() {
-        Date date=new Date();//取时间
+        Date date=new Date();
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(date);
         calendar.set(Calendar.HOUR_OF_DAY, 18);

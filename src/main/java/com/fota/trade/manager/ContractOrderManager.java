@@ -531,6 +531,8 @@ public class ContractOrderManager {
         redisManager.contractOrderSave(askContractOrderDTO);
         redisManager.contractOrderSave(bidContractOrderDTO);
         // 向MQ推送消息
+        // 通过contractId去trade_contract_category表里面获取asset_name和contract_type
+        ContractCategoryDO contractCategoryDO = contractCategoryMapper.getContractCategoryById(askContractOrder.getContractId());
         OrderMessage orderMessage = new OrderMessage();
         orderMessage.setSubjectId(contractMatchedOrderDTO.getContractId());
         orderMessage.setSubjectName(contractMatchedOrderDTO.getContractName());
@@ -543,7 +545,10 @@ public class ContractOrderManager {
         orderMessage.setAskUserId(askContractOrder.getUserId());
         orderMessage.setBidUserId(bidContractOrder.getUserId());
         orderMessage.setFee(fee);
-        Boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder", orderMessage);
+        orderMessage.setMatchOrderId(contractMatchedOrderDO.getId());
+        orderMessage.setContractMatchAssetName(contractCategoryDO.getAssetName());
+        orderMessage.setContractType(contractCategoryDO.getContractType());
+        Boolean sendRet = rocketMqManager.sendMessage("match", "contract", orderMessage);
         if (!sendRet){
             log.error("Send RocketMQ Message Failed ");
         }
