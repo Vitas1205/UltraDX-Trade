@@ -13,7 +13,7 @@ public class UserPositionDTO implements Serializable {
   public Long gmtCreate;
   public Long gmtModified;
   public Long userId;
-  public Integer contractId;
+  public Long contractId;
   public String contractName;
   public Integer positionType;
   public Long amount;

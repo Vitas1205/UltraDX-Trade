@@ -188,7 +188,7 @@ public class BeanUtils {
         userPositionDTO.setGmtCreate(userPositionDO.getGmtCreate().getTime());
         userPositionDTO.setGmtModified(userPositionDO.getGmtModified().getTime());
         userPositionDTO.setUserId(userPositionDO.getUserId());
-        userPositionDTO.setContractId(Integer.valueOf(String.valueOf(userPositionDO.getContractId())));
+        userPositionDTO.setContractId(userPositionDO.getContractId());
         userPositionDTO.setContractName(userPositionDO.getContractName());
         userPositionDTO.setPositionType(userPositionDO.getPositionType());
         userPositionDTO.setAveragePrice(userPositionDO.getAveragePrice().toString());
