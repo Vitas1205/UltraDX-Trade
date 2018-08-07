@@ -1,11 +1,14 @@
 package com.fota.trade;
 
+import com.alibaba.druid.support.json.JSONUtils;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.fota.trade.common.Constant;
 import com.fota.trade.domain.ContractMatchedOrderDTO;
 import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.UsdkMatchedOrderDTO;
 import com.fota.trade.domain.enums.TagsTypeEnum;
+import com.fota.trade.manager.RedisManager;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
 import com.fota.trade.service.impl.UsdkOrderServiceImpl;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +22,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @Author: Harry Wang
@@ -32,6 +36,8 @@ public class Consumer {
 
     @Autowired
     UsdkOrderServiceImpl usdkOrderService;
+    @Autowired
+    RedisManager redisManager;
 
     @Autowired
     ContractOrderServiceImpl contractOrderService;
@@ -59,6 +65,11 @@ public class Consumer {
                     return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
                 }
                 for (MessageExt messageExt:msgs){
+                    String mqKey = messageExt.getKeys();
+                    Map<String,Integer> keyMap = (Map<String, Integer>) redisManager.get(Constant.MQ_REPET_JUDGE_KEY);
+                    if (keyMap.containsKey(mqKey)){
+                        return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+                    }
                     String tag = messageExt.getTags();
                     byte[] bodyByte = messageExt.getBody();
                     String bodyStr = null;
@@ -83,6 +94,8 @@ public class Consumer {
                             return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                         }
                     }
+                    keyMap.put(mqKey,0);
+                    redisManager.set(Constant.MQ_REPET_JUDGE_KEY, keyMap);
                 }
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
