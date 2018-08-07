@@ -44,6 +44,20 @@ public interface ContractOrderService {
     ResultCode cancelAllOrder(long userId);
 
     /**
+     * 撤销用户非强平单
+     * @param userId
+     * @return
+     */
+    ResultCode cancelOrderByOrderType(long userId, int orderType);
+
+    /**
+     * 撤销该合约的所有委托订单
+     * @param contractId
+     * @return
+     */
+    ResultCode cancelOrderByContractId(long contractId);
+
+    /**
      * 根据成交更新订单的信息
      *
      * @param contractMatchedOrderDTO

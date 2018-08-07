@@ -33,4 +33,5 @@ public class BaseQuery extends Query {
     public Long userId;
     public Integer sourceId;
     public List<Integer> orderStatus;
+    public Integer orderType;
 }
