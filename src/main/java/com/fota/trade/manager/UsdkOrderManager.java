@@ -385,6 +385,29 @@ public class UsdkOrderManager {
         if (!sendRet){
             log.error("Send RocketMQ Message Failed ");
         }
+        // 向Redis存储消息
+        UsdkMatchedOrderTradeDTO usdkMatchedOrderTradeDTO = new UsdkMatchedOrderTradeDTO();
+        usdkMatchedOrderTradeDTO.setUsdkMatchedOrderId(usdkMatchedOrderDO.getId());
+        usdkMatchedOrderTradeDTO.setAskOrderId(usdkMatchedOrderDO.getAskOrderId());
+        usdkMatchedOrderTradeDTO.setBidOrderId(usdkMatchedOrderDO.getBidOrderId());
+        usdkMatchedOrderTradeDTO.setFilledPrice(usdkMatchedOrderDO.getFilledPrice());
+        usdkMatchedOrderTradeDTO.setFilledAmount(usdkMatchedOrderDO.getFilledAmount());
+        usdkMatchedOrderTradeDTO.setFilledDate(usdkMatchedOrderDO.getGmtCreate());
+        usdkMatchedOrderTradeDTO.setMatchType(usdkMatchedOrderDO.getMatchType().intValue());
+        usdkMatchedOrderTradeDTO.setAssetId(bidUsdkOrder.getAssetId().longValue());
+        usdkMatchedOrderTradeDTO.setAssetName(usdkMatchedOrderDO.getAssetName());
+        try {
+            String key = Constant.CACHE_KEY_MATCH_USDK + usdkMatchedOrderDO.getId();
+            Object value = JSONObject.toJSONString(usdkMatchedOrderTradeDTO);
+            log.info("向Redis存储消息,key:{},value:{}", key, value);
+            boolean re = redisManager.set(key,value);
+            if (!re){
+                log.error("向Redis存储消息失败");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.error("向Redis存储USDK撮合订单信息失败，订单id为 {}", usdkMatchedOrderDO.getId());
+        }
         log.info("========完成撮合({})=======", System.currentTimeMillis());
         return ResultCode.success();
     }

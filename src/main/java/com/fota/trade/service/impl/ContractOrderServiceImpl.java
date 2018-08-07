@@ -12,6 +12,7 @@ import com.fota.trade.domain.*;
 import com.fota.trade.manager.ContractLeverManager;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.RedisManager;
+import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.service.ContractOrderService;
@@ -20,9 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @Author: JianLi.Gao
@@ -48,6 +47,9 @@ public class ContractOrderServiceImpl implements ContractOrderService {
 
     @Autowired
     private ContractLeverManager contractLeverManager;
+
+    @Autowired
+    private ContractMatchedOrderMapper contractMatchedOrderMapper;
 
     @Autowired
     private AssetService assetService;
@@ -211,6 +213,30 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         ResultCode resultCode = new ResultCode();
         resultCode = contractOrderManager.updateOrderByMatch(contractMatchedOrderDTO);
         return resultCode;
+    }
+
+    /**
+     * 获取昨天六点到今天六点的平台手续费
+     */
+    @Override
+    public BigDecimal getTodayFee() {
+        Date date=new Date();//取时间
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        calendar.set(Calendar.HOUR_OF_DAY, 18);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        Date endDate = calendar.getTime();
+        calendar.add(Calendar.DATE,-1);
+        Date startDate = calendar.getTime();
+        BigDecimal totalFee = BigDecimal.ZERO;
+        try {
+            totalFee = contractMatchedOrderMapper.getTodayFee(startDate, endDate);
+            return totalFee;
+        }catch (Exception e){
+            log.error("getTodayFee failed",e);
+        }
+        return null;
     }
 
     private void updateContractAccount(ContractOrderDO contractOrderDO, ContractMatchedOrderDTO contractMatchedOrderDTO) {

@@ -6,6 +6,7 @@ import com.fota.trade.domain.ContractMatchedOrderDTO;
 import com.fota.trade.domain.ContractOrderDTO;
 import com.fota.trade.domain.ResultCode;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public interface ContractOrderService {
@@ -74,4 +75,8 @@ public interface ContractOrderService {
      */
     ResultCode updateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO);
 
+    /**
+     * 获取昨天六点到今天六点的平台手续费
+     */
+    BigDecimal getTodayFee();
 }

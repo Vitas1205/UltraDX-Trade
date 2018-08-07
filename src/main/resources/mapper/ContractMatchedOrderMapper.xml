@@ -37,5 +37,11 @@
         )
     </insert>
 
+    <select id="getTodayFee" resultType="java.math.BigDecimal">
+        SELECT SUM fee
+        FROM contract_matched_order
+        WHERE gmt_create > #{startDate} AND gmt_create &lt; #{endDate}
+    </select>
+
 
 </mapper>
