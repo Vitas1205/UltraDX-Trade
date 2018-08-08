@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:dubbo="http://dubbo.apache.org/schema/dubbo"
+       xmlns="http://www.springframework.org/schema/beans"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.3.xsd
+       http://dubbo.apache.org/schema/dubbo http://dubbo.apache.org/schema/dubbo/dubbo.xsd">
+
+    <dubbo:application name="fota-trade" id="fota-trade"/>
+
+    <dubbo:registry address="47.98.100.103:2181,118.31.20.172:2181,116.62.196.53:2181" protocol="zookeeper" id="zkreg" >
+        <dubbo:parameter key="qos.enable" value="false"/>
+    </dubbo:registry>
+
+    <bean id="contractCategoryService" class="com.fota.trade.service.impl.ContractCategoryServiceImpl" />
+    <bean id="usdkOrderService" class="com.fota.trade.service.impl.UsdkOrderServiceImpl"  />
+    <bean id="userPositionService" class="com.fota.trade.service.impl.UserPositionServiceImpl" />
+    <bean id="contractOrderService" class="com.fota.trade.service.impl.ContractOrderServiceImpl" />
+    <bean id="userContractLeverService" class="com.fota.trade.service.impl.UserContractLeverServiceImpl" />
+
+    <dubbo:protocol name="dubbo" port="9002" id="provider"/>
+    <dubbo:service interface="com.fota.trade.service.ContractCategoryService"  ref="contractCategoryService" registry="zkreg" group="${service-group}"  version="1.0.0"/>
+    <dubbo:service interface="com.fota.trade.service.UsdkOrderService"  ref="usdkOrderService" registry="zkreg" group="${service-group}"  version="1.0.0"/>
+    <dubbo:service interface="com.fota.trade.service.UserPositionService" ref="userPositionService" registry="zkreg" group="${service-group}" version="1.0.0"/>
+    <dubbo:service interface="com.fota.trade.service.ContractOrderService"  ref="contractOrderService" registry="zkreg" group="${service-group}" version="1.0.0"/>
+    <dubbo:service interface="com.fota.trade.service.UserContractLeverService" ref="userContractLeverService" registry="zkreg" group="${service-group}" version="1.0.0"/>
+
+
+    <dubbo:reference interface="com.fota.asset.service.AssetService" id="AssetService" check="false" registry="zkreg" group="${reference-group}" version="1.0.0"/>
+    <dubbo:reference interface="com.fota.asset.service.CapitalService" id="capitalService" check="false"  registry="zkreg" group="${reference-group}" version="1.0.0"/>
+    <dubbo:reference interface="com.fota.asset.service.ContractService" id="contractService" check="false"  registry="zkreg" group="${reference-group}" version="1.0.0" />
+
+    <dubbo:reference interface="com.fota.match.service.UsdkMatchedOrderService" id="usdkMatchedOrderService" check="false"  registry="zkreg" group="${reference-group}" version="1.0.0" />
+    <dubbo:reference interface="com.fota.match.service.ContractMatchedOrderService" id="contractMatchedOrderService" check="false"  registry="zkreg" group="${reference-group}" version="1.0.0" />
+
+</beans>

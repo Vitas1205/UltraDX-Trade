@@ -4,8 +4,11 @@
 mvnw
 mvnw.cmd
 logs/
+trade-client/target
 
+bootstrap.yml
 application.yml
+manager.xml
 application.properties
 ### STS ###
 .apt_generated
