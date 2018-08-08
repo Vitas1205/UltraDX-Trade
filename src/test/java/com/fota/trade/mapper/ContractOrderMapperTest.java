@@ -7,6 +7,7 @@ import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.domain.query.ContractOrderQuery;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -31,8 +32,10 @@ public class ContractOrderMapperTest {
     @Resource
     private ContractOrderMapper contractOrderMapper;
 
-    @Test
-    public void testInsert() throws Exception {
+    private Long userId = 9528L;
+    @Before
+    public void  init() {
+        // 准备数据
         ContractOrderDO contractOrderDO = new ContractOrderDO();
         contractOrderDO.setCloseType(0);
         contractOrderDO.setContractId(1L);
@@ -43,7 +46,7 @@ public class ContractOrderMapperTest {
         contractOrderDO.setPrice(new BigDecimal("6000.1"));
         contractOrderDO.setTotalAmount(100L);
         contractOrderDO.setUnfilledAmount(100L);
-        contractOrderDO.setUserId(9528L);
+        contractOrderDO.setUserId(userId);
         contractOrderDO.setStatus(OrderStatusEnum.COMMIT.getCode());
         int insertRet = contractOrderMapper.insert(contractOrderDO);
         Assert.assertTrue(insertRet > 0);
@@ -53,7 +56,7 @@ public class ContractOrderMapperTest {
     @Test
     public void testCountByQuery() throws Exception {
         ContractOrderQuery contractOrderQuery = new ContractOrderQuery();
-        contractOrderQuery.setUserId(9527L);
+        contractOrderQuery.setUserId(userId);
         contractOrderQuery.setPageSize(20);
         contractOrderQuery.setPageNo(1);
         Integer count = contractOrderMapper.countByQuery(ParamUtil.objectToMap(contractOrderQuery));
@@ -63,7 +66,7 @@ public class ContractOrderMapperTest {
     @Test
     public void testListByQuery() throws Exception {
         ContractOrderQuery contractOrderQuery = new ContractOrderQuery();
-        contractOrderQuery.setUserId(9527L);
+        contractOrderQuery.setUserId(userId);
         contractOrderQuery.setPageSize(20);
         contractOrderQuery.setPageNo(1);
         List<ContractOrderDO> list = contractOrderMapper.listByQuery((ParamUtil.objectToMap(contractOrderQuery)));
@@ -73,7 +76,7 @@ public class ContractOrderMapperTest {
 
     @Test
     public void testSelectUnfinishedOrder() throws Exception {
-        List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByUserId(282L);
+        List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByUserId(userId);
         log.info("----------------------------"+list.size());
     }
 
