@@ -83,4 +83,11 @@ public interface ContractCategoryMapper {
             "where id = #{id,jdbcType=BIGINT}"
     })
     int deleteByPrimaryKey(Long id);
+
+    @Update({
+            "update trade_contract_category",
+            "set status = #{status,jdbcType=INTEGER}",
+            "where id = #{id,jdbcType=BIGINT}"
+    })
+    int updataStatusById(@Param("id") Long id, @Param("status") Integer status);
 }

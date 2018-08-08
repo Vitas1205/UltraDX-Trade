@@ -115,6 +115,18 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
      */
     @Override
     public List<UserPositionDTO> listPositionByUserId(long userId) {
+        try {
+            List<UserPositionDO> DOlist = userPositionMapper.selectByUserId(userId);
+            List<UserPositionDTO> DTOlist = new ArrayList<>();
+            if (DOlist != null && DOlist.size() > 0) {
+                for (UserPositionDO tmp : DOlist) {
+                    DTOlist.add(BeanUtils.copy(tmp));
+                }
+            }
+            return DTOlist;
+        }catch (Exception e){
+            log.error("listPositionByUserId failed:{}",userId);
+        }
         return null;
     }
 }

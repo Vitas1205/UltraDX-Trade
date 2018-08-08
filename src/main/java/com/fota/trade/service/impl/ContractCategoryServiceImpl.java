@@ -140,6 +140,12 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
      */
     @Override
     public int updateContractStatus(long id, ContractStatus contractStatus) {
+        try {
+            int ret = contractCategoryMapper.updataStatusById(id, contractStatus.getCode());
+            return ret;
+        }catch (Exception e){
+            log.error("updateContractStatus failed ({})", id, e);
+        }
         return 0;
     }
 

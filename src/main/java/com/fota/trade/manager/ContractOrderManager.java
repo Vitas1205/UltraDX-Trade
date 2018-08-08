@@ -121,6 +121,29 @@ public class ContractOrderManager {
         return resultCode;
     }
 
+    public ResultCode cancelOrderByContractId(Long contractId) throws Exception{
+        ResultCode resultCode = new ResultCode();
+        List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByContractId(contractId);
+        int i = 0;
+        if (list != null){
+            for(ContractOrderDO contractOrderDO : list){
+                if (contractOrderDO.getStatus() == OrderStatusEnum.COMMIT.getCode() || contractOrderDO.getStatus() == OrderStatusEnum.PART_MATCH.getCode()){
+                    i++;
+                    Long orderId = contractOrderDO.getId();
+                    cancelOrder(contractOrderDO.getUserId(), orderId);
+                }
+            }
+        }
+        if (i == 0){
+            resultCode.setCode(ResultCodeEnum.NO_CANCELLABLE_ORDERS.getCode());
+            resultCode.setMessage(ResultCodeEnum.NO_CANCELLABLE_ORDERS.getMessage());
+            return resultCode;
+        }
+        resultCode.setCode(0);
+        resultCode.setMessage("success");
+        return resultCode;
+    }
+
 
     @Transactional(rollbackFor = {Exception.class, RuntimeException.class, BusinessException.class})
     public ResultCode placeOrder(ContractOrderDO contractOrderDO) throws Exception{
@@ -165,12 +188,19 @@ public class ContractOrderManager {
     }
 
 
-    @Transactional(rollbackFor = {Exception.class, RuntimeException.class, BusinessException.class})
+
     public ResultCode cancelOrder(Long userId, Long orderId) throws Exception{
         ResultCode resultCode = new ResultCode();
         ContractOrderDO contractOrderDO = contractOrderMapper.selectByIdAndUserId(orderId, userId);
+        resultCode = cancelOrderImpl(contractOrderDO);
+        return resultCode;
+    }
+
+    @Transactional(rollbackFor = {Exception.class, RuntimeException.class, BusinessException.class})
+    public ResultCode cancelOrderImpl(ContractOrderDO contractOrderDO) throws Exception{
+        ResultCode resultCode = new ResultCode();
         Integer status = contractOrderDO.getStatus();
-        boolean judegRet = getJudegRet(orderId,contractOrderDO.getOrderDirection(),new BigDecimal(contractOrderDO.getUnfilledAmount()));
+        boolean judegRet = getJudegRet(contractOrderDO.getId(),contractOrderDO.getOrderDirection(),new BigDecimal(contractOrderDO.getUnfilledAmount()));
         if (!judegRet){
             resultCode.setCode(ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getCode());
             resultCode.setMessage(ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getMessage());
@@ -192,9 +222,9 @@ public class ContractOrderManager {
         }
         int ret = contractOrderMapper.updateByOpLock(contractOrderDO);
         if (ret > 0){
-            UserContractDTO userContractDTO = getAssetService().getContractAccount(userId);
+            UserContractDTO userContractDTO = getAssetService().getContractAccount(contractOrderDO.getUserId());
             BigDecimal lockedAmount = new BigDecimal(userContractDTO.getLockedAmount());
-            BigDecimal totalLockAmount = getTotalLockAmount(userId);
+            BigDecimal totalLockAmount = getTotalLockAmount(contractOrderDO.getUserId());
             if (lockedAmount.compareTo(totalLockAmount) != 0 ){
                 lockContractAccount(userContractDTO, totalLockAmount);
             }

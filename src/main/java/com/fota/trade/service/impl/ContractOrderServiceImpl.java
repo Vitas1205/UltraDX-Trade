@@ -204,13 +204,31 @@ public class ContractOrderServiceImpl implements ContractOrderService {
      */
     @Override
     public ResultCode cancelOrderByContractId(long contractId) {
-        return null;
+        ResultCode resultCode = new ResultCode();
+        try {
+            resultCode = contractOrderManager.cancelOrderByContractId(contractId);
+            return resultCode;
+        }catch (Exception e){
+            if (e instanceof BusinessException){
+                BusinessException businessException = (BusinessException) e;
+                resultCode.setCode(businessException.getCode());
+                resultCode.setMessage(businessException.getMessage());
+                return resultCode;
+            }
+            log.error("Contract cancelOrderByContractId() failed", e);
+        }
+        return resultCode;
     }
 
     @Override
     public ResultCode updateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO) {
         ResultCode resultCode = new ResultCode();
-        resultCode = contractOrderManager.updateOrderByMatch(contractMatchedOrderDTO);
+        try {
+            resultCode = contractOrderManager.updateOrderByMatch(contractMatchedOrderDTO);
+            return resultCode;
+        }catch (Exception e){
+            log.error("contract updateOrderByMatch failed:{}",contractMatchedOrderDTO);
+        }
         return resultCode;
     }
 
@@ -230,7 +248,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         Date startDate = calendar.getTime();
         BigDecimal totalFee = BigDecimal.ZERO;
         try {
-            totalFee = contractMatchedOrderMapper.getTodayFee(startDate, endDate);
+            totalFee = contractMatchedOrderMapper.getAllFee(startDate, endDate);
             return totalFee;
         }catch (Exception e){
             log.error("getTodayFee failed",e);
