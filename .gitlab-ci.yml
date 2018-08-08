@@ -1,0 +1,28 @@
+job1:
+  stage: build
+  script:
+    - mvn clean package -Dmaven.test.skip=true
+
+job2:
+  stage: test
+  script:
+    - mvn clean test && cat target/jacoco-ut/index.html
+  artifacts:
+    paths:
+      - target/jacoco-ut/
+
+pages:
+  stage: deploy
+  dependencies:
+    - job2
+  script:
+    - mv target/jacoco-ut/ public/
+  artifacts:
+    paths:
+      - public
+    expire_in: 10 days
+
+stages:
+  - build
+  - test
+  - deploy

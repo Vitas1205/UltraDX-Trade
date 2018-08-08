@@ -33,7 +33,7 @@ public interface UsdkOrderMapper {
         "asset_id, asset_name, ",
         "order_direction, order_type, ",
         "total_amount, unfilled_amount, ",
-        "price, fee, status)",
+        "price, fee, status, average_price)",
         "values (#{id,jdbcType=BIGINT}, now(), ",
         "now(), #{userId,jdbcType=BIGINT}, ",
         "#{assetId,jdbcType=INTEGER}, #{assetName,jdbcType=VARCHAR}, ",

@@ -27,7 +27,7 @@ public class LeverMapperTest {
     @Test
     public void selectLeverTest(){
         UserContractLeverDO userContractLeverDO = new UserContractLeverDO();
-        userContractLeverDO.setUserId(9527L);
+        userContractLeverDO.setUserId(9528L);
         userContractLeverDO.setAssetId(1);
         userContractLeverDO.setAssetName("btc");
         userContractLeverDO.setLever(10);

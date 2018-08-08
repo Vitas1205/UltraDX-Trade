@@ -71,7 +71,7 @@ public class UsdkTradeTest {
 //        UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
 //        BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
 //        log.info("======================="+usdkOrderDTO.getAssetName());
-        usdkOrderManager.placeOrder(usdkOrderDO);
+//        usdkOrderManager.placeOrder(usdkOrderDO);
     }
 
     @Test
@@ -103,8 +103,8 @@ public class UsdkTradeTest {
 
     @Test
     public void getJudgeTest(){
-        boolean ret = usdkOrderManager.getJudegRet(614L,2,new BigDecimal(1));
-        log.info("--------"+ret);
+//        boolean ret = usdkOrderManager.getJudegRet(614L,2,new BigDecimal(1));
+//        log.info("--------"+ret);
     }
 
     @Test

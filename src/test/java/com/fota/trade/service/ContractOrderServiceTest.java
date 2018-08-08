@@ -71,7 +71,7 @@ public class ContractOrderServiceTest {
         contractMatchedOrderDTO.setFilledAmount(5l);
         contractMatchedOrderDTO.setBidOrderPrice("6510");
         contractMatchedOrderDTO.setAskOrderPrice("6500");
-        ResultCode resultCode = contractOrderService.updateOrderByMatch(contractMatchedOrderDTO);
+//        ResultCode resultCode = contractOrderService.updateOrderByMatch(contractMatchedOrderDTO);
 
 
     }

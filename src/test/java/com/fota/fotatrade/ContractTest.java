@@ -97,15 +97,15 @@ public class ContractTest {
 
         long userId = 200L;
         long contractId = 332L;
-        ResultCode resultCode = contractOrderManager.cancelOrder(userId,contractId);
-        log.info("-------------------"+resultCode.toString());
+//        ResultCode resultCode = contractOrderManager.cancelOrder(userId,contractId);
+//        log.info("-------------------"+resultCode.toString());
     }
 
     @Test
     public void cancelOrder(){
         Long userId = 9527L;
         Long orderId = 349L;
-        contractOrderService.cancelOrder(userId, orderId);
+//        contractOrderService.cancelOrder(userId, orderId);
     }
     @Test
     public void cancleAllOrder(){
