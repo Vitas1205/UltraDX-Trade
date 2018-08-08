@@ -130,8 +130,25 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
         return null;
     }
 
+    /**
+     * * * todo@王冕
+     * @param contractId
+     * @return
+     */
     @Override
     public List<UserPositionDTO> listPositionByContractId(Long contractId) {
+        try {
+            List<UserPositionDO> DOlist = userPositionMapper.selectByContractId(contractId);
+            List<UserPositionDTO> DTOlist = new ArrayList<>();
+            if (DOlist != null && DOlist.size() > 0) {
+                for (UserPositionDO tmp : DOlist) {
+                    DTOlist.add(BeanUtils.copy(tmp));
+                }
+            }
+            return DTOlist;
+        }catch (Exception e){
+            log.error("listPositionByContractId failed:{}",contractId);
+        }
         return null;
     }
 }
