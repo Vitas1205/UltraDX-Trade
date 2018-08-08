@@ -97,11 +97,22 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
         return totalPosition;
     }
 
+    /**
+     * * * todo@荆轲
+     * @param id
+     * @return
+     */
     @Override
     public ResultCode deliveryPosition(long id) {
         return null;
     }
 
+
+    /**
+     * * * todo@王冕
+     * @param userId
+     * @return
+     */
     @Override
     public List<UserPositionDTO> listPositionByUserId(long userId) {
         return null;
