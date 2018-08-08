@@ -17,4 +17,6 @@ public interface UserPositionService {
 
     List<UserPositionDTO> listPositionByUserId(long userId);
 
+    List<UserPositionDTO> listPositionByContractId(Long contractId);
+
 }

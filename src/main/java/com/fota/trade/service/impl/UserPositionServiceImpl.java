@@ -129,4 +129,9 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
         }
         return null;
     }
+
+    @Override
+    public List<UserPositionDTO> listPositionByContractId(Long contractId) {
+        return null;
+    }
 }
