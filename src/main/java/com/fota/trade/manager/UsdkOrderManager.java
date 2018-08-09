@@ -162,6 +162,7 @@ public class UsdkOrderManager {
             orderMessage.setEvent(OrderOperateTypeEnum.PLACE_ORDER.getCode());
             orderMessage.setUserId(usdkOrderDTO.getUserId());
             orderMessage.setSubjectId(usdkOrderDTO.getAssetId().longValue());
+            orderMessage.setSubjectName(usdkOrderDTO.getAssetName());
             orderMessage.setAmount(usdkOrderDO.getTotalAmount());
             orderMessage.setPrice(usdkOrderDO.getPrice());
             orderMessage.setTransferTime(System.currentTimeMillis());
@@ -232,6 +233,7 @@ public class UsdkOrderManager {
             orderMessage.setEvent(OrderOperateTypeEnum.CANCLE_ORDER.getCode());
             orderMessage.setUserId(usdkOrderDTO.getUserId());
             orderMessage.setSubjectId(usdkOrderDTO.getAssetId().longValue());
+            orderMessage.setSubjectName(usdkOrderDTO.getAssetName());
             orderMessage.setAmount(usdkOrderDO.getTotalAmount());
             orderMessage.setPrice(usdkOrderDO.getPrice());
             orderMessage.setTransferTime(System.currentTimeMillis());
