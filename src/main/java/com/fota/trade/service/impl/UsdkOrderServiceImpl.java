@@ -51,6 +51,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     @Override
     public Page<UsdkOrderDTO> listUsdkOrderByQuery(BaseQuery usdkOrderQuery) {
         Page<UsdkOrderDTO> usdkOrderDTOPage = new Page<UsdkOrderDTO>();
+        log.info("usdkOrderQuery:{}", usdkOrderQuery);
         if (usdkOrderQuery == null || usdkOrderQuery.getUserId() <= 0) {
             return usdkOrderDTOPage;
         }
