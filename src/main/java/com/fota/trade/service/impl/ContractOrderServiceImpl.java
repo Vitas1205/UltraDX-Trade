@@ -63,7 +63,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     @Override
     public com.fota.common.Page<ContractOrderDTO> listContractOrderByQuery(BaseQuery contractOrderQueryDTO) {
         com.fota.common.Page<ContractOrderDTO> contractOrderDTOPageRet = new com.fota.common.Page<>();
-        if (contractOrderQueryDTO.getUserId() <= 0) {
+        if (null == contractOrderQueryDTO){
             return null;
         }
         com.fota.common.Page<ContractOrderDTO> contractOrderDTOPage = new com.fota.common.Page<>();
