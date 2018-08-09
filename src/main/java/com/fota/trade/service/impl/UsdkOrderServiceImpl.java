@@ -32,6 +32,8 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
 
     private static final Logger log = LoggerFactory.getLogger(UsdkOrderServiceImpl.class);
 
+    private static final Logger tradeLog = LoggerFactory.getLogger("trade");
+
     @Autowired
     private UsdkOrderMapper usdkOrderMapper;
 
@@ -101,7 +103,10 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     public ResultCode order(UsdkOrderDTO usdkOrderDTO) {
         ResultCode resultCode = new ResultCode();
         try {
-            return usdkOrderManager.placeOrder(BeanUtils.copy(usdkOrderDTO));
+            ResultCode rst = usdkOrderManager.placeOrder(BeanUtils.copy(usdkOrderDTO));
+            if (rst.isSuccess()) {
+                tradeLog.info("下单@@@" + usdkOrderDTO);
+            }
         }catch (Exception e){
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
@@ -119,7 +124,10 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     @Override
     public ResultCode cancelOrder(long userId, long orderId) {
         try {
-            return usdkOrderManager.cancelOrder(userId, orderId);
+            ResultCode rst = usdkOrderManager.cancelOrder(userId, orderId);
+            if (rst.isSuccess()) {
+                tradeLog.info("撤销@@@" + userId+ "@@@" + orderId);
+            }
         }catch (Exception e){
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
