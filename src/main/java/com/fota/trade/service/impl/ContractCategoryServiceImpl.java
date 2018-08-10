@@ -3,6 +3,7 @@ package com.fota.trade.service.impl;
 import com.fota.trade.common.BeanUtils;
 import com.fota.trade.domain.ContractCategoryDO;
 import com.fota.trade.domain.ContractCategoryDTO;
+import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.enums.ContractStatus;
 import com.fota.trade.domain.enums.ContractStatusEnum;
 import com.fota.trade.mapper.ContractCategoryMapper;
@@ -147,6 +148,11 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
             log.error("updateContractStatus failed ({})", id, e);
         }
         return 0;
+    }
+
+    @Override
+    public ResultCode rollback(Long aLong, Long aLong1) {
+        return null;
     }
 
 }
