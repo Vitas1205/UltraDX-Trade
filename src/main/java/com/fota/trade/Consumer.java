@@ -66,40 +66,44 @@ public class Consumer {
                     return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
                 }
                 for (MessageExt messageExt:msgs){
-                    String mqKey = messageExt.getKeys();
-                    Map<String,Integer> keyMap = (Map<String, Integer>) redisManager.get(Constant.MQ_REPET_JUDGE_KEY);
-                    if (keyMap != null && keyMap.containsKey(mqKey)){
-                        return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-                    }
-                    String tag = messageExt.getTags();
-                    byte[] bodyByte = messageExt.getBody();
-                    String bodyStr = null;
                     try {
-                        bodyStr = new String(bodyByte, "UTF-8");
-                    } catch (UnsupportedEncodingException e) {
-                        log.error("get mq message failed",e);
-                    }
-                    log.info("bodyStr()------------"+bodyStr);
-                    if (TagsTypeEnum.USDK.getDesc().equals(tag)) {
-                        UsdkMatchedOrderDTO usdkMatchedOrderDTO = JSON.parseObject(bodyStr,UsdkMatchedOrderDTO.class);
-                        ResultCode resultCode = usdkOrderService.updateOrderByMatch(usdkMatchedOrderDTO);
-                        log.info("resultCode---------------"+resultCode);
-                        if (resultCode != null && resultCode.getCode() == 12002){
-                            return ConsumeConcurrentlyStatus.RECONSUME_LATER;
+                        String mqKey = messageExt.getKeys();
+                        Map<String, Integer> keyMap = (Map<String, Integer>) redisManager.get(Constant.MQ_REPET_JUDGE_KEY);
+                        if (keyMap != null && keyMap.containsKey(mqKey)) {
+                            return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
                         }
-                    } else if (TagsTypeEnum.CONTRACT.getDesc().equals(tag)) {
-                        ContractMatchedOrderDTO contractMatchedOrderDTO = JSON.parseObject(bodyStr,ContractMatchedOrderDTO.class);
-                        ResultCode resultCode = contractOrderService.updateOrderByMatch(contractMatchedOrderDTO);
-                        log.info("resultCode---------------"+resultCode);
-                        if (resultCode != null && resultCode.getCode() == 12002){
-                            return ConsumeConcurrentlyStatus.RECONSUME_LATER;
+                        String tag = messageExt.getTags();
+                        byte[] bodyByte = messageExt.getBody();
+                        String bodyStr = null;
+                        try {
+                            bodyStr = new String(bodyByte, "UTF-8");
+                        } catch (UnsupportedEncodingException e) {
+                            log.error("get mq message failed", e);
                         }
+                        log.info("bodyStr()------------" + bodyStr);
+                        if (TagsTypeEnum.USDK.getDesc().equals(tag)) {
+                            UsdkMatchedOrderDTO usdkMatchedOrderDTO = JSON.parseObject(bodyStr, UsdkMatchedOrderDTO.class);
+                            ResultCode resultCode = usdkOrderService.updateOrderByMatch(usdkMatchedOrderDTO);
+                            log.info("resultCode---------------" + resultCode);
+                            if (resultCode != null && resultCode.getCode() == 12002) {
+                                return ConsumeConcurrentlyStatus.RECONSUME_LATER;
+                            }
+                        } else if (TagsTypeEnum.CONTRACT.getDesc().equals(tag)) {
+                            ContractMatchedOrderDTO contractMatchedOrderDTO = JSON.parseObject(bodyStr, ContractMatchedOrderDTO.class);
+                            ResultCode resultCode = contractOrderService.updateOrderByMatch(contractMatchedOrderDTO);
+                            log.info("resultCode---------------" + resultCode);
+                            if (resultCode != null && resultCode.getCode() == 12002) {
+                                return ConsumeConcurrentlyStatus.RECONSUME_LATER;
+                            }
+                        }
+                        if (keyMap == null) {
+                            keyMap = new HashMap<>(1);
+                        }
+                        keyMap.put(mqKey, 0);
+                        redisManager.set(Constant.MQ_REPET_JUDGE_KEY, keyMap);
+                    } catch (Exception e) {
+                        log.error("trade consume error ", e);
                     }
-                    if (keyMap == null) {
-                        keyMap = new HashMap<>(1);
-                    }
-                    keyMap.put(mqKey,0);
-                    redisManager.set(Constant.MQ_REPET_JUDGE_KEY, keyMap);
                 }
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
