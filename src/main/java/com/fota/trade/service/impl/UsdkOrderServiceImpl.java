@@ -108,6 +108,8 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
                 tradeLog.info("下单@@@" + usdkOrderDTO);
             }
         }catch (Exception e){
+            log.error("Contract order() failed", e);
+
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
                 resultCode.setCode(businessException.getCode());
