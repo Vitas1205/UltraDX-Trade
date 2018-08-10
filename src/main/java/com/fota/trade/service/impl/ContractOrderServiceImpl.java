@@ -136,6 +136,8 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         try {
             resultCode = contractOrderManager.placeOrder(BeanUtils.copy(contractOrderDTO));
         }catch (Exception e){
+            log.error("Contract order() failed", e);
+
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
                 resultCode.setCode(businessException.getCode());
