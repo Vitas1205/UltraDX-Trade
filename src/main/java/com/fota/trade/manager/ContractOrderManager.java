@@ -473,9 +473,9 @@ public class ContractOrderManager {
         }
         ContractOrderDO askContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getAskOrderId());
         ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
-        log.info("---------------"+contractMatchedOrderDTO.toString());
-        log.info("---------------"+askContractOrder.toString());
-        log.info("---------------"+bidContractOrder.toString());
+        log.info("---------------{}", contractMatchedOrderDTO);
+        log.info("---------------{}", askContractOrder);
+        log.info("---------------{}", bidContractOrder);
         if (askContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0
                 || bidContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0){
             log.error(ResultCodeEnum.ORDER_UNFILLEDAMOUNT_NOT_ENOUGHT.getMessage());
