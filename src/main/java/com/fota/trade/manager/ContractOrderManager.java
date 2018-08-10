@@ -239,9 +239,10 @@ public class ContractOrderManager {
         List<ContractCategoryDO> queryList = contractCategoryMapper.getAllContractCategory();
         List<UserPositionDO> positionlist = userPositionMapper.selectByUserId(userId);
         List<ContractOrderDO> contractOrderlist = contractOrderMapper.selectUnfinishedOrderByUserId(userId);
-        log.error("selectUnfinishedOrderByUserId {} contractOrderlist size {}, contractOrderlist {}", userId, contractOrderlist.size(), contractOrderlist.get(0).toString());
 
         if (queryList != null && queryList.size() != 0 && contractOrderlist != null && contractOrderlist.size() != 0){
+            log.error("selectUnfinishedOrderByUserId {} contractOrderlist size {}, contractOrderlist {}", userId, contractOrderlist.size(), contractOrderlist.get(0).toString());
+
             for (ContractCategoryDO contractCategoryDO : queryList){
                 BigDecimal entrustLockAmount = BigDecimal.ZERO;
                 long contractId = contractCategoryDO.getId();
@@ -715,9 +716,10 @@ public class ContractOrderManager {
         } catch (Exception e) {
             log.error("get totalLockAmount failed",e);
         }
-        BigDecimal addedTotalLocked = totalLockAmount.subtract(lockedAmount);
         //todo 更新余额
         try {
+            BigDecimal addedTotalLocked = totalLockAmount.subtract(lockedAmount);
+
             boolean updateContractRet = getContractService().updateContractBalance(contractOrderDO.getUserId(),
                     addedTotalAmount.toString(),
                     addedTotalLocked.toString());
