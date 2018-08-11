@@ -131,6 +131,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
             if (rst.isSuccess()) {
                 tradeLog.info("撤销@@@" + userId+ "@@@" + orderId);
             }
+            return rst;
         }catch (Exception e){
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
