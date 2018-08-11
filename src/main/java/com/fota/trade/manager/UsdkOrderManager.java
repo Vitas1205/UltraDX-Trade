@@ -288,12 +288,12 @@ public class UsdkOrderManager {
         log.info("---------------"+bidUsdkOrder.toString());
         if (askUsdkOrder.getUnfilledAmount().compareTo(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount())) < 0
                 || bidUsdkOrder.getUnfilledAmount().compareTo(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount())) < 0){
-            log.error(ResultCodeEnum.ORDER_UNFILLEDAMOUNT_NOT_ENOUGHT.getMessage());
+            log.error("updateOrderByMatch " + ResultCodeEnum.ORDER_UNFILLEDAMOUNT_NOT_ENOUGHT.getMessage());
             throw new RuntimeException(ResultCodeEnum.ORDER_UNFILLEDAMOUNT_NOT_ENOUGHT.getMessage());
         }
         if (askUsdkOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && askUsdkOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()
                 && bidUsdkOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && bidUsdkOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()){
-            log.error(ResultCodeEnum.ASK_AND_BID_ILLEGAL.getMessage());
+            log.error("updateOrderByMatch " + ResultCodeEnum.ASK_AND_BID_ILLEGAL.getMessage());
             throw new RuntimeException(ResultCodeEnum.ASK_AND_BID_ILLEGAL.getMessage());
         }
         if (askUsdkOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && askUsdkOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()){
@@ -376,6 +376,7 @@ public class UsdkOrderManager {
         redisManager.usdkOrderSave(askUsdkOrderDTO);
         redisManager.usdkOrderSave(bidUsdkOrderDTO);
         // 向MQ推送消息
+        //TODO 把IP去掉
         OrderMessage orderMessage = new OrderMessage();
         orderMessage.setSubjectId(usdkMatchedOrderDTO.getAssetId().longValue());
         orderMessage.setSubjectName(usdkMatchedOrderDTO.getAssetName());
