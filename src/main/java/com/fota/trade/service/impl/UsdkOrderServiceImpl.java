@@ -171,17 +171,17 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     public ResultCode updateOrderByMatch(UsdkMatchedOrderDTO usdkMatchedOrderDTO) {
         ResultCode resultCode = new ResultCode();
         try {
-            resultCode =  usdkOrderManager.updateOrderByMatch(usdkMatchedOrderDTO);
+            resultCode = usdkOrderManager.updateOrderByMatch(usdkMatchedOrderDTO);
             log.info("resultCode----------------------"+resultCode.toString());
             return resultCode;
         }catch (Exception e){
+            log.error("USDK updateOrderByMatch() failed", e);
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
                 resultCode.setCode(businessException.getCode());
                 resultCode.setMessage(businessException.getMessage());
                 return resultCode;
             }
-            log.error("USDK updateOrderByMatch() failed", e);
         }
         resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
         resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());

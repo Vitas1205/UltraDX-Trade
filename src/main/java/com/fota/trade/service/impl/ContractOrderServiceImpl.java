@@ -2,11 +2,9 @@ package com.fota.trade.service.impl;
 
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
-import com.fota.trade.common.BeanUtils;
-import com.fota.trade.common.BusinessException;
-import com.fota.trade.common.Constant;
-import com.fota.trade.common.ParamUtil;
+import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
+import com.fota.trade.domain.ResultCode;
 import com.fota.trade.manager.ContractLeverManager;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.RedisManager;
@@ -211,7 +209,14 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     @Override
     public ResultCode updateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO) {
         ResultCode resultCode = new ResultCode();
-        resultCode = contractOrderManager.updateOrderByMatch(contractMatchedOrderDTO);
+        try {
+            resultCode = contractOrderManager.updateOrderByMatch(contractMatchedOrderDTO);
+            return resultCode;
+        } catch (Exception e) {
+            log.error("updateOrderByMatch error", e);
+        }
+        resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
+        resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());
         return resultCode;
     }
 
