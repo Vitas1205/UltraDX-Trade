@@ -381,7 +381,7 @@ public class UsdkOrderManager {
         OrderMessage orderMessage = new OrderMessage();
         orderMessage.setSubjectId(usdkMatchedOrderDTO.getAssetId().longValue());
         orderMessage.setSubjectName(usdkMatchedOrderDTO.getAssetName());
-        orderMessage.setTransferTime(System.currentTimeMillis());
+        orderMessage.setTransferTime(usdkMatchedOrderDO.getGmtCreate().getTime());
         orderMessage.setPrice(new BigDecimal(usdkMatchedOrderDTO.getFilledPrice()));
         orderMessage.setAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
         orderMessage.setEvent(OrderOperateTypeEnum.DEAL_ORDER.getCode());

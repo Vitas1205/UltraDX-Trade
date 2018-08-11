@@ -566,7 +566,7 @@ public class ContractOrderManager {
         OrderMessage orderMessage = new OrderMessage();
         orderMessage.setSubjectId(contractMatchedOrderDTO.getContractId());
         orderMessage.setSubjectName(contractMatchedOrderDTO.getContractName());
-        orderMessage.setTransferTime(System.currentTimeMillis());
+        orderMessage.setTransferTime(contractMatchedOrderDO.getGmtCreate().getTime());
         orderMessage.setPrice(new BigDecimal(contractMatchedOrderDTO.getFilledPrice()));
         orderMessage.setAmount(new BigDecimal(contractMatchedOrderDTO.getFilledAmount()));
         orderMessage.setEvent(OrderOperateTypeEnum.DEAL_ORDER.getCode());
