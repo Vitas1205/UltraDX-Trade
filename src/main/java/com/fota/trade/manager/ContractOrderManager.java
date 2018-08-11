@@ -41,6 +41,8 @@ import java.util.stream.Collectors;
 @Component
 public class ContractOrderManager {
     private static final Logger log = LoggerFactory.getLogger(ContractOrderManager.class);
+    private static final Logger tradeLog = LoggerFactory.getLogger("trade");
+
 
 
     private static BigDecimal contractFee = BigDecimal.valueOf(0.001);
@@ -520,7 +522,7 @@ public class ContractOrderManager {
             throw new RuntimeException(ResultCodeEnum.UPDATE_MATCH_ORDER_FAILED.getMessage());
         }
 
-        //存入Redis缓存
+        //存入Redis缓存 有相关撮合
         ContractOrderDTO bidContractOrderDTO = new ContractOrderDTO();
         ContractOrderDTO askContractOrderDTO = new ContractOrderDTO();
         org.springframework.beans.BeanUtils.copyProperties(askContractOrder, askContractOrderDTO);
@@ -579,7 +581,7 @@ public class ContractOrderManager {
             e.printStackTrace();
             log.error("向Redis存储USDK撮合订单信息失败，订单id为 {}", contractMatchedOrderDO.getId());
         }
-        log.info("========完成撮合({})=======", System.currentTimeMillis());
+        log.info("========完成撮合({})======= {}", System.currentTimeMillis(), contractMatchedOrderDO.getId());
 
         resultCode.setCode(ResultCodeEnum.SUCCESS.getCode());
         return resultCode;
@@ -708,6 +710,7 @@ public class ContractOrderManager {
         }
         BigDecimal lockedAmount = new BigDecimal(userContractDTO.getLockedAmount());
         BigDecimal totalLockAmount = null;
+        tradeLog.info("match id {}", matchedOrderDTO.getId());
         int updateRet = updateSingleOrderByFilledAmount(contractOrderDO, matchedOrderDTO.getFilledAmount(), matchedOrderDTO.getFilledPrice());
         if (updateRet != 1){
             log.error("updateSingleOrderByFilledAmount failed");
@@ -746,6 +749,7 @@ public class ContractOrderManager {
         int ret = -1;
         try {
             log.info("打印的内容----------------------"+contractOrderDO);
+            tradeLog.info("update {}, fillAmount {}", contractOrderDO, filledAmount);
             BigDecimal averagePrice = PriceUtil.getAveragePrice(contractOrderDO.getAveragePrice(),
                     new BigDecimal(contractOrderDO.getTotalAmount()),
                     new BigDecimal(filledAmount),
@@ -757,6 +761,7 @@ public class ContractOrderManager {
                     contractOrderDO2.setStatus(OrderStatusEnum.MATCH.getCode());
                     contractOrderMapper.updateStatus(contractOrderDO2);
                 }
+
             }
         }catch (Exception e){
             log.error(ResultCodeEnum.ASSET_SERVICE_FAILED.getMessage());

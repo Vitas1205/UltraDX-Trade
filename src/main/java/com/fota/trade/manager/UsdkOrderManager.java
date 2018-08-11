@@ -169,7 +169,7 @@ public class UsdkOrderManager {
             if (!sendRet){
                 log.error("Send RocketMQ Message Failed ");
             }
-            tradeLog.info("order ok " + usdkOrderDTO.toString());
+//            tradeLog.info("order ok " + usdkOrderDTO.toString());
         }else {
             resultCode = ResultCode.error(ResultCodeEnum.INSERT_USDK_ORDER_FAILED.getCode(),ResultCodeEnum.INSERT_USDK_ORDER_FAILED.getMessage());
         }
@@ -393,7 +393,7 @@ public class UsdkOrderManager {
         if (!sendRet){
             log.error("Send RocketMQ Message Failed ");
         }
-        tradeLog.info("match ok " + orderMessage.toString());
+//        tradeLog.info("match ok " + orderMessage.toString());
 
         // 向Redis存储消息
         UsdkMatchedOrderTradeDTO usdkMatchedOrderTradeDTO = new UsdkMatchedOrderTradeDTO();
