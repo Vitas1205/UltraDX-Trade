@@ -261,14 +261,20 @@ public class UsdkOrderManager {
         if (list != null){
             for(UsdkOrderDO usdkOrderDO : list){
                 if (usdkOrderDO.getStatus() == OrderStatusEnum.COMMIT.getCode() || usdkOrderDO.getStatus() == OrderStatusEnum.PART_MATCH.getCode()) {
-                    i++;
                     Long orderId = usdkOrderDO.getId();
-                    cancelOrder(userId, orderId);
+                    ResultCode resultCode2 =cancelOrder(userId, orderId);
+                    if (resultCode2.getCode() == 0){
+                        i++;
+                    }
                 }
             }
         }
         if (i == 0){
             resultCode = ResultCode.error(ResultCodeEnum.NO_CANCELLABLE_ORDERS.getCode(), ResultCodeEnum.NO_CANCELLABLE_ORDERS.getMessage());
+            return resultCode;
+        }
+        if (i != list.size()){
+            resultCode = ResultCode.error(ResultCodeEnum.PARTLY_COMPLETED.getCode(), ResultCodeEnum.PARTLY_COMPLETED.getMessage());
             return resultCode;
         }
         resultCode = ResultCode.success();

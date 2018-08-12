@@ -119,32 +119,27 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
             }
             log.error("USDK order() failed", e);
         }
-        resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
-        resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());
         return resultCode;
     }
 
     @Override
     public ResultCode cancelOrder(long userId, long orderId) {
+        ResultCode resultCode = new ResultCode();
         try {
-            ResultCode rst = usdkOrderManager.cancelOrder(userId, orderId);
-            if (rst.isSuccess()) {
+            resultCode = usdkOrderManager.cancelOrder(userId, orderId);
+            if (resultCode.isSuccess()) {
                 tradeLog.info("撤销@@@" + userId+ "@@@" + orderId);
             }
-            return rst;
+            return resultCode;
         }catch (Exception e){
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
-                ResultCode resultCode = new ResultCode();
                 resultCode.setCode(businessException.getCode());
                 resultCode.setMessage(businessException.getMessage());
                 return resultCode;
             }
             log.error("USDK cancelOrder() failed", e);
         }
-        ResultCode resultCode = new ResultCode();
-        resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
-        resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());
         return resultCode;
     }
 
@@ -162,8 +157,6 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
             }
             log.error("USDK cancelAllOrder() failed", e);
         }
-        resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
-        resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());
         return resultCode;
     }
 
@@ -183,8 +176,6 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
                 return resultCode;
             }
         }
-        resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
-        resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());
         return resultCode;
     }
 
