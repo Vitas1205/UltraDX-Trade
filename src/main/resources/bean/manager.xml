@@ -7,7 +7,7 @@
 
     <dubbo:application name="fota-trade" id="fota-trade"/>
 
-    <dubbo:registry address="47.98.100.103:2181,118.31.20.172:2181,116.62.196.53:2181" protocol="zookeeper" id="zkreg" >
+    <dubbo:registry address="172.16.50.183:2181,172.16.50.184:2181,172.16.50.185:2181" protocol="zookeeper" id="zkreg" >
         <dubbo:parameter key="qos.enable" value="false"/>
     </dubbo:registry>
 
