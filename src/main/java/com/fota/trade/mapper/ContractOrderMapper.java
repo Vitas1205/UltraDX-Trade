@@ -73,7 +73,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
             "operate_type, order_type, operate_direction, lever, total_amount, unfilled_amount, close_type, price, ",
             "fee, usdk_locked_amount, position_locked_amount, status, average_price",
             "from trade_contract_order",
-            "where order_type = #{orderType,jdbcType=INTEGE} and user_id = #{userId,jdbcType=BIGINT}"
+            "where order_type = #{orderType,jdbcType=INTEGER} and user_id = #{userId,jdbcType=BIGINT}"
     })
     @ResultMap("BaseResultMap")
     List<ContractOrderDO> listByUserIdAndOrderType(@Param("userId") Long userId, @Param("orderType") Integer orderType);
