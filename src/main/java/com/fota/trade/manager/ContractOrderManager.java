@@ -41,6 +41,8 @@ import java.util.stream.Collectors;
 @Component
 public class ContractOrderManager {
     private static final Logger log = LoggerFactory.getLogger(ContractOrderManager.class);
+    private static final Logger tradeLog = LoggerFactory.getLogger("trade");
+
 
 
     private static BigDecimal contractFee = BigDecimal.valueOf(0.001);
@@ -294,6 +296,8 @@ public class ContractOrderManager {
         log.error("selectUnfinishedOrderByUserId {} contractOrderlist size {}, contractOrderlist {}", userId, contractOrderlist.size(), String.valueOf(contractOrderlist.get(0)));
 
         if (queryList != null && queryList.size() != 0 && contractOrderlist != null && contractOrderlist.size() != 0){
+            log.error("selectUnfinishedOrderByUserId {} contractOrderlist size {}, contractOrderlist {}", userId, contractOrderlist.size(), contractOrderlist.get(0).toString());
+
             for (ContractCategoryDO contractCategoryDO : queryList){
                 BigDecimal entrustLockAmount = BigDecimal.ZERO;
                 long contractId = contractCategoryDO.getId();
@@ -524,12 +528,14 @@ public class ContractOrderManager {
         }
         ContractOrderDO askContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getAskOrderId());
         ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
-        log.info("---------------"+contractMatchedOrderDTO.toString());
-        log.info("---------------"+askContractOrder.toString());
-        log.info("---------------"+bidContractOrder.toString());
+        log.info("---------------{}", contractMatchedOrderDTO);
+        log.info("---------------{}", askContractOrder);
+        log.info("---------------{}", bidContractOrder);
         if (askContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0
                 || bidContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0){
-            log.error(ResultCodeEnum.ORDER_UNFILLEDAMOUNT_NOT_ENOUGHT.getMessage());
+            log.error("updateOrderMatch error{}, asck {}, bid{}, match {}",
+                    ResultCodeEnum.ORDER_UNFILLEDAMOUNT_NOT_ENOUGHT.getMessage(), askContractOrder,
+                    bidContractOrder, contractMatchedOrderDTO);
             throw new RuntimeException(ResultCodeEnum.ORDER_UNFILLEDAMOUNT_NOT_ENOUGHT.getMessage());
         }
         if (askContractOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && askContractOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()
@@ -569,7 +575,7 @@ public class ContractOrderManager {
             throw new RuntimeException(ResultCodeEnum.UPDATE_MATCH_ORDER_FAILED.getMessage());
         }
 
-        //存入Redis缓存
+        //存入Redis缓存 有相关撮合
         ContractOrderDTO bidContractOrderDTO = new ContractOrderDTO();
         ContractOrderDTO askContractOrderDTO = new ContractOrderDTO();
         org.springframework.beans.BeanUtils.copyProperties(askContractOrder, askContractOrderDTO);
@@ -628,7 +634,7 @@ public class ContractOrderManager {
             e.printStackTrace();
             log.error("向Redis存储USDK撮合订单信息失败，订单id为 {}", contractMatchedOrderDO.getId());
         }
-        log.info("========完成撮合({})=======", System.currentTimeMillis());
+        log.info("========完成撮合({})======= {}", System.currentTimeMillis(), contractMatchedOrderDO.getId());
 
         resultCode.setCode(ResultCodeEnum.SUCCESS.getCode());
         return resultCode;
@@ -757,6 +763,7 @@ public class ContractOrderManager {
         }
         BigDecimal lockedAmount = new BigDecimal(userContractDTO.getLockedAmount());
         BigDecimal totalLockAmount = null;
+        tradeLog.info("match id {}", matchedOrderDTO.getId());
         int updateRet = updateSingleOrderByFilledAmount(contractOrderDO, matchedOrderDTO.getFilledAmount(), matchedOrderDTO.getFilledPrice());
         if (updateRet != 1){
             log.error("updateSingleOrderByFilledAmount failed");
@@ -767,9 +774,10 @@ public class ContractOrderManager {
         } catch (Exception e) {
             log.error("get totalLockAmount failed",e);
         }
-        BigDecimal addedTotalLocked = totalLockAmount.subtract(lockedAmount);
         //todo 更新余额
         try {
+            BigDecimal addedTotalLocked = totalLockAmount.subtract(lockedAmount);
+
             boolean updateContractRet = getContractService().updateContractBalance(contractOrderDO.getUserId(),
                     addedTotalAmount.toString(),
                     addedTotalLocked.toString());
@@ -794,6 +802,7 @@ public class ContractOrderManager {
         int ret = -1;
         try {
             log.info("打印的内容----------------------"+contractOrderDO);
+            tradeLog.info("update {}, fillAmount {}", contractOrderDO, filledAmount);
             BigDecimal averagePrice = PriceUtil.getAveragePrice(contractOrderDO.getAveragePrice(),
                     new BigDecimal(contractOrderDO.getTotalAmount()),
                     new BigDecimal(filledAmount),
@@ -805,6 +814,7 @@ public class ContractOrderManager {
                     contractOrderDO2.setStatus(OrderStatusEnum.MATCH.getCode());
                     contractOrderMapper.updateStatus(contractOrderDO2);
                 }
+
             }
         }catch (Exception e){
             log.error(ResultCodeEnum.ASSET_SERVICE_FAILED.getMessage());

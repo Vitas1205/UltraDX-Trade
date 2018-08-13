@@ -32,6 +32,8 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
 
     private static final Logger log = LoggerFactory.getLogger(UsdkOrderServiceImpl.class);
 
+    private static final Logger tradeLog = LoggerFactory.getLogger("trade");
+
     @Autowired
     private UsdkOrderMapper usdkOrderMapper;
 
@@ -101,8 +103,14 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     public ResultCode order(UsdkOrderDTO usdkOrderDTO) {
         ResultCode resultCode = new ResultCode();
         try {
-            return usdkOrderManager.placeOrder(BeanUtils.copy(usdkOrderDTO));
+            ResultCode rst = usdkOrderManager.placeOrder(BeanUtils.copy(usdkOrderDTO));
+            if (rst.isSuccess()) {
+                tradeLog.info("下单@@@" + usdkOrderDTO);
+            }
+            return rst;
         }catch (Exception e){
+            log.error("USDK order() failed", e);
+
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
                 resultCode.setCode(businessException.getCode());
@@ -111,28 +119,27 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
             }
             log.error("USDK order() failed", e);
         }
-        resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
-        resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());
         return resultCode;
     }
 
     @Override
     public ResultCode cancelOrder(long userId, long orderId) {
+        ResultCode resultCode = new ResultCode();
         try {
-            return usdkOrderManager.cancelOrder(userId, orderId);
+            resultCode = usdkOrderManager.cancelOrder(userId, orderId);
+            if (resultCode.isSuccess()) {
+                tradeLog.info("撤销@@@" + userId+ "@@@" + orderId);
+            }
+            return resultCode;
         }catch (Exception e){
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
-                ResultCode resultCode = new ResultCode();
                 resultCode.setCode(businessException.getCode());
                 resultCode.setMessage(businessException.getMessage());
                 return resultCode;
             }
             log.error("USDK cancelOrder() failed", e);
         }
-        ResultCode resultCode = new ResultCode();
-        resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
-        resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());
         return resultCode;
     }
 
@@ -150,8 +157,6 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
             }
             log.error("USDK cancelAllOrder() failed", e);
         }
-        resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
-        resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());
         return resultCode;
     }
 
@@ -159,20 +164,18 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     public ResultCode updateOrderByMatch(UsdkMatchedOrderDTO usdkMatchedOrderDTO) {
         ResultCode resultCode = new ResultCode();
         try {
-            resultCode =  usdkOrderManager.updateOrderByMatch(usdkMatchedOrderDTO);
+            resultCode = usdkOrderManager.updateOrderByMatch(usdkMatchedOrderDTO);
             log.info("resultCode----------------------"+resultCode.toString());
             return resultCode;
         }catch (Exception e){
+            log.error("USDK updateOrderByMatch() failed", e);
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
                 resultCode.setCode(businessException.getCode());
                 resultCode.setMessage(businessException.getMessage());
                 return resultCode;
             }
-            log.error("USDK updateOrderByMatch() failed", e);
         }
-        resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
-        resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());
         return resultCode;
     }
 

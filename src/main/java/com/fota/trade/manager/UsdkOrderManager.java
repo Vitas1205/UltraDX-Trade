@@ -170,7 +170,7 @@ public class UsdkOrderManager {
             if (!sendRet){
                 log.error("Send RocketMQ Message Failed ");
             }
-            tradeLog.info("order ok " + usdkOrderDTO.toString());
+//            tradeLog.info("order ok " + usdkOrderDTO.toString());
         }else {
             resultCode = ResultCode.error(ResultCodeEnum.INSERT_USDK_ORDER_FAILED.getCode(),ResultCodeEnum.INSERT_USDK_ORDER_FAILED.getMessage());
         }
@@ -261,14 +261,20 @@ public class UsdkOrderManager {
         if (list != null){
             for(UsdkOrderDO usdkOrderDO : list){
                 if (usdkOrderDO.getStatus() == OrderStatusEnum.COMMIT.getCode() || usdkOrderDO.getStatus() == OrderStatusEnum.PART_MATCH.getCode()) {
-                    i++;
                     Long orderId = usdkOrderDO.getId();
-                    cancelOrder(userId, orderId);
+                    ResultCode resultCode2 =cancelOrder(userId, orderId);
+                    if (resultCode2.getCode() == 0){
+                        i++;
+                    }
                 }
             }
         }
         if (i == 0){
             resultCode = ResultCode.error(ResultCodeEnum.NO_CANCELLABLE_ORDERS.getCode(), ResultCodeEnum.NO_CANCELLABLE_ORDERS.getMessage());
+            return resultCode;
+        }
+        if (i != list.size()){
+            resultCode = ResultCode.error(ResultCodeEnum.PARTLY_COMPLETED.getCode(), ResultCodeEnum.PARTLY_COMPLETED.getMessage());
             return resultCode;
         }
         resultCode = ResultCode.success();
@@ -290,12 +296,12 @@ public class UsdkOrderManager {
         log.info("---------------"+bidUsdkOrder.toString());
         if (askUsdkOrder.getUnfilledAmount().compareTo(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount())) < 0
                 || bidUsdkOrder.getUnfilledAmount().compareTo(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount())) < 0){
-            log.error(ResultCodeEnum.ORDER_UNFILLEDAMOUNT_NOT_ENOUGHT.getMessage());
+            log.error("updateOrderByMatch " + ResultCodeEnum.ORDER_UNFILLEDAMOUNT_NOT_ENOUGHT.getMessage());
             throw new RuntimeException(ResultCodeEnum.ORDER_UNFILLEDAMOUNT_NOT_ENOUGHT.getMessage());
         }
         if (askUsdkOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && askUsdkOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()
                 && bidUsdkOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && bidUsdkOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()){
-            log.error(ResultCodeEnum.ASK_AND_BID_ILLEGAL.getMessage());
+            log.error("updateOrderByMatch " + ResultCodeEnum.ASK_AND_BID_ILLEGAL.getMessage());
             throw new RuntimeException(ResultCodeEnum.ASK_AND_BID_ILLEGAL.getMessage());
         }
         if (askUsdkOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && askUsdkOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()){
@@ -378,6 +384,7 @@ public class UsdkOrderManager {
         redisManager.usdkOrderSave(askUsdkOrderDTO);
         redisManager.usdkOrderSave(bidUsdkOrderDTO);
         // 向MQ推送消息
+        //TODO 把IP去掉
         OrderMessage orderMessage = new OrderMessage();
         orderMessage.setSubjectId(usdkMatchedOrderDTO.getAssetId().longValue());
         orderMessage.setSubjectName(usdkMatchedOrderDTO.getAssetName());
@@ -394,7 +401,7 @@ public class UsdkOrderManager {
         if (!sendRet){
             log.error("Send RocketMQ Message Failed ");
         }
-        tradeLog.info("match ok " + orderMessage.toString());
+//        tradeLog.info("match ok " + orderMessage.toString());
 
         // 向Redis存储消息
         UsdkMatchedOrderTradeDTO usdkMatchedOrderTradeDTO = new UsdkMatchedOrderTradeDTO();
