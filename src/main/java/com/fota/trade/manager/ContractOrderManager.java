@@ -177,6 +177,9 @@ public class ContractOrderManager {
             log.error("Contract Is Null");
             throw new BusinessException(ResultCodeEnum.CONTRANCT_IS_NULL.getCode(),ResultCodeEnum.CONTRANCT_IS_NULL.getMessage());
         }
+        if (contractOrderDO.getOrderType() == null){
+            contractOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
+        }
         if (contractOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()){
             insertOrderRecord(contractOrderDO);
         }else {
