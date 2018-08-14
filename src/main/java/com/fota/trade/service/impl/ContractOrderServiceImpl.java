@@ -255,7 +255,19 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         }catch (Exception e){
             log.error("getTodayFee failed",e);
         }
-        return null;
+        return totalFee;
+    }
+
+    @Override
+    public BigDecimal getFeeByDate(Date startDate, Date endDate) {
+        BigDecimal totalFee = BigDecimal.ZERO;
+        try {
+            totalFee = contractMatchedOrderMapper.getAllFee(startDate, endDate);
+            return totalFee;
+        }catch (Exception e){
+            log.error("getTodayFee failed",e);
+        }
+        return totalFee;
     }
 
     private void updateContractAccount(ContractOrderDO contractOrderDO, ContractMatchedOrderDTO contractMatchedOrderDTO) {

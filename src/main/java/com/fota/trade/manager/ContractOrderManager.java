@@ -149,23 +149,26 @@ public class ContractOrderManager {
 
     @Transactional(rollbackFor = {Exception.class, RuntimeException.class, BusinessException.class})
     public ResultCode placeOrder(ContractOrderDO contractOrderDO) throws Exception{
+        ResultCode resultCode = new ResultCode();
         ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractOrderDO.getContractId());
         if (contractCategoryDO == null){
             log.error("Contract Is Null");
             throw new BusinessException(ResultCodeEnum.CONTRANCT_IS_NULL.getCode(),ResultCodeEnum.CONTRANCT_IS_NULL.getMessage());
         }
-        contractOrderDO.setContractName(contractCategoryDO.getContractName());
-        contractOrderDO.setCloseType(OrderCloseTypeEnum.MANUAL.getCode());
-        ResultCode resultCode = new ResultCode();
-        insertOrderRecord(contractOrderDO);
-        BigDecimal totalLockAmount = getTotalLockAmount(contractOrderDO.getUserId());
-        //查询用户合约冻结金额
-        UserContractDTO userContractDTO = getAssetService().getContractAccount(contractOrderDO.getUserId());
-        BigDecimal lockedAmount = new BigDecimal(userContractDTO.getLockedAmount());
-        if (lockedAmount.compareTo(totalLockAmount) < 0 ){
-            lockContractAccount(userContractDTO, totalLockAmount);
+        if (contractOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()){
+            insertOrderRecord(contractOrderDO);
+        }else {
+            contractOrderDO.setContractName(contractCategoryDO.getContractName());
+            contractOrderDO.setCloseType(OrderCloseTypeEnum.MANUAL.getCode());
+            insertOrderRecord(contractOrderDO);
+            BigDecimal totalLockAmount = getTotalLockAmount(contractOrderDO.getUserId());
+            //查询用户合约冻结金额
+            UserContractDTO userContractDTO = getAssetService().getContractAccount(contractOrderDO.getUserId());
+            BigDecimal lockedAmount = new BigDecimal(userContractDTO.getLockedAmount());
+            if (lockedAmount.compareTo(totalLockAmount) < 0 ){
+                lockContractAccount(userContractDTO, totalLockAmount);
+            }
         }
-
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO );
         contractOrderDTO.setCompleteAmount(0L);
