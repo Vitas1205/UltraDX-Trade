@@ -4,6 +4,7 @@ import com.fota.common.Page;
 import com.fota.trade.common.BeanUtils;
 import com.fota.trade.common.Constant;
 import com.fota.trade.common.ParamUtil;
+import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.UserPositionDO;
 import com.fota.trade.domain.UserPositionDTO;
@@ -104,7 +105,19 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
      */
     @Override
     public ResultCode deliveryPosition(long id) {
-        return null;
+        UserPositionDO userPositionDO = new UserPositionDO();
+        userPositionDO.setId(id);
+        userPositionDO.setStatus(2);
+        int updateRet = 0;
+        try {
+            updateRet = userPositionMapper.updateByPrimaryKeySelective(userPositionDO);
+            if (updateRet > 0) {
+                return ResultCode.success();
+            }
+        } catch (Exception e) {
+            log.error("userPositionMapper.updateByPrimaryKeySelective({})", userPositionDO, e);
+        }
+        return ResultCode.error(ResultCodeEnum.DATABASE_EXCEPTION.getCode(), "position delivery failed");
     }
 
 

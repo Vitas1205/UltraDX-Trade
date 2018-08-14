@@ -125,9 +125,23 @@ public class ContractOrderServiceImpl implements ContractOrderService {
      */
     @Override
     public List<ContractOrderDTO> getAllContractOrder(BaseQuery contractOrderQuery) {
-        return null;
+        Map<String, Object> paramMap = null;
+        List<com.fota.trade.domain.ContractOrderDTO> list = new ArrayList<>();
+        try {
+            paramMap = ParamUtil.objectToMap(contractOrderQuery);
+            paramMap.put("startRow", 0);
+            paramMap.put("endRow", Integer.MAX_VALUE);
+            List<ContractOrderDO> contractOrderDOList = contractOrderMapper.listByQuery(paramMap);
+            if (contractOrderDOList != null && contractOrderDOList.size() > 0) {
+                for (ContractOrderDO contractOrderDO : contractOrderDOList) {
+                    list.add(BeanUtils.copy(contractOrderDO));
+                }
+            }
+        } catch (Exception e) {
+            log.error("contractOrderMapper.listByQuery({})", contractOrderQuery, e);
+        }
+        return list;
     }
-
 
     @Override
     public ResultCode order(ContractOrderDTO contractOrderDTO) {
@@ -193,7 +207,20 @@ public class ContractOrderServiceImpl implements ContractOrderService {
      */
     @Override
     public ResultCode cancelOrderByOrderType(long userId, int orderType) {
-        return null;
+        ResultCode resultCode = new ResultCode();
+        try {
+            resultCode = contractOrderManager.cancelOrderByOrderType(userId, orderType);
+            return resultCode;
+        }catch (Exception e){
+            if (e instanceof BusinessException){
+                BusinessException businessException = (BusinessException) e;
+                resultCode.setCode(businessException.getCode());
+                resultCode.setMessage(businessException.getMessage());
+                return resultCode;
+            }
+            log.error("Contract cancelOrderByContractId() failed", e);
+        }
+        return resultCode;
     }
 
     /**
