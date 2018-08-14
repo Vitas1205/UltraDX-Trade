@@ -510,7 +510,6 @@ public class ContractOrderManager {
         contractMatchedOrderDO.setBidUserId(bidContractOrder.getUserId());
         contractMatchedOrderDO.setAskCloseType(askContractOrder.getCloseType().byteValue());
         contractMatchedOrderDO.setBidCloseType(bidContractOrder.getCloseType().byteValue());
-        contractMatchedOrderDO.setGmtCreate(new Date());
         try {
             int ret = contractMatchedOrderMapper.insert(contractMatchedOrderDO);
             if (ret < 1){
