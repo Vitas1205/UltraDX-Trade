@@ -230,12 +230,12 @@ public class ContractOrderManager {
     public ResultCode cancelOrderImpl(ContractOrderDO contractOrderDO) throws Exception{
         ResultCode resultCode = new ResultCode();
         Integer status = contractOrderDO.getStatus();
-        /*boolean judegRet = getJudegRet(contractOrderDO.getId(),contractOrderDO.getOrderDirection(),new BigDecimal(contractOrderDO.getUnfilledAmount()));
+        boolean judegRet = getJudegRet(contractOrderDO.getId(),contractOrderDO.getOrderDirection(),new BigDecimal(contractOrderDO.getUnfilledAmount()));
         if (!judegRet){
             resultCode.setCode(ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getCode());
             resultCode.setMessage(ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getMessage());
             return resultCode;
-        }*/
+        }
         if (status == OrderStatusEnum.COMMIT.getCode() || status == OrderStatusEnum.CANCEL.getCode()){
             contractOrderDO.setStatus(OrderStatusEnum.CANCEL.getCode());
         }else if (status == OrderStatusEnum.PART_MATCH.getCode() || status == OrderStatusEnum.PART_CANCEL.getCode()){
