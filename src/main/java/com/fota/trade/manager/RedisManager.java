@@ -31,6 +31,7 @@ public class RedisManager {
     private RedisTemplate<String, Object> redisTemplate;
 
     public boolean set(final String key, final Object value) {
+        log.info("------------------向redis写入"+value);
         try {
             ValueOperations<String, Object> vOps = redisTemplate.opsForValue();
             vOps.set(key, value);
