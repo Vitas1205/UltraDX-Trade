@@ -144,10 +144,10 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     }
 
     @Override
-    public ResultCode order(ContractOrderDTO contractOrderDTO) {
+    public ResultCode order(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
         ResultCode resultCode = new ResultCode();
         try {
-            resultCode = contractOrderManager.placeOrder(BeanUtils.copy(contractOrderDTO));
+            resultCode = contractOrderManager.placeOrder(BeanUtils.copy(contractOrderDTO), userInfoMap);
         }catch (Exception e){
             log.error("Contract order() failed", e);
 
@@ -163,10 +163,10 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     }
 
     @Override
-    public ResultCode cancelOrder(long userId, long orderId) {
+    public ResultCode cancelOrder(long userId, long orderId, Map<String, String> userInfoMap) {
         ResultCode resultCode = new ResultCode();
         try {
-            resultCode = contractOrderManager.cancelOrder(userId, orderId);
+            resultCode = contractOrderManager.cancelOrder(userId, orderId, userInfoMap);
             return resultCode;
         }catch (Exception e){
             if (e instanceof BusinessException){
@@ -181,10 +181,15 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     }
 
     @Override
-    public ResultCode cancelAllOrder(long userId) {
+    public ResultCode cancelOrder(long l, long l1) {
+        return null;
+    }
+
+    @Override
+    public ResultCode cancelAllOrder(long userId, Map<String, String> userInfoMap) {
         ResultCode resultCode = new ResultCode();
         try {
-            resultCode = contractOrderManager.cancelAllOrder(userId);
+            resultCode = contractOrderManager.cancelAllOrder(userId, userInfoMap);
             return resultCode;
         }catch (Exception e){
             if (e instanceof BusinessException){
@@ -198,6 +203,11 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         return resultCode;
     }
 
+    @Override
+    public ResultCode cancelAllOrder(long l) {
+        return null;
+    }
+
     /**
      * 撤销用户非强平单
      * * todo@荆轲
@@ -206,10 +216,10 @@ public class ContractOrderServiceImpl implements ContractOrderService {
      * @return
      */
     @Override
-    public ResultCode cancelOrderByOrderType(long userId, int orderType) {
+    public ResultCode cancelOrderByOrderType(long userId, int orderType, Map<String, String> userInfoMap) {
         ResultCode resultCode = new ResultCode();
         try {
-            resultCode = contractOrderManager.cancelOrderByOrderType(userId, orderType);
+            resultCode = contractOrderManager.cancelOrderByOrderType(userId, orderType, userInfoMap);
             return resultCode;
         }catch (Exception e){
             if (e instanceof BusinessException){
@@ -223,6 +233,16 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         return resultCode;
     }
 
+    @Override
+    public ResultCode cancelOrderByOrderType(long l, int i) {
+        return null;
+    }
+
+    @Override
+    public ResultCode cancelOrderByContractId(long l) {
+        return null;
+    }
+
     /**
      * 撤销该合约的所有委托订单
      ** * todo@王冕
@@ -230,10 +250,10 @@ public class ContractOrderServiceImpl implements ContractOrderService {
      * @return
      */
     @Override
-    public ResultCode cancelOrderByContractId(long contractId) {
+    public ResultCode cancelOrderByContractId(long contractId, Map<String, String> userInfoMap) {
         ResultCode resultCode = new ResultCode();
         try {
-            resultCode = contractOrderManager.cancelOrderByContractId(contractId);
+            resultCode = contractOrderManager.cancelOrderByContractId(contractId, userInfoMap);
             return resultCode;
         }catch (Exception e){
             if (e instanceof BusinessException){

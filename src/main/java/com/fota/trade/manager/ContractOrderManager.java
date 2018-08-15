@@ -28,10 +28,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -100,7 +97,7 @@ public class ContractOrderManager {
 
 
 
-    public ResultCode cancelAllOrder(Long userId) throws Exception{
+    public ResultCode cancelAllOrder(Long userId, Map<String, String> userInfoMap) throws Exception{
         ResultCode resultCode = new ResultCode();
         List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByUserId(userId);
         int i = 0;
@@ -109,7 +106,7 @@ public class ContractOrderManager {
                 if (contractOrderDO.getStatus() == OrderStatusEnum.COMMIT.getCode() || contractOrderDO.getStatus() == OrderStatusEnum.PART_MATCH.getCode()){
                     i++;
                     Long orderId = contractOrderDO.getId();
-                    cancelOrder(userId, orderId);
+                    cancelOrder(userId, orderId, userInfoMap);
                 }
             }
         }
@@ -123,7 +120,7 @@ public class ContractOrderManager {
         return resultCode;
     }
 
-    public ResultCode cancelOrderByContractId(Long contractId) throws Exception{
+    public ResultCode cancelOrderByContractId(Long contractId, Map<String, String> userInfoMap) throws Exception{
         ResultCode resultCode = new ResultCode();
         List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByContractId(contractId);
         int i = 0;
@@ -132,7 +129,7 @@ public class ContractOrderManager {
                 if (contractOrderDO.getStatus() == OrderStatusEnum.COMMIT.getCode() || contractOrderDO.getStatus() == OrderStatusEnum.PART_MATCH.getCode()){
                     i++;
                     Long orderId = contractOrderDO.getId();
-                    cancelOrder(contractOrderDO.getUserId(), orderId);
+                    cancelOrder(contractOrderDO.getUserId(), orderId, userInfoMap);
                 }
             }
         }
@@ -146,7 +143,7 @@ public class ContractOrderManager {
         return resultCode;
     }
 
-    public ResultCode cancelOrderByOrderType(long userId, int orderType) throws Exception{
+    public ResultCode cancelOrderByOrderType(long userId, int orderType, Map<String, String> userInfoMap) throws Exception{
         ResultCode resultCode = new ResultCode();
         List<ContractOrderDO> list = contractOrderMapper.listByUserIdAndOrderType(userId, orderType);
         int i = 0;
@@ -155,7 +152,7 @@ public class ContractOrderManager {
                 if (contractOrderDO.getStatus() == OrderStatusEnum.COMMIT.getCode() || contractOrderDO.getStatus() == OrderStatusEnum.PART_MATCH.getCode()){
                     i++;
                     Long orderId = contractOrderDO.getId();
-                    cancelOrder(contractOrderDO.getUserId(), orderId);
+                    cancelOrder(contractOrderDO.getUserId(), orderId, userInfoMap);
                 }
             }
         }
@@ -170,7 +167,7 @@ public class ContractOrderManager {
     }
 
     @Transactional(rollbackFor = {Exception.class, RuntimeException.class, BusinessException.class})
-    public ResultCode placeOrder(ContractOrderDO contractOrderDO) throws Exception{
+    public ResultCode placeOrder(ContractOrderDO contractOrderDO, Map<String, String> userInfoMap) throws Exception{
         ResultCode resultCode = new ResultCode();
         ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractOrderDO.getContractId());
         if (contractCategoryDO == null){
@@ -199,6 +196,17 @@ public class ContractOrderManager {
         contractOrderDTO.setCompleteAmount(0L);
         contractOrderDTO.setContractId(contractOrderDO.getContractId());
         redisManager.contractOrderSave(contractOrderDTO);
+        if (contractOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()) {
+            // 强平单
+            log.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
+                    2, contractOrderDTO.getContractName(), userInfoMap.get("username"), userInfoMap.get("ipAddress"), contractOrderDTO.getTotalAmount(),
+                    new Date(), 3, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 2);
+        } else {
+            log.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
+                    2, contractOrderDTO.getContractName(), userInfoMap.get("username"), userInfoMap.get("ipAddress"), contractOrderDTO.getTotalAmount(),
+                    new Date(), 1, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 1);
+        }
+
         //推送MQ消息
         OrderMessage orderMessage = new OrderMessage();
         orderMessage.setAmount(new BigDecimal(contractOrderDTO.getUnfilledAmount()));
@@ -219,15 +227,15 @@ public class ContractOrderManager {
 
 
 
-    public ResultCode cancelOrder(Long userId, Long orderId) throws Exception{
+    public ResultCode cancelOrder(Long userId, Long orderId, Map<String, String> userInfoMap) throws Exception{
         ResultCode resultCode = new ResultCode();
         ContractOrderDO contractOrderDO = contractOrderMapper.selectByIdAndUserId(orderId, userId);
-        resultCode = cancelOrderImpl(contractOrderDO);
+        resultCode = cancelOrderImpl(contractOrderDO, userInfoMap);
         return resultCode;
     }
 
     @Transactional(rollbackFor = {Exception.class, RuntimeException.class, BusinessException.class})
-    public ResultCode cancelOrderImpl(ContractOrderDO contractOrderDO) throws Exception{
+    public ResultCode cancelOrderImpl(ContractOrderDO contractOrderDO, Map<String, String> userInfoMap) throws Exception{
         ResultCode resultCode = new ResultCode();
         Integer status = contractOrderDO.getStatus();
         boolean judegRet = getJudegRet(contractOrderDO.getId(),contractOrderDO.getOrderDirection(),new BigDecimal(contractOrderDO.getUnfilledAmount()));
@@ -267,6 +275,9 @@ public class ContractOrderManager {
         contractOrderDTO.setCompleteAmount(contractOrderDTO.getTotalAmount()-contractOrderDTO.getUnfilledAmount());
         contractOrderDTO.setContractId(contractOrderDO.getContractId());
         redisManager.contractOrderSave(contractOrderDTO);
+        log.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
+                2, contractOrderDTO.getContractName(), userInfoMap.get("username"), userInfoMap.get("ipAddress"), contractOrderDTO.getUnfilledAmount(),
+                new Date(), 2, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 1);
         //todo 推送MQ消息
         OrderMessage orderMessage = new OrderMessage();
         orderMessage.setAmount(new BigDecimal(contractOrderDTO.getUnfilledAmount()));
@@ -593,7 +604,12 @@ public class ContractOrderManager {
         bidContractOrderDTO.setStatus(contractMatchedOrderDTO.getBidOrderStatus());
         askContractOrderDTO.setStatus(contractMatchedOrderDTO.getAskOrderStatus());
         redisManager.contractOrderSave(askContractOrderDTO);
+        // TODO 需要拿到matchID insert后返回
+        log.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
+                2, askContractOrderDTO.getContractName(), "username", askContractOrderDTO.getMatchAmount(), new Date(), 4, askContractOrderDTO.getOrderDirection(), askContractOrderDTO.getUserId(), 1);
         redisManager.contractOrderSave(bidContractOrderDTO);
+        log.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
+                2, askContractOrderDTO.getContractName(), "username", askContractOrderDTO.getMatchAmount(), new Date(), 4, askContractOrderDTO.getOrderDirection(), askContractOrderDTO.getUserId(), 1);
         // 向MQ推送消息
         // 通过contractId去trade_contract_category表里面获取asset_name和contract_type
         ContractCategoryDO contractCategoryDO = contractCategoryMapper.getContractCategoryById(askContractOrder.getContractId());

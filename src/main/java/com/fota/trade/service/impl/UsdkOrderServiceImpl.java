@@ -100,10 +100,10 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     }
 
     @Override
-    public ResultCode order(UsdkOrderDTO usdkOrderDTO) {
+    public ResultCode order(UsdkOrderDTO usdkOrderDTO, Map<String, String> userInfoMap) {
         ResultCode resultCode = new ResultCode();
         try {
-            ResultCode rst = usdkOrderManager.placeOrder(BeanUtils.copy(usdkOrderDTO));
+            ResultCode rst = usdkOrderManager.placeOrder(BeanUtils.copy(usdkOrderDTO), userInfoMap);
             if (rst.isSuccess()) {
                 tradeLog.info("下单@@@" + usdkOrderDTO);
             }
@@ -123,10 +123,15 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     }
 
     @Override
-    public ResultCode cancelOrder(long userId, long orderId) {
+    public ResultCode order(UsdkOrderDTO usdkOrderDTO) {
+        return null;
+    }
+
+    @Override
+    public ResultCode cancelOrder(long userId, long orderId, Map<String, String> userInfoMap) {
         ResultCode resultCode = new ResultCode();
         try {
-            resultCode = usdkOrderManager.cancelOrder(userId, orderId);
+            resultCode = usdkOrderManager.cancelOrder(userId, orderId, userInfoMap);
             if (resultCode.isSuccess()) {
                 tradeLog.info("撤销@@@" + userId+ "@@@" + orderId);
             }
@@ -144,10 +149,15 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     }
 
     @Override
-    public ResultCode cancelAllOrder(long userId) {
+    public ResultCode cancelOrder(long l, long l1) {
+        return null;
+    }
+
+    @Override
+    public ResultCode cancelAllOrder(long userId, Map<String, String> userInfoMap) {
         ResultCode resultCode = new ResultCode();
         try {
-            return usdkOrderManager.cancelAllOrder(userId);
+            return usdkOrderManager.cancelAllOrder(userId, userInfoMap);
         }catch (Exception e){
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
@@ -158,6 +168,11 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
             log.error("USDK cancelAllOrder() failed", e);
         }
         return resultCode;
+    }
+
+    @Override
+    public ResultCode cancelAllOrder(long l) {
+        return null;
     }
 
     @Override

@@ -16,7 +16,9 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @Author: Harry Wang
@@ -81,7 +83,10 @@ public class UsdkTradeTest {
 
     @Test
     public void cancelTest() throws Exception{
-        usdkOrderManager.cancelAllOrder(175L);
+        Map<String, String> map = new HashMap<>();
+        map.put("usernmae", "123");
+        map.put("ip", "192.169.1.1");
+        usdkOrderManager.cancelAllOrder(175L, map);
     }
 
 
