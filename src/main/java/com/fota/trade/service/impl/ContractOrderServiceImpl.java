@@ -25,7 +25,8 @@ import java.util.*;
  * @Date: Create in 下午11:16 2018/7/5
  * @Modified:
  */
-public class ContractOrderServiceImpl implements ContractOrderService {
+public class ContractOrderServiceImpl implements
+        ContractOrderService {
 
     private static final Logger log = LoggerFactory.getLogger(ContractOrderServiceImpl.class);
 
@@ -160,6 +161,11 @@ public class ContractOrderServiceImpl implements ContractOrderService {
             log.error("Contract order() failed", e);
         }
         return resultCode;
+    }
+
+    @Override
+    public ResultCode order(ContractOrderDTO contractOrderDTO) {
+        return null;
     }
 
     @Override
