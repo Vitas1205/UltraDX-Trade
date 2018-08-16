@@ -38,7 +38,7 @@ public class BeanUtilsTest {
     public void testCopy() throws Exception {
         UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
         usdkOrderDTO.setUserId(234L);
-        usdkOrderDTO.setGmtCreate(new Date().getTime());
+        usdkOrderDTO.setGmtCreate(new Date());
         UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
         org.springframework.beans.BeanUtils.copyProperties(usdkOrderDTO, usdkOrderDO);
         Assert.assertTrue(usdkOrderDO.getUserId() == 234L);
