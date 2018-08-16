@@ -149,6 +149,7 @@ public class ContractOrderServiceImpl implements
         ResultCode resultCode = new ResultCode();
         try {
             resultCode = contractOrderManager.placeOrder(BeanUtils.copy(contractOrderDTO), userInfoMap);
+            return resultCode;
         }catch (Exception e){
             log.error("Contract order() failed", e);
             if (e instanceof BusinessException){
@@ -156,10 +157,9 @@ public class ContractOrderServiceImpl implements
                 resultCode.setCode(businessException.getCode());
                 resultCode.setMessage(businessException.getMessage());
                 return resultCode;
-            }else {
-                resultCode = ResultCode.error(ResultCodeEnum.CONTRACT_ORDER_FAILED.getCode(), ResultCodeEnum.CONTRACT_ORDER_FAILED.getMessage());
             }
         }
+        resultCode = ResultCode.error(ResultCodeEnum.ORDER_FAILED.getCode(), ResultCodeEnum.ORDER_FAILED.getMessage());
         return resultCode;
     }
 
@@ -183,6 +183,7 @@ public class ContractOrderServiceImpl implements
                 return resultCode;
             }
         }
+        resultCode = ResultCode.error(ResultCodeEnum.CANCEL_ORDER_FAILED.getCode(), ResultCodeEnum.CANCEL_ORDER_FAILED.getMessage());
         return resultCode;
     }
 
@@ -206,6 +207,7 @@ public class ContractOrderServiceImpl implements
                 return resultCode;
             }
         }
+        resultCode = ResultCode.error(ResultCodeEnum.CANCEL_ALL_ORDER_FAILED.getCode(), ResultCodeEnum.CANCEL_ALL_ORDER_FAILED.getMessage());
         return resultCode;
     }
 
