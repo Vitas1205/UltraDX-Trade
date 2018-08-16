@@ -114,13 +114,13 @@ public class UsdkTradeTest {
 
     @Test
     public void update(){
-        UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
-        usdkOrderDO.setId(46L);
-        UsdkOrderDO usdkOrderDO2 = usdkOrderMapper.selectByPrimaryKey(usdkOrderDO.getId());
-        log.info("更新后的记录"+usdkOrderDO.getId()+":"+usdkOrderDO2);
-        if (usdkOrderDO2.getUnfilledAmount().compareTo(BigDecimal.ZERO) == 0){
-            usdkOrderDO2.setStatus(OrderStatusEnum.MATCH.getCode());
-            usdkOrderMapper.updateStatus(usdkOrderDO2);
-        }
+//        UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
+//        usdkOrderDO.setId(46L);
+//        UsdkOrderDO usdkOrderDO2 = usdkOrderMapper.selectByPrimaryKey(usdkOrderDO.getId());
+//        log.info("更新后的记录"+usdkOrderDO.getId()+":"+usdkOrderDO2);
+//        if (usdkOrderDO2.getUnfilledAmount().compareTo(BigDecimal.ZERO) == 0){
+//            usdkOrderDO2.setStatus(OrderStatusEnum.MATCH.getCode());
+//            usdkOrderMapper.updateStatus(usdkOrderDO2);
+//        }
     }
 }
