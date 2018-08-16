@@ -32,6 +32,8 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
 
     private static final Logger log = LoggerFactory.getLogger(UsdkOrderServiceImpl.class);
 
+    private static final Logger tradeLog = LoggerFactory.getLogger("trade");
+
     @Autowired
     private UsdkOrderMapper usdkOrderMapper;
 
@@ -98,11 +100,17 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     }
 
     @Override
-    public ResultCode order(UsdkOrderDTO usdkOrderDTO) {
+    public ResultCode order(UsdkOrderDTO usdkOrderDTO, Map<String, String> userInfoMap) {
         ResultCode resultCode = new ResultCode();
         try {
-            return usdkOrderManager.placeOrder(BeanUtils.copy(usdkOrderDTO));
+            ResultCode rst = usdkOrderManager.placeOrder(BeanUtils.copy(usdkOrderDTO), userInfoMap);
+            if (rst.isSuccess()) {
+                tradeLog.info("下单@@@" + usdkOrderDTO);
+            }
+            return rst;
         }catch (Exception e){
+            log.error("USDK order() failed", e);
+
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
                 resultCode.setCode(businessException.getCode());
@@ -111,36 +119,45 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
             }
             log.error("USDK order() failed", e);
         }
-        resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
-        resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());
         return resultCode;
     }
 
     @Override
-    public ResultCode cancelOrder(long userId, long orderId) {
+    public ResultCode order(UsdkOrderDTO usdkOrderDTO) {
+        return null;
+    }
+
+    @Override
+    public ResultCode cancelOrder(long userId, long orderId, Map<String, String> userInfoMap) {
+        ResultCode resultCode = new ResultCode();
         try {
-            return usdkOrderManager.cancelOrder(userId, orderId);
+            resultCode = usdkOrderManager.cancelOrder(userId, orderId, userInfoMap);
+            if (resultCode.isSuccess()) {
+                tradeLog.info("撤销@@@" + userId+ "@@@" + orderId);
+            }
+            return resultCode;
         }catch (Exception e){
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
-                ResultCode resultCode = new ResultCode();
                 resultCode.setCode(businessException.getCode());
                 resultCode.setMessage(businessException.getMessage());
                 return resultCode;
             }
             log.error("USDK cancelOrder() failed", e);
         }
-        ResultCode resultCode = new ResultCode();
-        resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
-        resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());
         return resultCode;
     }
 
     @Override
-    public ResultCode cancelAllOrder(long userId) {
+    public ResultCode cancelOrder(long l, long l1) {
+        return null;
+    }
+
+    @Override
+    public ResultCode cancelAllOrder(long userId, Map<String, String> userInfoMap) {
         ResultCode resultCode = new ResultCode();
         try {
-            return usdkOrderManager.cancelAllOrder(userId);
+            return usdkOrderManager.cancelAllOrder(userId, userInfoMap);
         }catch (Exception e){
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
@@ -150,29 +167,30 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
             }
             log.error("USDK cancelAllOrder() failed", e);
         }
-        resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
-        resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());
         return resultCode;
+    }
+
+    @Override
+    public ResultCode cancelAllOrder(long l) {
+        return null;
     }
 
     @Override
     public ResultCode updateOrderByMatch(UsdkMatchedOrderDTO usdkMatchedOrderDTO) {
         ResultCode resultCode = new ResultCode();
         try {
-            resultCode =  usdkOrderManager.updateOrderByMatch(usdkMatchedOrderDTO);
+            resultCode = usdkOrderManager.updateOrderByMatch(usdkMatchedOrderDTO);
             log.info("resultCode----------------------"+resultCode.toString());
             return resultCode;
         }catch (Exception e){
+            log.error("USDK updateOrderByMatch() failed", e);
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
                 resultCode.setCode(businessException.getCode());
                 resultCode.setMessage(businessException.getMessage());
                 return resultCode;
             }
-            log.error("USDK updateOrderByMatch() failed", e);
         }
-        resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
-        resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());
         return resultCode;
     }
 

@@ -31,6 +31,8 @@ public class RedisManager {
     private RedisTemplate<String, Object> redisTemplate;
 
     public boolean set(final String key, final Object value) {
+        log.info("------------------向redis写入key"+key);
+        log.info("------------------向redis写入value"+value);
         try {
             ValueOperations<String, Object> vOps = redisTemplate.opsForValue();
             vOps.set(key, value);
@@ -57,6 +59,8 @@ public class RedisManager {
         String key = Constant.USDK_ORDER_HEAD + count;
         String usdkOrderDTOStr = JSONObject.toJSONString(usdkOrderDTO);
         set(key,usdkOrderDTOStr);
+        String key2 = "usdt_order_for_match_";
+        rpush(key2, usdkOrderDTO);
     }
 
     public void contractOrderSave(ContractOrderDTO contractOrderDTO){
@@ -64,6 +68,8 @@ public class RedisManager {
         String key = Constant.CONTRACT_ORDER_HEAD + count;
         String usdkOrderDTOStr = JSONObject.toJSONString(contractOrderDTO);
         set(key,usdkOrderDTOStr);
+        String key2 = "contract_order_for_match_";
+        rpush(key2, contractOrderDTO);
     }
 
     public Long getCount(final String redisKey) {

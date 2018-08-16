@@ -2,11 +2,9 @@ package com.fota.trade.service.impl;
 
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
-import com.fota.trade.common.BeanUtils;
-import com.fota.trade.common.BusinessException;
-import com.fota.trade.common.Constant;
-import com.fota.trade.common.ParamUtil;
+import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
+import com.fota.trade.domain.ResultCode;
 import com.fota.trade.manager.ContractLeverManager;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.RedisManager;
@@ -27,7 +25,8 @@ import java.util.*;
  * @Date: Create in 下午11:16 2018/7/5
  * @Modified:
  */
-public class ContractOrderServiceImpl implements ContractOrderService {
+public class ContractOrderServiceImpl implements
+        ContractOrderService {
 
     private static final Logger log = LoggerFactory.getLogger(ContractOrderServiceImpl.class);
 
@@ -127,16 +126,32 @@ public class ContractOrderServiceImpl implements ContractOrderService {
      */
     @Override
     public List<ContractOrderDTO> getAllContractOrder(BaseQuery contractOrderQuery) {
-        return null;
+        Map<String, Object> paramMap = null;
+        List<com.fota.trade.domain.ContractOrderDTO> list = new ArrayList<>();
+        try {
+            paramMap = ParamUtil.objectToMap(contractOrderQuery);
+            paramMap.put("startRow", 0);
+            paramMap.put("endRow", Integer.MAX_VALUE);
+            List<ContractOrderDO> contractOrderDOList = contractOrderMapper.listByQuery(paramMap);
+            if (contractOrderDOList != null && contractOrderDOList.size() > 0) {
+                for (ContractOrderDO contractOrderDO : contractOrderDOList) {
+                    list.add(BeanUtils.copy(contractOrderDO));
+                }
+            }
+        } catch (Exception e) {
+            log.error("contractOrderMapper.listByQuery({})", contractOrderQuery, e);
+        }
+        return list;
     }
 
-
     @Override
-    public ResultCode order(ContractOrderDTO contractOrderDTO) {
+    public ResultCode order(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
         ResultCode resultCode = new ResultCode();
         try {
-            resultCode = contractOrderManager.placeOrder(BeanUtils.copy(contractOrderDTO));
+            resultCode = contractOrderManager.placeOrder(BeanUtils.copy(contractOrderDTO), userInfoMap);
         }catch (Exception e){
+            log.error("Contract order() failed", e);
+
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
                 resultCode.setCode(businessException.getCode());
@@ -149,10 +164,15 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     }
 
     @Override
-    public ResultCode cancelOrder(long userId, long orderId) {
+    public ResultCode order(ContractOrderDTO contractOrderDTO) {
+        return null;
+    }
+
+    @Override
+    public ResultCode cancelOrder(long userId, long orderId, Map<String, String> userInfoMap) {
         ResultCode resultCode = new ResultCode();
         try {
-            resultCode = contractOrderManager.cancelOrder(userId, orderId);
+            resultCode = contractOrderManager.cancelOrder(userId, orderId, userInfoMap);
             return resultCode;
         }catch (Exception e){
             if (e instanceof BusinessException){
@@ -167,10 +187,15 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     }
 
     @Override
-    public ResultCode cancelAllOrder(long userId) {
+    public ResultCode cancelOrder(long l, long l1) {
+        return null;
+    }
+
+    @Override
+    public ResultCode cancelAllOrder(long userId, Map<String, String> userInfoMap) {
         ResultCode resultCode = new ResultCode();
         try {
-            resultCode = contractOrderManager.cancelAllOrder(userId);
+            resultCode = contractOrderManager.cancelAllOrder(userId, userInfoMap);
             return resultCode;
         }catch (Exception e){
             if (e instanceof BusinessException){
@@ -184,6 +209,11 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         return resultCode;
     }
 
+    @Override
+    public ResultCode cancelAllOrder(long l) {
+        return null;
+    }
+
     /**
      * 撤销用户非强平单
      * * todo@荆轲
@@ -192,7 +222,30 @@ public class ContractOrderServiceImpl implements ContractOrderService {
      * @return
      */
     @Override
-    public ResultCode cancelOrderByOrderType(long userId, int orderType) {
+    public ResultCode cancelOrderByOrderType(long userId, int orderType, Map<String, String> userInfoMap) {
+        ResultCode resultCode = new ResultCode();
+        try {
+            resultCode = contractOrderManager.cancelOrderByOrderType(userId, orderType, userInfoMap);
+            return resultCode;
+        }catch (Exception e){
+            if (e instanceof BusinessException){
+                BusinessException businessException = (BusinessException) e;
+                resultCode.setCode(businessException.getCode());
+                resultCode.setMessage(businessException.getMessage());
+                return resultCode;
+            }
+            log.error("Contract cancelOrderByContractId() failed", e);
+        }
+        return resultCode;
+    }
+
+    @Override
+    public ResultCode cancelOrderByOrderType(long l, int i) {
+        return null;
+    }
+
+    @Override
+    public ResultCode cancelOrderByContractId(long l) {
         return null;
     }
 
@@ -203,10 +256,10 @@ public class ContractOrderServiceImpl implements ContractOrderService {
      * @return
      */
     @Override
-    public ResultCode cancelOrderByContractId(long contractId) {
+    public ResultCode cancelOrderByContractId(long contractId, Map<String, String> userInfoMap) {
         ResultCode resultCode = new ResultCode();
         try {
-            resultCode = contractOrderManager.cancelOrderByContractId(contractId);
+            resultCode = contractOrderManager.cancelOrderByContractId(contractId, userInfoMap);
             return resultCode;
         }catch (Exception e){
             if (e instanceof BusinessException){
@@ -226,9 +279,11 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         try {
             resultCode = contractOrderManager.updateOrderByMatch(contractMatchedOrderDTO);
             return resultCode;
-        }catch (Exception e){
-            log.error("contract updateOrderByMatch failed:{}",contractMatchedOrderDTO);
+        } catch (Exception e) {
+            log.error("updateOrderByMatch error", e);
         }
+        resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
+        resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());
         return resultCode;
     }
 
@@ -253,7 +308,19 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         }catch (Exception e){
             log.error("getTodayFee failed",e);
         }
-        return null;
+        return totalFee;
+    }
+
+    @Override
+    public BigDecimal getFeeByDate(Date startDate, Date endDate) {
+        BigDecimal totalFee = BigDecimal.ZERO;
+        try {
+            totalFee = contractMatchedOrderMapper.getAllFee(startDate, endDate);
+            return totalFee;
+        }catch (Exception e){
+            log.error("getTodayFee failed",e);
+        }
+        return totalFee;
     }
 
     private void updateContractAccount(ContractOrderDO contractOrderDO, ContractMatchedOrderDTO contractMatchedOrderDTO) {

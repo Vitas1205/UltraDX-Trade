@@ -177,7 +177,9 @@ public class BeanUtils {
         }
         contractOrderDO.setContractId(contractOrderDTO.getContractId());
         contractOrderDO.setContractName(contractOrderDTO.getContractName());
-        contractOrderDO.setTotalAmount(contractOrderDTO.getTotalAmount());
+        if (contractOrderDTO.getTotalAmount() != null){
+            contractOrderDO.setTotalAmount(contractOrderDTO.getTotalAmount());
+        }
         contractOrderDO.setPrice(contractOrderDTO.getPrice());
         return contractOrderDO;
     }

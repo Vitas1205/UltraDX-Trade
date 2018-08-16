@@ -19,7 +19,9 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -76,7 +78,10 @@ public class ContractTest {
             contractOrderDTO.setOrderType(0);
             contractOrderDTO.setTotalAmount(1L);
             //contractOrderDTO.setPrice("8500");
-            contractOrderService.order(contractOrderDTO);
+            Map<String, String> map = new HashMap<>();
+            map.put("usernmae", "123");
+            map.put("ip", "192.169.1.1");
+            contractOrderService.order(contractOrderDTO,map);
         }
         //int insertContractOrderRet = contractOrderMapper.insertSelective(BeanUtils.copy(contractOrderDTO));
     }

@@ -21,6 +21,9 @@ public class UserPositionDO {
     private Long unfilledAmount;
     private Integer positionType;
     private BigDecimal averagePrice;
+    /**
+     * 1 未交割，2 已交割
+     */
     private Integer status;
     private Integer lever;
     private BigDecimal contractSize;

@@ -3,7 +3,7 @@ spring:
     name: fota-trade
   cloud:
     zookeeper:
-      connect-string: ${ZOOKEEPER_SERVER:47.98.100.103:2181,118.31.20.172:2181,116.62.196.53:2181}
+      connect-string: ${ZOOKEEPER_SERVER:172.16.50.183:2181,172.16.50.184:2181,172.16.50.185:2181}
     config:
       profile: ${SPRING_PROFILE:dev}
       label: master
@@ -12,4 +12,4 @@ spring:
         service-id: fota-config-server-zk
 
 service-group:  ${SPRING_SERVICE:dev}
-reference-group: ${SPRING_REFERENCE:dev}
+reference-group: ${SPRING_REFERENCE:daily}
