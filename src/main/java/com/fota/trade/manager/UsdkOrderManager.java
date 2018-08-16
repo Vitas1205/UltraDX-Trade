@@ -109,6 +109,7 @@ public class UsdkOrderManager {
         usdkOrderDO.setStatus(OrderStatusEnum.COMMIT.getCode());
         usdkOrderDO.setUnfilledAmount(usdkOrderDO.getTotalAmount());
         int ret = usdkOrderMapper.insertSelective(usdkOrderDO);
+        usdkOrderDO = usdkOrderMapper.selectByPrimaryKey(usdkOrderDO.getId());
         UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
         BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
         if (ret > 0){

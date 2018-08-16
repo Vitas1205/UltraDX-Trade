@@ -135,6 +135,7 @@ public class ContractOrderManager {
         contractOrderDO.setCloseType(OrderCloseTypeEnum.MANUAL.getCode());
         ResultCode resultCode = new ResultCode();
         insertOrderRecord(contractOrderDO);
+        contractOrderDO = contractOrderMapper.selectByPrimaryKey(contractOrderDO.getId());
         BigDecimal totalLockAmount = getTotalLockAmount(contractOrderDO.getUserId());
         //查询用户合约冻结金额
         UserContractDTO userContractDTO = getAssetService().getContractAccount(contractOrderDO.getUserId());
