@@ -117,7 +117,6 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
                 resultCode.setMessage(businessException.getMessage());
                 return resultCode;
             }
-            log.error("USDK order() failed", e);
         }
         return resultCode;
     }
@@ -137,13 +136,13 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
             }
             return resultCode;
         }catch (Exception e){
+            log.error("USDK cancelOrder() failed", e);
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
                 resultCode.setCode(businessException.getCode());
                 resultCode.setMessage(businessException.getMessage());
                 return resultCode;
             }
-            log.error("USDK cancelOrder() failed", e);
         }
         return resultCode;
     }
@@ -159,13 +158,13 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         try {
             return usdkOrderManager.cancelAllOrder(userId, userInfoMap);
         }catch (Exception e){
+            log.error("USDK cancelAllOrder() failed", e);
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
                 resultCode.setCode(businessException.getCode());
                 resultCode.setMessage(businessException.getMessage());
                 return resultCode;
             }
-            log.error("USDK cancelAllOrder() failed", e);
         }
         return resultCode;
     }
