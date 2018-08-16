@@ -100,6 +100,11 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     }
 
     @Override
+    public ResultCode order(UsdkOrderDTO usdkOrderDTO, Map<String, String> map) {
+        return null;
+    }
+
+    @Override
     public ResultCode order(UsdkOrderDTO usdkOrderDTO) {
         ResultCode resultCode = new ResultCode();
         try {
@@ -125,6 +130,11 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     }
 
     @Override
+    public ResultCode cancelOrder(long l, long l1, Map<String, String> map) {
+        return null;
+    }
+
+    @Override
     public ResultCode cancelOrder(long userId, long orderId) {
         try {
             ResultCode rst = usdkOrderManager.cancelOrder(userId, orderId);
@@ -146,6 +156,11 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
         resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());
         return resultCode;
+    }
+
+    @Override
+    public ResultCode cancelAllOrder(long l, Map<String, String> map) {
+        return null;
     }
 
     @Override

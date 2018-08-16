@@ -127,6 +127,11 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         return null;
     }
 
+    @Override
+    public ResultCode order(ContractOrderDTO contractOrderDTO, Map<String, String> map) {
+        return null;
+    }
+
 
     @Override
     public ResultCode order(ContractOrderDTO contractOrderDTO) {
@@ -148,6 +153,11 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     }
 
     @Override
+    public ResultCode cancelOrder(long l, long l1, Map<String, String> map) {
+        return null;
+    }
+
+    @Override
     public ResultCode cancelOrder(long userId, long orderId) {
         ResultCode resultCode = new ResultCode();
         try {
@@ -166,6 +176,11 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     }
 
     @Override
+    public ResultCode cancelAllOrder(long l, Map<String, String> map) {
+        return null;
+    }
+
+    @Override
     public ResultCode cancelAllOrder(long userId) {
         ResultCode resultCode = new ResultCode();
         try {
@@ -181,6 +196,11 @@ public class ContractOrderServiceImpl implements ContractOrderService {
             log.error("Contract cancelAllOrder() failed", e);
         }
         return resultCode;
+    }
+
+    @Override
+    public ResultCode cancelOrderByOrderType(long l, int i, Map<String, String> map) {
+        return null;
     }
 
     /**
@@ -203,6 +223,11 @@ public class ContractOrderServiceImpl implements ContractOrderService {
      */
     @Override
     public ResultCode cancelOrderByContractId(long contractId) {
+        return null;
+    }
+
+    @Override
+    public ResultCode cancelOrderByContractId(long l, Map<String, String> map) {
         return null;
     }
 
@@ -241,6 +266,11 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         }catch (Exception e){
             log.error("getTodayFee failed",e);
         }
+        return null;
+    }
+
+    @Override
+    public BigDecimal getFeeByDate(Date date, Date date1) {
         return null;
     }
 
