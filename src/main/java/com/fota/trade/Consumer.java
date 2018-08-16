@@ -100,9 +100,11 @@ public class Consumer {
                             }
                         }
                         if (keyMap == null) {
-                            keyMap = new HashMap<>(1);
+                            keyMap = new HashMap<>();
+                            keyMap.put(mqKey, 0);
+                        }else {
+                            keyMap.put(mqKey, 0);
                         }
-                        keyMap.put(mqKey, 0);
                         redisManager.set(Constant.MQ_REPET_JUDGE_KEY, keyMap);
                     } catch (Exception e) {
                         log.error("trade consume error ", e);

@@ -149,17 +149,17 @@ public class ContractOrderServiceImpl implements
         ResultCode resultCode = new ResultCode();
         try {
             resultCode = contractOrderManager.placeOrder(BeanUtils.copy(contractOrderDTO), userInfoMap);
+            return resultCode;
         }catch (Exception e){
             log.error("Contract order() failed", e);
-
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
                 resultCode.setCode(businessException.getCode());
                 resultCode.setMessage(businessException.getMessage());
                 return resultCode;
             }
-            log.error("Contract order() failed", e);
         }
+        resultCode = ResultCode.error(ResultCodeEnum.ORDER_FAILED.getCode(), ResultCodeEnum.ORDER_FAILED.getMessage());
         return resultCode;
     }
 
@@ -175,14 +175,15 @@ public class ContractOrderServiceImpl implements
             resultCode = contractOrderManager.cancelOrder(userId, orderId, userInfoMap);
             return resultCode;
         }catch (Exception e){
+            log.error("Contract cancelOrder() failed", e);
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
                 resultCode.setCode(businessException.getCode());
                 resultCode.setMessage(businessException.getMessage());
                 return resultCode;
             }
-            log.error("Contract cancelOrder() failed", e);
         }
+        resultCode = ResultCode.error(ResultCodeEnum.CANCEL_ORDER_FAILED.getCode(), ResultCodeEnum.CANCEL_ORDER_FAILED.getMessage());
         return resultCode;
     }
 
@@ -198,14 +199,15 @@ public class ContractOrderServiceImpl implements
             resultCode = contractOrderManager.cancelAllOrder(userId, userInfoMap);
             return resultCode;
         }catch (Exception e){
+            log.error("Contract cancelAllOrder() failed", e);
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
                 resultCode.setCode(businessException.getCode());
                 resultCode.setMessage(businessException.getMessage());
                 return resultCode;
             }
-            log.error("Contract cancelAllOrder() failed", e);
         }
+        resultCode = ResultCode.error(ResultCodeEnum.CANCEL_ALL_ORDER_FAILED.getCode(), ResultCodeEnum.CANCEL_ALL_ORDER_FAILED.getMessage());
         return resultCode;
     }
 
@@ -228,13 +230,13 @@ public class ContractOrderServiceImpl implements
             resultCode = contractOrderManager.cancelOrderByOrderType(userId, orderType, userInfoMap);
             return resultCode;
         }catch (Exception e){
+            log.error("Contract cancelOrderByContractId() failed", e);
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
                 resultCode.setCode(businessException.getCode());
                 resultCode.setMessage(businessException.getMessage());
                 return resultCode;
             }
-            log.error("Contract cancelOrderByContractId() failed", e);
         }
         return resultCode;
     }
@@ -262,13 +264,13 @@ public class ContractOrderServiceImpl implements
             resultCode = contractOrderManager.cancelOrderByContractId(contractId, userInfoMap);
             return resultCode;
         }catch (Exception e){
+            log.error("Contract cancelOrderByContractId() failed", e);
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
                 resultCode.setCode(businessException.getCode());
                 resultCode.setMessage(businessException.getMessage());
                 return resultCode;
             }
-            log.error("Contract cancelOrderByContractId() failed", e);
         }
         return resultCode;
     }
