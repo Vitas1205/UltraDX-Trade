@@ -86,8 +86,8 @@ public class BeanUtils {
     public static UsdkOrderDTO copy(UsdkOrderDO usdkOrderDO) {
         UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
         usdkOrderDTO.setId(usdkOrderDO.getId());
-        usdkOrderDTO.setGmtCreate(usdkOrderDO.getGmtCreate().getTime());
-        usdkOrderDTO.setGmtModified(usdkOrderDO.getGmtModified().getTime());
+        usdkOrderDTO.setGmtCreate(usdkOrderDO.getGmtCreate());
+        usdkOrderDTO.setGmtModified(usdkOrderDO.getGmtModified());
         usdkOrderDTO.setUserId(usdkOrderDO.getUserId());
         usdkOrderDTO.setAssetId(usdkOrderDO.getAssetId());
         usdkOrderDTO.setAssetName(usdkOrderDO.getAssetName());
@@ -108,10 +108,10 @@ public class BeanUtils {
             usdkOrderDO.setId(usdkOrderDTO.getId());
         }
         if (usdkOrderDTO.getGmtCreate() != null) {
-            usdkOrderDO.setGmtCreate(new Date(usdkOrderDTO.getGmtCreate()));
+            usdkOrderDO.setGmtCreate(usdkOrderDTO.getGmtCreate());
         }
         if (usdkOrderDTO.getGmtModified() != null) {
-            usdkOrderDO.setGmtModified(new Date(usdkOrderDTO.getGmtModified()));
+            usdkOrderDO.setGmtModified(usdkOrderDTO.getGmtModified());
         }
         usdkOrderDO.setUserId(usdkOrderDTO.getUserId());
         usdkOrderDO.setAssetId(usdkOrderDTO.getAssetId());
@@ -212,6 +212,7 @@ public class BeanUtils {
 
     public static UsdkMatchedOrderDO copy(UsdkMatchedOrderDTO usdkMatchedOrderDTO) {
         UsdkMatchedOrderDO usdkMatchedOrderDO = new UsdkMatchedOrderDO();
+
         usdkMatchedOrderDO.setAssetName(usdkMatchedOrderDTO.getAssetName());
         usdkMatchedOrderDO.setAskOrderPrice(new BigDecimal(usdkMatchedOrderDTO.getAskOrderPrice()));
         usdkMatchedOrderDO.setAskOrderId(usdkMatchedOrderDTO.getAskOrderId());
