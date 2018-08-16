@@ -56,9 +56,6 @@
     -->
     insert into trade_contract_order
     <trim prefix="(" suffix=")" suffixOverrides="," >
-      <if test="id != null" >
-        id,
-      </if>
       gmt_modified,
       <if test="userId != null" >
         user_id,
@@ -110,9 +107,6 @@
       </if>
     </trim>
     <trim prefix="values (" suffix=")" suffixOverrides="," >
-      <if test="id != null" >
-        #{id,jdbcType=BIGINT},
-      </if>
       now(),
       <if test="userId != null" >
         #{userId,jdbcType=BIGINT},
