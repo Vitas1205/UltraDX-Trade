@@ -113,7 +113,7 @@ public class UsdkOrderManager {
             if (orderDirection == OrderDirectionEnum.BID.getCode()){
                 //查询usdk账户可用余额
                 for(UserCapitalDTO userCapitalDTO : list){
-                    if (userCapitalDTO.getAssetId() == AssetTypeEnum.USDK.getCode()){
+                    if (userCapitalDTO.getAssetId() == AssetTypeEnum.USDT.getCode()){
                         BigDecimal amount = new BigDecimal(userCapitalDTO.getAmount());
                         BigDecimal lockedAmount = new BigDecimal(userCapitalDTO.getLockedAmount());
                         BigDecimal availableAmount = amount.subtract(lockedAmount);
@@ -204,12 +204,12 @@ public class UsdkOrderManager {
             Integer assetId = 0;
             BigDecimal unlockAmount = BigDecimal.ZERO;
             if (orderDirection == OrderDirectionEnum.BID.getCode()){
-                assetId = AssetTypeEnum.USDK.getCode();
+                assetId = AssetTypeEnum.USDT.getCode();
                 BigDecimal unfilledAmount = usdkOrderDO.getUnfilledAmount();
                 BigDecimal price = usdkOrderDO.getPrice();
                 unlockAmount = unfilledAmount.multiply(price);
                 //解冻USDK钱包账户
-                Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,AssetTypeEnum.USDK.getCode(),unlockAmount.negate().toString(), 0L);
+                Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,AssetTypeEnum.USDT.getCode(),unlockAmount.negate().toString(), 0L);
                 if (!updateLockedAmountRet){
                     throw new BusinessException(ResultCodeEnum.UPDATE_USDK_CAPITAL_LOCKEDAMOUNT_FAILED.getCode(), ResultCodeEnum.UPDATE_USDK_CAPITAL_LOCKEDAMOUNT_FAILED.getMessage());
                 }

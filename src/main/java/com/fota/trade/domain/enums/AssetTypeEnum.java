@@ -10,9 +10,9 @@ import lombok.Getter;
  */
 public enum AssetTypeEnum {
     /**
-     * USDK枚举值
+     * USDT枚举值
      */
-    USDK(1, "USDK"),
+    USDT(1, "USDT"),
     /**
      * 以太坊枚举值
      */
