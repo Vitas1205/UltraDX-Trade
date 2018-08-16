@@ -104,15 +104,26 @@ public class ContractOrderManager {
         if (list != null){
             for(ContractOrderDO contractOrderDO : list){
                 if (contractOrderDO.getStatus() == OrderStatusEnum.COMMIT.getCode() || contractOrderDO.getStatus() == OrderStatusEnum.PART_MATCH.getCode()){
-                    i++;
                     Long orderId = contractOrderDO.getId();
-                    cancelOrder(userId, orderId, userInfoMap);
+                    try {
+                        ResultCode resultCode2 =cancelOrder(userId, orderId, userInfoMap);
+                        if (resultCode2.getCode() == 0){
+                            i++;
+                        }
+                    }catch (Exception e){
+                        log.error("cancelAllOrder has failed",contractOrderDO,e);
+                    }
                 }
+
             }
         }
         if (i == 0){
             resultCode.setCode(ResultCodeEnum.NO_CANCELLABLE_ORDERS.getCode());
             resultCode.setMessage(ResultCodeEnum.NO_CANCELLABLE_ORDERS.getMessage());
+            return resultCode;
+        }
+        if (i != list.size()){
+            resultCode = ResultCode.error(ResultCodeEnum.PARTLY_COMPLETED.getCode(), ResultCodeEnum.PARTLY_COMPLETED.getMessage());
             return resultCode;
         }
         resultCode.setCode(0);
@@ -173,6 +184,17 @@ public class ContractOrderManager {
         if (contractCategoryDO == null){
             log.error("Contract Is Null");
             throw new RuntimeException("Contract Is Null");
+        }
+        //todo 判单合约是否可以交易
+        if (contractCategoryDO.getStatus() == ContractStatusEnum.ROOLING_BACK.getCode()){
+            return ResultCode.error(ResultCodeEnum.CONTRACT_IS_ROLLING_BACK.getCode(),ResultCodeEnum.CONTRACT_IS_ROLLING_BACK.getMessage());
+        }else if(contractCategoryDO.getStatus() == ContractStatusEnum.DELIVERYING.getCode()){
+            return ResultCode.error(ResultCodeEnum.CONTRACT_IS_DELIVERYING.getCode(),ResultCodeEnum.CONTRACT_IS_DELIVERYING.getMessage());
+        }else if(contractCategoryDO.getStatus() == ContractStatusEnum.DELIVERED.getCode()){
+            return ResultCode.error(ResultCodeEnum.CONTRACT_HAS_DELIVERIED.getCode(),ResultCodeEnum.CONTRACT_HAS_DELIVERIED.getMessage());
+        }else if(contractCategoryDO.getStatus() == ContractStatusEnum.PROCESSING.getCode()){
+        }else {
+            return ResultCode.error(ResultCodeEnum.CONTRACT_STATUS_ILLEGAL.getCode(),ResultCodeEnum.CONTRACT_STATUS_ILLEGAL.getMessage());
         }
         if (contractOrderDO.getOrderType() == null){
             contractOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
@@ -238,6 +260,15 @@ public class ContractOrderManager {
     public ResultCode cancelOrderImpl(ContractOrderDO contractOrderDO, Map<String, String> userInfoMap) throws Exception{
         ResultCode resultCode = new ResultCode();
         Integer status = contractOrderDO.getStatus();
+        ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractOrderDO.getContractId());
+        if (contractCategoryDO == null){
+            log.error("Contract Is Null");
+            throw new RuntimeException("Contract Is Null");
+        }
+        if (contractCategoryDO.getStatus() != ContractStatusEnum.PROCESSING.getCode()){
+            log.error("contract status illegal,can not cancel{}", contractCategoryDO);
+            throw new RuntimeException("contractCategoryDO");
+        }
         /*boolean judegRet = getJudegRet(contractOrderDO.getId(),contractOrderDO.getOrderDirection(),new BigDecimal(contractOrderDO.getUnfilledAmount()));
         if (!judegRet){
             resultCode.setCode(ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getCode());

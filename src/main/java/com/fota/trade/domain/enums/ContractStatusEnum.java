@@ -24,6 +24,14 @@ public enum ContractStatusEnum {
      * 已交割
      */
     DELIVERED(3, "DELIVERED"),
+    /**
+     * 交割中
+     */
+    DELIVERYING(4, "DELIVERED"),
+    /**
+     * 回滚中
+     */
+    ROOLING_BACK(5, "DELIVERED"),
     ;
     @Getter
     private int code;
