@@ -60,6 +60,7 @@ public class RedisManager {
         String usdkOrderDTOStr = JSONObject.toJSONString(usdkOrderDTO);
         set(key,usdkOrderDTOStr);
         String key2 = "usdt_order_for_match_";
+        log.info("usdk save");
         rpush(key2, usdkOrderDTO);
     }
 
@@ -69,6 +70,7 @@ public class RedisManager {
         String usdkOrderDTOStr = JSONObject.toJSONString(contractOrderDTO);
         set(key,usdkOrderDTOStr);
         String key2 = "contract_order_for_match_";
+        log.info("contract save");
         rpush(key2, contractOrderDTO);
     }
 

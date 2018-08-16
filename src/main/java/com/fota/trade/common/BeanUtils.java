@@ -214,6 +214,7 @@ public class BeanUtils {
 
     public static UsdkMatchedOrderDO copy(UsdkMatchedOrderDTO usdkMatchedOrderDTO) {
         UsdkMatchedOrderDO usdkMatchedOrderDO = new UsdkMatchedOrderDO();
+
         usdkMatchedOrderDO.setAssetName(usdkMatchedOrderDTO.getAssetName());
         usdkMatchedOrderDO.setAskOrderPrice(new BigDecimal(usdkMatchedOrderDTO.getAskOrderPrice()));
         usdkMatchedOrderDO.setAskOrderId(usdkMatchedOrderDTO.getAskOrderId());
