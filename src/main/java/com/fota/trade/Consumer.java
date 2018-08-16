@@ -18,6 +18,7 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import java.io.UnsupportedEncodingException;
@@ -39,6 +40,8 @@ public class Consumer {
     UsdkOrderServiceImpl usdkOrderService;
     @Autowired
     RedisManager redisManager;
+    @Value("${spring.rocketmq.namesrv_addr}")
+    private String namesrvAddr;
 
     @Autowired
     ContractOrderServiceImpl contractOrderService;
@@ -47,7 +50,7 @@ public class Consumer {
         //需要一个consumer group名字作为构造方法的参数，这里为consumer1
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("fota-trade-testenv");
         //同样也要设置NameServer地址
-        consumer.setNamesrvAddr("47.98.235.246:9876");
+        consumer.setNamesrvAddr(namesrvAddr);
         consumer.setMaxReconsumeTimes(30);
         //这里设置的是一个consumer的消费策略
         //CONSUME_FROM_LAST_OFFSET 默认策略，从该队列最尾开始消费，即跳过历史消息
@@ -97,9 +100,11 @@ public class Consumer {
                             }
                         }
                         if (keyMap == null) {
-                            keyMap = new HashMap<>(1);
+                            keyMap = new HashMap<>();
+                            keyMap.put(mqKey, 0);
+                        }else {
+                            keyMap.put(mqKey, 0);
                         }
-                        keyMap.put(mqKey, 0);
                         redisManager.set(Constant.MQ_REPET_JUDGE_KEY, keyMap);
                     } catch (Exception e) {
                         log.error("trade consume error ", e);

@@ -12,4 +12,4 @@ spring:
         service-id: fota-config-server-zk
 
 service-group:  ${SPRING_SERVICE:dev}
-reference-group: ${SPRING_REFERENCE:dev}
+reference-group: ${SPRING_REFERENCE:daily}

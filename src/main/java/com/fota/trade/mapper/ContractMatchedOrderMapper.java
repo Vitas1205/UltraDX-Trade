@@ -18,5 +18,5 @@ import java.util.Date;
 public interface ContractMatchedOrderMapper {
     int insert(ContractMatchedOrderDO record);
 
-    BigDecimal getTodayFee(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
+    BigDecimal getAllFee(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
 }

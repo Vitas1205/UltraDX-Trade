@@ -25,7 +25,8 @@ import java.util.*;
  * @Date: Create in 下午11:16 2018/7/5
  * @Modified:
  */
-public class ContractOrderServiceImpl implements ContractOrderService {
+public class ContractOrderServiceImpl implements
+        ContractOrderService {
 
     private static final Logger log = LoggerFactory.getLogger(ContractOrderServiceImpl.class);
 
@@ -61,7 +62,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     @Override
     public com.fota.common.Page<ContractOrderDTO> listContractOrderByQuery(BaseQuery contractOrderQueryDTO) {
         com.fota.common.Page<ContractOrderDTO> contractOrderDTOPageRet = new com.fota.common.Page<>();
-        if (contractOrderQueryDTO.getUserId() <= 0) {
+        if (null == contractOrderQueryDTO){
             return null;
         }
         com.fota.common.Page<ContractOrderDTO> contractOrderDTOPage = new com.fota.common.Page<>();
@@ -120,115 +121,158 @@ public class ContractOrderServiceImpl implements ContractOrderService {
 
     /**
      * @param contractOrderQuery
+     * * todo@荆轲
      * @return
      */
     @Override
     public List<ContractOrderDTO> getAllContractOrder(BaseQuery contractOrderQuery) {
-        return null;
+        Map<String, Object> paramMap = null;
+        List<com.fota.trade.domain.ContractOrderDTO> list = new ArrayList<>();
+        try {
+            paramMap = ParamUtil.objectToMap(contractOrderQuery);
+            paramMap.put("startRow", 0);
+            paramMap.put("endRow", Integer.MAX_VALUE);
+            List<ContractOrderDO> contractOrderDOList = contractOrderMapper.listByQuery(paramMap);
+            if (contractOrderDOList != null && contractOrderDOList.size() > 0) {
+                for (ContractOrderDO contractOrderDO : contractOrderDOList) {
+                    list.add(BeanUtils.copy(contractOrderDO));
+                }
+            }
+        } catch (Exception e) {
+            log.error("contractOrderMapper.listByQuery({})", contractOrderQuery, e);
+        }
+        return list;
     }
 
     @Override
-    public ResultCode order(ContractOrderDTO contractOrderDTO, Map<String, String> map) {
-        return null;
+    public ResultCode order(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
+        ResultCode resultCode = new ResultCode();
+        try {
+            resultCode = contractOrderManager.placeOrder(BeanUtils.copy(contractOrderDTO), userInfoMap);
+            return resultCode;
+        }catch (Exception e){
+            log.error("Contract order() failed", e);
+            if (e instanceof BusinessException){
+                BusinessException businessException = (BusinessException) e;
+                resultCode.setCode(businessException.getCode());
+                resultCode.setMessage(businessException.getMessage());
+                return resultCode;
+            }
+        }
+        resultCode = ResultCode.error(ResultCodeEnum.ORDER_FAILED.getCode(), ResultCodeEnum.ORDER_FAILED.getMessage());
+        return resultCode;
     }
-
 
     @Override
     public ResultCode order(ContractOrderDTO contractOrderDTO) {
-        ResultCode resultCode = new ResultCode();
-        try {
-            resultCode = contractOrderManager.placeOrder(BeanUtils.copy(contractOrderDTO));
-        }catch (Exception e){
-            log.error("Contract order() failed", e);
-
-            if (e instanceof BusinessException){
-                BusinessException businessException = (BusinessException) e;
-                resultCode.setCode(businessException.getCode());
-                resultCode.setMessage(businessException.getMessage());
-                return resultCode;
-            }
-            log.error("Contract order() failed", e);
-        }
-        return resultCode;
-    }
-
-    @Override
-    public ResultCode cancelOrder(long l, long l1, Map<String, String> map) {
         return null;
     }
 
     @Override
-    public ResultCode cancelOrder(long userId, long orderId) {
+    public ResultCode cancelOrder(long userId, long orderId, Map<String, String> userInfoMap) {
         ResultCode resultCode = new ResultCode();
         try {
-            resultCode = contractOrderManager.cancelOrder(userId, orderId);
+            resultCode = contractOrderManager.cancelOrder(userId, orderId, userInfoMap);
             return resultCode;
         }catch (Exception e){
-            if (e instanceof BusinessException){
-                BusinessException businessException = (BusinessException) e;
-                resultCode.setCode(businessException.getCode());
-                resultCode.setMessage(businessException.getMessage());
-                return resultCode;
-            }
             log.error("Contract cancelOrder() failed", e);
-        }
-        return resultCode;
-    }
-
-    @Override
-    public ResultCode cancelAllOrder(long l, Map<String, String> map) {
-        return null;
-    }
-
-    @Override
-    public ResultCode cancelAllOrder(long userId) {
-        ResultCode resultCode = new ResultCode();
-        try {
-            resultCode = contractOrderManager.cancelAllOrder(userId);
-            return resultCode;
-        }catch (Exception e){
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
                 resultCode.setCode(businessException.getCode());
                 resultCode.setMessage(businessException.getMessage());
                 return resultCode;
             }
-            log.error("Contract cancelAllOrder() failed", e);
         }
+        resultCode = ResultCode.error(ResultCodeEnum.CANCEL_ORDER_FAILED.getCode(), ResultCodeEnum.CANCEL_ORDER_FAILED.getMessage());
         return resultCode;
     }
 
     @Override
-    public ResultCode cancelOrderByOrderType(long l, int i, Map<String, String> map) {
+    public ResultCode cancelOrder(long l, long l1) {
+        return null;
+    }
+
+    @Override
+    public ResultCode cancelAllOrder(long userId, Map<String, String> userInfoMap) {
+        ResultCode resultCode = new ResultCode();
+        try {
+            resultCode = contractOrderManager.cancelAllOrder(userId, userInfoMap);
+            return resultCode;
+        }catch (Exception e){
+            log.error("Contract cancelAllOrder() failed", e);
+            if (e instanceof BusinessException){
+                BusinessException businessException = (BusinessException) e;
+                resultCode.setCode(businessException.getCode());
+                resultCode.setMessage(businessException.getMessage());
+                return resultCode;
+            }
+        }
+        resultCode = ResultCode.error(ResultCodeEnum.CANCEL_ALL_ORDER_FAILED.getCode(), ResultCodeEnum.CANCEL_ALL_ORDER_FAILED.getMessage());
+        return resultCode;
+    }
+
+    @Override
+    public ResultCode cancelAllOrder(long l) {
         return null;
     }
 
     /**
      * 撤销用户非强平单
-     *
+     * * todo@荆轲
      * @param userId
      * @param orderType
      * @return
      */
     @Override
-    public ResultCode cancelOrderByOrderType(long userId, int orderType) {
+    public ResultCode cancelOrderByOrderType(long userId, int orderType, Map<String, String> userInfoMap) {
+        ResultCode resultCode = new ResultCode();
+        try {
+            resultCode = contractOrderManager.cancelOrderByOrderType(userId, orderType, userInfoMap);
+            return resultCode;
+        }catch (Exception e){
+            log.error("Contract cancelOrderByContractId() failed", e);
+            if (e instanceof BusinessException){
+                BusinessException businessException = (BusinessException) e;
+                resultCode.setCode(businessException.getCode());
+                resultCode.setMessage(businessException.getMessage());
+                return resultCode;
+            }
+        }
+        return resultCode;
+    }
+
+    @Override
+    public ResultCode cancelOrderByOrderType(long l, int i) {
+        return null;
+    }
+
+    @Override
+    public ResultCode cancelOrderByContractId(long l) {
         return null;
     }
 
     /**
      * 撤销该合约的所有委托订单
-     *
+     ** * todo@王冕
      * @param contractId
      * @return
      */
     @Override
-    public ResultCode cancelOrderByContractId(long contractId) {
-        return null;
-    }
-
-    @Override
-    public ResultCode cancelOrderByContractId(long l, Map<String, String> map) {
-        return null;
+    public ResultCode cancelOrderByContractId(long contractId, Map<String, String> userInfoMap) {
+        ResultCode resultCode = new ResultCode();
+        try {
+            resultCode = contractOrderManager.cancelOrderByContractId(contractId, userInfoMap);
+            return resultCode;
+        }catch (Exception e){
+            log.error("Contract cancelOrderByContractId() failed", e);
+            if (e instanceof BusinessException){
+                BusinessException businessException = (BusinessException) e;
+                resultCode.setCode(businessException.getCode());
+                resultCode.setMessage(businessException.getMessage());
+                return resultCode;
+            }
+        }
+        return resultCode;
     }
 
     @Override
@@ -261,17 +305,24 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         Date startDate = calendar.getTime();
         BigDecimal totalFee = BigDecimal.ZERO;
         try {
-            totalFee = contractMatchedOrderMapper.getTodayFee(startDate, endDate);
+            totalFee = contractMatchedOrderMapper.getAllFee(startDate, endDate);
             return totalFee;
         }catch (Exception e){
             log.error("getTodayFee failed",e);
         }
-        return null;
+        return totalFee;
     }
 
     @Override
-    public BigDecimal getFeeByDate(Date date, Date date1) {
-        return null;
+    public BigDecimal getFeeByDate(Date startDate, Date endDate) {
+        BigDecimal totalFee = BigDecimal.ZERO;
+        try {
+            totalFee = contractMatchedOrderMapper.getAllFee(startDate, endDate);
+            return totalFee;
+        }catch (Exception e){
+            log.error("getTodayFee failed",e);
+        }
+        return totalFee;
     }
 
     private void updateContractAccount(ContractOrderDO contractOrderDO, ContractMatchedOrderDTO contractMatchedOrderDTO) {

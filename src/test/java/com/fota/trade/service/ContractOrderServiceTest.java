@@ -6,6 +6,8 @@ import com.fota.trade.domain.ContractMatchedOrderDTO;
 import com.fota.trade.domain.ContractOrderDTO;
 import com.fota.trade.domain.ResultCode;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
+import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import org.joda.time.LocalDate;
 import org.junit.Assert;
 import org.junit.Test;
@@ -15,6 +17,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Date;
 
@@ -28,6 +31,7 @@ import static com.fota.trade.domain.enums.OrderStatusEnum.PART_MATCH;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @Transactional
+@Slf4j
 public class ContractOrderServiceTest {
 
     @Resource
@@ -74,6 +78,12 @@ public class ContractOrderServiceTest {
 //        ResultCode resultCode = contractOrderService.updateOrderByMatch(contractMatchedOrderDTO);
 
 
+    }
+
+    @Test
+    public void getTodayFeeTest(){
+        BigDecimal ret = contractOrderService.getTodayFee();
+        log.info("--------------------------"+ret);
     }
 
 }
