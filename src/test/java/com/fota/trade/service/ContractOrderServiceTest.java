@@ -1,10 +1,11 @@
 package com.fota.trade.service;
 
 import com.fota.common.Page;
-import com.fota.trade.domain.BaseQuery;
-import com.fota.trade.domain.ContractMatchedOrderDTO;
-import com.fota.trade.domain.ContractOrderDTO;
-import com.fota.trade.domain.ResultCode;
+import com.fota.trade.domain.*;
+import com.fota.trade.domain.enums.OrderDirectionEnum;
+import com.fota.trade.domain.enums.OrderStatusEnum;
+import com.fota.trade.manager.ContractOrderManager;
+import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
 import lombok.extern.java.Log;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +37,10 @@ public class ContractOrderServiceTest {
 
     @Resource
     private ContractOrderServiceImpl contractOrderService;
+    @Resource
+    private ContractOrderManager contractOrderManager;
+    @Resource
+    private ContractOrderMapper contractOrderMapper;
 
     @Test
     public void testListContractOrderByQuery() throws Exception {
@@ -83,6 +88,36 @@ public class ContractOrderServiceTest {
     @Test
     public void getTodayFeeTest(){
         BigDecimal ret = contractOrderService.getTodayFee();
+        log.info("--------------------------"+ret);
+    }
+
+    @Test
+    public void insertOrderRecordTest(){
+        ContractOrderDO contractOrderDO = new ContractOrderDO();
+        contractOrderDO.setUserId(282L);
+        contractOrderDO.setTotalAmount(12L);
+        contractOrderDO.setContractId(1001L);
+        contractOrderDO.setOrderDirection(1);
+        contractOrderDO.setContractName("BTC0203");
+        Long ret = contractOrderManager.insertOrderRecord(contractOrderDO);
+        log.info("--------------------------"+ret);
+    }
+
+    @Test
+    public void insertTest(){
+        ContractOrderDO contractOrderDO = new ContractOrderDO();
+        contractOrderDO.setCloseType(0);
+        contractOrderDO.setContractId(1L);
+        contractOrderDO.setContractName("BTC0930");
+        contractOrderDO.setFee(new BigDecimal("0.01"));
+        contractOrderDO.setLever(10);
+        contractOrderDO.setOrderDirection(OrderDirectionEnum.BID.getCode());
+        contractOrderDO.setPrice(new BigDecimal("6000.1"));
+        contractOrderDO.setTotalAmount(100L);
+        contractOrderDO.setUnfilledAmount(100L);
+        contractOrderDO.setUserId(31L);
+        contractOrderDO.setStatus(OrderStatusEnum.COMMIT.getCode());
+        Integer ret = contractOrderMapper.insert(contractOrderDO);
         log.info("--------------------------"+ret);
     }
 

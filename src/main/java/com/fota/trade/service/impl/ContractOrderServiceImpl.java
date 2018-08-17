@@ -148,7 +148,9 @@ public class ContractOrderServiceImpl implements
     public ResultCode order(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
         ResultCode resultCode = new ResultCode();
         try {
-            resultCode = contractOrderManager.placeOrder(BeanUtils.copy(contractOrderDTO), userInfoMap);
+            com.fota.common.Result<Long> result = contractOrderManager.placeOrder(BeanUtils.copy(contractOrderDTO), userInfoMap);
+            resultCode.setCode(result.getCode());
+            resultCode.setMessage(result.getMessage());
             return resultCode;
         }catch (Exception e){
             log.error("Contract order() failed", e);
@@ -161,6 +163,28 @@ public class ContractOrderServiceImpl implements
         }
         resultCode = ResultCode.error(ResultCodeEnum.ORDER_FAILED.getCode(), ResultCodeEnum.ORDER_FAILED.getMessage());
         return resultCode;
+    }
+
+    @Override
+    public com.fota.common.Result<Long> orderReturnId(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
+        com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
+        try {
+            result = contractOrderManager.placeOrder(BeanUtils.copy(contractOrderDTO), userInfoMap);
+            return result;
+        }catch (Exception e){
+            log.error("Contract order() failed", e);
+            if (e instanceof BusinessException){
+                BusinessException businessException = (BusinessException) e;
+                result.setCode(businessException.getCode());
+                result.setMessage(businessException.getMessage());
+                result.setData(0L);
+                return result;
+            }
+        }
+        result.setCode(ResultCodeEnum.ORDER_FAILED.getCode());
+        result.setMessage(ResultCodeEnum.ORDER_FAILED.getMessage());
+        result.setData(0L);
+        return result;
     }
 
     @Override

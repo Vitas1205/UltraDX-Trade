@@ -87,8 +87,8 @@ public class UsdkOrderManager {
     }
 
     @Transactional(rollbackFor={RuntimeException.class, Exception.class, BusinessException.class})
-    public ResultCode placeOrder(UsdkOrderDO usdkOrderDO, Map<String, String> userInfoMap)throws Exception {
-        ResultCode resultCode = new ResultCode();
+    public com.fota.common.Result<Long> placeOrder(UsdkOrderDO usdkOrderDO, Map<String, String> userInfoMap)throws Exception {
+        com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
         Integer assetId = usdkOrderDO.getAssetId();
         Long userId = usdkOrderDO.getUserId();
         Integer orderDirection = usdkOrderDO.getOrderDirection();
@@ -96,11 +96,15 @@ public class UsdkOrderManager {
         BigDecimal totalAmount = usdkOrderDO.getTotalAmount();
         BigDecimal orderValue = totalAmount.multiply(price);
         List<UserCapitalDTO> list = getAssetService().getUserCapital(userId);
-
         usdkOrderDO.setFee(usdkFee);
         usdkOrderDO.setStatus(OrderStatusEnum.COMMIT.getCode());
         usdkOrderDO.setUnfilledAmount(usdkOrderDO.getTotalAmount());
         int ret = usdkOrderMapper.insertSelective(usdkOrderDO);
+        if (ret <= 0){
+            log.error("insert contractOrder failed");
+            throw new RuntimeException("insert contractOrder failed");
+        }
+        Long orderId = usdkOrderDO.getId();
         UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
         BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
         if (ret > 0){
@@ -147,7 +151,6 @@ public class UsdkOrderManager {
                     }
                 }
             }
-            resultCode = ResultCode.success();
             usdkOrderDTO.setCompleteAmount(BigDecimal.ZERO);
             redisManager.usdkOrderSave(usdkOrderDTO);
             tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
@@ -171,7 +174,10 @@ public class UsdkOrderManager {
             log.error("insert usdk order failed{}",usdkOrderDO);
             throw new RuntimeException("insert usdk order failed");
         }
-        return resultCode;
+        result.setCode(0);
+        result.setMessage("success");
+        result.setData(orderId);
+        return result;
     }
 
     @Transactional(rollbackFor={RuntimeException.class, Exception.class, BusinessException.class})

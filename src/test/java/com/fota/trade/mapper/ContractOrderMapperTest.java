@@ -5,6 +5,7 @@ import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.domain.query.ContractOrderQuery;
+import com.fota.trade.util.PriceUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
 import org.junit.Before;
@@ -18,6 +19,8 @@ import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static com.fota.trade.domain.enums.OrderStatusEnum.PART_MATCH;
 
 /**
  * @author Gavin Shen
@@ -33,10 +36,13 @@ public class ContractOrderMapperTest {
     private ContractOrderMapper contractOrderMapper;
 
     private Long userId = 9528L;
+
+    private ContractOrderDO contractOrderDO;
+
     @Before
-    public void  init() {
+    public void init() {
         // 准备数据
-        ContractOrderDO contractOrderDO = new ContractOrderDO();
+        contractOrderDO = new ContractOrderDO();
         contractOrderDO.setCloseType(0);
         contractOrderDO.setContractId(1L);
         contractOrderDO.setContractName("BTC0930");
@@ -48,7 +54,7 @@ public class ContractOrderMapperTest {
         contractOrderDO.setUnfilledAmount(100L);
         contractOrderDO.setUserId(userId);
         contractOrderDO.setStatus(OrderStatusEnum.COMMIT.getCode());
-        int insertRet = contractOrderMapper.insert(contractOrderDO);
+        int insertRet = contractOrderMapper.insertSelective(contractOrderDO);
         Assert.assertTrue(insertRet > 0);
     }
 
@@ -77,7 +83,25 @@ public class ContractOrderMapperTest {
     @Test
     public void testSelectUnfinishedOrder() throws Exception {
         List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByUserId(userId);
-        log.info("----------------------------"+list.size());
+        log.info("----------------------------" + list.size());
+    }
+
+    @Test
+    public void testUpdateAmountAndStatus() throws Exception {
+
+        Long filledAmount = 1L;
+        BigDecimal filledPrice = new BigDecimal(0.3);
+        int aff = contractOrderMapper.updateAmountAndStatus(contractOrderDO.getId(),new BigDecimal(filledAmount), filledPrice);
+        ContractOrderDO contractOrderDO2 = contractOrderMapper.selectByPrimaryKey(contractOrderDO.getId());
+
+        BigDecimal expectAvgPrice = PriceUtil.getAveragePrice(contractOrderDO.getAveragePrice(),
+                new BigDecimal(contractOrderDO.getTotalAmount() - contractOrderDO.getUnfilledAmount()), new BigDecimal(filledAmount), filledPrice);
+
+        BigDecimal wucha = new BigDecimal(1e-6);
+        Assert.assertTrue(contractOrderDO2.getUnfilledAmount() == contractOrderDO.getUnfilledAmount() - filledAmount
+                && contractOrderDO2.getAveragePrice().subtract(expectAvgPrice).compareTo(wucha)<0
+                && contractOrderDO2.getStatus() == PART_MATCH.getCode()
+        );
     }
 
     @Test
@@ -86,11 +110,17 @@ public class ContractOrderMapperTest {
         List<ContractOrderDO> orderList = null;
         /*List<ContractOrderDO> bidList = orderList.stream().filter(order-> order.getUsdkLockedAmount().compareTo(BigDecimal.ZERO)>0)
                 .collect(Collectors.toList());*/
-        if (orderList != null &&orderList.size()!=0){
+        if (orderList != null && orderList.size() != 0) {
             log.info("----------------------------");
-        }else {
+        } else {
             log.info("++++++++++++++++++++++++++++");
         }
+    }
+
+    @Test
+    public void selectTest() throws Exception {
+        List<ContractOrderDO> list = contractOrderMapper.selectByUserId(282L);
+        log.info("----------------------------"+list.toString());
     }
 
 }

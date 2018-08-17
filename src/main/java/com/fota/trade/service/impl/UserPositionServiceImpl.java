@@ -93,9 +93,7 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
                 }
             }
         }
-
-
-        return totalPosition;
+        return totalPosition*2;
     }
 
     /**

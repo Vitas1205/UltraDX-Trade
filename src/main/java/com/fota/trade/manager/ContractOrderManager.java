@@ -10,6 +10,7 @@ import com.fota.match.domain.ContractMatchedOrderTradeDTO;
 import com.fota.match.service.ContractMatchedOrderService;
 import com.fota.trade.common.BusinessException;
 import com.fota.trade.common.Constant;
+import com.fota.trade.common.Result;
 import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.dto.CompetitorsPriceDTO;
@@ -178,8 +179,10 @@ public class ContractOrderManager {
     }
 
     @Transactional(rollbackFor = {Exception.class, RuntimeException.class, BusinessException.class})
-    public ResultCode placeOrder(ContractOrderDO contractOrderDO, Map<String, String> userInfoMap) throws Exception{
+    public com.fota.common.Result<Long> placeOrder(ContractOrderDO contractOrderDO, Map<String, String> userInfoMap) throws Exception{
         ResultCode resultCode = new ResultCode();
+        com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
+        Long orderId = 0L;
         ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractOrderDO.getContractId());
         if (contractCategoryDO == null){
             log.error("Contract Is Null");
@@ -187,14 +190,26 @@ public class ContractOrderManager {
         }
         //todo 判单合约是否可以交易
         if (contractCategoryDO.getStatus() == ContractStatusEnum.ROOLING_BACK.getCode()){
-            return ResultCode.error(ResultCodeEnum.CONTRACT_IS_ROLLING_BACK.getCode(),ResultCodeEnum.CONTRACT_IS_ROLLING_BACK.getMessage());
+            result.setCode(ResultCodeEnum.CONTRACT_IS_ROLLING_BACK.getCode());
+            result.setMessage(ResultCodeEnum.CONTRACT_IS_ROLLING_BACK.getMessage());
+            result.setData(orderId);
+            return result;
         }else if(contractCategoryDO.getStatus() == ContractStatusEnum.DELIVERYING.getCode()){
-            return ResultCode.error(ResultCodeEnum.CONTRACT_IS_DELIVERYING.getCode(),ResultCodeEnum.CONTRACT_IS_DELIVERYING.getMessage());
+            result.setCode(ResultCodeEnum.CONTRACT_IS_DELIVERYING.getCode());
+            result.setMessage(ResultCodeEnum.CONTRACT_IS_DELIVERYING.getMessage());
+            result.setData(orderId);
+            return result;
         }else if(contractCategoryDO.getStatus() == ContractStatusEnum.DELIVERED.getCode()){
-            return ResultCode.error(ResultCodeEnum.CONTRACT_HAS_DELIVERIED.getCode(),ResultCodeEnum.CONTRACT_HAS_DELIVERIED.getMessage());
+            result.setCode(ResultCodeEnum.CONTRACT_HAS_DELIVERIED.getCode());
+            result.setMessage(ResultCodeEnum.CONTRACT_HAS_DELIVERIED.getMessage());
+            result.setData(orderId);
+            return result;
         }else if(contractCategoryDO.getStatus() == ContractStatusEnum.PROCESSING.getCode()){
         }else {
-            return ResultCode.error(ResultCodeEnum.CONTRACT_STATUS_ILLEGAL.getCode(),ResultCodeEnum.CONTRACT_STATUS_ILLEGAL.getMessage());
+            result.setCode(ResultCodeEnum.CONTRACT_STATUS_ILLEGAL.getCode());
+            result.setMessage(ResultCodeEnum.CONTRACT_STATUS_ILLEGAL.getMessage());
+            result.setData(orderId);
+            return result;
         }
         if (contractOrderDO.getOrderType() == null){
             contractOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
@@ -204,7 +219,7 @@ public class ContractOrderManager {
         }else {
             contractOrderDO.setContractName(contractCategoryDO.getContractName());
             contractOrderDO.setCloseType(OrderCloseTypeEnum.MANUAL.getCode());
-            insertOrderRecord(contractOrderDO);
+            orderId = insertOrderRecord(contractOrderDO);
             BigDecimal totalLockAmount = getTotalLockAmount(contractOrderDO.getUserId());
             //查询用户合约冻结金额
             UserContractDTO userContractDTO = getAssetService().getContractAccount(contractOrderDO.getUserId());
@@ -242,9 +257,10 @@ public class ContractOrderManager {
         if (!sendRet){
             log.error("Send RocketMQ Message Failed ");
         }
-        resultCode.setCode(0);
-        resultCode.setMessage("success");
-        return resultCode;
+        result.setCode(0);
+        result.setMessage("success");
+        result.setData(orderId);
+        return result;
     }
 
 
@@ -505,7 +521,7 @@ public class ContractOrderManager {
         }
     }
 
-    public void insertOrderRecord(ContractOrderDO contractOrderDO){
+    public Long insertOrderRecord(ContractOrderDO contractOrderDO){
         contractOrderDO.setStatus(8);
         contractOrderDO.setFee(Constant.FEE_RATE);
         contractOrderDO.setUnfilledAmount(contractOrderDO.getTotalAmount());
@@ -514,6 +530,7 @@ public class ContractOrderManager {
             log.error("insert contractOrder failed");
             throw new RuntimeException("insert contractOrder failed");
         }
+        return contractOrderDO.getId();
     }
 
     //冻结合约账户金额

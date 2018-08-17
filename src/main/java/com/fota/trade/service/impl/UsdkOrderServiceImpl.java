@@ -102,12 +102,15 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     @Override
     public ResultCode order(UsdkOrderDTO usdkOrderDTO, Map<String, String> userInfoMap) {
         ResultCode resultCode = new ResultCode();
+        com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
         try {
-            ResultCode rst = usdkOrderManager.placeOrder(BeanUtils.copy(usdkOrderDTO), userInfoMap);
-            if (rst.isSuccess()) {
+            result = usdkOrderManager.placeOrder(BeanUtils.copy(usdkOrderDTO), userInfoMap);
+            if (result.isSuccess()) {
                 tradeLog.info("下单@@@" + usdkOrderDTO);
             }
-            return rst;
+            resultCode.setCode(result.getCode());
+            resultCode.setMessage(result.getMessage());
+            return resultCode;
         }catch (Exception e){
             log.error("USDK order() failed", e);
             if (e instanceof BusinessException){
@@ -119,6 +122,31 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         }
         resultCode = ResultCode.error(ResultCodeEnum.ORDER_FAILED.getCode(), ResultCodeEnum.ORDER_FAILED.getMessage());
         return resultCode;
+    }
+
+    @Override
+    public com.fota.common.Result<Long> orderReturnId(UsdkOrderDTO usdkOrderDTO, Map<String, String> userInfoMap) {
+        com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
+        try {
+            result = usdkOrderManager.placeOrder(BeanUtils.copy(usdkOrderDTO), userInfoMap);
+            if (result.isSuccess()) {
+                tradeLog.info("下单@@@" + usdkOrderDTO);
+            }
+            return result;
+        }catch (Exception e){
+            log.error("USDK order() failed", e);
+            if (e instanceof BusinessException){
+                BusinessException businessException = (BusinessException) e;
+                result.setCode(businessException.getCode());
+                result.setMessage(businessException.getMessage());
+                result.setData(0L);
+                return result;
+            }
+        }
+        result.setCode(ResultCodeEnum.ORDER_FAILED.getCode());
+        result.setMessage(ResultCodeEnum.ORDER_FAILED.getMessage());
+        result.setData(0L);
+        return result;
     }
 
     @Override
