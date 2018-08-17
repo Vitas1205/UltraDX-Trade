@@ -29,6 +29,7 @@ public class ContractOrderServiceImpl implements
         ContractOrderService {
 
     private static final Logger log = LoggerFactory.getLogger(ContractOrderServiceImpl.class);
+    private static final Logger tradeLog = LoggerFactory.getLogger("trade");
 
     @Autowired
     private ContractOrderMapper contractOrderMapper;
@@ -149,6 +150,11 @@ public class ContractOrderServiceImpl implements
         ResultCode resultCode = new ResultCode();
         try {
             resultCode = contractOrderManager.placeOrder(BeanUtils.copy(contractOrderDTO), userInfoMap);
+            if (resultCode.isSuccess()) {
+                tradeLog.info("下单@@@" + contractOrderDTO);
+                redisManager.contractOrderSaveForMatch(contractOrderDTO);
+            }
+
             return resultCode;
         }catch (Exception e){
             log.error("Contract order() failed", e);

@@ -151,7 +151,6 @@ public class UsdkOrderManager {
             resultCode = ResultCode.success();
             usdkOrderDTO.setCompleteAmount(BigDecimal.ZERO);
             redisManager.usdkOrderSave(usdkOrderDTO);
-            redisManager.usdtOrderSaveForMatch(usdkOrderDTO);
             log.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                     1, usdkOrderDTO.getAssetName(), userInfoMap.get("username"), userInfoMap.get("ipAddress"), usdkOrderDTO.getTotalAmount(), new Date(), 1, usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 1);
             //todo 发送RocketMQ

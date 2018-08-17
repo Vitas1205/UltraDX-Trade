@@ -218,7 +218,6 @@ public class ContractOrderManager {
         contractOrderDTO.setCompleteAmount(0L);
         contractOrderDTO.setContractId(contractOrderDO.getContractId());
         redisManager.contractOrderSave(contractOrderDTO);
-        redisManager.contractOrderSaveForMatch(contractOrderDTO);
         if (contractOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()) {
             // 强平单
             log.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
@@ -579,9 +578,9 @@ public class ContractOrderManager {
         }
         ContractOrderDO askContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getAskOrderId());
         ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
-        log.info("---------------{}", contractMatchedOrderDTO);
-        log.info("---------------{}", askContractOrder);
-        log.info("---------------{}", bidContractOrder);
+        log.info("contractMatchedOrderDTO ---------------{}", contractMatchedOrderDTO);
+        log.info("askContractOrder ---------------{}", askContractOrder);
+        log.info("bidContractOrder ---------------{}", bidContractOrder);
         if (askContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0
                 || bidContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0){
             log.error("unfilledAmount not enough");
