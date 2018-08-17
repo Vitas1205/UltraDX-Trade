@@ -335,10 +335,10 @@ public class ContractOrderManager {
         List<CompetitorsPriceDTO> competitorsPriceList = JSON.parseArray(competiorsPriceObj.toString(),CompetitorsPriceDTO.class);
         //获取所有合约类型列表
         BigDecimal totalLockedAmount = BigDecimal.ZERO;
+        //TODO 过期就不在这个表了？
         List<ContractCategoryDO> queryList = contractCategoryMapper.getAllContractCategory();
         List<UserPositionDO> positionlist = userPositionMapper.selectByUserId(userId);
         List<ContractOrderDO> contractOrderlist = contractOrderMapper.selectUnfinishedOrderByUserId(userId);
-        //log.error("selectUnfinishedOrderByUserId {} contractOrderlist size {}, contractOrderlist {}", userId, contractOrderlist.size(), String.valueOf(contractOrderlist.get(0)));
 
         if (queryList != null && queryList.size() != 0 && contractOrderlist != null && contractOrderlist.size() != 0){
             log.error("selectUnfinishedOrderByUserId {} contractOrderlist size {}, contractOrderlist {}", userId, contractOrderlist.size(), contractOrderlist.get(0).toString());
@@ -370,6 +370,10 @@ public class ContractOrderManager {
                             BigDecimal bidCurrentPrice = BigDecimal.ZERO;
                             if (askCurrentPriceList != null && askCurrentPriceList.size() != 0){
                                 askCurrentPrice = askCurrentPriceList.get(0).getPrice();
+                                if (askCurrentPrice == null) {
+                                    //TODO
+                                    askCurrentPrice = BigDecimal.ZERO;
+                                }
                             }
                             if (bidCurrentPriceList != null && bidCurrentPriceList.size() != 0){
                                 bidCurrentPrice = bidCurrentPriceList.get(0).getPrice();
