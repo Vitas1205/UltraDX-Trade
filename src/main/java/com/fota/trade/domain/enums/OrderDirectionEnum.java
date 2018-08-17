@@ -26,4 +26,10 @@ public enum OrderDirectionEnum {
         this.desc = desc;
     }
 
+    public static OrderDirectionEnum oppositeDirection(OrderDirectionEnum directionEnum){
+        if (directionEnum == ASK) {
+            return BID;
+        }
+        return ASK;
+    }
 }

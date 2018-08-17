@@ -110,15 +110,14 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
             return rst;
         }catch (Exception e){
             log.error("USDK order() failed", e);
-
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
                 resultCode.setCode(businessException.getCode());
                 resultCode.setMessage(businessException.getMessage());
                 return resultCode;
             }
-            log.error("USDK order() failed", e);
         }
+        resultCode = ResultCode.error(ResultCodeEnum.ORDER_FAILED.getCode(), ResultCodeEnum.ORDER_FAILED.getMessage());
         return resultCode;
     }
 
@@ -137,14 +136,15 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
             }
             return resultCode;
         }catch (Exception e){
+            log.error("USDK cancelOrder() failed", e);
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
                 resultCode.setCode(businessException.getCode());
                 resultCode.setMessage(businessException.getMessage());
                 return resultCode;
             }
-            log.error("USDK cancelOrder() failed", e);
         }
+        resultCode = ResultCode.error(ResultCodeEnum.CANCEL_ORDER_FAILED.getCode(), ResultCodeEnum.CANCEL_ORDER_FAILED.getMessage());
         return resultCode;
     }
 
@@ -159,14 +159,15 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         try {
             return usdkOrderManager.cancelAllOrder(userId, userInfoMap);
         }catch (Exception e){
+            log.error("USDK cancelAllOrder() failed", e);
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
                 resultCode.setCode(businessException.getCode());
                 resultCode.setMessage(businessException.getMessage());
                 return resultCode;
             }
-            log.error("USDK cancelAllOrder() failed", e);
         }
+        resultCode = ResultCode.error(ResultCodeEnum.CANCEL_ALL_ORDER_FAILED.getCode(), ResultCodeEnum.CANCEL_ALL_ORDER_FAILED.getMessage());
         return resultCode;
     }
 
