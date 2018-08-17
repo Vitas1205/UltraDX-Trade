@@ -209,7 +209,7 @@ public class BeanUtils {
         contractMatchedOrderDO.setFilledPrice(new BigDecimal(contractMatchedOrderDTO.getFilledPrice()));
         contractMatchedOrderDO.setFilledAmount(new BigDecimal(contractMatchedOrderDTO.getFilledAmount()));
         contractMatchedOrderDO.setContractName(contractMatchedOrderDTO.getContractName());
-        contractMatchedOrderDO.setGmtCreate(new Date(contractMatchedOrderDTO.getGmtCreate()));
+        contractMatchedOrderDO.setGmtCreate(contractMatchedOrderDTO.getGmtCreate());
         return contractMatchedOrderDO;
     }
 
