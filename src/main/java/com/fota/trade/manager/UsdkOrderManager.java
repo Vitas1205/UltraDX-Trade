@@ -87,7 +87,8 @@ public class UsdkOrderManager {
     }
 
     @Transactional(rollbackFor={RuntimeException.class, Exception.class, BusinessException.class})
-    public ResultCode placeOrder(UsdkOrderDO usdkOrderDO, Map<String, String> userInfoMap)throws Exception {
+    public ResultCode placeOrder(UsdkOrderDTO usdkOrderDTO, Map<String, String> userInfoMap)throws Exception {
+        UsdkOrderDO usdkOrderDO = com.fota.trade.common.BeanUtils.copy(usdkOrderDTO);
         ResultCode resultCode = new ResultCode();
         Integer assetId = usdkOrderDO.getAssetId();
         Long userId = usdkOrderDO.getUserId();
@@ -101,8 +102,6 @@ public class UsdkOrderManager {
         usdkOrderDO.setStatus(OrderStatusEnum.COMMIT.getCode());
         usdkOrderDO.setUnfilledAmount(usdkOrderDO.getTotalAmount());
         int ret = usdkOrderMapper.insertSelective(usdkOrderDO);
-//        usdkOrderDO = usdkOrderMapper.selectByPrimaryKey(usdkOrderDO.getId());
-        UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
         BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
         if (ret > 0){
             if (orderDirection == OrderDirectionEnum.BID.getCode()){
@@ -167,7 +166,6 @@ public class UsdkOrderManager {
             if (!sendRet){
                 log.error("Send RocketMQ Message Failed ");
             }
-//            tradeLog.info("order ok " + usdkOrderDTO.toString());
         }else {
             log.error("insert usdk order failed{}",usdkOrderDO);
             throw new RuntimeException("insert usdk order failed");

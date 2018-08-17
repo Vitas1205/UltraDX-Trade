@@ -149,7 +149,7 @@ public class ContractOrderServiceImpl implements
     public ResultCode order(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
         ResultCode resultCode = new ResultCode();
         try {
-            resultCode = contractOrderManager.placeOrder(BeanUtils.copy(contractOrderDTO), userInfoMap);
+            resultCode = contractOrderManager.placeOrder(contractOrderDTO, userInfoMap);
             if (resultCode.isSuccess()) {
                 tradeLog.info("下单@@@" + contractOrderDTO);
                 redisManager.contractOrderSaveForMatch(contractOrderDTO);

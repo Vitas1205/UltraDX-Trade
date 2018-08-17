@@ -103,7 +103,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     public ResultCode order(UsdkOrderDTO usdkOrderDTO, Map<String, String> userInfoMap) {
         ResultCode resultCode = new ResultCode();
         try {
-            ResultCode rst = usdkOrderManager.placeOrder(BeanUtils.copy(usdkOrderDTO), userInfoMap);
+            ResultCode rst = usdkOrderManager.placeOrder(usdkOrderDTO, userInfoMap);
             if (rst.isSuccess()) {
                 tradeLog.info("下单@@@" + usdkOrderDTO);
                 redisManager.usdtOrderSaveForMatch(usdkOrderDTO);
