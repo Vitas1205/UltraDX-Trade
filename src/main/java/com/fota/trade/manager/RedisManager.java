@@ -59,6 +59,8 @@ public class RedisManager {
         String key = Constant.USDK_ORDER_HEAD + count;
         String usdkOrderDTOStr = JSONObject.toJSONString(usdkOrderDTO);
         set(key,usdkOrderDTOStr);
+    }
+    public void usdtOrderSaveForMatch(UsdkOrderDTO usdkOrderDTO) {
         String key2 = "usdt_order_for_match_";
         log.info("usdk save");
         rpush(key2, usdkOrderDTO);
@@ -69,10 +71,16 @@ public class RedisManager {
         String key = Constant.CONTRACT_ORDER_HEAD + count;
         String usdkOrderDTOStr = JSONObject.toJSONString(contractOrderDTO);
         set(key,usdkOrderDTOStr);
+    }
+
+    public void contractOrderSaveForMatch(ContractOrderDTO contractOrderDTO) {
         String key2 = "contract_order_for_match_";
         log.info("contract save");
         rpush(key2, contractOrderDTO);
     }
+
+
+
 
     public Long getCount(final String redisKey) {
         try {

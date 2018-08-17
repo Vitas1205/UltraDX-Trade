@@ -218,6 +218,7 @@ public class ContractOrderManager {
         contractOrderDTO.setCompleteAmount(0L);
         contractOrderDTO.setContractId(contractOrderDO.getContractId());
         redisManager.contractOrderSave(contractOrderDTO);
+        redisManager.contractOrderSaveForMatch(contractOrderDTO);
         if (contractOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()) {
             // 强平单
             log.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
@@ -275,6 +276,7 @@ public class ContractOrderManager {
             resultCode.setMessage(ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getMessage());
             return resultCode;
         }*/
+        //TODO  需要调用match接口
         if (status == OrderStatusEnum.COMMIT.getCode()){
             contractOrderDO.setStatus(OrderStatusEnum.CANCEL.getCode());
         }else if (status == OrderStatusEnum.PART_MATCH.getCode()){
