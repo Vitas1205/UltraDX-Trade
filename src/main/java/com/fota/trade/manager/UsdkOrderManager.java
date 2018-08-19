@@ -101,8 +101,12 @@ public class UsdkOrderManager {
         usdkOrderDO.setFee(usdkFee);
         usdkOrderDO.setStatus(OrderStatusEnum.COMMIT.getCode());
         usdkOrderDO.setUnfilledAmount(usdkOrderDO.getTotalAmount());
+        if (usdkOrderDO.getOrderType() == null){
+            usdkOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
+        }
         int ret = usdkOrderMapper.insertSelective(usdkOrderDO);
         BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
+
         if (ret > 0){
             if (orderDirection == OrderDirectionEnum.BID.getCode()){
                 //查询usdk账户可用余额
