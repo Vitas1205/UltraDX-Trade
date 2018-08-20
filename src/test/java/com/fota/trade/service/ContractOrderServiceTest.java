@@ -13,6 +13,7 @@ import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
 import com.fota.trade.util.CommonUtils;
+import com.fota.trade.util.PriceUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.joda.time.LocalDate;
 import org.junit.Assert;
@@ -225,6 +226,12 @@ public class ContractOrderServiceTest {
     @Test
     public void getTodayFeeTest() {
         BigDecimal ret = contractOrderService.getTodayFee();
+        log.info("--------------------------" + ret);
+    }
+
+    @Test
+    public void getAveragePriceTest() {
+        BigDecimal ret = PriceUtil.getAveragePrice(null, new BigDecimal(0), new BigDecimal(1), new BigDecimal(10));
         log.info("--------------------------" + ret);
     }
 

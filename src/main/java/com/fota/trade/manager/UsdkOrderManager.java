@@ -160,7 +160,7 @@ public class UsdkOrderManager {
             redisManager.usdkOrderSave(usdkOrderDTO);
             tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                     1, usdkOrderDTO.getAssetName(), userInfoMap.get("username"), userInfoMap.get("ipAddress"), usdkOrderDTO.getTotalAmount(), new Date(), 1, usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 1);
-            //todo 发送RocketMQ
+            //发送RocketMQ
             OrderMessage orderMessage = new OrderMessage();
             orderMessage.setOrderId(usdkOrderDTO.getId());
             orderMessage.setEvent(OrderOperateTypeEnum.PLACE_ORDER.getCode());
@@ -186,7 +186,7 @@ public class UsdkOrderManager {
 
     @Transactional(rollbackFor={RuntimeException.class, Exception.class, BusinessException.class})
     public ResultCode cancelOrder(Long userId, Long orderId, Map<String, String> userInfoMap) throws Exception{
-        //TODO 需要调用match
+        //需要调用match
         ResultCode resultCode = new ResultCode();
         UsdkOrderDO usdkOrderDO = usdkOrderMapper.selectByIdAndUserId(orderId, userId);
         Integer status = usdkOrderDO.getStatus();
@@ -239,7 +239,7 @@ public class UsdkOrderManager {
             redisManager.usdkOrderSave(usdkOrderDTO);
             tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                     1, usdkOrderDTO.getAssetName(), userInfoMap.get("username"), userInfoMap.get("ipAddress"), usdkOrderDTO.getUnfilledAmount(), new Date(), 2,  usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 1);
-            //todo 发送RocketMQ
+            //发送RocketMQ
             OrderMessage orderMessage = new OrderMessage();
             orderMessage.setOrderId(usdkOrderDTO.getId());
             orderMessage.setEvent(OrderOperateTypeEnum.CANCLE_ORDER.getCode());
@@ -334,12 +334,12 @@ public class UsdkOrderManager {
             log.error("update bid order failed{}", bidUsdkOrder);
             throw new RuntimeException("update bid order failed");
         }
-        // todo 买币 bid +totalAsset = filledAmount - filledAmount * feeRate
-        // todo 买币 bid -totalUsdk = filledAmount * filledPrice
-        // todo 买币 bid -lockedUsdk = filledAmount * bidOrderPrice
-        // todo 卖币 ask +totalUsdk = filledAmount * filledPrice - filledAmount * filledPrice * feeRate
-        // todo 卖币 ask -lockedAsset = filledAmount
-        // todo 卖币 ask -totalAsset = filledAmount
+        // 买币 bid +totalAsset = filledAmount - filledAmount * feeRate
+        // 买币 bid -totalUsdk = filledAmount * filledPrice
+        // 买币 bid -lockedUsdk = filledAmount * bidOrderPrice
+        // 卖币 ask +totalUsdk = filledAmount * filledPrice - filledAmount * filledPrice * feeRate
+        // 卖币 ask -lockedAsset = filledAmount
+        // 卖币 ask -totalAsset = filledAmount
         BigDecimal addBidTotalAsset = filledAmount.subtract(BigDecimal.ZERO);
         BigDecimal addTotalUsdk = filledAmount.multiply(filledPrice);
         BigDecimal addLockedUsdk = filledAmount.multiply(new BigDecimal(usdkMatchedOrderDTO.getBidOrderPrice()));
@@ -388,7 +388,6 @@ public class UsdkOrderManager {
         bidUsdkOrderDTO.setCompleteAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
         askUsdkOrderDTO.setStatus(usdkMatchedOrderDTO.getAskOrderStatus());
         bidUsdkOrderDTO.setStatus(usdkMatchedOrderDTO.getAskOrderStatus());
-        // TODO 需要拿到matchID insert后返回
         redisManager.usdkOrderSave(askUsdkOrderDTO);
         tradeLog.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                 1, askUsdkOrderDTO.getAssetName(), "username", askUsdkOrderDTO.getMatchAmount(), new Date(), 4, askUsdkOrderDTO.getOrderDirection(), askUsdkOrderDTO.getUserId(), 1);
@@ -396,7 +395,6 @@ public class UsdkOrderManager {
         tradeLog.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                 1, bidUsdkOrderDTO.getAssetName(), "username", bidUsdkOrderDTO.getMatchAmount(), new Date(), 4,  bidUsdkOrderDTO.getOrderDirection(), bidUsdkOrderDTO.getUserId(), 1);
         // 向MQ推送消息
-        //TODO 把IP去掉
         OrderMessage orderMessage = new OrderMessage();
         orderMessage.setSubjectId(usdkMatchedOrderDTO.getAssetId().longValue());
         orderMessage.setSubjectName(usdkMatchedOrderDTO.getAssetName());
@@ -445,6 +443,9 @@ public class UsdkOrderManager {
         int ret = -1;
         //todo update 均价
         try {
+            log.info("---------------------usdkOrderDO"+usdkOrderDO);
+            log.info("---------------------"+filledAmount);
+            log.info("---------------------"+filledPrice);
             BigDecimal averagePrice = PriceUtil.getAveragePrice(usdkOrderDO.getAveragePrice(),
                     usdkOrderDO.getTotalAmount().subtract(usdkOrderDO.getUnfilledAmount()),
                     filledAmount,

@@ -17,6 +17,7 @@
         <result column="ask_user_id" jdbcType="BIGINT" property="askUserId" />
         <result column="bid_user_id" jdbcType="BIGINT" property="bidUserId" />
         <result column="asset_name" jdbcType="VARCHAR" property="assetName" />
+        <result column="asset_id" jdbcType="INTEGER" property="assetId" />
     </resultMap>
     <insert id="insert" parameterType="com.fota.trade.domain.UsdkMatchedOrderDO">
         <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Long">
@@ -26,11 +27,11 @@
         ask_order_price, ask_close_type, bid_order_id,
         bid_order_price, bid_close_type, match_type,
         filled_price, filled_amount, ask_user_id,
-        bid_user_id, asset_name)
+        bid_user_id, asset_name, asset_id)
         values (#{gmtCreate,jdbcType=TIMESTAMP}, now(), #{askOrderId,jdbcType=BIGINT},
         #{askOrderPrice,jdbcType=DECIMAL}, #{askCloseType,jdbcType=TINYINT}, #{bidOrderId,jdbcType=BIGINT},
         #{bidOrderPrice,jdbcType=DECIMAL}, #{bidCloseType,jdbcType=TINYINT}, #{matchType,jdbcType=TINYINT},
         #{filledPrice,jdbcType=DECIMAL}, #{filledAmount,jdbcType=DECIMAL}, #{askUserId,jdbcType=BIGINT},
-        #{bidUserId,jdbcType=BIGINT}, #{assetName,jdbcType=VARCHAR})
+        #{bidUserId,jdbcType=BIGINT}, #{assetName,jdbcType=VARCHAR}, #{assetId,jdbcType=INTEGER})
     </insert>
 </mapper>

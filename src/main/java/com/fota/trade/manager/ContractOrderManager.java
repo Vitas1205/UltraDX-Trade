@@ -183,7 +183,7 @@ public class ContractOrderManager {
         return resultCode;
     }
 
-    //TODO DTO和DO的梳理
+
     @Transactional(rollbackFor = {Exception.class, RuntimeException.class, BusinessException.class})
     public com.fota.common.Result<Long> placeOrder(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) throws Exception{
         ContractOrderDO contractOrderDO = com.fota.trade.common.BeanUtils.copy(contractOrderDTO);
@@ -195,7 +195,6 @@ public class ContractOrderManager {
             log.error("Contract Is Null");
             throw new RuntimeException("Contract Is Null");
         }
-        //todo 判单合约是否可以交易
         if (contractCategoryDO.getStatus() == ContractStatusEnum.ROOLING_BACK.getCode()){
             result.setCode(ResultCodeEnum.CONTRACT_IS_ROLLING_BACK.getCode());
             result.setMessage(ResultCodeEnum.CONTRACT_IS_ROLLING_BACK.getMessage());
@@ -296,7 +295,6 @@ public class ContractOrderManager {
             resultCode.setMessage(ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getMessage());
             return resultCode;
         }*/
-        //TODO  需要调用match接口
         if (status == OrderStatusEnum.COMMIT.getCode()){
             contractOrderDO.setStatus(OrderStatusEnum.CANCEL.getCode());
         } else if (status == OrderStatusEnum.PART_MATCH.getCode()) {
@@ -328,7 +326,6 @@ public class ContractOrderManager {
         tradeLog.info("tradeLog@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                 2, contractOrderDTO.getContractName(), userInfoMap.get("username"), userInfoMap.get("ipAddress"), contractOrderDTO.getUnfilledAmount(),
                 new Date(), 2, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 1);
-        //todo 推送MQ消息
         OrderMessage orderMessage = new OrderMessage();
         orderMessage.setAmount(new BigDecimal(contractOrderDTO.getUnfilledAmount()));
         orderMessage.setPrice(contractOrderDTO.getPrice());
@@ -381,7 +378,7 @@ public class ContractOrderManager {
                             UserPositionDO userPositionDO = userPositionDOlist.get(0);
                             BigDecimal totalAskExtraEntrustAmount = BigDecimal.ZERO;
                             BigDecimal totalBidExtraEntrustAmount = BigDecimal.ZERO;
-                            //todo 获取买一卖一价
+                            //获取买一卖一价
                             List<CompetitorsPriceDTO> askCurrentPriceList = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
                                     competitorsPrice.getId() == contractId).limit(1).collect(Collectors.toList());
                             List<CompetitorsPriceDTO> bidCurrentPriceList = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
@@ -650,7 +647,6 @@ public class ContractOrderManager {
         bidContractOrderDTO.setStatus(contractMatchedOrderDTO.getBidOrderStatus());
         askContractOrderDTO.setStatus(contractMatchedOrderDTO.getAskOrderStatus());
         redisManager.contractOrderSave(askContractOrderDTO);
-        // TODO 需要拿到matchID insert后返回
         tradeLog.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                 2, askContractOrderDTO.getContractName(), "username", askContractOrderDTO.getMatchAmount(), new Date(), 4, askContractOrderDTO.getOrderDirection(), askContractOrderDTO.getUserId(), 1);
         redisManager.contractOrderSave(bidContractOrderDTO);
@@ -728,7 +724,7 @@ public class ContractOrderManager {
         }
         long oldPositionAmount = userPositionDO.getUnfilledAmount();
         if (contractOrderDO.getOrderDirection().equals(userPositionDO.getPositionType())) {
-            //todo 成交单和持仓是同方向
+            //成交单和持仓是同方向
             long newTotalAmount = userPositionDO.getUnfilledAmount() + filledAmount.longValue();
             BigDecimal oldTotalPrice = userPositionDO.getAveragePrice().multiply(new BigDecimal(userPositionDO.getUnfilledAmount()));
             BigDecimal addedTotalPrice = filledPrice.multiply(filledAmount);
@@ -739,14 +735,14 @@ public class ContractOrderManager {
 
         //成交单和持仓是反方向 （平仓）
         if (filledAmount.longValue() - userPositionDO.getUnfilledAmount() <= 0) {
-            //todo 不改变仓位方向
+            //改变仓位方向
             long newTotalAmount = userPositionDO.getUnfilledAmount() - filledAmount.longValue();
             BigDecimal oldTotalPrice = userPositionDO.getAveragePrice().multiply(new BigDecimal(userPositionDO.getUnfilledAmount()));
             BigDecimal addedTotalPrice = filledPrice.multiply(filledAmount).negate();
             updateUserPosition(userPositionDO, oldTotalPrice, addedTotalPrice, newTotalAmount);
             updateBalance(contractOrderDO, oldPositionAmount, userPositionDO.getUnfilledAmount(), contractMatchedOrderDTO, lever);
         } else {
-            //todo 改变仓位方向
+            //改变仓位方向
             long newTotalAmount = filledAmount.longValue() - userPositionDO.getUnfilledAmount();
             BigDecimal oldTotalPrice = userPositionDO.getAveragePrice().multiply(new BigDecimal(userPositionDO.getUnfilledAmount())).negate();
             BigDecimal addedTotalPrice = filledPrice.multiply(filledAmount);
@@ -812,8 +808,8 @@ public class ContractOrderManager {
     }
 
 
-    //todo 合约账户amoutn: + (oldPositionAmount - 当前持仓)*合约价格 - 手续费
-    //todo 合约账户冻结：解冻委托价*合约份数 + 手续费
+    //合约账户amoutn: + (oldPositionAmount - 当前持仓)*合约价格 - 手续费
+    //合约账户冻结：解冻委托价*合约份数 + 手续费
     private int updateBalance(ContractOrderDO contractOrderDO,
                               long oldPositionAmount,
                               long newPositionAmount,
