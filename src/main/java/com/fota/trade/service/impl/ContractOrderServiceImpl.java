@@ -29,6 +29,7 @@ public class ContractOrderServiceImpl implements
         ContractOrderService {
 
     private static final Logger log = LoggerFactory.getLogger(ContractOrderServiceImpl.class);
+    private static final Logger tradeLog = LoggerFactory.getLogger("trade");
 
     @Autowired
     private ContractOrderMapper contractOrderMapper;
@@ -148,9 +149,13 @@ public class ContractOrderServiceImpl implements
     public ResultCode order(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
         ResultCode resultCode = new ResultCode();
         try {
-            com.fota.common.Result<Long> result = contractOrderManager.placeOrder(BeanUtils.copy(contractOrderDTO), userInfoMap);
+            com.fota.common.Result<Long> result = contractOrderManager.placeOrder(contractOrderDTO, userInfoMap);
             resultCode.setCode(result.getCode());
             resultCode.setMessage(result.getMessage());
+            if (resultCode.isSuccess()) {
+                tradeLog.info("下单@@@" + contractOrderDTO);
+                redisManager.contractOrderSaveForMatch(contractOrderDTO);
+            }
             return resultCode;
         }catch (Exception e){
             log.error("Contract order() failed", e);
@@ -169,7 +174,7 @@ public class ContractOrderServiceImpl implements
     public com.fota.common.Result<Long> orderReturnId(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
         com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
         try {
-            result = contractOrderManager.placeOrder(BeanUtils.copy(contractOrderDTO), userInfoMap);
+            result = contractOrderManager.placeOrder(contractOrderDTO, userInfoMap);
             return result;
         }catch (Exception e){
             log.error("Contract order() failed", e);

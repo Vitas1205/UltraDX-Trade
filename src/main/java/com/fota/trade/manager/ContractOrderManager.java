@@ -5,7 +5,6 @@ import com.alibaba.fastjson.JSONObject;
 import com.fota.asset.domain.UserContractDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
-import com.fota.match.domain.ContractMatchedOrderMarketDTO;
 import com.fota.match.domain.ContractMatchedOrderTradeDTO;
 import com.fota.match.service.ContractMatchedOrderService;
 import com.fota.trade.common.BusinessException;
@@ -178,8 +177,10 @@ public class ContractOrderManager {
         return resultCode;
     }
 
+    //TODO DTO和DO的梳理
     @Transactional(rollbackFor = {Exception.class, RuntimeException.class, BusinessException.class})
-    public com.fota.common.Result<Long> placeOrder(ContractOrderDO contractOrderDO, Map<String, String> userInfoMap) throws Exception{
+    public com.fota.common.Result<Long> placeOrder(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) throws Exception{
+        ContractOrderDO contractOrderDO = com.fota.trade.common.BeanUtils.copy(contractOrderDTO);
         ResultCode resultCode = new ResultCode();
         com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
         Long orderId = 0L;
@@ -228,7 +229,6 @@ public class ContractOrderManager {
                 lockContractAccount(userContractDTO, totalLockAmount);
             }
         }
-        ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO );
         contractOrderDTO.setCompleteAmount(0L);
         contractOrderDTO.setContractId(contractOrderDO.getContractId());
@@ -291,6 +291,7 @@ public class ContractOrderManager {
             resultCode.setMessage(ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getMessage());
             return resultCode;
         }*/
+        //TODO  需要调用match接口
         if (status == OrderStatusEnum.COMMIT.getCode()){
             contractOrderDO.setStatus(OrderStatusEnum.CANCEL.getCode());
         }else if (status == OrderStatusEnum.PART_MATCH.getCode()){
@@ -351,10 +352,10 @@ public class ContractOrderManager {
         List<CompetitorsPriceDTO> competitorsPriceList = JSON.parseArray(competiorsPriceObj.toString(),CompetitorsPriceDTO.class);
         //获取所有合约类型列表
         BigDecimal totalLockedAmount = BigDecimal.ZERO;
+        //TODO 过期就不在这个表了？
         List<ContractCategoryDO> queryList = contractCategoryMapper.getAllContractCategory();
         List<UserPositionDO> positionlist = userPositionMapper.selectByUserId(userId);
         List<ContractOrderDO> contractOrderlist = contractOrderMapper.selectUnfinishedOrderByUserId(userId);
-        //log.error("selectUnfinishedOrderByUserId {} contractOrderlist size {}, contractOrderlist {}", userId, contractOrderlist.size(), String.valueOf(contractOrderlist.get(0)));
 
         if (queryList != null && queryList.size() != 0 && contractOrderlist != null && contractOrderlist.size() != 0){
             log.error("selectUnfinishedOrderByUserId {} contractOrderlist size {}, contractOrderlist {}", userId, contractOrderlist.size(), contractOrderlist.get(0).toString());
@@ -386,6 +387,10 @@ public class ContractOrderManager {
                             BigDecimal bidCurrentPrice = BigDecimal.ZERO;
                             if (askCurrentPriceList != null && askCurrentPriceList.size() != 0){
                                 askCurrentPrice = askCurrentPriceList.get(0).getPrice();
+                                if (askCurrentPrice == null) {
+                                    //TODO
+                                    askCurrentPrice = BigDecimal.ZERO;
+                                }
                             }
                             if (bidCurrentPriceList != null && bidCurrentPriceList.size() != 0){
                                 bidCurrentPrice = bidCurrentPriceList.get(0).getPrice();
@@ -590,9 +595,9 @@ public class ContractOrderManager {
         }
         ContractOrderDO askContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getAskOrderId());
         ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
-        log.info("---------------{}", contractMatchedOrderDTO);
-        log.info("---------------{}", askContractOrder);
-        log.info("---------------{}", bidContractOrder);
+        log.info("contractMatchedOrderDTO ---------------{}", contractMatchedOrderDTO);
+        log.info("askContractOrder ---------------{}", askContractOrder);
+        log.info("bidContractOrder ---------------{}", bidContractOrder);
         if (askContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0
                 || bidContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0){
             log.error("unfilledAmount not enough");
@@ -653,7 +658,7 @@ public class ContractOrderManager {
         OrderMessage orderMessage = new OrderMessage();
         orderMessage.setSubjectId(contractMatchedOrderDTO.getContractId());
         orderMessage.setSubjectName(contractMatchedOrderDTO.getContractName());
-        orderMessage.setTransferTime(contractMatchedOrderDO.getGmtCreate().getTime());
+        orderMessage.setTransferTime(System.currentTimeMillis());
         orderMessage.setPrice(new BigDecimal(contractMatchedOrderDTO.getFilledPrice()));
         orderMessage.setAmount(new BigDecimal(contractMatchedOrderDTO.getFilledAmount()));
         orderMessage.setEvent(OrderOperateTypeEnum.DEAL_ORDER.getCode());

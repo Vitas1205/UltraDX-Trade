@@ -104,9 +104,10 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         ResultCode resultCode = new ResultCode();
         com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
         try {
-            result = usdkOrderManager.placeOrder(BeanUtils.copy(usdkOrderDTO), userInfoMap);
+            result = usdkOrderManager.placeOrder(usdkOrderDTO, userInfoMap);
             if (result.isSuccess()) {
                 tradeLog.info("下单@@@" + usdkOrderDTO);
+                redisManager.usdtOrderSaveForMatch(usdkOrderDTO);
             }
             resultCode.setCode(result.getCode());
             resultCode.setMessage(result.getMessage());
@@ -128,7 +129,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     public com.fota.common.Result<Long> orderReturnId(UsdkOrderDTO usdkOrderDTO, Map<String, String> userInfoMap) {
         com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
         try {
-            result = usdkOrderManager.placeOrder(BeanUtils.copy(usdkOrderDTO), userInfoMap);
+            result = usdkOrderManager.placeOrder(usdkOrderDTO, userInfoMap);
             if (result.isSuccess()) {
                 tradeLog.info("下单@@@" + usdkOrderDTO);
             }

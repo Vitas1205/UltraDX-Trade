@@ -26,7 +26,7 @@ import java.util.Date;
 import java.util.List;
 
 import static com.fota.trade.client.RollbackTask.TASK_LOCK_KEY;
-import static com.fota.trade.common.ResultCodeEnum.CONTRACT_ROLLBACKING;
+import static com.fota.trade.common.ResultCodeEnum.CONTRACT_IS_ROLLING_BACK;
 import static com.fota.trade.common.ResultCodeEnum.SYSTEM_ERROR;
 
 /**
@@ -199,7 +199,7 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
         //加锁，同一合约只能有一个回滚任务进行
         boolean suc = redisTemplate.opsForHash().putIfAbsent(rollbackKey, TASK_LOCK_KEY, 1);
         if (!suc) {
-            return ResultCode.error(CONTRACT_ROLLBACKING.getCode(), CONTRACT_ROLLBACKING.getMessage());
+            return ResultCode.error(CONTRACT_IS_ROLLING_BACK.getCode(), CONTRACT_IS_ROLLING_BACK.getMessage());
         }
 
         BaseQuery query = new BaseQuery();
