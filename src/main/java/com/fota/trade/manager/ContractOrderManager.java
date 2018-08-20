@@ -857,7 +857,7 @@ public class ContractOrderManager {
                 addedTotalLocked.toString());
         if (!updateContractRet) {
             log.error("update contract balance failed");
-            new RuntimeException("update balance failed");
+            throw new RuntimeException("update balance failed");
         }
         return 1;
     }
