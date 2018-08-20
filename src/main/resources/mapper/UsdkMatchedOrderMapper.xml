@@ -35,6 +35,11 @@
         #{bidUserId,jdbcType=BIGINT}, #{assetName,jdbcType=VARCHAR}, #{assetId,jdbcType=INTEGER})
     </insert>
 
+    <sql id="Base_Column_List">
+        id, gmt_create, gmt_modified, ask_order_id, ask_order_price, ask_close_type, bid_order_id, bid_order_price,
+        bid_close_type, match_type, filled_price, filled_amount, ask_user_id, bid_user_id, asset_name, asset_id
+    </sql>
+
     <select id="countByUserId" resultType="java.lang.Integer">
         select count(*) from usdk_matched_order where
         <if test="endTime != null">
@@ -44,7 +49,7 @@
             and gmt_create &gt;= #{startTime}
         </if>
         <if test="assetIds != null and assetIds.size != 0">
-            and status in
+            and asset_id in
             <foreach item="item" index="index" collection="assetIds" open="(" separator="," close=")">
                 #{item}
             </foreach>
@@ -66,7 +71,7 @@
             and gmt_create &gt;= #{startTime}
         </if>
         <if test="assetIds != null and assetIds.size != 0">
-            and status in
+            and asset_id in
             <foreach item="item" index="index" collection="assetIds" open="(" separator="," close=")">
                 #{item}
             </foreach>
