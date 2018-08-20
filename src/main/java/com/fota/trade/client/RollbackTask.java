@@ -12,16 +12,15 @@ import java.util.Date;
 @Data
 @Accessors(chain = true)
 public class RollbackTask {
-    public static final String TASK_LOCK_KEY = "LOCK";
-    public static final String TASK_AMOUNT_KEY = "AMOUNT";
+
     private int pageIndex;
     private int pageSize;
     private long contractId;
     private Date rollbackPoint;
     private Date taskStartPoint;
 
-    public static final String getContractRollbackKey(long contractId) {
-        return "ROLLBACK_" + contractId;
+    public static final String getContractRollbackLock(long contractId) {
+        return "ROLLBACK_LOCK_" + contractId;
     }
 
     public int getStartRow() {

@@ -25,6 +25,6 @@ public interface ContractMatchedOrderMapper {
 
     BigDecimal getAllFee(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
 
-    @Update("UPDATE contract_matched_order SET status=#{status} WHERE id=#{id}")
-    int updateStatus(int id, int status);
+    @Update("UPDATE contract_matched_order SET gmt_modified=now(), status=#{toStatus} WHERE id=#{id}")
+    int updateStatus(@Param("id") long id, @Param("toStatus") int toStatus);
 }

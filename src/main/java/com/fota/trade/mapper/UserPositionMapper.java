@@ -50,7 +50,8 @@ public interface UserPositionMapper {
             "where contract_id = #{contractId,jdbcType=BIGINT} and user_id = #{userId,jdbcType=BIGINT}"
     })
     @ResultMap("BaseResultMap")
-    UserPositionDO selectByUserIdAndId(@Param("userId") Long userId, @Param("contractId") Integer contrantId);
+
+    UserPositionDO selectByUserIdAndId(@Param("userId") Long userId, @Param("contractId") Long contrantId);
 
 
     @Select({

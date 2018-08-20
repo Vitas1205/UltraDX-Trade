@@ -10,10 +10,10 @@ import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.enums.ContractStatus;
 import com.fota.trade.domain.enums.ContractStatusEnum;
 import com.fota.trade.manager.ContractOrderManager;
+import com.fota.trade.manager.RedisManager;
 import com.fota.trade.mapper.ContractCategoryMapper;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.service.ContractCategoryService;
-import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import static com.fota.trade.client.RollbackTask.TASK_LOCK_KEY;
 import static com.fota.trade.common.ResultCodeEnum.CONTRACT_IS_ROLLING_BACK;
 import static com.fota.trade.common.ResultCodeEnum.SYSTEM_ERROR;
 
@@ -43,6 +42,8 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
     private ContractMatchedOrderMapper matchedOrderMapper;
     @Autowired
     RedisTemplate redisTemplate;
+    @Resource
+    private RedisManager redisManager;
     @Autowired
     private ContractOrderManager orderManager;
 
@@ -176,7 +177,13 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
      * @return
      */
     @Override
-    public ResultCode rollback(@NonNull Long timestamp, @NonNull Long contractId) {
+    public ResultCode rollback(Long timestamp, Long contractId) {
+        log.info("start to rollback, time={}, contractId={}", new Date(timestamp), contractId);
+        String rollbackKey = RollbackTask.getContractRollbackLock(contractId);
+        //加锁，同一合约只能有一个回滚任务进行
+        if (!redisManager.tryLock(rollbackKey)) {
+            return ResultCode.error(CONTRACT_IS_ROLLING_BACK.getCode(), CONTRACT_IS_ROLLING_BACK.getMessage());
+        }
         try {
             return internalRollBack(timestamp, contractId);
         } catch (Exception e) {
@@ -186,7 +193,10 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
                 return ResultCode.error(bizE.getCode(), bizE.getMessage());
             }
             return ResultCode.error(SYSTEM_ERROR.getCode(), SYSTEM_ERROR.getMessage());
+        }finally {
+            redisManager.releaseLock(rollbackKey);
         }
+
     }
 
     @Transactional(rollbackFor = {Exception.class})
@@ -194,13 +204,7 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
         int pageSize = 100;
         int pageIndex = 1;
         Date startTaskTime = new Date();
-        String rollbackKey = RollbackTask.getContractRollbackKey(contractId);
 
-        //加锁，同一合约只能有一个回滚任务进行
-        boolean suc = redisTemplate.opsForHash().putIfAbsent(rollbackKey, TASK_LOCK_KEY, 1);
-        if (!suc) {
-            return ResultCode.error(CONTRACT_IS_ROLLING_BACK.getCode(), CONTRACT_IS_ROLLING_BACK.getMessage());
-        }
 
         BaseQuery query = new BaseQuery();
         query.setSourceId((int) contractId);
@@ -208,13 +212,14 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
         query.setEndTime(new Date());
         long count = matchedOrderMapper.count(query);
         if (0 >= count) {
+            log.info("there is nothing to rollback");
             return ResultCode.success();
         }
 
         //分割任务
         int maxPageIndex = ((int) count - 1) / pageSize + 1;;
         List<RollbackTask> tasks = new ArrayList<>();
-        while (pageIndex < maxPageIndex) {
+        while (pageIndex <= maxPageIndex) {
             RollbackTask rollbackTask = new RollbackTask();
             rollbackTask.setContractId(contractId);
             rollbackTask.setPageSize(pageSize);
@@ -228,6 +233,7 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
         tasks.parallelStream().forEach(task ->{
             orderManager.rollbackMatchedOrder(task);
         });
+
         return ResultCode.success();
 
     }
