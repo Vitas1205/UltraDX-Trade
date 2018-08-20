@@ -174,6 +174,18 @@ public class ContractOrderServiceImpl implements
         return null;
     }
 
+    /**
+     * 合约下单返回订单id接口
+     *
+     * @param contractOrderDTO
+     * @param userInfoMap
+     * @return
+     */
+    @Override
+    public com.fota.common.Result<Long> orderReturnId(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
+        return null;
+    }
+
     @Override
     public ResultCode cancelOrder(long userId, long orderId, Map<String, String> userInfoMap) {
         ResultCode resultCode = new ResultCode();
@@ -224,16 +236,29 @@ public class ContractOrderServiceImpl implements
 
     /**
      * 撤销用户非强平单
+     *
+     * @param userId
+     * @param orderTypes
+     * @param userInfoMap
+     * @return
+     */
+    @Override
+    public ResultCode cancelOrderByOrderType(long userId, List<Integer> orderTypes, Map<String, String> userInfoMap) {
+        return null;
+    }
+
+    /**
+     * 撤销用户非强平单
      * * todo@荆轲
      * @param userId
      * @param orderType
      * @return
-     */
+     *//*
     @Override
-    public ResultCode cancelOrderByOrderType(long userId, int orderType, Map<String, String> userInfoMap) {
+    public ResultCode cancelOrderByOrderType(long userId, List<Integer> orderTypes, Map<String, String> userInfoMap) {
         ResultCode resultCode = new ResultCode();
         try {
-            resultCode = contractOrderManager.cancelOrderByOrderType(userId, orderType, userInfoMap);
+            resultCode = contractOrderManager.cancelOrderByOrderType(userId, orderTypes, userInfoMap);
             return resultCode;
         }catch (Exception e){
             log.error("Contract cancelOrderByContractId() failed", e);
@@ -245,7 +270,7 @@ public class ContractOrderServiceImpl implements
             }
         }
         return resultCode;
-    }
+    }*/
 
     @Override
     public ResultCode cancelOrderByOrderType(long l, int i) {
@@ -329,6 +354,34 @@ public class ContractOrderServiceImpl implements
             log.error("getTodayFee failed",e);
         }
         return totalFee;
+    }
+
+    /**
+     * 合约成交记录查询
+     *
+     * @param userId
+     * @param contractIds
+     * @param pageNo
+     * @param pageSize
+     * @param startTime
+     * @param endTime
+     * @return
+     */
+    @Override
+    public ContractMatchedOrderTradeDTOPage getContractMacthRecord(Long userId, List<Long> contractIds, Integer pageNo, Integer pageSize, Long startTime, Long endTime) {
+        return null;
+    }
+
+    /**
+     * 根据订单id查询订单信息
+     *
+     * @param orderId
+     * @param userId
+     * @return
+     */
+    @Override
+    public ContractOrderDTO getContractOrderById(Long orderId, Long userId) {
+        return null;
     }
 
     private void updateContractAccount(ContractOrderDO contractOrderDO, ContractMatchedOrderDTO contractMatchedOrderDTO) {

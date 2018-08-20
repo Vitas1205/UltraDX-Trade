@@ -127,6 +127,18 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         return null;
     }
 
+    /**
+     * 下单返回订单id接口
+     *
+     * @param usdkOrderDTO
+     * @param userInfoMap
+     * @return
+     */
+    @Override
+    public com.fota.common.Result<Long> orderReturnId(UsdkOrderDTO usdkOrderDTO, Map<String, String> userInfoMap) {
+        return null;
+    }
+
     @Override
     public ResultCode cancelOrder(long userId, long orderId, Map<String, String> userInfoMap) {
         ResultCode resultCode = new ResultCode();
@@ -194,6 +206,34 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
             }
         }
         return resultCode;
+    }
+
+    /**
+     * usdk成交记录查询
+     *
+     * @param userId
+     * @param assetIds
+     * @param pageNo
+     * @param pageSize
+     * @param startTime
+     * @param endTime
+     * @return
+     */
+    @Override
+    public UsdkMatchedOrderTradeDTOPage getUsdkMatchRecord(Long userId, List<Long> assetIds, Integer pageNo, Integer pageSize, Long startTime, Long endTime) {
+        return null;
+    }
+
+    /**
+     * 根据订单id查询订单信息
+     *
+     * @param orderId
+     * @param userId
+     * @return
+     */
+    @Override
+    public UsdkOrderDTO getUsdkOrderById(Long orderId, Long userId) {
+        return null;
     }
 
     /**

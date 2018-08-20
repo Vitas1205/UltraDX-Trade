@@ -1,9 +1,11 @@
 package com.fota.trade.service.impl;
 
+import com.fota.common.Result;
 import com.fota.trade.common.BeanUtils;
 import com.fota.trade.domain.ContractCategoryDO;
 import com.fota.trade.domain.ContractCategoryDTO;
 import com.fota.trade.domain.ResultCode;
+import com.fota.trade.domain.RollbackResponse;
 import com.fota.trade.domain.enums.ContractStatus;
 import com.fota.trade.domain.enums.ContractStatusEnum;
 import com.fota.trade.mapper.ContractCategoryMapper;
@@ -14,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -152,6 +155,18 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
 
     @Override
     public ResultCode rollback(Long aLong, Long aLong1) {
+        return null;
+    }
+
+    /**
+     * 合约按照时间回滚交易
+     *
+     * @param safePoint  回退的安全时间点
+     * @param contractId
+     * @return
+     */
+    @Override
+    public Result<RollbackResponse> rollback(Date safePoint, long contractId) {
         return null;
     }
 
