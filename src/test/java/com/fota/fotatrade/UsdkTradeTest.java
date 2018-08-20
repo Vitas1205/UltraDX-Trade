@@ -72,7 +72,6 @@ public class UsdkTradeTest {
         usdkOrderDO.setUserId(282L);
 //        UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
 //        BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
-//        log.info("======================="+usdkOrderDTO.getAssetName());
 //        usdkOrderManager.placeOrder(usdkOrderDO);
     }
 
