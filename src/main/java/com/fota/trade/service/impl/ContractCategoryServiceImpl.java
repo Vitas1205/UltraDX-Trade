@@ -9,8 +9,8 @@ import com.fota.trade.domain.ContractCategoryDTO;
 import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.enums.ContractStatus;
 import com.fota.trade.domain.enums.ContractStatusEnum;
-import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.RedisManager;
+import com.fota.trade.manager.RollbackManager;
 import com.fota.trade.mapper.ContractCategoryMapper;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.service.ContractCategoryService;
@@ -45,7 +45,7 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
     @Resource
     private RedisManager redisManager;
     @Autowired
-    private ContractOrderManager orderManager;
+    private RollbackManager rollbackManager;
 
     @Override
     public List<ContractCategoryDTO> listActiveContract() {
@@ -231,7 +231,7 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
             pageIndex++;
         }
         tasks.parallelStream().forEach(task ->{
-            orderManager.rollbackMatchedOrder(task);
+            rollbackManager.rollbackMatchedOrder(task);
         });
 
         return ResultCode.success();
