@@ -875,7 +875,7 @@ public class ContractOrderManager {
             log.info("---------------------filledAmount"+filledAmount);
             log.info("---------------------filledPrice"+filledPrice);
             BigDecimal averagePrice = PriceUtil.getAveragePrice(contractOrderDO.getAveragePrice(),
-                    new BigDecimal(contractOrderDO.getTotalAmount()),
+                    new BigDecimal(contractOrderDO.getTotalAmount()).subtract(new BigDecimal(contractOrderDO.getUnfilledAmount())),
                     new BigDecimal(filledAmount),
                     new BigDecimal(filledPrice));
             ret = contractOrderMapper.updateByFilledAmount(contractOrderDO.getId(), contractOrderDO.getStatus(), filledAmount, averagePrice);
