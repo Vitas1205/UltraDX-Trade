@@ -871,7 +871,9 @@ public class ContractOrderManager {
     private int updateSingleOrderByFilledAmount(ContractOrderDO contractOrderDO, long filledAmount, String filledPrice) {
         int ret = -1;
         try {
-            tradeLog.info("update {}, fillAmount {}", contractOrderDO, filledAmount);
+            log.info("---------------------usdkOrderDO"+contractOrderDO);
+            log.info("---------------------filledAmount"+filledAmount);
+            log.info("---------------------filledPrice"+filledPrice);
             BigDecimal averagePrice = PriceUtil.getAveragePrice(contractOrderDO.getAveragePrice(),
                     new BigDecimal(contractOrderDO.getTotalAmount()),
                     new BigDecimal(filledAmount),
