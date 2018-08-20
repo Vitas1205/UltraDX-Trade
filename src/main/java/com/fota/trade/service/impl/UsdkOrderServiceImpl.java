@@ -223,6 +223,11 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         return resultCode;
     }
 
+    @Override
+    public UsdkMatchedOrderTradeDTOPage getUsdkMatchRecord(Long aLong, List<Long> list, Integer integer, Integer integer1, Long aLong1, Long aLong2) {
+        return null;
+    }
+
     /**
      * 如果撮合的量等于unfilled的量，则更新状态为已成
      * 如果撮合的量小于unfilled的量并且状态为已报，增更新状态为部成，

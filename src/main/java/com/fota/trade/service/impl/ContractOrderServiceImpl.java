@@ -354,6 +354,11 @@ public class ContractOrderServiceImpl implements
         return totalFee;
     }
 
+    @Override
+    public ContractMatchedOrderTradeDTOPage getContractMacthRecord(Long aLong, List<Long> list, Integer integer, Integer integer1, Long aLong1, Long aLong2) {
+        return null;
+    }
+
     private void updateContractAccount(ContractOrderDO contractOrderDO, ContractMatchedOrderDTO contractMatchedOrderDTO) {
     }
 

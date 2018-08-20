@@ -74,11 +74,10 @@ public class RollbackManager {
         updateContractOrder(askContractOrder.getId(), filledAmount, matchedOrderDO.getFilledPrice());
         updateContractOrder(bidContractOrder.getId(), filledAmount, matchedOrderDO.getFilledPrice());
 
+        contractMatchedOrderMapper.updateStatus(matchedOrderDO.getId(), DELETE);
         //更新持仓
         updatePosition(askContractOrder, matchedOrderDO);
         updatePosition(bidContractOrder, matchedOrderDO);
-
-        contractMatchedOrderMapper.updateStatus(matchedOrderDO.getId(), DELETE);
 
     }
     private void rollbackBalance(ContractOrderDO contractOrderDO,
