@@ -153,9 +153,10 @@ public class ContractOrderManager {
         return resultCode;
     }
 
-    public ResultCode cancelOrderByOrderType(long userId, int orderType, Map<String, String> userInfoMap) throws Exception{
+    public ResultCode cancelOrderByOrderType(long userId, List<Integer> orderTypes, Map<String, String> userInfoMap) throws Exception{
         ResultCode resultCode = new ResultCode();
-        List<ContractOrderDO> list = contractOrderMapper.listByUserIdAndOrderType(userId, orderType);
+        //List<ContractOrderDO> list = contractOrderMapper.listByUserIdAndOrderType(userId, orderType);
+        List<ContractOrderDO> list = new ArrayList<>();
         int i = 0;
         if (list != null){
             for(ContractOrderDO contractOrderDO : list){
