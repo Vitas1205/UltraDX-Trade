@@ -12,6 +12,7 @@ import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.service.ContractOrderService;
+import com.fota.trade.util.DateUtil;
 import com.fota.trade.util.PriceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -249,14 +250,14 @@ public class ContractOrderServiceImpl implements
      * 撤销用户非强平单
      * * @荆轲
      * @param userId
-     * @param orderType
+     * @param orderTypes
      * @return
      */
     @Override
-    public ResultCode cancelOrderByOrderType(long userId, int orderType, Map<String, String> userInfoMap) {
+    public ResultCode cancelOrderByOrderType(long userId, List<Integer> orderTypes, Map<String, String> userInfoMap) {
         ResultCode resultCode = new ResultCode();
         try {
-            resultCode = contractOrderManager.cancelOrderByOrderType(userId, orderType, userInfoMap);
+            resultCode = contractOrderManager.cancelOrderByOrderType(userId, orderTypes, userInfoMap);
             return resultCode;
         }catch (Exception e){
             log.error("Contract cancelOrderByContractId() failed", e);
@@ -355,8 +356,98 @@ public class ContractOrderServiceImpl implements
     }
 
     @Override
-    public ContractMatchedOrderTradeDTOPage getContractMacthRecord(Long aLong, List<Long> list, Integer integer, Integer integer1, Long aLong1, Long aLong2) {
-        return null;
+    public ContractMatchedOrderTradeDTOPage getContractMacthRecord(Long userId, List<Long> contractIds, Integer pageNo, Integer pageSize, Long startTime, Long endTime) {
+        if (userId <= 0) {
+            return null;
+        }
+        if (pageNo <= 0) {
+            pageNo = 1;
+        }
+        if (pageSize <= 0) {
+            pageSize = 20;
+        }
+
+        Date startTimeD = null, endTimeD = null;
+        if (startTime > 0){
+            startTimeD = DateUtil.LongTurntoDate(startTime);
+        }
+        if (endTime > 0){
+            endTimeD = DateUtil.LongTurntoDate(endTime);
+        }
+        if (endTime == null){
+            endTime = System.currentTimeMillis();
+        }
+        log.info("getListByUserId userId {} startTime {}, endTime {}", userId, startTimeD, endTimeD);
+
+        ContractMatchedOrderTradeDTOPage contractMatchedOrderTradeDTOPage = new ContractMatchedOrderTradeDTOPage();
+        contractMatchedOrderTradeDTOPage.setPageNo(pageNo);
+        contractMatchedOrderTradeDTOPage.setPageSize(pageSize);
+
+        int count = 0;
+        try {
+            count = contractMatchedOrderMapper.countByUserId(userId, contractIds, startTimeD, endTimeD);
+        } catch (Exception e) {
+            log.error("contractMatchedOrderMapper.countByUserId({})", userId, e);
+            return contractMatchedOrderTradeDTOPage;
+        }
+        contractMatchedOrderTradeDTOPage.setTotal(count);
+        if (count == 0) {
+            return contractMatchedOrderTradeDTOPage;
+        }
+        int startRow = (pageNo - 1) * pageSize;
+        int endRow = pageSize;
+        List<ContractMatchedOrderDO> contractMatchedOrders = null;
+        List<ContractMatchedOrderTradeDTO> list = new ArrayList<>();
+        try {
+            contractMatchedOrders = contractMatchedOrderMapper.listByUserId(userId, contractIds, startRow, endRow, startTimeD, endTimeD);
+            if (contractMatchedOrders != null && contractMatchedOrders.size() > 0) {
+                for (ContractMatchedOrderDO temp : contractMatchedOrders) {
+                    // 获取更多信息
+                    ContractMatchedOrderTradeDTO tempTarget = new ContractMatchedOrderTradeDTO();
+                    tempTarget.setAskCloseType(temp.getAskCloseType().intValue());
+                    tempTarget.setAskOrderId(temp.getAskOrderId());
+                    tempTarget.setAskOrderPrice(temp.getAskOrderPrice().toString());
+                    tempTarget.setAskUserId(temp.getAskUserId());
+                    tempTarget.setBidCloseType(temp.getBidCloseType().intValue());
+                    tempTarget.setBidOrderId(temp.getBidOrderId());
+                    tempTarget.setBidOrderPrice(temp.getBidOrderPrice().toString());
+                    tempTarget.setBidUserId(temp.getBidUserId());
+                    //tempTarget.setContractId(temp.getC)
+                    tempTarget.setContractName(temp.getContractName());
+                    tempTarget.setContractMatchedOrderId(temp.getId());
+                    tempTarget.setFee(temp.getFee().toString());
+                    tempTarget.setFilledAmount(temp.getFilledAmount());
+                    tempTarget.setFilledDate(temp.getGmtCreate());
+                    tempTarget.setFilledPrice(temp.getFilledPrice());
+                    tempTarget.setMatchType(temp.getMatchType().intValue());
+                    //BeanUtil.fieldCopy(temp, tempTarget);
+                    list.add(tempTarget);
+                }
+            }
+        } catch (Exception e) {
+            log.error("contractMatchedOrderMapper.countByUserId({})", userId, e);
+            return contractMatchedOrderTradeDTOPage;
+        }
+        contractMatchedOrderTradeDTOPage.setData(list);
+        return contractMatchedOrderTradeDTOPage;
+    }
+
+    /**
+     * 根据订单id查询订单信息
+     *
+     * @param orderId
+     * @param userId
+     * @return
+     */
+    @Override
+    public ContractOrderDTO getContractOrderById(Long orderId, Long userId) {
+        try {
+            ContractOrderDO contractOrderDO = contractOrderMapper.selectByIdAndUserId(orderId, userId);
+            return BeanUtils.copy(contractOrderDO);
+        }catch (Exception e){
+            log.error("contractOrderMapper.selectByIdAndUserId failed{}", orderId);
+            throw new RuntimeException("contractOrderMapper.selectByIdAndUserId failed", e);
+        }
     }
 
     private void updateContractAccount(ContractOrderDO contractOrderDO, ContractMatchedOrderDTO contractMatchedOrderDTO) {

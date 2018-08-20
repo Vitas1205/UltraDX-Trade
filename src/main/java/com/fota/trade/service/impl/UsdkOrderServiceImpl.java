@@ -9,8 +9,10 @@ import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.manager.UsdkOrderManager;
+import com.fota.trade.mapper.UsdkMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkOrderMapper;
 import com.fota.trade.service.UsdkOrderService;
+import com.fota.trade.util.DateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -42,6 +45,9 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
 
     @Autowired
     private RedisManager redisManager;
+
+    @Autowired
+    private UsdkMatchedOrderMapper usdkMatchedOrderMapper;
 
     @Autowired
     private CapitalService capitalService;
@@ -224,8 +230,95 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     }
 
     @Override
-    public UsdkMatchedOrderTradeDTOPage getUsdkMatchRecord(Long aLong, List<Long> list, Integer integer, Integer integer1, Long aLong1, Long aLong2) {
-        return null;
+    public UsdkMatchedOrderTradeDTOPage getUsdkMatchRecord(Long userId, List<Long> assetIds, Integer pageNo, Integer pageSize, Long startTime, Long endTime) {
+        if (userId <= 0){
+            return null;
+        }
+        if (pageNo <= 0) {
+            pageNo = 1;
+        }
+        if (pageSize <= 0) {
+            pageSize = 20;
+        }
+        Date startTimeD = null, endTimeD = null;
+        if (startTime > 0){
+            startTimeD = DateUtil.LongTurntoDate(startTime);
+        }
+        if (endTime > 0){
+            endTimeD = DateUtil.LongTurntoDate(endTime);
+        }
+        if (endTime == null){
+            endTime = System.currentTimeMillis();
+        }
+        log.info("getListByUserId userId {} startTime {}, endTime {}", userId, startTimeD, endTimeD);
+
+        UsdkMatchedOrderTradeDTOPage usdkMatchedOrderTradeDTOPage = new UsdkMatchedOrderTradeDTOPage();
+        usdkMatchedOrderTradeDTOPage.setPageNo(pageNo);
+        usdkMatchedOrderTradeDTOPage.setPageSize(pageSize);
+
+        int count = 0;
+        try {
+            count = usdkMatchedOrderMapper.countByUserId(userId, assetIds, startTimeD, endTimeD);
+        } catch (Exception e) {
+            log.error("usdkMatchedOrderMapper.countByUserId({})", userId, e);
+            return usdkMatchedOrderTradeDTOPage;
+        }
+        usdkMatchedOrderTradeDTOPage.setTotal(count);
+        if (count == 0){
+            return usdkMatchedOrderTradeDTOPage;
+        }
+        int startRow = (pageNo - 1) * pageSize;
+        int endRow = pageSize;
+
+        List<UsdkMatchedOrderDO> usdkMatchedOrders = null;
+        List<UsdkMatchedOrderTradeDTO> list = new ArrayList<>();
+        try {
+            usdkMatchedOrders = usdkMatchedOrderMapper.listByUserId(userId, assetIds, startRow, endRow, startTimeD, endTimeD);
+            if (null != usdkMatchedOrders && usdkMatchedOrders.size() > 0){
+                for (UsdkMatchedOrderDO temp : usdkMatchedOrders){
+                    UsdkMatchedOrderTradeDTO tempTarget = new UsdkMatchedOrderTradeDTO();
+                    tempTarget.setAskCloseType(temp.getAskCloseType().intValue());
+                    tempTarget.setAskOrderId(temp.getAskOrderId());
+                    tempTarget.setAskOrderPrice(temp.getAskOrderPrice().toString());
+                    tempTarget.setAskUserId(temp.getAskUserId());
+                    tempTarget.setBidCloseType(temp.getBidCloseType().intValue());
+                    tempTarget.setBidOrderId(temp.getBidOrderId());
+                    tempTarget.setBidOrderPrice(temp.getBidOrderPrice().toString());
+                    tempTarget.setBidUserId(temp.getBidUserId());
+                    tempTarget.setAssetName(temp.getAssetName());
+                    tempTarget.setUsdkMatchedOrderId(temp.getId());
+                    //tempTarget.setFee(temp.getFee().toString());
+                    tempTarget.setFilledAmount(temp.getFilledAmount());
+                    tempTarget.setFilledDate(temp.getGmtCreate());
+                    tempTarget.setFilledPrice(temp.getFilledPrice());
+                    tempTarget.setMatchType(temp.getMatchType().intValue());
+                    list.add(tempTarget);
+                }
+            }
+        } catch (Exception e){
+            log.error("usdkMatchedOrderMapper.countByUserId({})", userId, e);
+            return usdkMatchedOrderTradeDTOPage;
+        }
+        usdkMatchedOrderTradeDTOPage.setData(list);
+        return usdkMatchedOrderTradeDTOPage;
+    }
+
+    /**
+     * 根据订单id查询订单信息
+     *
+     * @param orderId
+     * @param userId
+     * @return
+     */
+    @Override
+    public UsdkOrderDTO getUsdkOrderById(Long orderId, Long userId) {
+        try {
+            UsdkOrderDO usdkOrderDO = usdkOrderMapper.selectByIdAndUserId(orderId, userId);
+            return BeanUtils.copy(usdkOrderDO);
+        }catch (Exception e){
+            log.error("usdkOrderMapper.selectByIdAndUserId failed{}", orderId);
+            throw new RuntimeException("usdkOrderMapper.selectByIdAndUserId failed", e);
+        }
     }
 
     /**

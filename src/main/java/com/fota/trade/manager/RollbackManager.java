@@ -120,7 +120,7 @@ public class RollbackManager {
             long newTotalAmount = userPositionDO.getUnfilledAmount() + filledAmount.longValue();
             BigDecimal oldTotalPrice = userPositionDO.getAveragePrice().multiply(new BigDecimal(userPositionDO.getUnfilledAmount()));
             BigDecimal addedTotalPrice = filledPrice.multiply(filledAmount);
-            contractOrderManager.updateUserPosition(userPositionDO, oldTotalPrice, addedTotalPrice, newTotalAmount);
+            //contractOrderManager.updateUserPosition(userPositionDO, oldTotalPrice, addedTotalPrice, newTotalAmount);
             rollbackBalance(contractOrderDO, oldPositionAmount, newTotalAmount, contractMatchedOrderDO, lever);
             return;
         }
@@ -130,14 +130,14 @@ public class RollbackManager {
             long newTotalAmount = userPositionDO.getUnfilledAmount() - filledAmount.longValue();
             BigDecimal oldTotalPrice = userPositionDO.getAveragePrice().multiply(new BigDecimal(userPositionDO.getUnfilledAmount()));
             BigDecimal addedTotalPrice = filledPrice.multiply(filledAmount).negate();
-            contractOrderManager.updateUserPosition(userPositionDO, oldTotalPrice, addedTotalPrice, newTotalAmount);
+            //contractOrderManager.updateUserPosition(userPositionDO, oldTotalPrice, addedTotalPrice, newTotalAmount);
             rollbackBalance(contractOrderDO, oldPositionAmount, newTotalAmount, contractMatchedOrderDO, lever);
         } else {
             long newTotalAmount = filledAmount.longValue() - userPositionDO.getUnfilledAmount();
             BigDecimal oldTotalPrice = userPositionDO.getAveragePrice().multiply(new BigDecimal(userPositionDO.getUnfilledAmount())).negate();
             BigDecimal addedTotalPrice = filledPrice.multiply(filledAmount);
             userPositionDO.setPositionType(contractOrderDO.getOrderDirection());
-            contractOrderManager.updateUserPosition(userPositionDO, oldTotalPrice, addedTotalPrice, newTotalAmount);
+            //contractOrderManager.updateUserPosition(userPositionDO, oldTotalPrice, addedTotalPrice, newTotalAmount);
             rollbackBalance(contractOrderDO, oldPositionAmount, newTotalAmount, contractMatchedOrderDO, lever);
         }
     }

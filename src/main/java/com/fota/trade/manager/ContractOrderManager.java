@@ -160,9 +160,9 @@ public class ContractOrderManager {
         return resultCode;
     }
 
-    public ResultCode cancelOrderByOrderType(long userId, int orderType, Map<String, String> userInfoMap) throws Exception {
+    public ResultCode cancelOrderByOrderType(long userId, List<Integer> orderTypes, Map<String, String> userInfoMap) throws Exception {
         ResultCode resultCode = new ResultCode();
-        List<ContractOrderDO> list = contractOrderMapper.listByUserIdAndOrderType(userId, orderType);
+        List<ContractOrderDO> list = contractOrderMapper.listByUserIdAndOrderType(userId, orderTypes);
         int i = 0;
         if (list != null) {
             for (ContractOrderDO contractOrderDO : list) {
@@ -728,26 +728,29 @@ public class ContractOrderManager {
             long newTotalAmount = userPositionDO.getUnfilledAmount() + filledAmount.longValue();
             BigDecimal oldTotalPrice = userPositionDO.getAveragePrice().multiply(new BigDecimal(userPositionDO.getUnfilledAmount()));
             BigDecimal addedTotalPrice = filledPrice.multiply(filledAmount);
-            updateUserPosition(userPositionDO, oldTotalPrice, addedTotalPrice, newTotalAmount);
+            BigDecimal newTotalPrice = oldTotalPrice.add(addedTotalPrice);
+            BigDecimal newAvaeragePrice = newTotalPrice.divide(new BigDecimal(newTotalAmount), 8, BigDecimal.ROUND_DOWN);
+            updateUserPosition(userPositionDO, newAvaeragePrice, newTotalAmount);
             updateBalance(contractOrderDO, oldPositionAmount, userPositionDO.getUnfilledAmount(), contractMatchedOrderDTO, lever);
             return;
         }
 
         //成交单和持仓是反方向 （平仓）
         if (filledAmount.longValue() - userPositionDO.getUnfilledAmount() <= 0) {
-            //改变仓位方向
+            //不改变仓位方向
             long newTotalAmount = userPositionDO.getUnfilledAmount() - filledAmount.longValue();
-            BigDecimal oldTotalPrice = userPositionDO.getAveragePrice().multiply(new BigDecimal(userPositionDO.getUnfilledAmount()));
-            BigDecimal addedTotalPrice = filledPrice.multiply(filledAmount).negate();
-            updateUserPosition(userPositionDO, oldTotalPrice, addedTotalPrice, newTotalAmount);
+            BigDecimal newAvaeragePrice = null;
+            if (newTotalAmount != 0){
+                newAvaeragePrice = userPositionDO.getAveragePrice().setScale(8, BigDecimal.ROUND_DOWN);
+            }
+            updateUserPosition(userPositionDO, newAvaeragePrice, newTotalAmount);
             updateBalance(contractOrderDO, oldPositionAmount, userPositionDO.getUnfilledAmount(), contractMatchedOrderDTO, lever);
         } else {
             //改变仓位方向
             long newTotalAmount = filledAmount.longValue() - userPositionDO.getUnfilledAmount();
-            BigDecimal oldTotalPrice = userPositionDO.getAveragePrice().multiply(new BigDecimal(userPositionDO.getUnfilledAmount())).negate();
-            BigDecimal addedTotalPrice = filledPrice.multiply(filledAmount);
+            BigDecimal newAvaeragePrice = filledPrice.setScale(8, BigDecimal.ROUND_DOWN);;
             userPositionDO.setPositionType(contractOrderDO.getOrderDirection());
-            updateUserPosition(userPositionDO, oldTotalPrice, addedTotalPrice, newTotalAmount);
+            updateUserPosition(userPositionDO, newAvaeragePrice, newTotalAmount);
             updateBalance(contractOrderDO, oldPositionAmount, userPositionDO.getUnfilledAmount(), contractMatchedOrderDTO, lever);
         }
     }
@@ -780,19 +783,12 @@ public class ContractOrderManager {
 
     /**
      * @param userPositionDO  旧的持仓
-     * @param oldTotalPrice   旧的持仓总价值
-     * @param addedTotalPrice 新的持仓
+     * @param newAvaeragePrice 新的开仓均价
      * @param newTotalAmount  新的持仓数量
      * @return
      */
-    public int updateUserPosition(UserPositionDO userPositionDO, BigDecimal oldTotalPrice, BigDecimal addedTotalPrice, long newTotalAmount) {
-        BigDecimal newTotalPrice = oldTotalPrice.add(addedTotalPrice);
-        if (newTotalAmount != 0) {
-            BigDecimal newAvaeragePrice = newTotalPrice.divide(new BigDecimal(newTotalAmount), 8, BigDecimal.ROUND_DOWN);
-            userPositionDO.setAveragePrice(newAvaeragePrice);
-        }else {
-            userPositionDO.setAveragePrice(null);
-        }
+    public int updateUserPosition(UserPositionDO userPositionDO, BigDecimal newAvaeragePrice, long newTotalAmount) {
+        userPositionDO.setAveragePrice(newAvaeragePrice);
         userPositionDO.setUnfilledAmount(newTotalAmount);
 
         int updateRet = 0;

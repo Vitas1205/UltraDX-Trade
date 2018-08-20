@@ -76,7 +76,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
             "where order_type = #{orderType,jdbcType=INTEGER} and user_id = #{userId,jdbcType=BIGINT}"
     })
     @ResultMap("BaseResultMap")
-    List<ContractOrderDO> listByUserIdAndOrderType(@Param("userId") Long userId, @Param("orderType") Integer orderType);
+    List<ContractOrderDO> listByUserIdAndOrderType(@Param("userId") Long userId, @Param("orderTypes") List<Integer> orderTypes);
 
     @Select({
             "select",

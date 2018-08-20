@@ -34,4 +34,47 @@
         #{filledPrice,jdbcType=DECIMAL}, #{filledAmount,jdbcType=DECIMAL}, #{askUserId,jdbcType=BIGINT},
         #{bidUserId,jdbcType=BIGINT}, #{assetName,jdbcType=VARCHAR}, #{assetId,jdbcType=INTEGER})
     </insert>
+
+    <select id="countByUserId" resultType="java.lang.Integer">
+        select count(*) from usdk_matched_order where
+        <if test="endTime != null">
+            gmt_create &lt; #{endTime}
+        </if>
+        <if test="startTime != null">
+            and gmt_create &gt;= #{startTime}
+        </if>
+        <if test="assetIds != null and assetIds.size != 0">
+            and status in
+            <foreach item="item" index="index" collection="assetIds" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="userId != null">
+            and (ask_user_id=#{userId} or bid_user_id=#{userId})
+        </if>
+    </select>
+
+    <select id="listByUserId" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List" />
+        from usdk_matched_order
+        where
+        <if test="endTime != null">
+            gmt_create &lt; #{endTime}
+        </if>
+        <if test="startTime != null">
+            and gmt_create &gt;= #{startTime}
+        </if>
+        <if test="assetIds != null and assetIds.size != 0">
+            and status in
+            <foreach item="item" index="index" collection="assetIds" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="userId != null">
+            and (ask_user_id=#{userId} or bid_user_id=#{userId})
+        </if>
+        order by gmt_create DESC
+        limit #{startRow}, #{endRow}
+    </select>
 </mapper>
