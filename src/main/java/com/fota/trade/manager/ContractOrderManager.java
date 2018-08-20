@@ -36,6 +36,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.fota.trade.client.constants.MatchedOrderStatus.DELETE;
+import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
+import static com.fota.trade.common.ResultCodeEnum.UPDATE_BALANCE_FAILED;
 import static com.fota.trade.common.ResultCodeEnum.UPDATE_CONTRACT_ORDER_FAILED;
 
 /**
@@ -576,6 +578,8 @@ public class ContractOrderManager {
         contractMatchedOrderDO.setBidUserId(bidContractOrder.getUserId());
         contractMatchedOrderDO.setAskCloseType(askContractOrder.getCloseType().byteValue());
         contractMatchedOrderDO.setBidCloseType(bidContractOrder.getCloseType().byteValue());
+        contractMatchedOrderDO.setStatus(VALID);
+        contractMatchedOrderDO.setGmtCreate(new Date());
         try {
             int ret = contractMatchedOrderMapper.insert(contractMatchedOrderDO);
             if (ret < 1) {
@@ -658,6 +662,7 @@ public class ContractOrderManager {
     }
 
     public void rollbackMatchedOrder(RollbackTask rollbackTask) {
+        log.info("start rollbackTask:{}",JSON.toJSONString(rollbackTask));
         BaseQuery query = new BaseQuery();
         query.setSourceId((int) rollbackTask.getContractId());
         query.setStartTime(rollbackTask.getRollbackPoint());
@@ -676,17 +681,14 @@ public class ContractOrderManager {
         Long userId = contractOrderDO.getUserId();
         Long contractId = contractOrderDO.getContractId();
         UserPositionDO userPositionDO = null;
-
-        long oldPositionAmount = userPositionDO.getUnfilledAmount();
         try {
-            userPositionDO = userPositionMapper.selectByUserIdAndId(userId, contractId.intValue());
+            userPositionDO = userPositionMapper.selectByUserIdAndId(userId, contractId);
         } catch (Exception e) {
             log.error("userPositionMapper.selectByUserIdAndId({}, {})", userId, contractId, e);
             return;
         }
-        BigDecimal contractSize = getContractSize(contractOrderDO.getContractId());
         Integer lever = new Integer(contractLeverManager.getLeverByContractId(contractOrderDO.getUserId(), contractOrderDO.getContractId()));
-
+        long oldPositionAmount = userPositionDO.getUnfilledAmount();
         if (contractOrderDO.getOrderDirection().equals(userPositionDO.getPositionType())) {
             long newTotalAmount = userPositionDO.getUnfilledAmount() + filledAmount.longValue();
             BigDecimal oldTotalPrice = userPositionDO.getAveragePrice().multiply(new BigDecimal(userPositionDO.getUnfilledAmount()));
@@ -735,6 +737,8 @@ public class ContractOrderManager {
         updatePosition(askContractOrder, matchedOrderDO);
         updatePosition(bidContractOrder, matchedOrderDO);
 
+        contractMatchedOrderMapper.updateStatus(matchedOrderDO.getId(), DELETE);
+
     }
     private void rollbackBalance(ContractOrderDO contractOrderDO,
                               long oldPositionAmount,
@@ -751,7 +755,10 @@ public class ContractOrderManager {
                 .multiply(contractSize)
                 .divide(new BigDecimal(lever), 8, BigDecimal.ROUND_DOWN)
                 .subtract(actualFee);
-        contractService.addTotaldAmount(contractOrderDO.getUserId(), addedTotalAmount);
+        boolean suc = contractService.addTotaldAmount(contractOrderDO.getUserId(), addedTotalAmount);
+        if (!suc) {
+            throw new BizException(UPDATE_BALANCE_FAILED);
+        }
     }
 
 
@@ -771,7 +778,7 @@ public class ContractOrderManager {
         UserPositionDO userPositionDO = null;
 
         try {
-            userPositionDO = userPositionMapper.selectByUserIdAndId(userId, contractId.intValue());
+            userPositionDO = userPositionMapper.selectByUserIdAndId(userId, contractId);
         } catch (Exception e) {
             log.error("userPositionMapper.selectByUserIdAndId({}, {})", userId, contractId, e);
             return;
@@ -851,6 +858,8 @@ public class ContractOrderManager {
         if (newTotalAmount != 0) {
             BigDecimal newAvaeragePrice = newTotalPrice.divide(new BigDecimal(newTotalAmount), 8, BigDecimal.ROUND_DOWN);
             userPositionDO.setAveragePrice(newAvaeragePrice);
+        }else {
+            userPositionDO.setAveragePrice(null);
         }
         userPositionDO.setUnfilledAmount(newTotalAmount);
 
@@ -952,7 +961,7 @@ public class ContractOrderManager {
 
             }
         } catch (Exception e) {
-            log.error(ResultCodeEnum.ASSET_SERVICE_FAILED.getMessage());
+            log.error("update entrust failed", e);
             throw new RuntimeException(ResultCodeEnum.ASSET_SERVICE_FAILED.getMessage());
         }
         return ret;

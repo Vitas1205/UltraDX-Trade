@@ -220,6 +220,15 @@ public class RedisManager {
         }
     }
 
+    public boolean tryLock(String lock) {
+        return redisTemplate.opsForValue().setIfAbsent(lock, 1);
+    }
+
+    public boolean releaseLock(String lock) {
+        return redisTemplate.delete(lock);
+    }
+
+
     public Long inc(String key, long value) {
         ValueOperations<String, Object> ops = redisTemplate.opsForValue();
         return ops.increment(key, value);

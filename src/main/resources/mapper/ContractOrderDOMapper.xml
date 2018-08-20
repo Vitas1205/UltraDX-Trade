@@ -288,7 +288,8 @@
     <bind name="lFilledAmount" value="filledAmount.longValue()"/>
     update trade_contract_order
     set gmt_modified = now()
-        ,average_price = (IFNULL(average_price,0) * (total_amount - unfilled_amount) + #{filledPrice} * #{filledAmount}) / (total_amount - unfilled_amount + #{filledAmount})
+        ,average_price = IF(total_amount - unfilled_amount + #{lFilledAmount}=0, null ,
+        (IFNULL(average_price,0) * (total_amount - unfilled_amount) + #{filledPrice} * #{lFilledAmount}) / (total_amount - unfilled_amount + #{lFilledAmount}))
         ,status = IF(total_amount - (unfilled_amount - #{lFilledAmount}) > 0, 9,8)
         ,unfilled_amount = unfilled_amount - #{lFilledAmount}
 

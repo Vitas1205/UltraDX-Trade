@@ -45,7 +45,7 @@ public class ContractMatchedOrderDO {
 
     private String contractName;
 
-    private Integer contractId;
+    private Long contractId;
 
     private Integer status;
 }
