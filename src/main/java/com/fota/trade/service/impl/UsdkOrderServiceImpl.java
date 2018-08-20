@@ -122,6 +122,11 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     }
 
     @Override
+    public com.fota.common.Result<Long> orderReturnId(UsdkOrderDTO usdkOrderDTO, Map<String, String> map) {
+        return null;
+    }
+
+    @Override
     public ResultCode order(UsdkOrderDTO usdkOrderDTO) {
         return null;
     }

@@ -19,5 +19,9 @@ public class BusinessException extends Exception{
         this.message = message;
     }
 
+    public BusinessException(ResultCodeEnum resultCodeEnum){
+        this(resultCodeEnum.getCode(), resultCodeEnum.getMessage());
+    }
+
 
 }

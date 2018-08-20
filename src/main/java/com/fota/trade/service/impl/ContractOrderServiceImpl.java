@@ -164,6 +164,11 @@ public class ContractOrderServiceImpl implements
     }
 
     @Override
+    public com.fota.common.Result<Long> orderReturnId(ContractOrderDTO contractOrderDTO, Map<String, String> map) {
+        return null;
+    }
+
+    @Override
     public ResultCode order(ContractOrderDTO contractOrderDTO) {
         return null;
     }
