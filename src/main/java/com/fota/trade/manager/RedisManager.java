@@ -31,8 +31,6 @@ public class RedisManager {
     private RedisTemplate<String, Object> redisTemplate;
 
     public boolean set(final String key, final Object value) {
-        log.info("------------------向redis写入key"+key);
-        log.info("------------------向redis写入value"+value);
         try {
             ValueOperations<String, Object> vOps = redisTemplate.opsForValue();
             vOps.set(key, value);
@@ -62,7 +60,6 @@ public class RedisManager {
     }
     public void usdtOrderSaveForMatch(UsdkOrderDTO usdkOrderDTO) {
         String key2 = "usdt_order_for_match_";
-        log.info("usdk save");
         rpush(key2, usdkOrderDTO);
     }
 
@@ -75,7 +72,6 @@ public class RedisManager {
 
     public void contractOrderSaveForMatch(ContractOrderDTO contractOrderDTO) {
         String key2 = "contract_order_for_match_";
-        log.info("contract save");
         rpush(key2, contractOrderDTO);
     }
 

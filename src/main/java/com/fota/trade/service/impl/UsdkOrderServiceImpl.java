@@ -210,7 +210,6 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         ResultCode resultCode = new ResultCode();
         try {
             resultCode = usdkOrderManager.updateOrderByMatch(usdkMatchedOrderDTO);
-            log.info("resultCode----------------------"+resultCode.toString());
             return resultCode;
         }catch (Exception e){
             log.error("USDK updateOrderByMatch() failed", e);

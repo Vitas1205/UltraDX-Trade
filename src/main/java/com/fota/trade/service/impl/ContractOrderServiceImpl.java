@@ -392,7 +392,6 @@ public class ContractOrderServiceImpl implements
         //contractOrderDO.setUnfilledAmount(contractOrderDO.getUnfilledAmount() - filledAmount);
         int ret = -1;
         try {
-            log.info("打印的内容----------------------"+contractOrderDO);
             BigDecimal averagePrice = PriceUtil.getAveragePrice(contractOrderDO.getAveragePrice(),
                     new BigDecimal(contractOrderDO.getTotalAmount()).subtract(new BigDecimal(contractOrderDO.getUnfilledAmount())),
                     new BigDecimal(filledAmount),

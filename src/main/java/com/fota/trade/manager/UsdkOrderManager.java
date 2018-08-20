@@ -307,12 +307,9 @@ public class UsdkOrderManager {
         UsdkOrderDTO askUsdkOrderDTO = new UsdkOrderDTO();
         UsdkOrderDO askUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getAskOrderId());
         UsdkOrderDO bidUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getBidOrderId());
-        log.info("---------------"+usdkMatchedOrderDTO.toString());
-        log.info("---------------"+askUsdkOrder.toString());
-        log.info("---------------"+bidUsdkOrder.toString());
         if (askUsdkOrder.getUnfilledAmount().compareTo(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount())) < 0
                 || bidUsdkOrder.getUnfilledAmount().compareTo(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount())) < 0){
-            log.error("unfilledAmount not enough");
+            log.error("unfilledAmount not enough{}",usdkMatchedOrderDTO);
             throw new RuntimeException("unfilledAmount not enough");
         }
         if (askUsdkOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && askUsdkOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()){
@@ -327,14 +324,12 @@ public class UsdkOrderManager {
         BigDecimal filledPrice = new BigDecimal(usdkMatchedOrderDTO.getFilledPrice());
         askUsdkOrder.setStatus(usdkMatchedOrderDTO.getAskOrderStatus());
         int updateAskOrderRet = updateSingleOrderByFilledAmount(askUsdkOrder, filledAmount, usdkMatchedOrderDTO.getFilledPrice());
-        log.info("updateAskOrderRet----------------------------"+updateAskOrderRet);
         if (updateAskOrderRet <= 0){
             log.error("update ask order failed{}", askUsdkOrder);
             throw new RuntimeException("update ask order failed");
         }
         bidUsdkOrder.setStatus(usdkMatchedOrderDTO.getBidOrderStatus());
         int updateBIdOrderRet = updateSingleOrderByFilledAmount(bidUsdkOrder, filledAmount, usdkMatchedOrderDTO.getFilledPrice());
-        log.info("updateBIdOrderRet----------------------------"+updateBIdOrderRet);
         if (updateBIdOrderRet <= 0){
             log.error("update bid order failed{}", bidUsdkOrder);
             throw new RuntimeException("update bid order failed");
@@ -418,7 +413,6 @@ public class UsdkOrderManager {
         if (!sendRet){
             log.error("Send RocketMQ Message Failed ");
         }
-//        tradeLog.info("match ok " + orderMessage.toString());
 
         // 向Redis存储消息
         UsdkMatchedOrderTradeDTO usdkMatchedOrderTradeDTO = new UsdkMatchedOrderTradeDTO();
@@ -443,7 +437,6 @@ public class UsdkOrderManager {
             e.printStackTrace();
             log.error("向Redis存储USDK撮合订单信息失败，订单id为 {}", usdkMatchedOrderDO.getId());
         }
-        log.info("========完成撮合({})=======", System.currentTimeMillis());
         return ResultCode.success();
     }
 
@@ -452,7 +445,6 @@ public class UsdkOrderManager {
         int ret = -1;
         //todo update 均价
         try {
-            log.info("打印的内容----------------------"+usdkOrderDO);
             BigDecimal averagePrice = PriceUtil.getAveragePrice(usdkOrderDO.getAveragePrice(),
                     usdkOrderDO.getTotalAmount().subtract(usdkOrderDO.getUnfilledAmount()),
                     filledAmount,
@@ -460,7 +452,6 @@ public class UsdkOrderManager {
             ret  = usdkOrderMapper.updateByFilledAmount(usdkOrderDO.getId(), usdkOrderDO.getStatus(), filledAmount, averagePrice);
             if (ret >0){
                 UsdkOrderDO usdkOrderDO2 = usdkOrderMapper.selectByPrimaryKey(usdkOrderDO.getId());
-                log.info("更新后的记录"+usdkOrderDO.getId()+":"+usdkOrderDO2);
                 if (usdkOrderDO2.getUnfilledAmount().compareTo(BigDecimal.ZERO) == 0){
                     usdkOrderDO2.setStatus(OrderStatusEnum.MATCH.getCode());
                     usdkOrderMapper.updateStatus(usdkOrderDO2);

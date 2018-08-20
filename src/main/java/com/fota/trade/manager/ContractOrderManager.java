@@ -375,8 +375,6 @@ public class ContractOrderManager {
                     List<ContractOrderDO> askList = orderList.stream().filter(order -> order.getOrderDirection() == OrderDirectionEnum.ASK.getCode()).collect(Collectors.toList());
                     List<UserPositionDO> userPositionDOlist = new ArrayList<>();
                     if (positionlist != null && positionlist.size() != 0) {
-                        log.info("positionlist.size()++++++++++++++++++" + positionlist.size());
-                        log.info("contractOrderlist.size()++++++++++++++++++" + contractOrderlist.size());
                         userPositionDOlist = positionlist.stream().filter(userPosition -> userPosition.getContractId().equals(contractCategoryDO.getId()))
                                 .limit(1).collect(Collectors.toList());
                         if (userPositionDOlist != null && userPositionDOlist.size() != 0) {
@@ -602,12 +600,9 @@ public class ContractOrderManager {
         }
         ContractOrderDO askContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getAskOrderId());
         ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
-        log.info("contractMatchedOrderDTO ---------------{}", contractMatchedOrderDTO);
-        log.info("askContractOrder ---------------{}", askContractOrder);
-        log.info("bidContractOrder ---------------{}", bidContractOrder);
         if (askContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0
                 || bidContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0) {
-            log.error("unfilledAmount not enough");
+            log.error("unfilledAmount not enough{}",contractMatchedOrderDTO);
             throw new RuntimeException("unfilledAmount not enough");
         }
         if (askContractOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && askContractOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()) {
@@ -707,8 +702,6 @@ public class ContractOrderManager {
             e.printStackTrace();
             log.error("向Redis存储USDK撮合订单信息失败，订单id为 {}", contractMatchedOrderDO.getId());
         }
-        log.info("========完成撮合({})======= {}", System.currentTimeMillis(), contractMatchedOrderDO.getId());
-
         resultCode.setCode(ResultCodeEnum.SUCCESS.getCode());
         return resultCode;
     }
@@ -994,7 +987,6 @@ public class ContractOrderManager {
     private int updateSingleOrderByFilledAmount(ContractOrderDO contractOrderDO, long filledAmount, String filledPrice) {
         int ret = -1;
         try {
-            log.info("打印的内容----------------------" + contractOrderDO);
             tradeLog.info("update {}, fillAmount {}", contractOrderDO, filledAmount);
             BigDecimal averagePrice = PriceUtil.getAveragePrice(contractOrderDO.getAveragePrice(),
                     new BigDecimal(contractOrderDO.getTotalAmount()),
