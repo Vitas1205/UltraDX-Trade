@@ -111,9 +111,9 @@
         select
         <include refid="Base_Column_List" />
         from usdk_matched_order
-        where
+        where 1 = 1
         <if test="endTime != null">
-            gmt_create &lt; #{endTime}
+            and gmt_create &lt; #{endTime}
         </if>
         <if test="startTime != null">
             and gmt_create &gt;= #{startTime}

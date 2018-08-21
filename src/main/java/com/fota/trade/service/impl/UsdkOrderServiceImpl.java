@@ -232,9 +232,6 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
 
     @Override
     public UsdkMatchedOrderTradeDTOPage getUsdkMatchRecord(Long userId, List<Long> assetIds, Integer pageNo, Integer pageSize, Long startTime, Long endTime) {
-        if (userId <= 0){
-            return null;
-        }
         if (pageNo <= 0) {
             pageNo = 1;
         }
@@ -242,14 +239,11 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
             pageSize = 20;
         }
         Date startTimeD = null, endTimeD = null;
-        if (startTime > 0){
+        if (startTime != null){
             startTimeD = DateUtil.LongTurntoDate(startTime);
         }
-        if (endTime > 0){
+        if (endTime != null){
             endTimeD = DateUtil.LongTurntoDate(endTime);
-        }
-        if (endTime == null){
-            endTime = System.currentTimeMillis();
         }
         log.info("getListByUserId userId {} startTime {}, endTime {}", userId, startTimeD, endTimeD);
 

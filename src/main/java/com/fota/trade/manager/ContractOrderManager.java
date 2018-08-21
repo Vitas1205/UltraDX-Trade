@@ -223,11 +223,11 @@ public class ContractOrderManager {
         if (contractOrderDO.getOrderType() == null){
             contractOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
         }
+        contractOrderDO.setContractName(contractCategoryDO.getContractName());
+        contractOrderDO.setCloseType(OrderCloseTypeEnum.MANUAL.getCode());
         if (contractOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()) {
             insertOrderRecord(contractOrderDO);
         } else {
-            contractOrderDO.setContractName(contractCategoryDO.getContractName());
-            contractOrderDO.setCloseType(OrderCloseTypeEnum.MANUAL.getCode());
             orderId = insertOrderRecord(contractOrderDO);
             BigDecimal totalLockAmount = getTotalLockAmount(contractOrderDO.getUserId());
             //查询用户合约冻结金额
