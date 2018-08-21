@@ -29,7 +29,8 @@
             <Filters>
                 <!-- 只记录info和warn级别信息 -->
                 <ThresholdFilter level="error" onMatch="DENY" onMismatch="NEUTRAL"/>
-                <ThresholdFilter level="info" onMatch="ACCEPT" onMismatch="DENY" />
+                <!--<ThresholdFilter level="debug" onMatch="ACCEPT" onMismatch="DENY" />-->
+                <ThresholdFilter level="debug" onMatch="ACCEPT" onMismatch="DENY" />
             </Filters>
             <!-- 指定每天的最大压缩包个数，默认7个，超过了会覆盖之前的 -->
             <DefaultRolloverStrategy max="50"/>
@@ -73,7 +74,7 @@
     <!-- 全局配置，默认所有的Logger都继承此配置 -->
     <Loggers>
         <!-- AsyncRoot - 异步记录日志 - 需要LMAX Disruptor的支持 -->
-        <AsyncRoot level="info" additivity="false">
+        <AsyncRoot level="debug" additivity="false">
             <AppenderRef ref="console"/>
             <AppenderRef ref="infoFile"/>
             <AppenderRef ref="errorFile"/>

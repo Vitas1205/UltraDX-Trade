@@ -39,6 +39,11 @@
         )
     </insert>
 
+    <sql id="Base_Column_List">
+        id, gmt_create, gmt_modified, ask_order_id, ask_order_price, ask_user_id, ask_close_type, bid_order_id, bid_order_price,
+        bid_user_id, bid_close_type, match_type, fee, filled_price, filled_amount, contract_id, contract_name
+    </sql>
+
     <select id="getAllFee" resultType="java.math.BigDecimal">
         SELECT sum(fee)
         FROM contract_matched_order
@@ -80,6 +85,49 @@
             and gmt_create &lt; #{endTime}
         </if>
         order by gmt_create desc
+        limit #{startRow}, #{endRow}
+    </select>
+
+    <select id="countByUserId" resultType="java.lang.Integer">
+        select count(*) from usdk_matched_order where
+        <if test="endTime != null">
+            gmt_create &lt; #{endTime}
+        </if>
+        <if test="startTime != null">
+            and gmt_create &gt;= #{startTime}
+        </if>
+        <if test="contractIds != null and contractIds.size != 0">
+            and contract_id in
+            <foreach item="item" index="index" collection="contractIds" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="userId != null">
+            and (ask_user_id=#{userId} or bid_user_id=#{userId})
+        </if>
+    </select>
+
+    <select id="listByUserId" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List" />
+        from usdk_matched_order
+        where
+        <if test="endTime != null">
+            gmt_create &lt; #{endTime}
+        </if>
+        <if test="startTime != null">
+            and gmt_create &gt;= #{startTime}
+        </if>
+        <if test="contractIds != null and contractIds.size != 0">
+            and contract_id in
+            <foreach item="item" index="index" collection="contractIds" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="userId != null">
+            and (ask_user_id=#{userId} or bid_user_id=#{userId})
+        </if>
+        order by gmt_create DESC
         limit #{startRow}, #{endRow}
     </select>
 

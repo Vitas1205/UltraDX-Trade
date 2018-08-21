@@ -34,7 +34,6 @@ public class RedisTest {
         String redisKey = "mykey"+123;
         for (int i = 0;i <= 10;i++){
             long count = redisTemplate.opsForValue().increment(redisKey, 1);
-            log.info("------------"+String.valueOf(count));
             log.info("fota_usdk_entrust_"+count);
         }
     }

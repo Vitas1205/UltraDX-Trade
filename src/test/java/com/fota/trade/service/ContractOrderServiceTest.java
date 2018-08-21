@@ -2,7 +2,9 @@ package com.fota.trade.service;
 
 import com.fota.asset.domain.UserContractDTO;
 import com.fota.asset.service.AssetService;
+import com.fota.asset.service.ContractService;
 import com.fota.common.Page;
+import com.fota.common.Result;
 import com.fota.trade.client.RollbackTask;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
@@ -13,6 +15,7 @@ import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
 import com.fota.trade.util.CommonUtils;
+import com.fota.trade.util.PriceUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.joda.time.LocalDate;
 import org.junit.Assert;
@@ -56,6 +59,9 @@ public class ContractOrderServiceTest {
     @Resource
     private UserPositionMapper userPositionMapper;
 
+    @Resource
+    private ContractService contractService;
+
     ContractOrderDO askContractOrder = new ContractOrderDO();
     ContractOrderDO bidContractOrder = new ContractOrderDO();
 
@@ -83,7 +89,7 @@ public class ContractOrderServiceTest {
         askContractOrder.setFee(new BigDecimal("0.01"));
         askContractOrder.setLever(10);
         askContractOrder.setOrderDirection(OrderDirectionEnum.ASK.getCode());
-        askContractOrder.setPrice(new BigDecimal("6000.1"));
+        askContractOrder.setPrice(new BigDecimal("6000"));
         askContractOrder.setTotalAmount(100L);
         askContractOrder.setUnfilledAmount(100L);
         askContractOrder.setUserId(askUserId);
@@ -97,12 +103,14 @@ public class ContractOrderServiceTest {
         bidContractOrder.setFee(new BigDecimal("0.01"));
         bidContractOrder.setLever(10);
         bidContractOrder.setOrderDirection(OrderDirectionEnum.BID.getCode());
-        bidContractOrder.setPrice(new BigDecimal("6000.1"));
+        bidContractOrder.setPrice(new BigDecimal("6000"));
         bidContractOrder.setTotalAmount(100L);
         bidContractOrder.setUnfilledAmount(100L);
         bidContractOrder.setUserId(bidUserId);
         bidContractOrder.setStatus(OrderStatusEnum.COMMIT.getCode());
 
+//        contractService.addTotaldAmount(askUserId, new BigDecimal(500000000));
+//        contractService.addTotaldAmount(bidUserId, new BigDecimal(500000000));
         int insertRet = contractOrderMapper.insertSelective(askContractOrder);
         int ret2 = contractOrderMapper.insertSelective(bidContractOrder);
         Assert.assertTrue(insertRet > 0 && ret2 > 0);
@@ -143,7 +151,7 @@ public class ContractOrderServiceTest {
         checkPoint = new Date();
         originAskBalance = assetService.getContractAccount(askUserId);
         originBidBalance = assetService.getContractAccount(bidUserId);
-        //mbatis默认开启一级缓存，防止一级缓存隐藏
+        //mbatis默认开启一级缓存，防止成交里面的修改操作
         askPositionDO =  cloneObject(userPositionMapper.selectByUserIdAndId(askUserId, contractId));
         bidPositionDO =  cloneObject(userPositionMapper.selectByUserIdAndId(bidUserId, contractId));
 
@@ -154,14 +162,13 @@ public class ContractOrderServiceTest {
         contractMatchedOrderDTO.setContractName(askContractOrder.getContractName());
         contractMatchedOrderDTO.setAssetName("BTC");
         contractMatchedOrderDTO.setFilledPrice(askContractOrder.getPrice().toString());
-        contractMatchedOrderDTO.setFilledAmount(5l);
+        contractMatchedOrderDTO.setFilledAmount(1L);
 
         contractMatchedOrderDTO.setAskOrderPrice(askContractOrder.getPrice().toString());
         contractMatchedOrderDTO.setAskOrderStatus(askContractOrder.getStatus());
         contractMatchedOrderDTO.setBidOrderPrice(bidContractOrder.getPrice().toString());
         contractMatchedOrderDTO.setBidOrderStatus(bidContractOrder.getStatus());
         contractMatchedOrderDTO.setMatchType(1);
-        contractMatchedOrderDTO.setGmtCreate(new Date().getTime());
         ResultCode resultCode = contractOrderService.updateOrderByMatch(contractMatchedOrderDTO);
         Assert.assertTrue(resultCode.isSuccess());
     }
@@ -177,8 +184,8 @@ public class ContractOrderServiceTest {
         testUpdateOrderByMatch();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Date ck = sdf.parse("2018-08-20 08:27:11");
-        ResultCode resultCode = contractCategoryService.rollback(checkPoint.getTime(), contractId);
-        assert resultCode.isSuccess();
+        Result result = contractCategoryService.rollback(checkPoint, contractId);
+        assert result.isSuccess();
 
         //检查委托
         checkContractOrder(askContractOrder);
@@ -225,6 +232,12 @@ public class ContractOrderServiceTest {
     @Test
     public void getTodayFeeTest() {
         BigDecimal ret = contractOrderService.getTodayFee();
+        log.info("--------------------------" + ret);
+    }
+
+    @Test
+    public void getAveragePriceTest() {
+        BigDecimal ret = PriceUtil.getAveragePrice(null, new BigDecimal(0), new BigDecimal(1), new BigDecimal(10));
         log.info("--------------------------" + ret);
     }
 

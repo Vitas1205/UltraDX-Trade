@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -29,17 +30,17 @@ import static com.fota.trade.domain.enums.OrderStatusEnum.PART_MATCH;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @Slf4j
-@Transactional
+//@Transactional
 public class ContractOrderMapperTest {
 
     @Resource
     private ContractOrderMapper contractOrderMapper;
 
-    private Long userId = 9528L;
+    private Long userId = 282L;
 
     private ContractOrderDO contractOrderDO;
 
-    @Before
+    /*@Before
     public void init() {
         // 准备数据
         contractOrderDO = new ContractOrderDO();
@@ -56,7 +57,7 @@ public class ContractOrderMapperTest {
         contractOrderDO.setStatus(OrderStatusEnum.COMMIT.getCode());
         int insertRet = contractOrderMapper.insertSelective(contractOrderDO);
         Assert.assertTrue(insertRet > 0);
-    }
+    }*/
 
 
     @Test
@@ -115,6 +116,22 @@ public class ContractOrderMapperTest {
         } else {
             log.info("++++++++++++++++++++++++++++");
         }
+    }
+
+    @Test
+    public void selectTest() throws Exception {
+        List<ContractOrderDO> list = contractOrderMapper.selectByUserId(282L);
+        log.info("----------------------------"+list.toString());
+    }
+
+    @Test
+    public void listByUserIdAndOrderTypeTest() throws Exception {
+        Long userId = 282L;
+        List<Integer> orderTypes = new ArrayList<>();
+        orderTypes.add(1);
+        orderTypes.add(2);
+        List<ContractOrderDO> list = contractOrderMapper.listByUserIdAndOrderType(userId,orderTypes);
+        log.info("----------------------------"+list.toString());
     }
 
 }

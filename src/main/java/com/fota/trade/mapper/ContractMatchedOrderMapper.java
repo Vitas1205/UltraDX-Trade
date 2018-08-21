@@ -19,6 +19,11 @@ import java.util.List;
 public interface ContractMatchedOrderMapper {
     int insert(ContractMatchedOrderDO record);
 
+    int countByUserId(@Param("userId") Long userId, @Param("contractIds") List<Long> contractIds, @Param("startTime") Date startTime, @Param("endTime") Date endTime);
+
+    List<ContractMatchedOrderDO> listByUserId(@Param("userId") Long userId, @Param("contractIds") List<Long> contractIds, @Param("startRow") Integer startRow, @Param("endRow") Integer endRow,
+                                            @Param("startTime") Date startTime, @Param("endTime") Date endTime);
+
     long count(BaseQuery query);
 
     List<ContractMatchedOrderDO> queryMatchedOrder(BaseQuery baseQuery);

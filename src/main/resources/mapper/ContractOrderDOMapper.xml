@@ -302,4 +302,18 @@
     status = #{status}
     where id = #{id} and user_id = #{userId}
   </update>
+
+
+    <select id="listByUserIdAndOrderType" resultType="com.fota.trade.domain.ContractOrderDO">
+        select
+        <include refid="Base_Column_List" />
+        from trade_contract_order
+        where user_id = #{userId,jdbcType=BIGINT}
+        <if test="orderTypes != null and orderTypes.size != 0">
+            and order_type in
+            <foreach item="item" index="index" collection="orderTypes" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+    </select>
 </mapper>
