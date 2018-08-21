@@ -42,4 +42,6 @@ public class UsdkMatchedOrderDO {
     private Long bidUserId;
 
     private String assetName;
+
+    private Integer assetId;
 }

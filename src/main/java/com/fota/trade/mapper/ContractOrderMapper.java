@@ -67,16 +67,6 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
     @ResultMap("BaseResultMap")
     ContractOrderDO selectByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId);
 
-    @Select({
-            "select",
-            "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, order_direction, ",
-            "operate_type, order_type, operate_direction, lever, total_amount, unfilled_amount, close_type, price, ",
-            "fee, usdk_locked_amount, position_locked_amount, status, average_price",
-            "from trade_contract_order",
-            "where order_type = #{orderType,jdbcType=INTEGER} and user_id = #{userId,jdbcType=BIGINT}"
-    })
-    @ResultMap("BaseResultMap")
-    List<ContractOrderDO> listByUserIdAndOrderType(@Param("userId") Long userId, @Param("orderType") Integer orderType);
 
     @Select({
             "select",
@@ -204,6 +194,10 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
                              @Param("filledAmount") long filledAmount,
                              @Param("averagePrice") BigDecimal averagePrice);
 
+    int updateAmountAndStatus(@Param("orderId") Long orderId,
+                              @Param("filledAmount") BigDecimal filledAmount,
+                              @Param("filledPrice") BigDecimal filledPrice);
+
     List<ContractOrderDO> notMatchOrderList(
             @Param("placeOrder") Integer placeOrder, @Param("partialSuccess") Integer partialSuccess,
             @Param("contractOrderIndex") Long contractOrderIndex, @Param("orderDirection") Integer orderDirection);
@@ -213,4 +207,6 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
     List<ContractOrderDO> listByQuery(Map<String, Object> param);
 
     int updateStatus(ContractOrderDO record);
+
+    List<ContractOrderDO> listByUserIdAndOrderType(@Param("userId") Long userId, @Param("orderTypes") List<Integer> orderTypes);
 }

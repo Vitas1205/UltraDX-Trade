@@ -12,6 +12,7 @@ import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.service.ContractOrderService;
+import com.fota.trade.util.DateUtil;
 import com.fota.trade.util.PriceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -122,7 +123,7 @@ public class ContractOrderServiceImpl implements
 
     /**
      * @param contractOrderQuery
-     * * todo@荆轲
+     * * @荆轲
      * @return
      */
     @Override
@@ -149,12 +150,13 @@ public class ContractOrderServiceImpl implements
     public ResultCode order(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
         ResultCode resultCode = new ResultCode();
         try {
-            resultCode = contractOrderManager.placeOrder(contractOrderDTO, userInfoMap);
+            com.fota.common.Result<Long> result = contractOrderManager.placeOrder(contractOrderDTO, userInfoMap);
+            resultCode.setCode(result.getCode());
+            resultCode.setMessage(result.getMessage());
             if (resultCode.isSuccess()) {
                 tradeLog.info("下单@@@" + contractOrderDTO);
                 redisManager.contractOrderSaveForMatch(contractOrderDTO);
             }
-
             return resultCode;
         }catch (Exception e){
             log.error("Contract order() failed", e);
@@ -170,19 +172,29 @@ public class ContractOrderServiceImpl implements
     }
 
     @Override
-    public ResultCode order(ContractOrderDTO contractOrderDTO) {
-        return null;
+    public com.fota.common.Result<Long> orderReturnId(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
+        com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
+        try {
+            result = contractOrderManager.placeOrder(contractOrderDTO, userInfoMap);
+            return result;
+        }catch (Exception e){
+            log.error("Contract order() failed", e);
+            if (e instanceof BusinessException){
+                BusinessException businessException = (BusinessException) e;
+                result.setCode(businessException.getCode());
+                result.setMessage(businessException.getMessage());
+                result.setData(0L);
+                return result;
+            }
+        }
+        result.setCode(ResultCodeEnum.ORDER_FAILED.getCode());
+        result.setMessage(ResultCodeEnum.ORDER_FAILED.getMessage());
+        result.setData(0L);
+        return result;
     }
 
-    /**
-     * 合约下单返回订单id接口
-     *
-     * @param contractOrderDTO
-     * @param userInfoMap
-     * @return
-     */
     @Override
-    public com.fota.common.Result<Long> orderReturnId(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
+    public ResultCode order(ContractOrderDTO contractOrderDTO) {
         return null;
     }
 
@@ -236,24 +248,11 @@ public class ContractOrderServiceImpl implements
 
     /**
      * 撤销用户非强平单
-     *
+     * * @荆轲
      * @param userId
      * @param orderTypes
-     * @param userInfoMap
      * @return
      */
-    @Override
-    public ResultCode cancelOrderByOrderType(long userId, List<Integer> orderTypes, Map<String, String> userInfoMap) {
-        return null;
-    }
-
-    /**
-     * 撤销用户非强平单
-     * * todo@荆轲
-     * @param userId
-     * @param orderType
-     * @return
-     *//*
     @Override
     public ResultCode cancelOrderByOrderType(long userId, List<Integer> orderTypes, Map<String, String> userInfoMap) {
         ResultCode resultCode = new ResultCode();
@@ -270,7 +269,7 @@ public class ContractOrderServiceImpl implements
             }
         }
         return resultCode;
-    }*/
+    }
 
     @Override
     public ResultCode cancelOrderByOrderType(long l, int i) {
@@ -284,7 +283,7 @@ public class ContractOrderServiceImpl implements
 
     /**
      * 撤销该合约的所有委托订单
-     ** * todo@王冕
+     ** * @王冕
      * @param contractId
      * @return
      */
@@ -356,20 +355,74 @@ public class ContractOrderServiceImpl implements
         return totalFee;
     }
 
-    /**
-     * 合约成交记录查询
-     *
-     * @param userId
-     * @param contractIds
-     * @param pageNo
-     * @param pageSize
-     * @param startTime
-     * @param endTime
-     * @return
-     */
     @Override
     public ContractMatchedOrderTradeDTOPage getContractMacthRecord(Long userId, List<Long> contractIds, Integer pageNo, Integer pageSize, Long startTime, Long endTime) {
-        return null;
+        if (pageNo <= 0) {
+            pageNo = 1;
+        }
+        if (pageSize <= 0) {
+            pageSize = 20;
+        }
+        Date startTimeD = null, endTimeD = null;
+        if (startTime != null){
+            startTimeD = DateUtil.LongTurntoDate(startTime);
+        }
+        if (endTime != null){
+            endTimeD = DateUtil.LongTurntoDate(endTime);
+        }
+        log.info("getListByUserId userId {} startTime {}, endTime {}", userId, startTimeD, endTimeD);
+
+        ContractMatchedOrderTradeDTOPage contractMatchedOrderTradeDTOPage = new ContractMatchedOrderTradeDTOPage();
+        contractMatchedOrderTradeDTOPage.setPageNo(pageNo);
+        contractMatchedOrderTradeDTOPage.setPageSize(pageSize);
+
+        int count = 0;
+        try {
+            count = contractMatchedOrderMapper.countByUserId(userId, contractIds, startTimeD, endTimeD);
+        } catch (Exception e) {
+            log.error("contractMatchedOrderMapper.countByUserId({})", userId, e);
+            return contractMatchedOrderTradeDTOPage;
+        }
+        contractMatchedOrderTradeDTOPage.setTotal(count);
+        if (count == 0) {
+            return contractMatchedOrderTradeDTOPage;
+        }
+        int startRow = (pageNo - 1) * pageSize;
+        int endRow = pageSize;
+        List<ContractMatchedOrderDO> contractMatchedOrders = null;
+        List<ContractMatchedOrderTradeDTO> list = new ArrayList<>();
+        try {
+            contractMatchedOrders = contractMatchedOrderMapper.listByUserId(userId, contractIds, startRow, endRow, startTimeD, endTimeD);
+            if (contractMatchedOrders != null && contractMatchedOrders.size() > 0) {
+                for (ContractMatchedOrderDO temp : contractMatchedOrders) {
+                    // 获取更多信息
+                    ContractMatchedOrderTradeDTO tempTarget = new ContractMatchedOrderTradeDTO();
+                    tempTarget.setAskCloseType(temp.getAskCloseType().intValue());
+                    tempTarget.setAskOrderId(temp.getAskOrderId());
+                    tempTarget.setAskOrderPrice(temp.getAskOrderPrice().toString());
+                    tempTarget.setAskUserId(temp.getAskUserId());
+                    tempTarget.setBidCloseType(temp.getBidCloseType().intValue());
+                    tempTarget.setBidOrderId(temp.getBidOrderId());
+                    tempTarget.setBidOrderPrice(temp.getBidOrderPrice().toString());
+                    tempTarget.setBidUserId(temp.getBidUserId());
+                    //tempTarget.setContractId(temp.getC)
+                    tempTarget.setContractName(temp.getContractName());
+                    tempTarget.setContractMatchedOrderId(temp.getId());
+                    tempTarget.setFee(temp.getFee().toString());
+                    tempTarget.setFilledAmount(temp.getFilledAmount());
+                    tempTarget.setFilledDate(temp.getGmtCreate());
+                    tempTarget.setFilledPrice(temp.getFilledPrice());
+                    tempTarget.setMatchType(temp.getMatchType().intValue());
+                    //BeanUtil.fieldCopy(temp, tempTarget);
+                    list.add(tempTarget);
+                }
+            }
+        } catch (Exception e) {
+            log.error("contractMatchedOrderMapper.countByUserId({})", userId, e);
+            return contractMatchedOrderTradeDTOPage;
+        }
+        contractMatchedOrderTradeDTOPage.setData(list);
+        return contractMatchedOrderTradeDTOPage;
     }
 
     /**
@@ -381,7 +434,13 @@ public class ContractOrderServiceImpl implements
      */
     @Override
     public ContractOrderDTO getContractOrderById(Long orderId, Long userId) {
-        return null;
+        try {
+            ContractOrderDO contractOrderDO = contractOrderMapper.selectByIdAndUserId(orderId, userId);
+            return BeanUtils.copy(contractOrderDO);
+        }catch (Exception e){
+            log.error("contractOrderMapper.selectByIdAndUserId failed{}", orderId);
+            throw new RuntimeException("contractOrderMapper.selectByIdAndUserId failed", e);
+        }
     }
 
     private void updateContractAccount(ContractOrderDO contractOrderDO, ContractMatchedOrderDTO contractMatchedOrderDTO) {
@@ -422,7 +481,6 @@ public class ContractOrderServiceImpl implements
         //contractOrderDO.setUnfilledAmount(contractOrderDO.getUnfilledAmount() - filledAmount);
         int ret = -1;
         try {
-            log.info("打印的内容----------------------"+contractOrderDO);
             BigDecimal averagePrice = PriceUtil.getAveragePrice(contractOrderDO.getAveragePrice(),
                     new BigDecimal(contractOrderDO.getTotalAmount()).subtract(new BigDecimal(contractOrderDO.getUnfilledAmount())),
                     new BigDecimal(filledAmount),
