@@ -22,6 +22,7 @@ import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.util.PriceUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -176,6 +177,8 @@ public class ContractOrderManager {
 
     @Transactional(rollbackFor = {Exception.class, RuntimeException.class, BusinessException.class})
     public ResultCode placeOrder(ContractOrderDO contractOrderDO, Map<String, String> userInfoMap) throws Exception {
+        String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
+        String ipAddress = StringUtils.isEmpty(userInfoMap.get("ip")) ? "" : userInfoMap.get("ip");
         ResultCode resultCode = new ResultCode();
         ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractOrderDO.getContractId());
         if (contractCategoryDO == null) {
@@ -206,12 +209,12 @@ public class ContractOrderManager {
         redisManager.contractOrderSave(contractOrderDTO);
         if (contractOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()) {
             // 强平单
-            tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                    2, contractOrderDTO.getContractName(), userInfoMap.get("username"), userInfoMap.get("ipAddress"), contractOrderDTO.getTotalAmount(),
+            tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
+                    2, contractOrderDTO.getContractName(), username, ipAddress, contractOrderDTO.getTotalAmount(),
                     new Date(), 3, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 2);
         } else {
-            tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                    2, contractOrderDTO.getContractName(), userInfoMap.get("username"), userInfoMap.get("ipAddress"), contractOrderDTO.getTotalAmount(),
+            tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
+                    2, contractOrderDTO.getContractName(), username, ipAddress, contractOrderDTO.getTotalAmount(),
                     new Date(), 1, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 1);
         }
 
@@ -243,6 +246,8 @@ public class ContractOrderManager {
 
     @Transactional(rollbackFor = {Exception.class, RuntimeException.class, BusinessException.class})
     public ResultCode cancelOrderImpl(ContractOrderDO contractOrderDO, Map<String, String> userInfoMap) throws Exception {
+        String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
+        String ipAddress = StringUtils.isEmpty(userInfoMap.get("ip")) ? "" : userInfoMap.get("ip");
         ResultCode resultCode = new ResultCode();
         Integer status = contractOrderDO.getStatus();
         /*boolean judegRet = getJudegRet(contractOrderDO.getId(),contractOrderDO.getOrderDirection(),new BigDecimal(contractOrderDO.getUnfilledAmount()));
@@ -279,8 +284,8 @@ public class ContractOrderManager {
         contractOrderDTO.setCompleteAmount(contractOrderDTO.getTotalAmount() - contractOrderDTO.getUnfilledAmount());
         contractOrderDTO.setContractId(contractOrderDO.getContractId());
         redisManager.contractOrderSave(contractOrderDTO);
-        tradeLog.info("tradeLog@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                2, contractOrderDTO.getContractName(), userInfoMap.get("username"), userInfoMap.get("ipAddress"), contractOrderDTO.getUnfilledAmount(),
+        tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
+                2, contractOrderDTO.getContractName(), username, ipAddress, contractOrderDTO.getUnfilledAmount(),
                 new Date(), 2, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 1);
         //todo 推送MQ消息
         OrderMessage orderMessage = new OrderMessage();
@@ -604,11 +609,12 @@ public class ContractOrderManager {
         askContractOrderDTO.setStatus(contractMatchedOrderDTO.getAskOrderStatus());
         redisManager.contractOrderSave(askContractOrderDTO);
         // TODO 需要拿到matchID insert后返回
+        // TODO add username matchId
         tradeLog.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                2, askContractOrderDTO.getContractName(), "username", askContractOrderDTO.getMatchAmount(), new Date(), 4, askContractOrderDTO.getOrderDirection(), askContractOrderDTO.getUserId(), 1);
+                2, askContractOrderDTO.getContractName(), "", askContractOrderDTO.getMatchAmount(), new Date(), 4, askContractOrderDTO.getOrderDirection(), askContractOrderDTO.getUserId(), contractMatchedOrderDO.getId());
         redisManager.contractOrderSave(bidContractOrderDTO);
         tradeLog.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                2, askContractOrderDTO.getContractName(), "username", askContractOrderDTO.getMatchAmount(), new Date(), 4, askContractOrderDTO.getOrderDirection(), askContractOrderDTO.getUserId(), 1);
+                2, askContractOrderDTO.getContractName(), "", askContractOrderDTO.getMatchAmount(), new Date(), 4, askContractOrderDTO.getOrderDirection(), askContractOrderDTO.getUserId(), contractMatchedOrderDO.getId());
         // 向MQ推送消息
         // 通过contractId去trade_contract_category表里面获取asset_name和contract_type
         ContractCategoryDO contractCategoryDO = contractCategoryMapper.getContractCategoryById(askContractOrder.getContractId());
