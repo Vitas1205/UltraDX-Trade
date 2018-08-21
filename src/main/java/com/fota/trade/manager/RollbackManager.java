@@ -120,24 +120,29 @@ public class RollbackManager {
             long newTotalAmount = userPositionDO.getUnfilledAmount() + filledAmount.longValue();
             BigDecimal oldTotalPrice = userPositionDO.getAveragePrice().multiply(new BigDecimal(userPositionDO.getUnfilledAmount()));
             BigDecimal addedTotalPrice = filledPrice.multiply(filledAmount);
-            //contractOrderManager.updateUserPosition(userPositionDO, oldTotalPrice, addedTotalPrice, newTotalAmount);
+            BigDecimal newTotalPrice = oldTotalPrice.add(addedTotalPrice);
+            BigDecimal newAvaeragePrice = newTotalPrice.divide(new BigDecimal(newTotalAmount), 8, BigDecimal.ROUND_DOWN);
+            contractOrderManager.updateUserPosition(userPositionDO, newAvaeragePrice, newTotalAmount);
             rollbackBalance(contractOrderDO, oldPositionAmount, newTotalAmount, contractMatchedOrderDO, lever);
             return;
         }
 
         //成交单和持仓是反方向 （平仓）
         if (filledAmount.longValue() - userPositionDO.getUnfilledAmount() <= 0) {
+            //不改变仓位方向
             long newTotalAmount = userPositionDO.getUnfilledAmount() - filledAmount.longValue();
-            BigDecimal oldTotalPrice = userPositionDO.getAveragePrice().multiply(new BigDecimal(userPositionDO.getUnfilledAmount()));
-            BigDecimal addedTotalPrice = filledPrice.multiply(filledAmount).negate();
-            //contractOrderManager.updateUserPosition(userPositionDO, oldTotalPrice, addedTotalPrice, newTotalAmount);
+            BigDecimal newAvaeragePrice = null;
+            if (newTotalAmount != 0){
+                newAvaeragePrice = userPositionDO.getAveragePrice().setScale(8, BigDecimal.ROUND_DOWN);
+            }
+            contractOrderManager.updateUserPosition(userPositionDO, newAvaeragePrice, newTotalAmount);
             rollbackBalance(contractOrderDO, oldPositionAmount, newTotalAmount, contractMatchedOrderDO, lever);
         } else {
+            //改变仓位方向
             long newTotalAmount = filledAmount.longValue() - userPositionDO.getUnfilledAmount();
-            BigDecimal oldTotalPrice = userPositionDO.getAveragePrice().multiply(new BigDecimal(userPositionDO.getUnfilledAmount())).negate();
-            BigDecimal addedTotalPrice = filledPrice.multiply(filledAmount);
+            BigDecimal newAvaeragePrice = filledPrice.setScale(8, BigDecimal.ROUND_DOWN);;
             userPositionDO.setPositionType(contractOrderDO.getOrderDirection());
-            //contractOrderManager.updateUserPosition(userPositionDO, oldTotalPrice, addedTotalPrice, newTotalAmount);
+            contractOrderManager.updateUserPosition(userPositionDO, newAvaeragePrice, newTotalAmount);
             rollbackBalance(contractOrderDO, oldPositionAmount, newTotalAmount, contractMatchedOrderDO, lever);
         }
     }
