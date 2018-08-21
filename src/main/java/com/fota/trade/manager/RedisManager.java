@@ -69,6 +69,8 @@ public class RedisManager {
         Long count = getCount("test_contract_pre_add");
         String key = Constant.CONTRACT_ORDER_HEAD + count;
         String usdkOrderDTOStr = JSONObject.toJSONString(contractOrderDTO);
+        log.info("-----key"+key);
+        log.info("-----value"+usdkOrderDTOStr);
         set(key,usdkOrderDTOStr);
         Long count2 = getCount(Constant.CONTRACT_REDIS_KEY);
 
