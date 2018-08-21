@@ -76,6 +76,9 @@
             <if test="operateType != null">
                 operate_type,
             </if>
+            <if test="orderType != null">
+                order_type,
+            </if>
             <if test="operateDirection != null">
                 operate_direction,
             </if>
@@ -126,6 +129,9 @@
             </if>
             <if test="operateType != null">
                 #{operateType,jdbcType=TINYINT},
+            </if>
+            <if test="orderType != null">
+                #{orderType,jdbcType=TINYINT},
             </if>
             <if test="operateDirection != null">
                 #{operateDirection,jdbcType=TINYINT},
