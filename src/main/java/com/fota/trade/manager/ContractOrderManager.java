@@ -194,9 +194,6 @@ public class ContractOrderManager {
         com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
         Long orderId = 0L;
         ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractOrderDO.getContractId());
-        if (contractOrderDO.getOrderType() == null){
-            contractOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
-        }
         if (contractCategoryDO == null) {
             log.error("Contract Is Null");
             throw new RuntimeException("Contract Is Null");
