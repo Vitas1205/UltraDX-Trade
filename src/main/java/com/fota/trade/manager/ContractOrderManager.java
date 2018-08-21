@@ -226,7 +226,9 @@ public class ContractOrderManager {
             contractOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
         }
         contractOrderDO.setContractName(contractCategoryDO.getContractName());
-        contractOrderDO.setCloseType(OrderCloseTypeEnum.MANUAL.getCode());
+        if (contractOrderDO.getOrderType() == null){
+            contractOrderDO.setCloseType(OrderCloseTypeEnum.MANUAL.getCode());
+        }
         if (contractOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()) {
             insertOrderRecord(contractOrderDO);
         } else {
