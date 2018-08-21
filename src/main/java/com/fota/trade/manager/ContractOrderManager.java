@@ -194,6 +194,7 @@ public class ContractOrderManager {
         com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
         Long orderId = 0L;
         ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractOrderDO.getContractId());
+        log.info("------getOrderType"+contractOrderDO.getOrderType());
         if (contractOrderDO.getOrderType() == null){
             contractOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
         }
