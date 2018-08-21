@@ -9,6 +9,7 @@ import com.fota.trade.client.RollbackTask;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
+import com.fota.trade.domain.enums.OrderTypeEnum;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
@@ -92,6 +93,7 @@ public class ContractOrderServiceTest {
         askContractOrder.setPrice(new BigDecimal("6000"));
         askContractOrder.setTotalAmount(100L);
         askContractOrder.setUnfilledAmount(100L);
+        askContractOrder.setOrderType(OrderTypeEnum.LIMIT.getCode());
         askContractOrder.setUserId(askUserId);
         askContractOrder.setStatus(OrderStatusEnum.COMMIT.getCode());
 
@@ -106,6 +108,7 @@ public class ContractOrderServiceTest {
         bidContractOrder.setPrice(new BigDecimal("6000"));
         bidContractOrder.setTotalAmount(100L);
         bidContractOrder.setUnfilledAmount(100L);
+        bidContractOrder.setOrderType(OrderTypeEnum.LIMIT.getCode());
         bidContractOrder.setUserId(bidUserId);
         bidContractOrder.setStatus(OrderStatusEnum.COMMIT.getCode());
 
@@ -214,6 +217,7 @@ public class ContractOrderServiceTest {
         log.info("oldOrder={}", contractOrderDO);
         log.info("curOrder={}", curContract);
         assert curContract.getUnfilledAmount() == contractOrderDO.getUnfilledAmount().longValue()
+                && curContract.getStatus().intValue() == contractOrderDO.getStatus()
                 && CommonUtils.equal(curContract.getAveragePrice(), contractOrderDO.getAveragePrice());
     }
 

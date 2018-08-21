@@ -2,6 +2,7 @@ package com.fota.trade.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.fota.asset.domain.ContractDealer;
 import com.fota.asset.domain.UserContractDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
@@ -38,6 +39,7 @@ import java.util.stream.Collectors;
 
 import static com.fota.trade.client.constants.MatchedOrderStatus.DELETE;
 import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
+import static com.fota.trade.domain.enums.OrderTypeEnum.ENFORCE;
 
 /**
  * @author Gavin Shen
@@ -617,6 +619,11 @@ public class ContractOrderManager {
         }
         askContractOrder.setStatus(contractMatchedOrderDTO.getAskOrderStatus());
         bidContractOrder.setStatus(contractMatchedOrderDTO.getBidOrderStatus());
+
+        //更新委托
+        updateContractOrder(contractMatchedOrderDTO.getAskOrderId(), contractMatchedOrderDTO.getFilledAmount(), new BigDecimal(contractMatchedOrderDTO.getFilledPrice()));
+        updateContractOrder(contractMatchedOrderDTO.getBidOrderId(), contractMatchedOrderDTO.getFilledAmount(), new BigDecimal(contractMatchedOrderDTO.getFilledPrice()));
+
         updateContractAccount(askContractOrder, contractMatchedOrderDTO);
         updateContractAccount(bidContractOrder, contractMatchedOrderDTO);
 
@@ -838,11 +845,6 @@ public class ContractOrderManager {
         BigDecimal lockedAmount = new BigDecimal(userContractDTO.getLockedAmount());
         BigDecimal totalLockAmount = null;
         tradeLog.info("match id {}", matchedOrderDTO.getId());
-        int updateRet = updateSingleOrderByFilledAmount(contractOrderDO, matchedOrderDTO.getFilledAmount(), matchedOrderDTO.getFilledPrice());
-        if (updateRet != 1) {
-            log.error("updateSingleOrderByFilledAmount failed");
-            throw new RuntimeException("updateSingleOrderByFilledAmount failed");
-        }
         try {
             totalLockAmount = getTotalLockAmount(contractOrderDO.getUserId());
         } catch (Exception e) {
@@ -851,16 +853,28 @@ public class ContractOrderManager {
         //todo 更新余额
         BigDecimal addedTotalLocked = totalLockAmount.subtract(lockedAmount);
 
-        boolean updateContractRet = getContractService().updateContractBalance(contractOrderDO.getUserId(),
-                addedTotalAmount.toString(),
-                addedTotalLocked.toString());
-        if (!updateContractRet) {
+        ContractDealer dealer = new ContractDealer()
+                .setUserId(contractOrderDO.getUserId())
+                .setAddedTotalAmount(addedTotalAmount)
+                .setAddedLockAmount(addedTotalLocked);
+        dealer.setDealType((null != contractOrderDO.getOrderType() && ENFORCE.getCode() == contractOrderDO.getOrderType()) ? ContractDealer.DealType.FORCE : ContractDealer.DealType.NORMAL);
+
+        com.fota.common.Result result = getContractService().updateBalances(dealer);
+        if (!result.isSuccess()) {
             log.error("update contract balance failed");
             throw new RuntimeException("update balance failed");
         }
         return 1;
     }
 
+
+    private void updateContractOrder(long id, long filledAmount, BigDecimal filledPrice) {
+        int aff = contractOrderMapper.updateAmountAndStatus(id, new BigDecimal(filledAmount), filledPrice);
+        if (0 == aff) {
+            log.error("update contract order failed");
+            throw new RuntimeException("update contract order failed");
+        }
+    }
 
     /**
      * 如果撮合的量等于unfilled的量，则更新状态为已成
@@ -871,34 +885,36 @@ public class ContractOrderManager {
      * @param filledAmount
      * @return
      */
-    private int updateSingleOrderByFilledAmount(ContractOrderDO contractOrderDO, long filledAmount, String filledPrice) {
-        int ret = -1;
-        try {
-            log.info("---------------------usdkOrderDO"+contractOrderDO);
-            log.info("---------------------filledAmount"+filledAmount);
-            log.info("---------------------filledPrice"+filledPrice);
-            BigDecimal averagePrice = PriceUtil.getAveragePrice(contractOrderDO.getAveragePrice(),
-                    new BigDecimal(contractOrderDO.getTotalAmount()).subtract(new BigDecimal(contractOrderDO.getUnfilledAmount())),
-                    new BigDecimal(filledAmount),
-                    new BigDecimal(filledPrice));
-            ret = contractOrderMapper.updateByFilledAmount(contractOrderDO.getId(), contractOrderDO.getStatus(), filledAmount, averagePrice);
-            if (ret > 0) {
-                ContractOrderDO contractOrderDO2 = contractOrderMapper.selectByPrimaryKey(contractOrderDO.getId());
-                if (contractOrderDO2.getUnfilledAmount().equals(0L) && contractOrderDO2.getStatus() != OrderStatusEnum.MATCH.getCode()) {
-                    contractOrderDO2.setStatus(OrderStatusEnum.MATCH.getCode());
-                    contractOrderMapper.updateStatus(contractOrderDO2);
-                } else if (!contractOrderDO2.getUnfilledAmount().equals(0L) && contractOrderDO2.getStatus() == OrderStatusEnum.MATCH.getCode()) {
-                    contractOrderDO2.setStatus(OrderStatusEnum.PART_MATCH.getCode());
-                    contractOrderMapper.updateStatus(contractOrderDO2);
-                }
+//    private int updateSingleOrderByFilledAmount(ContractOrderDO contractOrderDO, long filledAmount, String filledPrice) {
+//        int ret = -1;
+//        try {
+//            log.info("---------------------usdkOrderDO" + contractOrderDO);
+//            log.info("---------------------filledAmount" + filledAmount);
+//            log.info("---------------------filledPrice" + filledPrice);
+//            BigDecimal averagePrice = PriceUtil.getAveragePrice(contractOrderDO.getAveragePrice(),
+//                    new BigDecimal(contractOrderDO.getTotalAmount()).subtract(new BigDecimal(contractOrderDO.getUnfilledAmount())),
+//                    new BigDecimal(filledAmount),
+//                    new BigDecimal(filledPrice));
+//            ret = contractOrderMapper.updateByFilledAmount(contractOrderDO.getId(), contractOrderDO.getStatus(), filledAmount, averagePrice);
+//            if (ret > 0) {
+//                ContractOrderDO contractOrderDO2 = contractOrderMapper.selectByPrimaryKey(contractOrderDO.getId());
+//                if (contractOrderDO2.getUnfilledAmount().equals(0L) && contractOrderDO2.getStatus() != OrderStatusEnum.MATCH.getCode()) {
+//                    contractOrderDO2.setStatus(OrderStatusEnum.MATCH.getCode());
+//                    contractOrderMapper.updateStatus(contractOrderDO2);
+//                } else if (!contractOrderDO2.getUnfilledAmount().equals(0L) && contractOrderDO2.getStatus() == OrderStatusEnum.MATCH.getCode()) {
+//                    contractOrderDO2.setStatus(OrderStatusEnum.PART_MATCH.getCode());
+//                    contractOrderMapper.updateStatus(contractOrderDO2);
+//                }
+//
+//            }
+//        } catch (Exception e) {
+//            log.error("update entrust failed", e);
+//            throw new RuntimeException(ResultCodeEnum.ASSET_SERVICE_FAILED.getMessage());
+//        }
+//        return ret;
+//    }
 
-            }
-        } catch (Exception e) {
-            log.error("update entrust failed", e);
-            throw new RuntimeException(ResultCodeEnum.ASSET_SERVICE_FAILED.getMessage());
-        }
-        return ret;
-    }
+
 
 
 }
