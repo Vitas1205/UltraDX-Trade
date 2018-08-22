@@ -762,7 +762,7 @@ public class ContractOrderManager {
         if (filledAmount.longValue() - userPositionDO.getUnfilledAmount() <= 0) {
             //不改变仓位方向
             long newTotalAmount = userPositionDO.getUnfilledAmount() - filledAmount.longValue();
-            BigDecimal newAvaeragePrice = null;
+            BigDecimal newAvaeragePrice = BigDecimal.ZERO;
             if (newTotalAmount != 0){
                 newAvaeragePrice = userPositionDO.getAveragePrice().setScale(8, BigDecimal.ROUND_DOWN);
             }
