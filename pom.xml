@@ -118,7 +118,7 @@
 		<dependency>
 			<groupId>com.fota</groupId>
 			<artifactId>match-client</artifactId>
-			<version>1.0.3-SNAPSHOT</version>
+			<version>1.0.4-SNAPSHOT</version>
 		</dependency>
 
 		<dependency>
