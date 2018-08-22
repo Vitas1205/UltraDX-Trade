@@ -33,8 +33,10 @@ import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
 import static com.fota.trade.domain.enums.OrderStatusEnum.COMMIT;
 import static com.fota.trade.domain.enums.OrderStatusEnum.PART_MATCH;
@@ -243,6 +245,21 @@ public class ContractOrderServiceTest {
     public void getAveragePriceTest() {
         BigDecimal ret = PriceUtil.getAveragePrice(null, new BigDecimal(0), new BigDecimal(1), new BigDecimal(10));
         log.info("--------------------------" + ret);
+    }
+
+    @Test
+    public void getContractMacthRecordTest() {
+        Long userId = null;
+        List<Long> contractIds = new ArrayList<>();
+        contractIds.add(1000L);
+        contractIds.add(1001L);
+        Integer pageNo = 1;
+        Integer pageSize = 20;
+        Long startTime = System.currentTimeMillis() - 20000000L;
+        Long endTime = System.currentTimeMillis();
+        ContractMatchedOrderTradeDTOPage contractMatchedOrderTradeDTOPage =
+                contractOrderService.getContractMacthRecord(userId, contractIds, pageNo, pageSize, startTime, endTime);
+        log.info("--------------------------" + contractMatchedOrderTradeDTOPage);
     }
 
 }

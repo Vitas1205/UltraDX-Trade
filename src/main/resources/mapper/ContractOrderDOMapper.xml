@@ -291,12 +291,15 @@
   </update>
 
     <update id="updateAmountAndStatus">
-    <bind name="lFilledAmount" value="filledAmount.longValue()"/>
     update trade_contract_order
     set gmt_modified = now()
         ,average_price = IF(total_amount - unfilled_amount + #{lFilledAmount}=0, null ,
         (IFNULL(average_price,0) * (total_amount - unfilled_amount) + #{filledPrice} * #{lFilledAmount}) / (total_amount - unfilled_amount + #{lFilledAmount}))
-        ,status = IF(total_amount - (unfilled_amount - #{lFilledAmount}) > 0, 9,8)
+        ,status = case
+            when unfilled_amount - #{lFilledAmount}=0 then 10
+            when total_amount > (unfilled_amount - #{lFilledAmount})  then 9
+            else 8
+         end
         ,unfilled_amount = unfilled_amount - #{lFilledAmount}
 
     where id = #{orderId} and unfilled_amount - #{lFilledAmount} >= 0

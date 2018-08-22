@@ -226,7 +226,9 @@ public class ContractOrderManager {
             contractOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
         }
         contractOrderDO.setContractName(contractCategoryDO.getContractName());
-        contractOrderDO.setCloseType(OrderCloseTypeEnum.MANUAL.getCode());
+        if (contractOrderDO.getOrderType() == null){
+            contractOrderDO.setCloseType(OrderCloseTypeEnum.MANUAL.getCode());
+        }
         if (contractOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()) {
             insertOrderRecord(contractOrderDO);
         } else {
@@ -357,8 +359,6 @@ public class ContractOrderManager {
 
     //获取追加冻结金额
     public BigDecimal getTotalLockAmount(long userId) throws Exception {
-        Object competiorsPriceObj = redisManager.get(Constant.CONTRACT_COMPETITOR_PRICE_KEY);
-        List<CompetitorsPriceDTO> competitorsPriceList = JSON.parseArray(competiorsPriceObj.toString(), CompetitorsPriceDTO.class);
         //获取所有合约类型列表
         BigDecimal totalLockedAmount = BigDecimal.ZERO;
         //TODO 过期就不在这个表了？
@@ -386,6 +386,8 @@ public class ContractOrderManager {
                             BigDecimal totalAskExtraEntrustAmount = BigDecimal.ZERO;
                             BigDecimal totalBidExtraEntrustAmount = BigDecimal.ZERO;
                             //获取买一卖一价
+                            Object competiorsPriceObj = redisManager.get(Constant.CONTRACT_COMPETITOR_PRICE_KEY);
+                            List<CompetitorsPriceDTO> competitorsPriceList = JSON.parseArray(competiorsPriceObj.toString(), CompetitorsPriceDTO.class);
                             List<CompetitorsPriceDTO> askCurrentPriceList = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
                                     competitorsPrice.getId() == contractId).limit(1).collect(Collectors.toList());
                             List<CompetitorsPriceDTO> bidCurrentPriceList = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
@@ -394,10 +396,7 @@ public class ContractOrderManager {
                             BigDecimal bidCurrentPrice = BigDecimal.ZERO;
                             if (askCurrentPriceList != null && askCurrentPriceList.size() != 0) {
                                 askCurrentPrice = askCurrentPriceList.get(0).getPrice();
-                                if (askCurrentPrice == null) {
-                                    //TODO
-                                    askCurrentPrice = BigDecimal.ZERO;
-                                }
+
                             }
                             if (bidCurrentPriceList != null && bidCurrentPriceList.size() != 0) {
                                 bidCurrentPrice = bidCurrentPriceList.get(0).getPrice();
@@ -407,9 +406,17 @@ public class ContractOrderManager {
                             BigDecimal positionUnfilledAmount = new BigDecimal(userPositionDO.getUnfilledAmount());
                             BigDecimal contractSize = contractCategoryDO.getContractSize();
                             if (positionType == PositionTypeEnum.OVER.getCode()) {
+                                if (bidCurrentPrice == null) {
+                                    log.error("get bidCurrentPrice failed");
+                                    throw new RuntimeException("get bidCurrentPrice failed");
+                                }
                                 BigDecimal bidPositionEntrustAmount = positionUnfilledAmount.multiply(contractSize).multiply(bidCurrentPrice).divide(lever, 8, BigDecimal.ROUND_DOWN);
                                 totalAskExtraEntrustAmount = totalAskExtraEntrustAmount.add(getExtraEntrustAmount(bidList, askList, positionType, positionUnfilledAmount, bidPositionEntrustAmount, lever, contractSize));
                             } else if (positionType == PositionTypeEnum.EMPTY.getCode()) {
+                                if (askCurrentPrice == null) {
+                                    log.error("get askCurrentPrice failed");
+                                    throw new RuntimeException("get askCurrentPrice failed");
+                                }
                                 BigDecimal askPositionEntrustAmount = positionUnfilledAmount.multiply(contractSize).multiply(askCurrentPrice).divide(lever, 8, BigDecimal.ROUND_DOWN);
                                 totalBidExtraEntrustAmount = totalBidExtraEntrustAmount.add(getExtraEntrustAmount(bidList, askList, positionType, positionUnfilledAmount, askPositionEntrustAmount, lever, contractSize));
                             }
@@ -617,12 +624,14 @@ public class ContractOrderManager {
             log.error("bid order status illegal{}", bidContractOrder);
             throw new RuntimeException("bid order status illegal");
         }
-        askContractOrder.setStatus(contractMatchedOrderDTO.getAskOrderStatus());
-        bidContractOrder.setStatus(contractMatchedOrderDTO.getBidOrderStatus());
+        long filledAmount = contractMatchedOrderDTO.getFilledAmount();
+        askContractOrder.fillAmount(filledAmount);
+        bidContractOrder.fillAmount(filledAmount);
 
         //更新委托
-        updateContractOrder(contractMatchedOrderDTO.getAskOrderId(), contractMatchedOrderDTO.getFilledAmount(), new BigDecimal(contractMatchedOrderDTO.getFilledPrice()));
-        updateContractOrder(contractMatchedOrderDTO.getBidOrderId(), contractMatchedOrderDTO.getFilledAmount(), new BigDecimal(contractMatchedOrderDTO.getFilledPrice()));
+        updateContractOrder(contractMatchedOrderDTO.getAskOrderId(), filledAmount, new BigDecimal(contractMatchedOrderDTO.getFilledPrice()));
+        updateContractOrder(contractMatchedOrderDTO.getBidOrderId(), filledAmount, new BigDecimal(contractMatchedOrderDTO.getFilledPrice()));
+
 
         updateContractAccount(askContractOrder, contractMatchedOrderDTO);
         updateContractAccount(bidContractOrder, contractMatchedOrderDTO);
@@ -753,7 +762,7 @@ public class ContractOrderManager {
         if (filledAmount.longValue() - userPositionDO.getUnfilledAmount() <= 0) {
             //不改变仓位方向
             long newTotalAmount = userPositionDO.getUnfilledAmount() - filledAmount.longValue();
-            BigDecimal newAvaeragePrice = null;
+            BigDecimal newAvaeragePrice = BigDecimal.ZERO;
             if (newTotalAmount != 0){
                 newAvaeragePrice = userPositionDO.getAveragePrice().setScale(8, BigDecimal.ROUND_DOWN);
             }
@@ -868,13 +877,14 @@ public class ContractOrderManager {
     }
 
 
-    private void updateContractOrder(long id, long filledAmount, BigDecimal filledPrice) {
-        int aff = contractOrderMapper.updateAmountAndStatus(id, new BigDecimal(filledAmount), filledPrice);
+    public void updateContractOrder(long id, long filledAmount, BigDecimal filledPrice) {
+        int aff = contractOrderMapper.updateAmountAndStatus(id, filledAmount, filledPrice);
         if (0 == aff) {
             log.error("update contract order failed");
             throw new RuntimeException("update contract order failed");
         }
     }
+
 
     /**
      * 如果撮合的量等于unfilled的量，则更新状态为已成
