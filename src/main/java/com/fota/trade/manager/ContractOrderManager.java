@@ -619,12 +619,14 @@ public class ContractOrderManager {
             log.error("bid order status illegal{}", bidContractOrder);
             throw new RuntimeException("bid order status illegal");
         }
-        askContractOrder.setStatus(contractMatchedOrderDTO.getAskOrderStatus());
-        bidContractOrder.setStatus(contractMatchedOrderDTO.getBidOrderStatus());
+        long filledAmount = contractMatchedOrderDTO.getFilledAmount();
+        askContractOrder.fillAmount(filledAmount);
+        bidContractOrder.fillAmount(filledAmount);
 
         //更新委托
-        updateContractOrder(contractMatchedOrderDTO.getAskOrderId(), contractMatchedOrderDTO.getFilledAmount(), new BigDecimal(contractMatchedOrderDTO.getFilledPrice()));
-        updateContractOrder(contractMatchedOrderDTO.getBidOrderId(), contractMatchedOrderDTO.getFilledAmount(), new BigDecimal(contractMatchedOrderDTO.getFilledPrice()));
+        updateContractOrder(contractMatchedOrderDTO.getAskOrderId(), filledAmount, new BigDecimal(contractMatchedOrderDTO.getFilledPrice()));
+        updateContractOrder(contractMatchedOrderDTO.getBidOrderId(), filledAmount, new BigDecimal(contractMatchedOrderDTO.getFilledPrice()));
+
 
         updateContractAccount(askContractOrder, contractMatchedOrderDTO);
         updateContractAccount(bidContractOrder, contractMatchedOrderDTO);
@@ -870,13 +872,14 @@ public class ContractOrderManager {
     }
 
 
-    private void updateContractOrder(long id, long filledAmount, BigDecimal filledPrice) {
-        int aff = contractOrderMapper.updateAmountAndStatus(id, new BigDecimal(filledAmount), filledPrice);
+    public void updateContractOrder(long id, long filledAmount, BigDecimal filledPrice) {
+        int aff = contractOrderMapper.updateAmountAndStatus(id, filledAmount, filledPrice);
         if (0 == aff) {
             log.error("update contract order failed");
             throw new RuntimeException("update contract order failed");
         }
     }
+
 
     /**
      * 如果撮合的量等于unfilled的量，则更新状态为已成

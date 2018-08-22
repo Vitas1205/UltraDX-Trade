@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.fota.trade.domain.enums.OrderStatusEnum.MATCH;
 import static com.fota.trade.domain.enums.OrderStatusEnum.PART_MATCH;
 
 /**
@@ -30,7 +31,7 @@ import static com.fota.trade.domain.enums.OrderStatusEnum.PART_MATCH;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @Slf4j
-//@Transactional
+@Transactional
 public class ContractOrderMapperTest {
 
     @Resource
@@ -40,7 +41,7 @@ public class ContractOrderMapperTest {
 
     private ContractOrderDO contractOrderDO;
 
-    /*@Before
+    @Before
     public void init() {
         // 准备数据
         contractOrderDO = new ContractOrderDO();
@@ -57,7 +58,7 @@ public class ContractOrderMapperTest {
         contractOrderDO.setStatus(OrderStatusEnum.COMMIT.getCode());
         int insertRet = contractOrderMapper.insertSelective(contractOrderDO);
         Assert.assertTrue(insertRet > 0);
-    }*/
+    }
 
 
     @Test
@@ -90,9 +91,9 @@ public class ContractOrderMapperTest {
     @Test
     public void testUpdateAmountAndStatus() throws Exception {
 
-        Long filledAmount = 1L;
+        long filledAmount = 100;
         BigDecimal filledPrice = new BigDecimal(0.3);
-        int aff = contractOrderMapper.updateAmountAndStatus(contractOrderDO.getId(),new BigDecimal(filledAmount), filledPrice);
+        int aff = contractOrderMapper.updateAmountAndStatus(contractOrderDO.getId(),filledAmount, filledPrice);
         ContractOrderDO contractOrderDO2 = contractOrderMapper.selectByPrimaryKey(contractOrderDO.getId());
 
         BigDecimal expectAvgPrice = PriceUtil.getAveragePrice(contractOrderDO.getAveragePrice(),
@@ -101,7 +102,7 @@ public class ContractOrderMapperTest {
         BigDecimal wucha = new BigDecimal(1e-6);
         Assert.assertTrue(contractOrderDO2.getUnfilledAmount() == contractOrderDO.getUnfilledAmount() - filledAmount
                 && contractOrderDO2.getAveragePrice().subtract(expectAvgPrice).compareTo(wucha)<0
-                && contractOrderDO2.getStatus() == PART_MATCH.getCode()
+                && contractOrderDO2.getStatus() == MATCH.getCode()
         );
     }
 

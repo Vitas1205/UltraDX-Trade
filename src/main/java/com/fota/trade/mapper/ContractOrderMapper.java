@@ -195,7 +195,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
                              @Param("averagePrice") BigDecimal averagePrice);
 
     int updateAmountAndStatus(@Param("orderId") Long orderId,
-                              @Param("filledAmount") BigDecimal filledAmount,
+                              @Param("lFilledAmount") long filledAmount,
                               @Param("filledPrice") BigDecimal filledPrice);
 
     List<ContractOrderDO> notMatchOrderList(
