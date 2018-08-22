@@ -71,8 +71,8 @@ public class RollbackManager {
 
         //更新委托状态
         long filledAmount = matchedOrderDO.getFilledAmount().negate().longValue();
-        updateContractOrder(askContractOrder.getId(), filledAmount, matchedOrderDO.getFilledPrice());
-        updateContractOrder(bidContractOrder.getId(), filledAmount, matchedOrderDO.getFilledPrice());
+        contractOrderManager.updateContractOrder(askContractOrder.getId(), filledAmount, matchedOrderDO.getFilledPrice());
+        contractOrderManager.updateContractOrder(bidContractOrder.getId(), filledAmount, matchedOrderDO.getFilledPrice());
 
         contractMatchedOrderMapper.updateStatus(matchedOrderDO.getId(), DELETE);
         //更新持仓
@@ -147,11 +147,4 @@ public class RollbackManager {
         }
     }
 
-    private void updateContractOrder(long id, long filledAmount, BigDecimal filledPrice) {
-        int aff = contractOrderMapper.updateAmountAndStatus(id, new BigDecimal(filledAmount), filledPrice);
-        if (0 == aff) {
-            log.error("update contract order failed");
-            throw new RuntimeException("update contract order failed");
-        }
-    }
 }
