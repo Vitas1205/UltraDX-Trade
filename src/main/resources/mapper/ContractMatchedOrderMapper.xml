@@ -89,7 +89,7 @@
     </select>
 
     <select id="countByUserId" resultType="java.lang.Integer">
-        select count(*) from usdk_matched_order where
+        select count(*) from contract_matched_order where
         <if test="endTime != null">
             gmt_create &lt; #{endTime}
         </if>
@@ -110,7 +110,7 @@
     <select id="listByUserId" resultMap="BaseResultMap">
         select
         <include refid="Base_Column_List" />
-        from usdk_matched_order
+        from contract_matched_order
         where 1 = 1
         <if test="endTime != null">
             and gmt_create &lt; #{endTime}
