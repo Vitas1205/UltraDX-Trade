@@ -396,10 +396,7 @@ public class ContractOrderManager {
                             BigDecimal bidCurrentPrice = BigDecimal.ZERO;
                             if (askCurrentPriceList != null && askCurrentPriceList.size() != 0) {
                                 askCurrentPrice = askCurrentPriceList.get(0).getPrice();
-                                if (askCurrentPrice == null) {
-                                    //TODO
-                                    askCurrentPrice = BigDecimal.ZERO;
-                                }
+
                             }
                             if (bidCurrentPriceList != null && bidCurrentPriceList.size() != 0) {
                                 bidCurrentPrice = bidCurrentPriceList.get(0).getPrice();
@@ -409,9 +406,17 @@ public class ContractOrderManager {
                             BigDecimal positionUnfilledAmount = new BigDecimal(userPositionDO.getUnfilledAmount());
                             BigDecimal contractSize = contractCategoryDO.getContractSize();
                             if (positionType == PositionTypeEnum.OVER.getCode()) {
+                                if (bidCurrentPrice == null) {
+                                    log.error("get bidCurrentPrice failed");
+                                    throw new RuntimeException("get bidCurrentPrice failed");
+                                }
                                 BigDecimal bidPositionEntrustAmount = positionUnfilledAmount.multiply(contractSize).multiply(bidCurrentPrice).divide(lever, 8, BigDecimal.ROUND_DOWN);
                                 totalAskExtraEntrustAmount = totalAskExtraEntrustAmount.add(getExtraEntrustAmount(bidList, askList, positionType, positionUnfilledAmount, bidPositionEntrustAmount, lever, contractSize));
                             } else if (positionType == PositionTypeEnum.EMPTY.getCode()) {
+                                if (askCurrentPrice == null) {
+                                    log.error("get askCurrentPrice failed");
+                                    throw new RuntimeException("get askCurrentPrice failed");
+                                }
                                 BigDecimal askPositionEntrustAmount = positionUnfilledAmount.multiply(contractSize).multiply(askCurrentPrice).divide(lever, 8, BigDecimal.ROUND_DOWN);
                                 totalBidExtraEntrustAmount = totalBidExtraEntrustAmount.add(getExtraEntrustAmount(bidList, askList, positionType, positionUnfilledAmount, askPositionEntrustAmount, lever, contractSize));
                             }
