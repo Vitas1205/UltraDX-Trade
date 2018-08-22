@@ -26,6 +26,11 @@
 	</properties>
 
 	<dependencies>
+		<dependency>
+			<groupId>com.fota</groupId>
+			<artifactId>ticker-client</artifactId>
+			<version>1.0.2-SNAPSHOT</version>
+		</dependency>
 		<!--log4j-->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

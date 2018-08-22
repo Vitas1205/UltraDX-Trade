@@ -56,6 +56,8 @@ public class RedisManager {
         Long count = getCount("test_usdk_pre_add");
         String key = Constant.USDK_ORDER_HEAD + count;
         String usdkOrderDTOStr = JSONObject.toJSONString(usdkOrderDTO);
+        log.info("------------redisKey:"+key);
+        log.info("------------redisValue:"+usdkOrderDTOStr);
         set(key,usdkOrderDTOStr);
         Long count1 = getCount(Constant.USDK_REDIS_KEY);
 
