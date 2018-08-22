@@ -53,18 +53,38 @@ public class RedisManager {
     }
 
     public void usdkOrderSave(UsdkOrderDTO usdkOrderDTO){
-        Long count = getCount(Constant.USDK_REDIS_KEY);
+        Long count = getCount("test_usdk_pre_add");
         String key = Constant.USDK_ORDER_HEAD + count;
         String usdkOrderDTOStr = JSONObject.toJSONString(usdkOrderDTO);
+        log.info("------------redisKey:"+key);
+        log.info("------------redisValue:"+usdkOrderDTOStr);
         set(key,usdkOrderDTOStr);
+        Long count1 = getCount(Constant.USDK_REDIS_KEY);
+
+    }
+    public void usdtOrderSaveForMatch(UsdkOrderDTO usdkOrderDTO) {
+        String key2 = "usdt_order_for_match_";
+        rpush(key2, usdkOrderDTO);
     }
 
     public void contractOrderSave(ContractOrderDTO contractOrderDTO){
-        Long count = getCount(Constant.CONTRACT_REDIS_KEY);
+        Long count = getCount("test_contract_pre_add");
         String key = Constant.CONTRACT_ORDER_HEAD + count;
         String usdkOrderDTOStr = JSONObject.toJSONString(contractOrderDTO);
+        log.info("-----key"+key);
+        log.info("-----value"+usdkOrderDTOStr);
         set(key,usdkOrderDTOStr);
+        Long count2 = getCount(Constant.CONTRACT_REDIS_KEY);
+
     }
+
+    public void contractOrderSaveForMatch(ContractOrderDTO contractOrderDTO) {
+        String key2 = "contract_order_for_match_";
+        rpush(key2, contractOrderDTO);
+    }
+
+
+
 
     public Long getCount(final String redisKey) {
         try {
@@ -213,6 +233,15 @@ public class RedisManager {
             return false;
         }
     }
+
+    public boolean tryLock(String lock) {
+        return redisTemplate.opsForValue().setIfAbsent(lock, 1);
+    }
+
+    public boolean releaseLock(String lock) {
+        return redisTemplate.delete(lock);
+    }
+
 
     public Long inc(String key, long value) {
         ValueOperations<String, Object> ops = redisTemplate.opsForValue();

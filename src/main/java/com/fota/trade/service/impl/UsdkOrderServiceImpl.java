@@ -9,8 +9,10 @@ import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.manager.UsdkOrderManager;
+import com.fota.trade.mapper.UsdkMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkOrderMapper;
 import com.fota.trade.service.UsdkOrderService;
+import com.fota.trade.util.DateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -32,6 +35,8 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
 
     private static final Logger log = LoggerFactory.getLogger(UsdkOrderServiceImpl.class);
 
+    private static final Logger tradeLog = LoggerFactory.getLogger("trade");
+
     @Autowired
     private UsdkOrderMapper usdkOrderMapper;
 
@@ -40,6 +45,9 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
 
     @Autowired
     private RedisManager redisManager;
+
+    @Autowired
+    private UsdkMatchedOrderMapper usdkMatchedOrderMapper;
 
     @Autowired
     private CapitalService capitalService;
@@ -51,7 +59,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     @Override
     public Page<UsdkOrderDTO> listUsdkOrderByQuery(BaseQuery usdkOrderQuery) {
         Page<UsdkOrderDTO> usdkOrderDTOPage = new Page<UsdkOrderDTO>();
-        if (usdkOrderQuery == null || usdkOrderQuery.getUserId() <= 0) {
+        if (usdkOrderQuery == null) {
             return usdkOrderDTOPage;
         }
         if (usdkOrderQuery.getPageNo() <= 0) {
@@ -98,83 +106,217 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     }
 
     @Override
-    public ResultCode order(UsdkOrderDTO usdkOrderDTO) {
+    public ResultCode order(UsdkOrderDTO usdkOrderDTO, Map<String, String> userInfoMap) {
         ResultCode resultCode = new ResultCode();
+        com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
         try {
-            return usdkOrderManager.placeOrder(BeanUtils.copy(usdkOrderDTO));
-        }catch (Exception e){
-            if (e instanceof BusinessException){
-                BusinessException businessException = (BusinessException) e;
-                resultCode.setCode(businessException.getCode());
-                resultCode.setMessage(businessException.getMessage());
-                return resultCode;
+            result = usdkOrderManager.placeOrder(usdkOrderDTO, userInfoMap);
+            if (result.isSuccess()) {
+                tradeLog.info("下单@@@" + usdkOrderDTO);
+                redisManager.usdtOrderSaveForMatch(usdkOrderDTO);
             }
+            resultCode.setCode(result.getCode());
+            resultCode.setMessage(result.getMessage());
+            return resultCode;
+        }catch (Exception e){
             log.error("USDK order() failed", e);
-        }
-        resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
-        resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());
-        return resultCode;
-    }
-
-    @Override
-    public ResultCode cancelOrder(long userId, long orderId) {
-        try {
-            return usdkOrderManager.cancelOrder(userId, orderId);
-        }catch (Exception e){
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
-                ResultCode resultCode = new ResultCode();
                 resultCode.setCode(businessException.getCode());
                 resultCode.setMessage(businessException.getMessage());
                 return resultCode;
             }
+        }
+        resultCode = ResultCode.error(ResultCodeEnum.ORDER_FAILED.getCode(), ResultCodeEnum.ORDER_FAILED.getMessage());
+        return resultCode;
+    }
+
+    @Override
+    public com.fota.common.Result<Long> orderReturnId(UsdkOrderDTO usdkOrderDTO, Map<String, String> userInfoMap) {
+        com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
+        try {
+            result = usdkOrderManager.placeOrder(usdkOrderDTO, userInfoMap);
+            if (result.isSuccess()) {
+                tradeLog.info("下单@@@" + usdkOrderDTO);
+            }
+            return result;
+        }catch (Exception e){
+            log.error("USDK order() failed", e);
+            if (e instanceof BusinessException){
+                BusinessException businessException = (BusinessException) e;
+                result.setCode(businessException.getCode());
+                result.setMessage(businessException.getMessage());
+                result.setData(0L);
+                return result;
+            }
+        }
+        result.setCode(ResultCodeEnum.ORDER_FAILED.getCode());
+        result.setMessage(ResultCodeEnum.ORDER_FAILED.getMessage());
+        result.setData(0L);
+        return result;
+    }
+
+    @Override
+    public ResultCode order(UsdkOrderDTO usdkOrderDTO) {
+        return null;
+    }
+
+
+    @Override
+    public ResultCode cancelOrder(long userId, long orderId, Map<String, String> userInfoMap) {
+        ResultCode resultCode = new ResultCode();
+        try {
+            resultCode = usdkOrderManager.cancelOrder(userId, orderId, userInfoMap);
+            if (resultCode.isSuccess()) {
+                tradeLog.info("撤销@@@" + userId+ "@@@" + orderId);
+            }
+            return resultCode;
+        }catch (Exception e){
             log.error("USDK cancelOrder() failed", e);
-        }
-        ResultCode resultCode = new ResultCode();
-        resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
-        resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());
-        return resultCode;
-    }
-
-    @Override
-    public ResultCode cancelAllOrder(long userId) {
-        ResultCode resultCode = new ResultCode();
-        try {
-            return usdkOrderManager.cancelAllOrder(userId);
-        }catch (Exception e){
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
                 resultCode.setCode(businessException.getCode());
                 resultCode.setMessage(businessException.getMessage());
                 return resultCode;
             }
-            log.error("USDK cancelAllOrder() failed", e);
         }
-        resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
-        resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());
+        resultCode = ResultCode.error(ResultCodeEnum.CANCEL_ORDER_FAILED.getCode(), ResultCodeEnum.CANCEL_ORDER_FAILED.getMessage());
         return resultCode;
+    }
+
+    @Override
+    public ResultCode cancelOrder(long l, long l1) {
+        return null;
+    }
+
+    @Override
+    public ResultCode cancelAllOrder(long userId, Map<String, String> userInfoMap) {
+        ResultCode resultCode = new ResultCode();
+        try {
+            return usdkOrderManager.cancelAllOrder(userId, userInfoMap);
+        }catch (Exception e){
+            log.error("USDK cancelAllOrder() failed", e);
+            if (e instanceof BusinessException){
+                BusinessException businessException = (BusinessException) e;
+                resultCode.setCode(businessException.getCode());
+                resultCode.setMessage(businessException.getMessage());
+                return resultCode;
+            }
+        }
+        resultCode = ResultCode.error(ResultCodeEnum.CANCEL_ALL_ORDER_FAILED.getCode(), ResultCodeEnum.CANCEL_ALL_ORDER_FAILED.getMessage());
+        return resultCode;
+    }
+
+    @Override
+    public ResultCode cancelAllOrder(long l) {
+        return null;
     }
 
     @Override
     public ResultCode updateOrderByMatch(UsdkMatchedOrderDTO usdkMatchedOrderDTO) {
         ResultCode resultCode = new ResultCode();
         try {
-            resultCode =  usdkOrderManager.updateOrderByMatch(usdkMatchedOrderDTO);
-            log.info("resultCode----------------------"+resultCode.toString());
+            resultCode = usdkOrderManager.updateOrderByMatch(usdkMatchedOrderDTO);
             return resultCode;
         }catch (Exception e){
+            log.error("USDK updateOrderByMatch() failed", e);
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
                 resultCode.setCode(businessException.getCode());
                 resultCode.setMessage(businessException.getMessage());
                 return resultCode;
             }
-            log.error("USDK updateOrderByMatch() failed", e);
         }
-        resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
-        resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());
         return resultCode;
     }
+
+    @Override
+    public UsdkMatchedOrderTradeDTOPage getUsdkMatchRecord(Long userId, List<Long> assetIds, Integer pageNo, Integer pageSize, Long startTime, Long endTime) {
+        if (pageNo <= 0) {
+            pageNo = 1;
+        }
+        if (pageSize <= 0) {
+            pageSize = 20;
+        }
+        Date startTimeD = null, endTimeD = null;
+        if (startTime != null){
+            startTimeD = DateUtil.LongTurntoDate(startTime);
+        }
+        if (endTime != null){
+            endTimeD = DateUtil.LongTurntoDate(endTime);
+        }
+        log.info("getListByUserId userId {} startTime {}, endTime {}", userId, startTimeD, endTimeD);
+
+        UsdkMatchedOrderTradeDTOPage usdkMatchedOrderTradeDTOPage = new UsdkMatchedOrderTradeDTOPage();
+        usdkMatchedOrderTradeDTOPage.setPageNo(pageNo);
+        usdkMatchedOrderTradeDTOPage.setPageSize(pageSize);
+
+        int count = 0;
+        try {
+            count = usdkMatchedOrderMapper.countByUserId(userId, assetIds, startTimeD, endTimeD);
+        } catch (Exception e) {
+            log.error("usdkMatchedOrderMapper.countByUserId({})", userId, e);
+            return usdkMatchedOrderTradeDTOPage;
+        }
+        usdkMatchedOrderTradeDTOPage.setTotal(count);
+        if (count == 0){
+            return usdkMatchedOrderTradeDTOPage;
+        }
+        int startRow = (pageNo - 1) * pageSize;
+        int endRow = pageSize;
+
+        List<UsdkMatchedOrderDO> usdkMatchedOrders = null;
+        List<UsdkMatchedOrderTradeDTO> list = new ArrayList<>();
+        try {
+            usdkMatchedOrders = usdkMatchedOrderMapper.listByUserId(userId, assetIds, startRow, endRow, startTimeD, endTimeD);
+            if (null != usdkMatchedOrders && usdkMatchedOrders.size() > 0){
+                for (UsdkMatchedOrderDO temp : usdkMatchedOrders){
+                    UsdkMatchedOrderTradeDTO tempTarget = new UsdkMatchedOrderTradeDTO();
+                    tempTarget.setAskCloseType(temp.getAskCloseType().intValue());
+                    tempTarget.setAskOrderId(temp.getAskOrderId());
+                    tempTarget.setAskOrderPrice(temp.getAskOrderPrice().toString());
+                    tempTarget.setAskUserId(temp.getAskUserId());
+                    tempTarget.setBidCloseType(temp.getBidCloseType().intValue());
+                    tempTarget.setBidOrderId(temp.getBidOrderId());
+                    tempTarget.setBidOrderPrice(temp.getBidOrderPrice().toString());
+                    tempTarget.setBidUserId(temp.getBidUserId());
+                    tempTarget.setAssetName(temp.getAssetName());
+                    tempTarget.setUsdkMatchedOrderId(temp.getId());
+                    //tempTarget.setFee(temp.getFee().toString());
+                    tempTarget.setFilledAmount(temp.getFilledAmount());
+                    tempTarget.setFilledDate(temp.getGmtCreate());
+                    tempTarget.setFilledPrice(temp.getFilledPrice());
+                    tempTarget.setMatchType(temp.getMatchType().intValue());
+                    list.add(tempTarget);
+                }
+            }
+        } catch (Exception e){
+            log.error("usdkMatchedOrderMapper.countByUserId({})", userId, e);
+            return usdkMatchedOrderTradeDTOPage;
+        }
+        usdkMatchedOrderTradeDTOPage.setData(list);
+        return usdkMatchedOrderTradeDTOPage;
+    }
+
+    /**
+     * 根据订单id查询订单信息
+     *
+     * @param orderId
+     * @param userId
+     * @return
+     */
+    @Override
+    public UsdkOrderDTO getUsdkOrderById(Long orderId, Long userId) {
+        try {
+            UsdkOrderDO usdkOrderDO = usdkOrderMapper.selectByIdAndUserId(orderId, userId);
+            return BeanUtils.copy(usdkOrderDO);
+        }catch (Exception e){
+            log.error("usdkOrderMapper.selectByIdAndUserId failed{}", orderId);
+            throw new RuntimeException("usdkOrderMapper.selectByIdAndUserId failed", e);
+        }
+    }
+
+
 
     /**
      * 如果撮合的量等于unfilled的量，则更新状态为已成

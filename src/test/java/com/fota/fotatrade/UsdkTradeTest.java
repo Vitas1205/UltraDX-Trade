@@ -16,7 +16,9 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @Author: Harry Wang
@@ -70,7 +72,6 @@ public class UsdkTradeTest {
         usdkOrderDO.setUserId(282L);
 //        UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
 //        BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
-//        log.info("======================="+usdkOrderDTO.getAssetName());
 //        usdkOrderManager.placeOrder(usdkOrderDO);
     }
 
@@ -81,7 +82,10 @@ public class UsdkTradeTest {
 
     @Test
     public void cancelTest() throws Exception{
-        usdkOrderManager.cancelAllOrder(175L);
+        Map<String, String> map = new HashMap<>();
+        map.put("usernmae", "123");
+        map.put("ip", "192.169.1.1");
+        usdkOrderManager.cancelAllOrder(175L, map);
     }
 
 
@@ -109,13 +113,13 @@ public class UsdkTradeTest {
 
     @Test
     public void update(){
-        UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
-        usdkOrderDO.setId(46L);
-        UsdkOrderDO usdkOrderDO2 = usdkOrderMapper.selectByPrimaryKey(usdkOrderDO.getId());
-        log.info("更新后的记录"+usdkOrderDO.getId()+":"+usdkOrderDO2);
-        if (usdkOrderDO2.getUnfilledAmount().compareTo(BigDecimal.ZERO) == 0){
-            usdkOrderDO2.setStatus(OrderStatusEnum.MATCH.getCode());
-            usdkOrderMapper.updateStatus(usdkOrderDO2);
-        }
+//        UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
+//        usdkOrderDO.setId(46L);
+//        UsdkOrderDO usdkOrderDO2 = usdkOrderMapper.selectByPrimaryKey(usdkOrderDO.getId());
+//        log.info("更新后的记录"+usdkOrderDO.getId()+":"+usdkOrderDO2);
+//        if (usdkOrderDO2.getUnfilledAmount().compareTo(BigDecimal.ZERO) == 0){
+//            usdkOrderDO2.setStatus(OrderStatusEnum.MATCH.getCode());
+//            usdkOrderMapper.updateStatus(usdkOrderDO2);
+//        }
     }
 }

@@ -4,6 +4,7 @@ import com.fota.common.Page;
 import com.fota.trade.common.BeanUtils;
 import com.fota.trade.common.Constant;
 import com.fota.trade.common.ParamUtil;
+import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.UserPositionDO;
 import com.fota.trade.domain.UserPositionDTO;
@@ -92,18 +93,73 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
                 }
             }
         }
-
-
-        return totalPosition;
+        return totalPosition*2;
     }
 
+    /**
+     * * * @荆轲
+     * @param id
+     * @return
+     */
     @Override
     public ResultCode deliveryPosition(long id) {
+        UserPositionDO userPositionDO = new UserPositionDO();
+        userPositionDO.setId(id);
+        userPositionDO.setStatus(2);
+        int updateRet = 0;
+        try {
+            updateRet = userPositionMapper.updateByPrimaryKeySelective(userPositionDO);
+            if (updateRet > 0) {
+                return ResultCode.success();
+            }
+        } catch (Exception e) {
+            log.error("userPositionMapper.updateByPrimaryKeySelective({})", userPositionDO, e);
+        }
+        return ResultCode.error(ResultCodeEnum.DATABASE_EXCEPTION.getCode(), "position delivery failed");
+    }
+
+
+    /**
+     * * * @王冕
+     * @param userId
+     * @return
+     */
+    @Override
+    public List<UserPositionDTO> listPositionByUserId(long userId) {
+        try {
+            List<UserPositionDO> DOlist = userPositionMapper.selectByUserId(userId);
+            List<UserPositionDTO> DTOlist = new ArrayList<>();
+            if (DOlist != null && DOlist.size() > 0) {
+                for (UserPositionDO tmp : DOlist) {
+                    DTOlist.add(BeanUtils.copy(tmp));
+                }
+            }
+            return DTOlist;
+        }catch (Exception e){
+            log.error("listPositionByUserId failed:{}",userId);
+        }
         return null;
     }
 
+    /**
+     * *@王冕
+     * @param contractId
+     * @return
+     */
     @Override
-    public List<UserPositionDTO> listPositionByUserId(long userId) {
+    public List<UserPositionDTO> listPositionByContractId(Long contractId) {
+        try {
+            List<UserPositionDO> DOlist = userPositionMapper.selectByContractId(contractId);
+            List<UserPositionDTO> DTOlist = new ArrayList<>();
+            if (DOlist != null && DOlist.size() > 0) {
+                for (UserPositionDO tmp : DOlist) {
+                    DTOlist.add(BeanUtils.copy(tmp));
+                }
+            }
+            return DTOlist;
+        }catch (Exception e){
+            log.error("listPositionByContractId failed:{}",contractId);
+        }
         return null;
     }
 }

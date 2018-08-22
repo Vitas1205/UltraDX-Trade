@@ -44,4 +44,8 @@ public class ContractMatchedOrderDO {
     private BigDecimal filledAmount;
 
     private String contractName;
+
+    private Long contractId;
+
+    private Integer status;
 }

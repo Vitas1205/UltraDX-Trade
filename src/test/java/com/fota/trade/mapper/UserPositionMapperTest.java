@@ -13,7 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author Gavin Shen
@@ -70,6 +72,18 @@ public class UserPositionMapperTest {
     public void testDelete() throws Exception {
         int deleteRet = userPositionMapper.deleteByUserId(userId);
         Assert.assertTrue(deleteRet > 0);
+    }
+
+    @Test
+    public void testLamda() throws Exception {
+        List<UserPositionDO> positionlist = new ArrayList<>();
+        List<UserPositionDO> userPositionDOlist = new ArrayList<>();
+        UserPositionDO userPositionDO = new UserPositionDO();
+        userPositionDO.setContractId(2L);
+        positionlist.add(userPositionDO);
+        userPositionDOlist = positionlist.stream().filter(userPosition-> userPosition.getContractId().equals(282L))
+                .limit(1).collect(Collectors.toList());
+        Assert.assertTrue(userPositionDOlist.size() > 0);
     }
 
 }

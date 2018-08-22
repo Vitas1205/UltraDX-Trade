@@ -18,8 +18,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -69,14 +72,18 @@ public class ContractTest {
 
             ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
             //contractOrderDTO.setContractId(1000);
-            contractOrderDTO.setContractName("BTC0102");
+            contractOrderDTO.setContractName("BTC0203");
+            contractOrderDTO.setContractId(1001L);
             contractOrderDTO.setUserId(282L);
             contractOrderDTO.setOrderDirection(1);
             contractOrderDTO.setOperateType(0);
-            contractOrderDTO.setOrderType(0);
+            contractOrderDTO.setOrderType(1);
             contractOrderDTO.setTotalAmount(1L);
-            //contractOrderDTO.setPrice("8500");
-            contractOrderService.order(contractOrderDTO);
+            contractOrderDTO.setPrice(new BigDecimal("8500"));
+            Map<String, String> map = new HashMap<>();
+            map.put("usernmae", "123");
+            map.put("ip", "192.169.1.1");
+            contractOrderService.order(contractOrderDTO,map);
         }
         //int insertContractOrderRet = contractOrderMapper.insertSelective(BeanUtils.copy(contractOrderDTO));
     }
