@@ -7,6 +7,7 @@ import com.fota.asset.domain.UserContractDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
 import com.fota.match.domain.ContractMatchedOrderTradeDTO;
+import com.fota.match.domain.TradeContractOrder;
 import com.fota.match.service.ContractMatchedOrderService;
 import com.fota.trade.client.RollbackTask;
 import com.fota.trade.client.constants.MatchedOrderStatus;
@@ -296,12 +297,12 @@ public class ContractOrderManager {
             log.error("contract status illegal,can not cancel{}", contractCategoryDO);
             throw new RuntimeException("contractCategoryDO");
         }
-        /*boolean judegRet = getJudegRet(contractOrderDO.getId(),contractOrderDO.getOrderDirection(),new BigDecimal(contractOrderDO.getUnfilledAmount()));
+        boolean judegRet = getJudegRet(contractOrderDO);
         if (!judegRet){
             resultCode.setCode(ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getCode());
             resultCode.setMessage(ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getMessage());
             return resultCode;
-        }*/
+        }
         if (status == OrderStatusEnum.COMMIT.getCode()){
             contractOrderDO.setStatus(OrderStatusEnum.CANCEL.getCode());
         } else if (status == OrderStatusEnum.PART_MATCH.getCode()) {
@@ -350,8 +351,15 @@ public class ContractOrderManager {
         return resultCode;
     }
 
-    public boolean getJudegRet(Long orderId, Integer orderDeriction, BigDecimal unfilledAmount) {
-        return contractMatchedOrderService.cancelOrderContract(orderId, orderDeriction, unfilledAmount);
+    public boolean getJudegRet(ContractOrderDO contractOrderDO) {
+        TradeContractOrder tradeContractOrder = new TradeContractOrder();
+        tradeContractOrder.setContractId(contractOrderDO.getContractId());
+        tradeContractOrder.setOrderDirection(contractOrderDO.getOrderDirection());
+        tradeContractOrder.setTotalAmount(new BigDecimal(contractOrderDO.getTotalAmount()));
+        tradeContractOrder.setUnfilledAmount(new BigDecimal(contractOrderDO.getUnfilledAmount()));
+        tradeContractOrder.setPrice(contractOrderDO.getPrice());
+        tradeContractOrder.setStatus(contractOrderDO.getStatus());
+        return contractMatchedOrderService.cancelOrderContract(tradeContractOrder);
     }
 
 
