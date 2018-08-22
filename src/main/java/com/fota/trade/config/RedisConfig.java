@@ -3,6 +3,7 @@ package com.fota.trade.config;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fota.ticker.entrust.RealTimeEntrust;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -36,5 +37,11 @@ public class RedisConfig {
         template.setHashValueSerializer(jackson2JsonRedisSerializer);
         template.afterPropertiesSet();
         return template;
+    }
+
+    @Bean
+    public RealTimeEntrust realTimeEntrust(RedisConnectionFactory factory) {
+        return new RealTimeEntrust(redisTemplate(factory));
+
     }
 }
