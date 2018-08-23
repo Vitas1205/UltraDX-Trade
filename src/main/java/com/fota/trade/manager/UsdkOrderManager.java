@@ -189,7 +189,9 @@ public class UsdkOrderManager {
         orderMessage.setSubjectId(usdkOrderDTO.getAssetId().longValue());
         orderMessage.setSubjectName(usdkOrderDTO.getAssetName());
         orderMessage.setAmount(usdkOrderDO.getTotalAmount());
-        orderMessage.setPrice(usdkOrderDO.getPrice());
+        if (usdkOrderDO.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
+            orderMessage.setPrice(usdkOrderDO.getPrice());
+        }
         orderMessage.setTransferTime(transferTime);
         Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", orderMessage);
         if (!sendRet){
