@@ -129,12 +129,12 @@ public class ContractTest {
 
     @Test
     public void TestSelect(){
-        Long userId = 9527L;
-        /*Long orderId = 349L;
+        Long userId = 282L;
+        Long orderId = 2233514994945591646L;
         ContractOrderDO contractOrderDO = contractOrderMapper.selectByIdAndUserId(orderId,userId);
-        log.info(contractOrderDO.toString());*/
-        List<ContractOrderDO> list = contractOrderMapper.selectByUserId(userId);
-        log.info("----------------"+list.size());
+        log.info(contractOrderDO.toString());
+        /*List<ContractOrderDO> list = contractOrderMapper.selectByUserId(userId);
+        log.info("----------------"+list.size());*/
     }
 
     @Test
