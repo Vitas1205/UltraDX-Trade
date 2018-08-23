@@ -209,13 +209,14 @@ public class BeanUtils {
         contractMatchedOrderDO.setFilledPrice(new BigDecimal(contractMatchedOrderDTO.getFilledPrice()));
         contractMatchedOrderDO.setFilledAmount(new BigDecimal(contractMatchedOrderDTO.getFilledAmount()));
         contractMatchedOrderDO.setContractName(contractMatchedOrderDTO.getContractName());
+        contractMatchedOrderDO.setContractId(contractMatchedOrderDTO.getContractId());
         return contractMatchedOrderDO;
     }
 
     public static UsdkMatchedOrderDO copy(UsdkMatchedOrderDTO usdkMatchedOrderDTO) {
         UsdkMatchedOrderDO usdkMatchedOrderDO = new UsdkMatchedOrderDO();
-
         usdkMatchedOrderDO.setAssetName(usdkMatchedOrderDTO.getAssetName());
+        usdkMatchedOrderDO.setAssetId(usdkMatchedOrderDTO.getAssetId());
         usdkMatchedOrderDO.setAskOrderPrice(new BigDecimal(usdkMatchedOrderDTO.getAskOrderPrice()));
         usdkMatchedOrderDO.setAskOrderId(usdkMatchedOrderDTO.getAskOrderId());
         usdkMatchedOrderDO.setBidOrderId(usdkMatchedOrderDTO.getBidOrderId());

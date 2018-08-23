@@ -87,15 +87,15 @@ public class Consumer {
                         if (TagsTypeEnum.USDK.getDesc().equals(tag)) {
                             UsdkMatchedOrderDTO usdkMatchedOrderDTO = JSON.parseObject(bodyStr, UsdkMatchedOrderDTO.class);
                             ResultCode resultCode = usdkOrderService.updateOrderByMatch(usdkMatchedOrderDTO);
-                            log.info("resultCode---------------" + resultCode);
-                            if (resultCode != null && resultCode.getCode() == 12002) {
+                            log.info("resultCode u---------------" + resultCode);
+                            if (resultCode != null && resultCode.getCode() != null && resultCode.getCode() != 0) {
                                 return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                             }
                         } else if (TagsTypeEnum.CONTRACT.getDesc().equals(tag)) {
                             ContractMatchedOrderDTO contractMatchedOrderDTO = JSON.parseObject(bodyStr, ContractMatchedOrderDTO.class);
                             ResultCode resultCode = contractOrderService.updateOrderByMatch(contractMatchedOrderDTO);
-                            log.info("resultCode---------------" + resultCode);
-                            if (resultCode != null && resultCode.getCode() == 12002) {
+                            log.info("resultCode c---------------" + resultCode);
+                            if (resultCode != null && resultCode.getCode() != null && resultCode.getCode() != 0) {
                                 return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                             }
                         }

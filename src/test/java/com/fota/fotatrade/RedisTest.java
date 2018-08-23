@@ -1,5 +1,8 @@
 package com.fota.fotatrade;
 
+import com.fota.ticker.entrust.RealTimeEntrust;
+import com.fota.ticker.entrust.entity.BuyPriceSellPriceDTO;
+import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
 import com.fota.trade.manager.RedisManager;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -11,6 +14,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
+import java.util.List;
 
 /**
  * @Author: Harry Wang
@@ -27,6 +31,9 @@ public class RedisTest {
     @Autowired
     RedisManager redisManager;
 
+    @Autowired
+    private RealTimeEntrust realTimeEntrust;
+
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
     @Test
@@ -34,7 +41,6 @@ public class RedisTest {
         String redisKey = "mykey"+123;
         for (int i = 0;i <= 10;i++){
             long count = redisTemplate.opsForValue().increment(redisKey, 1);
-            log.info("------------"+String.valueOf(count));
             log.info("fota_usdk_entrust_"+count);
         }
     }
@@ -44,6 +50,11 @@ public class RedisTest {
         String redisKey = "fota_competitor_price";
         Object obj = redisManager.get(redisKey);
         log.info("---------------"+obj);
+    }
 
+    @Test
+    public void testRealTimeEntrust() {
+        List<CompetitorsPriceDTO> list =  realTimeEntrust.getContractCompetitorsPrice();
+        list.forEach(System.out::println);
     }
 }

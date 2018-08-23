@@ -2,7 +2,11 @@ package com.fota.trade.mapper;
 
 import com.fota.trade.domain.UsdkMatchedOrderDO;
 import org.apache.ibatis.annotations.Mapper;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Component;
+
+import java.util.Date;
+import java.util.List;
 
 /**
  * @Author: Harry Wang
@@ -13,4 +17,9 @@ import org.springframework.stereotype.Component;
 @Mapper
 public interface UsdkMatchedOrderMapper {
     int insert(UsdkMatchedOrderDO record);
+
+    int countByUserId(@Param("userId") Long userId, @Param("assetIds") List<Long> assetIds, @Param("startTime") Date startTime, @Param("endTime") Date endTime);
+
+    List<UsdkMatchedOrderDO> listByUserId(@Param("userId") Long userId, @Param("assetIds") List<Long> assetIds, @Param("startRow") Integer startRow, @Param("endRow") Integer endRow,
+                                        @Param("startTime") Date startTime, @Param("endTime") Date endTime);
 }

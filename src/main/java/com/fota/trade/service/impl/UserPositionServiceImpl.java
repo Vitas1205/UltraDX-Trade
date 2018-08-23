@@ -93,13 +93,11 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
                 }
             }
         }
-
-
-        return totalPosition;
+        return totalPosition*2;
     }
 
     /**
-     * * * todo@荆轲
+     * * * @荆轲
      * @param id
      * @return
      */
@@ -122,7 +120,7 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
 
 
     /**
-     * * * todo@王冕
+     * * * @王冕
      * @param userId
      * @return
      */
@@ -144,7 +142,7 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
     }
 
     /**
-     * * * todo@王冕
+     * *@王冕
      * @param contractId
      * @return
      */
