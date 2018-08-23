@@ -95,7 +95,9 @@ public class BeanUtils {
         usdkOrderDTO.setOrderType(usdkOrderDO.getOrderType());
         usdkOrderDTO.setTotalAmount(usdkOrderDO.getTotalAmount());
         usdkOrderDTO.setUnfilledAmount(usdkOrderDO.getUnfilledAmount());
-        usdkOrderDTO.setPrice(usdkOrderDO.getPrice());
+        if (usdkOrderDO.getPrice() != null){
+            usdkOrderDTO.setPrice(usdkOrderDO.getPrice());
+        }
         usdkOrderDTO.setFee(usdkOrderDO.getFee());
         usdkOrderDTO.setStatus(usdkOrderDO.getStatus());
         usdkOrderDTO.setAveragePrice(usdkOrderDO.getAveragePrice());
@@ -120,7 +122,9 @@ public class BeanUtils {
         usdkOrderDO.setOrderType(usdkOrderDTO.getOrderType());
         usdkOrderDO.setTotalAmount(usdkOrderDTO.getTotalAmount());
         usdkOrderDO.setUnfilledAmount(usdkOrderDTO.getUnfilledAmount());
-        usdkOrderDO.setPrice(usdkOrderDTO.getPrice());
+        if (usdkOrderDTO.getPrice() != null){
+            usdkOrderDO.setPrice(usdkOrderDTO.getPrice());
+        }
         usdkOrderDO.setFee(usdkOrderDTO.getFee());
         usdkOrderDO.setStatus(usdkOrderDTO.getStatus());
         usdkOrderDO.setAveragePrice(usdkOrderDTO.getAveragePrice());
@@ -139,7 +143,9 @@ public class BeanUtils {
         contractOrderDTO.setOrderType(contractOrderDO.getOrderType());
         contractOrderDTO.setTotalAmount(contractOrderDO.getTotalAmount());
         contractOrderDTO.setUnfilledAmount(contractOrderDO.getUnfilledAmount());
-        contractOrderDTO.setPrice(contractOrderDO.getPrice());
+        if (contractOrderDO.getPrice() != null){
+            contractOrderDTO.setPrice(contractOrderDO.getPrice());
+        }
         contractOrderDTO.setCloseType(contractOrderDO.getCloseType());
         contractOrderDTO.setFee(contractOrderDO.getFee());
         contractOrderDTO.setStatus(contractOrderDO.getStatus());
