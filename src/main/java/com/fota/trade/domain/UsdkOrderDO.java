@@ -25,5 +25,5 @@ public class UsdkOrderDO {
     private BigDecimal fee;
     private Integer status;
     private BigDecimal averagePrice;
-    private String orderContext;
+    //private String orderContext;
 }
