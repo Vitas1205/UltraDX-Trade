@@ -78,7 +78,7 @@ public class ContractOrderServiceTest {
 
     long askUserId = 1;
     long bidUserId = 2;
-    long contractId = 1001;
+    long contractId = 1002;
 
     Date checkPoint;
 
@@ -90,7 +90,6 @@ public class ContractOrderServiceTest {
         askContractOrder.setContractId(contractId);
         askContractOrder.setContractName("BTC0930");
         askContractOrder.setFee(new BigDecimal("0.01"));
-        askContractOrder.setLever(10);
         askContractOrder.setOrderDirection(OrderDirectionEnum.ASK.getCode());
         askContractOrder.setPrice(new BigDecimal("6000"));
         askContractOrder.setTotalAmount(100L);
@@ -105,7 +104,6 @@ public class ContractOrderServiceTest {
         bidContractOrder.setContractId(contractId);
         bidContractOrder.setContractName("BTC0930");
         bidContractOrder.setFee(new BigDecimal("0.01"));
-        bidContractOrder.setLever(10);
         bidContractOrder.setOrderDirection(OrderDirectionEnum.BID.getCode());
         bidContractOrder.setPrice(new BigDecimal("6000"));
         bidContractOrder.setTotalAmount(100L);
@@ -153,12 +151,7 @@ public class ContractOrderServiceTest {
 //        public String assetName;
 //        public int contractType;
 
-        checkPoint = new Date();
-        originAskBalance = assetService.getContractAccount(askUserId);
-        originBidBalance = assetService.getContractAccount(bidUserId);
-        //mbatis默认开启一级缓存，防止成交里面的修改操作
-        askPositionDO =  cloneObject(userPositionMapper.selectByUserIdAndId(askUserId, contractId));
-        bidPositionDO =  cloneObject(userPositionMapper.selectByUserIdAndId(bidUserId, contractId));
+
 
         ContractMatchedOrderDTO contractMatchedOrderDTO = new ContractMatchedOrderDTO();
         contractMatchedOrderDTO.setAskOrderId(askContractOrder.getId());
@@ -179,6 +172,9 @@ public class ContractOrderServiceTest {
     }
 
     private UserPositionDO cloneObject(UserPositionDO userPositionDO){
+        if (null == userPositionDO) {
+            return null;
+        }
         UserPositionDO newObj = new UserPositionDO();
         BeanUtils.copyProperties(userPositionDO, newObj);
         return newObj;
@@ -186,9 +182,15 @@ public class ContractOrderServiceTest {
 
     @Test
     public void testRollbackMatchedOrder() throws ParseException {
+        checkPoint = new Date();
+        originAskBalance = assetService.getContractAccount(askUserId);
+        originBidBalance = assetService.getContractAccount(bidUserId);
+        //mbatis默认开启一级缓存，防止成交里面的修改操作
+        askPositionDO =  cloneObject(userPositionMapper.selectByUserIdAndId(askUserId, contractId));
+        bidPositionDO =  cloneObject(userPositionMapper.selectByUserIdAndId(bidUserId, contractId));
         testUpdateOrderByMatch();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        Date ck = sdf.parse("2018-08-20 08:27:11");
+        Date ck = sdf.parse("2018-08-22 15:57:40");
         Result result = contractCategoryService.rollback(checkPoint, contractId);
         assert result.isSuccess();
 
@@ -197,8 +199,8 @@ public class ContractOrderServiceTest {
         checkContractOrder(bidContractOrder);
 
         //检查持仓
-        checkPosition(askPositionDO);
-        checkPosition(bidPositionDO);
+        checkPosition(askUserId, contractId, askPositionDO);
+        checkPosition(bidUserId, contractId, bidPositionDO);
 
         //检查合约账户是否回滚成功
         checkBalance(originAskBalance);
@@ -223,10 +225,14 @@ public class ContractOrderServiceTest {
                 && CommonUtils.equal(curContract.getAveragePrice(), contractOrderDO.getAveragePrice());
     }
 
-    private void checkPosition(UserPositionDO userPositionDO) {
+    private void checkPosition(long userId, long contractId, UserPositionDO userPositionDO) {
 
-        UserPositionDO cur = userPositionMapper.selectByUserIdAndId(userPositionDO.getUserId(),
-                userPositionDO.getContractId());
+        UserPositionDO cur = userPositionMapper.selectByUserIdAndId(userId,
+                contractId);
+        if (null == userPositionDO) {
+            assert cur.getUnfilledAmount() == 0;
+            return;
+        }
         log.info("oldPostion={}, curPosition={}", userPositionDO, cur);
         assert cur.getUnfilledAmount() == userPositionDO.getUnfilledAmount().longValue()
                 && cur.getPositionType() == userPositionDO.getPositionType().intValue()

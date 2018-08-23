@@ -5,6 +5,7 @@ import com.fota.asset.domain.BalanceTransferDTO;
 import com.fota.asset.domain.UserCapitalDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.CapitalService;
+import com.fota.match.domain.TradeUsdkOrder;
 import com.fota.match.domain.UsdkMatchedOrderTradeDTO;
 import com.fota.match.service.UsdkMatchedOrderService;
 import com.fota.trade.common.BusinessException;
@@ -91,6 +92,7 @@ public class UsdkOrderManager {
     public com.fota.common.Result<Long> placeOrder(UsdkOrderDTO usdkOrderDTO, Map<String, String> userInfoMap)throws Exception {
         com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
         UsdkOrderDO usdkOrderDO = com.fota.trade.common.BeanUtils.copy(usdkOrderDTO);
+        Long orderId = usdkOrderDO.getId();
         ResultCode resultCode = new ResultCode();
         Integer assetId = usdkOrderDO.getAssetId();
         Long userId = usdkOrderDO.getUserId();
@@ -102,18 +104,17 @@ public class UsdkOrderManager {
         usdkOrderDO.setFee(usdkFee);
         usdkOrderDO.setStatus(OrderStatusEnum.COMMIT.getCode());
         usdkOrderDO.setUnfilledAmount(usdkOrderDO.getTotalAmount());
+        Long transferTime = System.currentTimeMillis();
+        usdkOrderDO.setGmtModified(new Date(transferTime));
+        String orderContext;
         if (usdkOrderDO.getOrderType() == null){
             usdkOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
-        }
-        int ret = usdkOrderMapper.insertSelective(usdkOrderDO);
-        if (ret <= 0){
-            log.error("insert contractOrder failed");
-            throw new RuntimeException("insert contractOrder failed");
-        }
-        Long orderId = usdkOrderDO.getId();
-        BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
-
-        if (ret > 0){
+            int ret = usdkOrderMapper.insertSelective(usdkOrderDO);
+            if (ret <= 0){
+                log.error("insert contractOrder failed");
+                throw new RuntimeException("insert contractOrder failed");
+            }
+            BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
             if (orderDirection == OrderDirectionEnum.BID.getCode()){
                 //查询usdk账户可用余额
                 for(UserCapitalDTO userCapitalDTO : list){
@@ -157,29 +158,41 @@ public class UsdkOrderManager {
                     }
                 }
             }
-            usdkOrderDTO.setCompleteAmount(BigDecimal.ZERO);
-            redisManager.usdkOrderSave(usdkOrderDTO);
-            String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
-            String ipAddress = StringUtils.isEmpty(userInfoMap.get("ipAddress")) ? "" : userInfoMap.get("ipAddress");
-            tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                    1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getTotalAmount(), System.currentTimeMillis(), 1, usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 1);
-            //todo 发送RocketMQ
-            OrderMessage orderMessage = new OrderMessage();
-            orderMessage.setOrderId(usdkOrderDTO.getId());
-            orderMessage.setEvent(OrderOperateTypeEnum.PLACE_ORDER.getCode());
-            orderMessage.setUserId(usdkOrderDTO.getUserId());
-            orderMessage.setSubjectId(usdkOrderDTO.getAssetId().longValue());
-            orderMessage.setSubjectName(usdkOrderDTO.getAssetName());
-            orderMessage.setAmount(usdkOrderDO.getTotalAmount());
-            orderMessage.setPrice(usdkOrderDO.getPrice());
-            orderMessage.setTransferTime(System.currentTimeMillis());
-            Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", orderMessage);
-            if (!sendRet){
-                log.error("Send RocketMQ Message Failed ");
+        }else if (usdkOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()){
+            //强平单处理
+            if (userInfoMap.containsKey("mortgageId")){
+                orderContext = JSONObject.toJSONString(userInfoMap);
+                //usdkOrderDO.setOrderContext(orderContext);
+                int ret = usdkOrderMapper.insertSelective(usdkOrderDO);
+                if (ret <= 0){
+                    log.error("insert contractOrder failed");
+                    throw new RuntimeException("insert contractOrder failed");
+                }
+                BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
+            }else {
+                log.error("mortgageId can not be null");
+                throw new RuntimeException("mortgageId can not be null");
             }
-        }else {
-            log.error("insert usdk order failed{}",usdkOrderDO);
-            throw new RuntimeException("insert usdk order failed");
+        }
+        usdkOrderDTO.setCompleteAmount(BigDecimal.ZERO);
+        redisManager.usdkOrderSave(usdkOrderDTO);
+        String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
+        String ipAddress = StringUtils.isEmpty(userInfoMap.get("ipAddress")) ? "" : userInfoMap.get("ipAddress");
+        tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
+                1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getTotalAmount(), transferTime, 1, usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 1);
+        //todo 发送RocketMQ
+        OrderMessage orderMessage = new OrderMessage();
+        orderMessage.setOrderId(usdkOrderDTO.getId());
+        orderMessage.setEvent(OrderOperateTypeEnum.PLACE_ORDER.getCode());
+        orderMessage.setUserId(usdkOrderDTO.getUserId());
+        orderMessage.setSubjectId(usdkOrderDTO.getAssetId().longValue());
+        orderMessage.setSubjectName(usdkOrderDTO.getAssetName());
+        orderMessage.setAmount(usdkOrderDO.getTotalAmount());
+        orderMessage.setPrice(usdkOrderDO.getPrice());
+        orderMessage.setTransferTime(transferTime);
+        Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", orderMessage);
+        if (!sendRet){
+            log.error("Send RocketMQ Message Failed ");
         }
         result.setCode(0);
         result.setMessage("success");
@@ -193,11 +206,11 @@ public class UsdkOrderManager {
         ResultCode resultCode = new ResultCode();
         UsdkOrderDO usdkOrderDO = usdkOrderMapper.selectByIdAndUserId(orderId, userId);
         Integer status = usdkOrderDO.getStatus();
-        /*boolean judegRet = getJudegRet(orderId,usdkOrderDO.getOrderDirection(),usdkOrderDO.getUnfilledAmount());
+        boolean judegRet = getJudegRet(usdkOrderDO);
         if (!judegRet){
             resultCode = ResultCode.error(ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getCode(),ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getMessage());
             return resultCode;
-        }*/
+        }
         if (status == OrderStatusEnum.COMMIT.getCode()){
             usdkOrderDO.setStatus(OrderStatusEnum.CANCEL.getCode());
         }else if (status == OrderStatusEnum.PART_MATCH.getCode()){
@@ -266,8 +279,17 @@ public class UsdkOrderManager {
         return resultCode;
     }
 
-    public boolean getJudegRet(Long orderId, Integer orderDeriction, BigDecimal unfilledAmount){
-        return usdkMatchedOrderService.cancelOrderUsdk(orderId, orderDeriction, unfilledAmount);
+    public boolean getJudegRet(UsdkOrderDO usdkOrderDO){
+        TradeUsdkOrder tradeUsdkOrder = new TradeUsdkOrder();
+        tradeUsdkOrder.setAssetId(usdkOrderDO.getAssetId());
+        tradeUsdkOrder.setAssetName(usdkOrderDO.getAssetName());
+        tradeUsdkOrder.setOrderDirection(usdkOrderDO.getOrderDirection());
+        tradeUsdkOrder.setTotalAmount(usdkOrderDO.getTotalAmount());
+        tradeUsdkOrder.setUnfilledAmount(usdkOrderDO.getUnfilledAmount());
+        tradeUsdkOrder.setPrice(usdkOrderDO.getPrice());
+        tradeUsdkOrder.setStatus(usdkOrderDO.getStatus());
+        tradeUsdkOrder.setId(usdkOrderDO.getId());
+        return usdkMatchedOrderService.cancelOrderUsdk(tradeUsdkOrder);
     }
 
 
@@ -352,23 +374,25 @@ public class UsdkOrderManager {
         BigDecimal addLockedAsset = filledAmount;
         BigDecimal addTotalAsset = filledAmount;
         BalanceTransferDTO balanceTransferDTO = new BalanceTransferDTO();
-        balanceTransferDTO.setBidTotalAsset(addBidTotalAsset.toString());
-        balanceTransferDTO.setBidTotalUsdk(addTotalUsdk.toString());
-        balanceTransferDTO.setBidLockedUsdk(addLockedUsdk.toString());
-        balanceTransferDTO.setAskTotalUsdk(addAskTotalUsdk.toString());
-        balanceTransferDTO.setAskLockedAsset(addLockedAsset.toString());
-        balanceTransferDTO.setAskTotalAsset(addTotalAsset.toString());
+        if (!askUsdkOrder.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
+            balanceTransferDTO.setAskTotalUsdk(addAskTotalUsdk.toString());
+            balanceTransferDTO.setAskLockedAsset(addLockedAsset.toString());
+            balanceTransferDTO.setAskTotalAsset(addTotalAsset.toString());
+            balanceTransferDTO.setAskUserId(askUsdkOrder.getUserId());
+        }
+        if (!bidUsdkOrder.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
+            balanceTransferDTO.setBidTotalAsset(addBidTotalAsset.toString());
+            balanceTransferDTO.setBidTotalUsdk(addTotalUsdk.toString());
+            balanceTransferDTO.setBidLockedUsdk(addLockedUsdk.toString());
+            balanceTransferDTO.setBidUserId(bidUsdkOrder.getUserId());
+        }
         balanceTransferDTO.setAssetId(usdkMatchedOrderDTO.getAssetId());
-        balanceTransferDTO.setAskUserId(askUsdkOrder.getUserId());
-        balanceTransferDTO.setBidUserId(bidUsdkOrder.getUserId());
-
         boolean updateRet = false;
         updateRet = getCapitalService().updateBalance(balanceTransferDTO);
         if (!updateRet) {
             log.error("getCapitalService().updateBalance failed{}", balanceTransferDTO);
             throw new RuntimeException("getCapitalService().updateBalance failed{}");
         }
-
         UsdkMatchedOrderDO usdkMatchedOrderDO = com.fota.trade.common.BeanUtils.copy(usdkMatchedOrderDTO);
         usdkMatchedOrderDO.setAskUserId(askUsdkOrder.getUserId());
         usdkMatchedOrderDO.setBidUserId(bidUsdkOrder.getUserId());
@@ -461,6 +485,9 @@ public class UsdkOrderManager {
                 UsdkOrderDO usdkOrderDO2 = usdkOrderMapper.selectByPrimaryKey(usdkOrderDO.getId());
                 if (usdkOrderDO2.getUnfilledAmount().compareTo(BigDecimal.ZERO) == 0){
                     usdkOrderDO2.setStatus(OrderStatusEnum.MATCH.getCode());
+                    usdkOrderMapper.updateStatus(usdkOrderDO2);
+                }else if (!usdkOrderDO2.getUnfilledAmount().equals(0L) && usdkOrderDO2.getStatus() == OrderStatusEnum.MATCH.getCode()) {
+                    usdkOrderDO2.setStatus(OrderStatusEnum.PART_MATCH.getCode());
                     usdkOrderMapper.updateStatus(usdkOrderDO2);
                 }
             }

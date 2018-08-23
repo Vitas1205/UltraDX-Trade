@@ -5,6 +5,7 @@ import com.fota.ticker.entrust.entity.BuyPriceSellPriceDTO;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
 import com.fota.trade.manager.RedisManager;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @Author: Harry Wang
@@ -36,6 +38,13 @@ public class RedisTest {
 
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
+
+    String testKey = "testKey";
+    @Before
+    public void init(){
+        //初始化连接池
+        redisTemplate.opsForValue().get(testKey);
+    }
     @Test
     public void RedisTest(){
         String redisKey = "mykey"+123;
@@ -48,13 +57,39 @@ public class RedisTest {
     @Test
     public void RedisGetTest(){
         String redisKey = "fota_competitor_price";
+        long st;
+        st = System.currentTimeMillis();
         Object obj = redisManager.get(redisKey);
-        log.info("---------------"+obj);
+        log.info("costOfQuery={}, result={}", System.currentTimeMillis() - st,obj);
     }
 
     @Test
     public void testRealTimeEntrust() {
         List<CompetitorsPriceDTO> list =  realTimeEntrust.getContractCompetitorsPrice();
         list.forEach(System.out::println);
+    }
+    @Test
+    public void lockTest(){
+        String lock = "TEST_LOCK";
+        long timeout = 3;
+        long st;
+
+        st = System.currentTimeMillis();
+        boolean suc = redisManager.tryLock(lock, timeout);
+        log.info("costOfLock={}", System.currentTimeMillis() - st);
+        assert suc;
+
+        long sum = 0, count = 10;
+        for (int i=0;i<count;i++){
+            st = System.currentTimeMillis();
+            Object obj = redisManager.get(lock);
+            long cost = System.currentTimeMillis() - st;
+            sum += cost;
+            log.info("costOfQuery={}, result={}", cost,obj);
+        }
+        log.info("averageCost={}" ,sum*1.0/count);
+
+        long t = redisTemplate.getExpire(lock, TimeUnit.MILLISECONDS);
+        assert t < timeout;
     }
 }

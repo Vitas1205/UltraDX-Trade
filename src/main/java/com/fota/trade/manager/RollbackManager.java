@@ -1,8 +1,10 @@
 package com.fota.trade.manager;
 
 import com.alibaba.fastjson.JSON;
+import com.fota.asset.domain.ContractDealer;
 import com.fota.asset.service.ContractService;
 import com.fota.trade.client.RollbackTask;
+import com.fota.trade.common.UpdatePositionResult;
 import com.fota.trade.domain.BaseQuery;
 import com.fota.trade.domain.ContractMatchedOrderDO;
 import com.fota.trade.domain.ContractOrderDO;
@@ -18,6 +20,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static com.fota.trade.client.constants.MatchedOrderStatus.DELETE;
+import static com.fota.trade.domain.enums.OrderTypeEnum.ENFORCE;
 
 /**
  * Created by Swifree on 2018/8/20.
@@ -69,82 +72,56 @@ public class RollbackManager {
         askContractOrder.setOrderDirection(bidContractOrder.getOrderDirection());
         bidContractOrder.setOrderDirection(tmp);
 
+        Integer askLever = contractLeverManager.getLeverByContractId(askContractOrder.getUserId(), askContractOrder.getContractId());
+        askContractOrder.setLever(askLever.intValue());
+
+        Integer bidLever = contractLeverManager.getLeverByContractId(bidContractOrder.getUserId(), bidContractOrder.getContractId());
+        bidContractOrder.setLever(bidLever);
+
         //更新委托状态
-        long filledAmount = matchedOrderDO.getFilledAmount().negate().longValue();
-        contractOrderManager.updateContractOrder(askContractOrder.getId(), filledAmount, matchedOrderDO.getFilledPrice());
-        contractOrderManager.updateContractOrder(bidContractOrder.getId(), filledAmount, matchedOrderDO.getFilledPrice());
+        long oppositeFilledAmount = matchedOrderDO.getFilledAmount().negate().longValue();
+        BigDecimal filledPrice = matchedOrderDO.getFilledPrice();
+        long filledAmount = matchedOrderDO.getFilledAmount().longValue();
+
+        contractOrderManager.updateContractOrder(askContractOrder.getId(), oppositeFilledAmount, matchedOrderDO.getFilledPrice());
+        contractOrderManager.updateContractOrder(bidContractOrder.getId(), oppositeFilledAmount, matchedOrderDO.getFilledPrice());
 
         contractMatchedOrderMapper.updateStatus(matchedOrderDO.getId(), DELETE);
+        BigDecimal contractSize = contractOrderManager.getContractSize(askContractOrder.getContractId());
         //更新持仓
-        updatePosition(askContractOrder, matchedOrderDO);
-        updatePosition(bidContractOrder, matchedOrderDO);
+        UpdatePositionResult askResult = contractOrderManager.updatePosition(askContractOrder, contractSize, filledAmount, filledPrice);
+        UpdatePositionResult bidResult = contractOrderManager.updatePosition(bidContractOrder, contractSize, filledAmount, filledPrice);
 
-    }
-    private void rollbackBalance(ContractOrderDO contractOrderDO,
-                                 long oldPositionAmount,
-                                 long newPositionAmount,
-                                 ContractMatchedOrderDO matchedOrderDO,
-                                 Integer lever) {
-        BigDecimal filledAmount = matchedOrderDO.getFilledAmount();
-        BigDecimal filledPrice = matchedOrderDO.getFilledPrice();
-        BigDecimal fee = contractOrderDO.getFee();
-        BigDecimal contractSize = contractOrderManager.getContractSize(contractOrderDO.getContractId());
-        BigDecimal actualFee = filledPrice.multiply(filledAmount).multiply(fee).multiply(contractSize);
-        BigDecimal addedTotalAmount = new BigDecimal(newPositionAmount - oldPositionAmount)
-                .multiply(filledPrice)
-                .multiply(contractSize)
-                .divide(new BigDecimal(lever), 8, BigDecimal.ROUND_DOWN)
-                .subtract(actualFee)
-                .negate();
-        boolean suc = contractService.addTotaldAmount(contractOrderDO.getUserId(), addedTotalAmount);
-        if (!suc) {
+
+        ContractDealer dealer1 = calRollbackBalance(askContractOrder, filledAmount, filledPrice, contractSize, askResult, new BigDecimal(askLever));
+        ContractDealer dealer2 = calRollbackBalance(bidContractOrder, filledAmount, filledPrice, contractSize, bidResult, new BigDecimal(bidLever));
+        com.fota.common.Result result = contractService.updateBalances(dealer1, dealer2);
+        if (!result.isSuccess()) {
             throw new RuntimeException("update balance failed");
         }
+
+
+    }
+    private ContractDealer calRollbackBalance(ContractOrderDO contractOrderDO, long filledAmount, BigDecimal filledPrice,
+                                              BigDecimal contractSize, UpdatePositionResult positionResult, BigDecimal lever){
+        long userId = contractOrderDO.getUserId();
+        BigDecimal rate = contractOrderDO.getFee();
+
+        BigDecimal actualFee = filledPrice.multiply(new BigDecimal(filledAmount)).multiply(rate).multiply(contractSize);
+        BigDecimal addedTotalAmount = new BigDecimal(positionResult.getCurAmount() - positionResult.getOriginAmount())
+                .multiply(filledPrice)
+                .multiply(contractSize)
+                .divide(lever, 8, BigDecimal.ROUND_DOWN)
+                .subtract(actualFee)
+                .negate();
+
+        ContractDealer dealer = new ContractDealer()
+                .setUserId(userId)
+                .setAddedTotalAmount(addedTotalAmount)
+                .setAddedLockAmount(BigDecimal.ZERO);
+        dealer.setDealType((null != contractOrderDO.getOrderType() && ENFORCE.getCode() == contractOrderDO.getOrderType()) ? ContractDealer.DealType.FORCE : ContractDealer.DealType.NORMAL);
+        return dealer;
     }
 
-    private void updatePosition(ContractOrderDO contractOrderDO, ContractMatchedOrderDO contractMatchedOrderDO) {
-        BigDecimal filledAmount = contractMatchedOrderDO.getFilledAmount();
-        BigDecimal filledPrice =contractMatchedOrderDO.getFilledPrice();
-        Long userId = contractOrderDO.getUserId();
-        Long contractId = contractOrderDO.getContractId();
-        UserPositionDO userPositionDO = null;
-        try {
-            userPositionDO = userPositionMapper.selectByUserIdAndId(userId, contractId);
-        } catch (Exception e) {
-            log.error("userPositionMapper.selectByUserIdAndId({}, {})", userId, contractId, e);
-            return;
-        }
-        Integer lever = new Integer(contractLeverManager.getLeverByContractId(contractOrderDO.getUserId(), contractOrderDO.getContractId()));
-        long oldPositionAmount = userPositionDO.getUnfilledAmount();
-        if (contractOrderDO.getOrderDirection().equals(userPositionDO.getPositionType())) {
-            long newTotalAmount = userPositionDO.getUnfilledAmount() + filledAmount.longValue();
-            BigDecimal oldTotalPrice = userPositionDO.getAveragePrice().multiply(new BigDecimal(userPositionDO.getUnfilledAmount()));
-            BigDecimal addedTotalPrice = filledPrice.multiply(filledAmount);
-            BigDecimal newTotalPrice = oldTotalPrice.add(addedTotalPrice);
-            BigDecimal newAvaeragePrice = newTotalPrice.divide(new BigDecimal(newTotalAmount), 8, BigDecimal.ROUND_DOWN);
-            contractOrderManager.updateUserPosition(userPositionDO, newAvaeragePrice, newTotalAmount);
-            rollbackBalance(contractOrderDO, oldPositionAmount, newTotalAmount, contractMatchedOrderDO, lever);
-            return;
-        }
-
-        //成交单和持仓是反方向 （平仓）
-        if (filledAmount.longValue() - userPositionDO.getUnfilledAmount() <= 0) {
-            //不改变仓位方向
-            long newTotalAmount = userPositionDO.getUnfilledAmount() - filledAmount.longValue();
-            BigDecimal newAvaeragePrice = null;
-            if (newTotalAmount != 0){
-                newAvaeragePrice = userPositionDO.getAveragePrice().setScale(8, BigDecimal.ROUND_DOWN);
-            }
-            contractOrderManager.updateUserPosition(userPositionDO, newAvaeragePrice, newTotalAmount);
-            rollbackBalance(contractOrderDO, oldPositionAmount, newTotalAmount, contractMatchedOrderDO, lever);
-        } else {
-            //改变仓位方向
-            long newTotalAmount = filledAmount.longValue() - userPositionDO.getUnfilledAmount();
-            BigDecimal newAvaeragePrice = filledPrice.setScale(8, BigDecimal.ROUND_DOWN);;
-            userPositionDO.setPositionType(contractOrderDO.getOrderDirection());
-            contractOrderManager.updateUserPosition(userPositionDO, newAvaeragePrice, newTotalAmount);
-            rollbackBalance(contractOrderDO, oldPositionAmount, newTotalAmount, contractMatchedOrderDO, lever);
-        }
-    }
 
 }

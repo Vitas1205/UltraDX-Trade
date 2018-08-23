@@ -41,7 +41,7 @@ public class RedisConfig {
 
     @Bean
     public RealTimeEntrust realTimeEntrust(RedisConnectionFactory factory) {
-        return new RealTimeEntrust(redisTemplate(factory));
-
+        RedisTemplate redisTemplate = redisTemplate(factory);
+        return new RealTimeEntrust(redisTemplate);
     }
 }
