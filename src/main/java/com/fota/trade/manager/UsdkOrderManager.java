@@ -106,6 +106,7 @@ public class UsdkOrderManager {
         usdkOrderDO.setUnfilledAmount(usdkOrderDO.getTotalAmount());
         Long transferTime = System.currentTimeMillis();
         usdkOrderDO.setGmtModified(new Date(transferTime));
+        String orderContext;
         if (usdkOrderDO.getOrderType() == null){
             usdkOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
             int ret = usdkOrderMapper.insertSelective(usdkOrderDO);
@@ -160,6 +161,8 @@ public class UsdkOrderManager {
         }else if (usdkOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()){
             //强平单处理
             if (userInfoMap.containsKey("mortgageId")){
+                orderContext = JSONObject.toJSONString(userInfoMap);
+                usdkOrderDO.setOrderContext(orderContext);
                 int ret = usdkOrderMapper.insertSelective(usdkOrderDO);
                 if (ret <= 0){
                     log.error("insert contractOrder failed");
@@ -370,23 +373,25 @@ public class UsdkOrderManager {
         BigDecimal addLockedAsset = filledAmount;
         BigDecimal addTotalAsset = filledAmount;
         BalanceTransferDTO balanceTransferDTO = new BalanceTransferDTO();
-        balanceTransferDTO.setBidTotalAsset(addBidTotalAsset.toString());
-        balanceTransferDTO.setBidTotalUsdk(addTotalUsdk.toString());
-        balanceTransferDTO.setBidLockedUsdk(addLockedUsdk.toString());
-        balanceTransferDTO.setAskTotalUsdk(addAskTotalUsdk.toString());
-        balanceTransferDTO.setAskLockedAsset(addLockedAsset.toString());
-        balanceTransferDTO.setAskTotalAsset(addTotalAsset.toString());
+        if (!askUsdkOrder.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
+            balanceTransferDTO.setAskTotalUsdk(addAskTotalUsdk.toString());
+            balanceTransferDTO.setAskLockedAsset(addLockedAsset.toString());
+            balanceTransferDTO.setAskTotalAsset(addTotalAsset.toString());
+            balanceTransferDTO.setAskUserId(askUsdkOrder.getUserId());
+        }
+        if (!bidUsdkOrder.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
+            balanceTransferDTO.setBidTotalAsset(addBidTotalAsset.toString());
+            balanceTransferDTO.setBidTotalUsdk(addTotalUsdk.toString());
+            balanceTransferDTO.setBidLockedUsdk(addLockedUsdk.toString());
+            balanceTransferDTO.setBidUserId(bidUsdkOrder.getUserId());
+        }
         balanceTransferDTO.setAssetId(usdkMatchedOrderDTO.getAssetId());
-        balanceTransferDTO.setAskUserId(askUsdkOrder.getUserId());
-        balanceTransferDTO.setBidUserId(bidUsdkOrder.getUserId());
-
         boolean updateRet = false;
         updateRet = getCapitalService().updateBalance(balanceTransferDTO);
         if (!updateRet) {
             log.error("getCapitalService().updateBalance failed{}", balanceTransferDTO);
             throw new RuntimeException("getCapitalService().updateBalance failed{}");
         }
-
         UsdkMatchedOrderDO usdkMatchedOrderDO = com.fota.trade.common.BeanUtils.copy(usdkMatchedOrderDTO);
         usdkMatchedOrderDO.setAskUserId(askUsdkOrder.getUserId());
         usdkMatchedOrderDO.setBidUserId(bidUsdkOrder.getUserId());
@@ -479,6 +484,9 @@ public class UsdkOrderManager {
                 UsdkOrderDO usdkOrderDO2 = usdkOrderMapper.selectByPrimaryKey(usdkOrderDO.getId());
                 if (usdkOrderDO2.getUnfilledAmount().compareTo(BigDecimal.ZERO) == 0){
                     usdkOrderDO2.setStatus(OrderStatusEnum.MATCH.getCode());
+                    usdkOrderMapper.updateStatus(usdkOrderDO2);
+                }else if (!usdkOrderDO2.getUnfilledAmount().equals(0L) && usdkOrderDO2.getStatus() == OrderStatusEnum.MATCH.getCode()) {
+                    usdkOrderDO2.setStatus(OrderStatusEnum.PART_MATCH.getCode());
                     usdkOrderMapper.updateStatus(usdkOrderDO2);
                 }
             }

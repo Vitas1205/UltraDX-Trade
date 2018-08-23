@@ -79,16 +79,13 @@
       <if test="averagePrice != null" >
         average_price,
       </if>
-      <if test="gmtModified != null" >
-        gmt_modified,
-      </if>
     </trim>
     <trim prefix="values (" suffix=")" suffixOverrides="," >
       now(),
       <if test="id != null" >
         #{id,jdbcType=BIGINT},
       </if>
-      now(),
+      #{gmtModified,jdbcType=TIMESTAMP},
       <if test="userId != null" >
         #{userId,jdbcType=BIGINT},
       </if>
@@ -121,9 +118,6 @@
       </if>
       <if test="averagePrice != null" >
         #{averagePrice,jdbcType=DECIMAL},
-      </if>
-      <if test="gmtModified != null" >
-        #{gmtModified,jdbcType=TIMESTAMP},
       </if>
     </trim>
   </insert>
