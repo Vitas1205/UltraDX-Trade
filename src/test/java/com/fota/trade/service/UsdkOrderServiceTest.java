@@ -38,7 +38,7 @@ public class UsdkOrderServiceTest {
     @Resource
     private UsdkOrderMapper usdkOrderMapper;
 
-    private Long userId = 9528L;
+    private Long userId = 274L;
     @Test
     public void testListUsdkOrderByQuery() throws Exception {
         BaseQuery usdkOrderQuery = new BaseQuery();
