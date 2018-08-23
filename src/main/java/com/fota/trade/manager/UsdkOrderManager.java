@@ -162,7 +162,7 @@ public class UsdkOrderManager {
             //强平单处理
             if (userInfoMap.containsKey("mortgageId")){
                 orderContext = JSONObject.toJSONString(userInfoMap);
-                usdkOrderDO.setOrderContext(orderContext);
+                //usdkOrderDO.setOrderContext(orderContext);
                 int ret = usdkOrderMapper.insertSelective(usdkOrderDO);
                 if (ret <= 0){
                     log.error("insert contractOrder failed");
@@ -288,6 +288,7 @@ public class UsdkOrderManager {
         tradeUsdkOrder.setUnfilledAmount(usdkOrderDO.getUnfilledAmount());
         tradeUsdkOrder.setPrice(usdkOrderDO.getPrice());
         tradeUsdkOrder.setStatus(usdkOrderDO.getStatus());
+        tradeUsdkOrder.setId(usdkOrderDO.getId());
         return usdkMatchedOrderService.cancelOrderUsdk(tradeUsdkOrder);
     }
 
