@@ -23,6 +23,7 @@ import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static com.fota.trade.common.ResultCodeEnum.CONTRACT_IS_ROLLING_BACK;
 import static com.fota.trade.common.ResultCodeEnum.SYSTEM_ERROR;
@@ -181,7 +182,7 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
         result.setData(result);
 
         //加锁，同一合约只能有一个回滚任务进行
-        if (!redisManager.tryLock(rollbackKey)) {
+        if (!redisManager.tryLock(rollbackKey, 1, TimeUnit.DAYS)) {
             return result.error(CONTRACT_IS_ROLLING_BACK.getCode(), CONTRACT_IS_ROLLING_BACK.getMessage());
         }
         try {

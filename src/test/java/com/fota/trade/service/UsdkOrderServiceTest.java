@@ -1,7 +1,12 @@
 package com.fota.trade.service;
 
+import com.fota.trade.common.Result;
+import com.fota.trade.common.ResultCode;
 import com.fota.trade.domain.BaseQuery;
+import com.fota.trade.domain.UsdkOrderDTO;
+import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
+import com.fota.trade.domain.enums.OrderTypeEnum;
 import com.fota.trade.mapper.UsdkOrderMapper;
 import com.fota.trade.service.impl.UsdkOrderServiceImpl;
 import org.junit.Assert;
@@ -13,7 +18,10 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -30,7 +38,7 @@ public class UsdkOrderServiceTest {
     @Resource
     private UsdkOrderMapper usdkOrderMapper;
 
-    private Long userId = 9528L;
+    private Long userId = 274L;
     @Test
     public void testListUsdkOrderByQuery() throws Exception {
         BaseQuery usdkOrderQuery = new BaseQuery();
@@ -54,6 +62,30 @@ public class UsdkOrderServiceTest {
         usdkOrderQuery.setOrderStatus(orderStatus);
         com.fota.common.Page<com.fota.trade.domain.UsdkOrderDTO> result = usdkOrderService.listUsdkOrderByQuery(usdkOrderQuery);
 //        Assert.assertTrue(result != null && result.getData() != null && result.getData() != null);
+    }
+
+    @Test
+    public void testPlaceOrder(){
+//        UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
+//        usdkOrderDTO.setCompleteAmount(new BigDecimal(0));
+//        usdkOrderDTO.setUserId(274L);
+//        usdkOrderDTO.setAssetId(1);
+//        usdkOrderDTO.setAssetName("BTC");
+//        usdkOrderDTO.setAveragePrice(new BigDecimal(1));
+//        usdkOrderDTO.setFee(new BigDecimal(0.01));
+//        usdkOrderDTO.setOrderDirection(OrderDirectionEnum.ASK.getCode());
+////        usdkOrderDTO.setOrderType(OrderTypeEnum.LIMIT.getCode());
+//        usdkOrderDTO.setGmtCreate(new Date());
+//        usdkOrderDTO.setPrice(new BigDecimal(1));
+//        usdkOrderDTO.setUnfilledAmount(new BigDecimal(10));
+//        usdkOrderDTO.setTotalAmount(new BigDecimal(10));
+//        usdkOrderDTO.setMatchAmount("0");
+//        com.fota.common.Result result = usdkOrderService.orderReturnId(usdkOrderDTO, new HashMap<>());
+//        System.out.println(result.getData());
+//        assert result.isSuccess()
+//                && (long)result.getData() >0;
+
+
     }
 
     @Test

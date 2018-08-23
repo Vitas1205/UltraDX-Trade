@@ -114,7 +114,7 @@
             </if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
-            now(),
+            #{gmtModified,jdbcType=BIGINT},
             <if test="userId != null">
                 #{userId,jdbcType=BIGINT},
             </if>
@@ -292,7 +292,7 @@
 
     <update id="updateAmountAndStatus">
     update trade_contract_order
-    set gmt_modified = now()
+    set gmt_modified = #{gmtModified}
         ,average_price = IF(total_amount - unfilled_amount + #{lFilledAmount}=0, null ,
         (IFNULL(average_price,0) * (total_amount - unfilled_amount) + #{filledPrice} * #{lFilledAmount}) / (total_amount - unfilled_amount + #{lFilledAmount}))
         ,status = case

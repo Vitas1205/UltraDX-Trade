@@ -1,6 +1,7 @@
 package com.fota.trade.util;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 /**
  * Created by Swifree on 2018/8/17.
@@ -15,4 +16,12 @@ public class CommonUtils {
         }
         return a.subtract(b).abs().compareTo(wucha) < 0;
     }
+    public static long generateId(){
+        UUID uuid = UUID.randomUUID();
+        long m = uuid.getMostSignificantBits() ^ uuid.getLeastSignificantBits();
+        m= Math.abs(m);
+        m = m % 999999999999999L;
+        return m;
+    }
+
 }

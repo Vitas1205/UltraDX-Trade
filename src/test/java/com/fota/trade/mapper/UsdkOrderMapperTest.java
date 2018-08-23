@@ -31,6 +31,7 @@ public class UsdkOrderMapperTest {
     @Resource
     private UsdkOrderMapper usdkOrderMapper;
 
+
     @Test
     public void testInsert() throws Exception {
         UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
@@ -44,17 +45,26 @@ public class UsdkOrderMapperTest {
         usdkOrderDO.setPrice(new BigDecimal("6000.1"));
         usdkOrderDO.setFee(new BigDecimal("1.1"));
         usdkOrderDO.setStatus(OrderStatusEnum.COMMIT.getCode());
+        long st = System.currentTimeMillis();
         int insertRet = usdkOrderMapper.insert(usdkOrderDO);
+        System.out.println("cost="+(System.currentTimeMillis() - st));
         Assert.assertTrue(insertRet > 0);
     }
 
 
     @Test
-    public void testCountByQuery() throws Exception {
+    public void testCountByQuery() {
         UsdkOrderQuery usdkOrderQuery = new UsdkOrderQuery();
         usdkOrderQuery.setPageSize(20);
         usdkOrderQuery.setPageNo(1);
-        Integer count = usdkOrderMapper.countByQuery(ParamUtil.objectToMap(usdkOrderQuery));
+        long st = System.currentTimeMillis();
+        Integer count = null;
+        try {
+            count = usdkOrderMapper.countByQuery(ParamUtil.objectToMap(usdkOrderQuery));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("cost="+(System.currentTimeMillis() - st));
         Assert.assertTrue(count > 0);
     }
 
@@ -63,7 +73,10 @@ public class UsdkOrderMapperTest {
         UsdkOrderQuery usdkOrderQuery = new UsdkOrderQuery();
         usdkOrderQuery.setPageSize(20);
         usdkOrderQuery.setPageNo(1);
+        usdkOrderQuery.setUserId(274L);
+        long st = System.currentTimeMillis();
         List<UsdkOrderDO> usdkOrderDOS = usdkOrderMapper.listByQuery(ParamUtil.objectToMap(usdkOrderQuery));
+        System.out.println("cost="+(System.currentTimeMillis() - st));
         Assert.assertTrue(usdkOrderDOS != null && usdkOrderDOS.size() > 0);
     }
 

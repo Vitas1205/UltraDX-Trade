@@ -56,19 +56,15 @@
     order by asset_id, contract_type
   </select>
 
-  <insert id="insertSelective" parameterType="com.fota.trade.domain.ContractCategoryDO" >
+  <insert id="insertSelective" parameterType="com.fota.trade.domain.ContractCategoryDO">
 
     insert into trade_contract_category
     <trim prefix="(" suffix=")" suffixOverrides="," >
       <if test="id != null" >
         id,
       </if>
-      <if test="gmtCreate != null" >
         gmt_create,
-      </if>
-      <if test="gmtModified != null" >
         gmt_modified,
-      </if>
       <if test="contractName != null" >
         contract_name,
       </if>
@@ -104,12 +100,8 @@
       <if test="id != null" >
         #{id,jdbcType=BIGINT},
       </if>
-      <if test="gmtCreate != null" >
-        #{gmtCreate,jdbcType=TIMESTAMP},
-      </if>
-      <if test="gmtModified != null" >
-        #{gmtModified,jdbcType=TIMESTAMP},
-      </if>
+      now(),
+      now(),
       <if test="contractName != null" >
         #{contractName,jdbcType=VARCHAR},
       </if>
