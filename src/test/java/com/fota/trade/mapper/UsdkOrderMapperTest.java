@@ -73,6 +73,7 @@ public class UsdkOrderMapperTest {
         UsdkOrderQuery usdkOrderQuery = new UsdkOrderQuery();
         usdkOrderQuery.setPageSize(20);
         usdkOrderQuery.setPageNo(1);
+        usdkOrderQuery.setUserId(274L);
         long st = System.currentTimeMillis();
         List<UsdkOrderDO> usdkOrderDOS = usdkOrderMapper.listByQuery(ParamUtil.objectToMap(usdkOrderQuery));
         System.out.println("cost="+(System.currentTimeMillis() - st));
