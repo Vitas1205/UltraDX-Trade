@@ -61,7 +61,7 @@ public interface UsdkOrderMapper {
     @Select({
         "select",
         "id, gmt_create, gmt_modified, user_id, asset_id, asset_name, order_direction, ",
-        "order_type, total_amount, unfilled_amount, price, fee, status, average_price",
+        "order_type, total_amount, unfilled_amount, price, fee, status, average_price, order_context",
         "from trade_usdk_order",
         "where id = #{id,jdbcType=BIGINT}"
     })
@@ -71,7 +71,7 @@ public interface UsdkOrderMapper {
     @Select({
             "select",
             "id, gmt_create, gmt_modified, user_id, asset_id, asset_name, order_direction, ",
-            "order_type, total_amount, unfilled_amount, price, fee, status, average_price",
+            "order_type, total_amount, unfilled_amount, price, fee, status, average_price, order_context",
             "from trade_usdk_order",
             "where user_id =  #{userId,jdbcType=BIGINT} and status in (8,9)"
     })
@@ -82,7 +82,7 @@ public interface UsdkOrderMapper {
     @Select({
             "select",
             "id, gmt_create, gmt_modified, user_id, asset_id, asset_name, order_direction, ",
-            "order_type, total_amount, unfilled_amount, price, fee, status, average_price, order_context",
+            "order_type, total_amount, unfilled_amount, price, fee, status, average_price, order_context, order_context",
             "from trade_usdk_order",
             "where id = #{id,jdbcType=BIGINT} and user_id =  #{userId,jdbcType=BIGINT}"
     })
