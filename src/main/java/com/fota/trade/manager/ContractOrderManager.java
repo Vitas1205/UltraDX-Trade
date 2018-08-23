@@ -356,6 +356,7 @@ public class ContractOrderManager {
     public boolean getJudegRet(ContractOrderDO contractOrderDO) {
         TradeContractOrder tradeContractOrder = new TradeContractOrder();
         tradeContractOrder.setContractId(contractOrderDO.getContractId());
+        tradeContractOrder.setContractName(contractOrderDO.getContractName());
         tradeContractOrder.setOrderDirection(contractOrderDO.getOrderDirection());
         tradeContractOrder.setTotalAmount(new BigDecimal(contractOrderDO.getTotalAmount()));
         tradeContractOrder.setUnfilledAmount(new BigDecimal(contractOrderDO.getUnfilledAmount()));

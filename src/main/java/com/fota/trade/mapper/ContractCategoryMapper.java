@@ -87,6 +87,7 @@ public interface ContractCategoryMapper {
     @Update({
             "update trade_contract_category",
             "set status = #{status,jdbcType=INTEGER}",
+            "set gmt_modified = now()",
             "where id = #{id,jdbcType=BIGINT}"
     })
     int updataStatusById(@Param("id") Long id, @Param("status") Integer status);

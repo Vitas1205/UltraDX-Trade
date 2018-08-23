@@ -21,7 +21,7 @@
 
   <sql id="Base_Column_List" >
     id, gmt_create as gmtCreate, gmt_modified as gmtModified, user_id as userId, contract_id as contractId, contract_name as contractName, locked_amount as lockedAmount,
-    unfilled_amount as unfilledAmount, position_type as positionType, average_price as averagePrice, status, lever, contract_size
+    unfilled_amount as unfilledAmount, position_type as positionType, average_price as averagePrice, status, lever, contract_size as contractSize
   </sql>
 
   <insert id="insertSelective" parameterType="com.fota.trade.domain.UserPositionDO" >
