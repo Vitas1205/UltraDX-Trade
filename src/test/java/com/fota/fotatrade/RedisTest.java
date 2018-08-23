@@ -33,8 +33,8 @@ public class RedisTest {
     @Autowired
     RedisManager redisManager;
 
-    @Autowired
-    private RealTimeEntrust realTimeEntrust;
+//    @Autowired
+//    private RealTimeEntrust realTimeEntrust;
 
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
@@ -63,11 +63,11 @@ public class RedisTest {
         log.info("costOfQuery={}, result={}", System.currentTimeMillis() - st,obj);
     }
 
-    @Test
-    public void testRealTimeEntrust() {
-        List<CompetitorsPriceDTO> list =  realTimeEntrust.getContractCompetitorsPrice();
-        list.forEach(System.out::println);
-    }
+//    @Test
+//    public void testRealTimeEntrust() {
+//        List<CompetitorsPriceDTO> list =  realTimeEntrust.getContractCompetitorsPrice();
+//        list.forEach(System.out::println);
+//    }
     @Test
     public void lockTest(){
         String lock = "TEST_LOCK";
