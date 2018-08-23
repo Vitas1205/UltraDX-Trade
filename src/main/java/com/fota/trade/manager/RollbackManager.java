@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.util.Date;
 import java.util.List;
 
 import static com.fota.trade.client.constants.MatchedOrderStatus.DELETE;
@@ -83,8 +84,8 @@ public class RollbackManager {
         BigDecimal filledPrice = matchedOrderDO.getFilledPrice();
         long filledAmount = matchedOrderDO.getFilledAmount().longValue();
 
-        contractOrderManager.updateContractOrder(askContractOrder.getId(), oppositeFilledAmount, matchedOrderDO.getFilledPrice());
-        contractOrderManager.updateContractOrder(bidContractOrder.getId(), oppositeFilledAmount, matchedOrderDO.getFilledPrice());
+        contractOrderManager.updateContractOrder(askContractOrder.getId(), oppositeFilledAmount, matchedOrderDO.getFilledPrice(), new Date());
+        contractOrderManager.updateContractOrder(bidContractOrder.getId(), oppositeFilledAmount, matchedOrderDO.getFilledPrice(), new Date());
 
         contractMatchedOrderMapper.updateStatus(matchedOrderDO.getId(), DELETE);
         BigDecimal contractSize = contractOrderManager.getContractSize(askContractOrder.getContractId());

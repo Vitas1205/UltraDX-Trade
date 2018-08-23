@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -95,7 +96,7 @@ public class ContractOrderMapperTest {
 
         long filledAmount = 100;
         BigDecimal filledPrice = new BigDecimal(0.3);
-        int aff = contractOrderMapper.updateAmountAndStatus(contractOrderDO.getId(),filledAmount, filledPrice);
+        int aff = contractOrderMapper.updateAmountAndStatus(contractOrderDO.getId(),filledAmount, filledPrice, new Date());
         ContractOrderDO contractOrderDO2 = contractOrderMapper.selectByPrimaryKey(contractOrderDO.getId());
 
         BigDecimal expectAvgPrice = PriceUtil.getAveragePrice(contractOrderDO.getAveragePrice(),

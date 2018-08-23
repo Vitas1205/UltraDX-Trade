@@ -7,6 +7,7 @@ import org.apache.ibatis.annotations.*;
 
 import javax.management.Query;
 import java.math.BigDecimal;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -194,7 +195,8 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
 
     int updateAmountAndStatus(@Param("orderId") Long orderId,
                               @Param("lFilledAmount") long filledAmount,
-                              @Param("filledPrice") BigDecimal filledPrice);
+                              @Param("filledPrice") BigDecimal filledPrice,
+                              @Param("gmtModified") Date gmtModified);
 
     List<ContractOrderDO> notMatchOrderList(
             @Param("placeOrder") Integer placeOrder, @Param("partialSuccess") Integer partialSuccess,

@@ -190,6 +190,8 @@ public class ContractOrderManager {
         ResultCode resultCode = new ResultCode();
         com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
         Long orderId = 0L;
+        Long transferTime = System.currentTimeMillis();
+        contractOrderDO.setGmtModified(new Date(transferTime));
         ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractOrderDO.getContractId());
         if (contractCategoryDO == null) {
             log.error("Contract Is Null");
@@ -255,12 +257,15 @@ public class ContractOrderManager {
         //推送MQ消息
         OrderMessage orderMessage = new OrderMessage();
         orderMessage.setAmount(new BigDecimal(contractOrderDTO.getUnfilledAmount()));
-        orderMessage.setPrice(contractOrderDTO.getPrice());
-        orderMessage.setTransferTime((new Date()).getTime());
+        if (contractOrderDTO.getPrice() != null){
+            orderMessage.setPrice(contractOrderDTO.getPrice());
+        }
+        orderMessage.setTransferTime(transferTime);
         orderMessage.setOrderId(contractOrderDTO.getId());
         orderMessage.setEvent(OrderOperateTypeEnum.PLACE_ORDER.getCode());
         orderMessage.setUserId(contractOrderDTO.getUserId());
         orderMessage.setSubjectId(contractOrderDO.getContractId());
+        orderMessage.setSubjectName(contractOrderDO.getContractName());
         Boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder", orderMessage);
         if (!sendRet) {
             log.error("Send RocketMQ Message Failed ");
@@ -311,7 +316,10 @@ public class ContractOrderManager {
             log.error("order status illegal{}", contractOrderDO);
             throw new RuntimeException("order status illegal");
         }
+        Long transferTime = System.currentTimeMillis();
+        log.info("------------contractCancelStartTimeStamp"+System.currentTimeMillis());
         int ret = contractOrderMapper.updateByOpLock(contractOrderDO);
+        log.info("------------contractCancelEndTimeStamp"+System.currentTimeMillis());
         if (ret > 0) {
             UserContractDTO userContractDTO = getAssetService().getContractAccount(contractOrderDO.getUserId());
             BigDecimal lockedAmount = new BigDecimal(userContractDTO.getLockedAmount());
@@ -334,7 +342,7 @@ public class ContractOrderManager {
         OrderMessage orderMessage = new OrderMessage();
         orderMessage.setAmount(new BigDecimal(contractOrderDTO.getUnfilledAmount()));
         orderMessage.setPrice(contractOrderDTO.getPrice());
-        orderMessage.setTransferTime(System.currentTimeMillis());
+        orderMessage.setTransferTime(transferTime);
         orderMessage.setOrderId(contractOrderDTO.getId());
         orderMessage.setEvent(OrderOperateTypeEnum.CANCLE_ORDER.getCode());
         orderMessage.setUserId(contractOrderDTO.getUserId());
@@ -640,10 +648,10 @@ public class ContractOrderManager {
 
         askContractOrder.fillAmount(filledAmount);
         bidContractOrder.fillAmount(filledAmount);
-
+        Long transferTime = System.currentTimeMillis();
         //更新委托
-        updateContractOrder(contractMatchedOrderDTO.getAskOrderId(), filledAmount, filledPrice);
-        updateContractOrder(contractMatchedOrderDTO.getBidOrderId(), filledAmount, filledPrice);
+        updateContractOrder(contractMatchedOrderDTO.getAskOrderId(), filledAmount, filledPrice, new Date(transferTime));
+        updateContractOrder(contractMatchedOrderDTO.getBidOrderId(), filledAmount, filledPrice, new Date(transferTime));
 
         BigDecimal contractSize = getContractSize(contractMatchedOrderDTO.getContractId());
         //更新持仓
@@ -703,7 +711,7 @@ public class ContractOrderManager {
         OrderMessage orderMessage = new OrderMessage();
         orderMessage.setSubjectId(contractMatchedOrderDTO.getContractId());
         orderMessage.setSubjectName(contractMatchedOrderDTO.getContractName());
-        orderMessage.setTransferTime(System.currentTimeMillis());
+        orderMessage.setTransferTime(transferTime);
         orderMessage.setPrice(new BigDecimal(contractMatchedOrderDTO.getFilledPrice()));
         orderMessage.setAmount(new BigDecimal(contractMatchedOrderDTO.getFilledAmount()));
         orderMessage.setEvent(OrderOperateTypeEnum.DEAL_ORDER.getCode());
@@ -974,8 +982,8 @@ public class ContractOrderManager {
 //    }
 
 
-    public void updateContractOrder(long id, long filledAmount, BigDecimal filledPrice) {
-        int aff = contractOrderMapper.updateAmountAndStatus(id, filledAmount, filledPrice);
+    public void updateContractOrder(long id, long filledAmount, BigDecimal filledPrice, Date gmtModified) {
+        int aff = contractOrderMapper.updateAmountAndStatus(id, filledAmount, filledPrice, gmtModified);
         if (0 == aff) {
             log.error("update contract order failed");
             throw new RuntimeException("update contract order failed");

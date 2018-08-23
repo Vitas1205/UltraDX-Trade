@@ -4,6 +4,7 @@ import com.fota.trade.domain.UsdkOrderDO;
 import org.apache.ibatis.annotations.*;
 
 import java.math.BigDecimal;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -152,8 +153,9 @@ public interface UsdkOrderMapper {
     int updateByFilledAmount(@Param("orderId") Long orderId,
                              @Param("status") Integer status,
                              @Param("filledAmount") BigDecimal filledAmount,
-                             @Param("averagePrice") BigDecimal averagePrice
-    );
+                             @Param("averagePrice") BigDecimal averagePrice,
+                             @Param("gmtModified") Date gmtModified
+                             );
 
     @Update({
             "update trade_usdk_order",
