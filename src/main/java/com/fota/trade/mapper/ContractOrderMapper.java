@@ -29,14 +29,14 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
             "order_direction, ",
             "total_amount, unfilled_amount, ",
             "price, fee, ",
-            "status, average_price)",
+            "status, average_price, order_type, close_type)",
             "values (#{id}, now(), ",
             "now(), #{userId}, ",
             "#{contractId,jdbcType=INTEGER}, #{contractName,jdbcType=VARCHAR}, ",
             "#{orderDirection,jdbcType=TINYINT}, ",
             "#{totalAmount,jdbcType=BIGINT}, #{unfilledAmount,jdbcType=BIGINT}, ",
             "#{price,jdbcType=DECIMAL}, #{fee,jdbcType=DECIMAL},",
-            " #{status}, #{averagePrice,jdbcType=DECIMAL})"
+            " #{status}, #{averagePrice,jdbcType=DECIMAL}, #{orderType}, #{closeType})"
     })
     int insert(ContractOrderDO record);
 
