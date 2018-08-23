@@ -22,22 +22,20 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
 
     @Override
     @Insert({
-        "insert into trade_contract_order (id, gmt_create, ",
-        "gmt_modified, user_id, ",
-        "contract_id, contract_name, ",
-        "order_direction, operate_type, ",
-        "operate_direction, lever, ",
-        "total_amount, unfilled_amount, ",
-        "price, fee, usdk_locked_amount, ",
-        "position_locked_amount, status, average_price)",
-        "values (#{id,jdbcType=BIGINT}, now(), ",
-        "now(), #{userId,jdbcType=BIGINT}, ",
-        "#{contractId,jdbcType=INTEGER}, #{contractName,jdbcType=VARCHAR}, ",
-        "#{orderDirection,jdbcType=TINYINT}, #{operateType,jdbcType=TINYINT}, ",
-        "#{operateDirection,jdbcType=TINYINT}, #{lever,jdbcType=INTEGER}, ",
-        "#{totalAmount,jdbcType=BIGINT}, #{unfilledAmount,jdbcType=BIGINT}, ",
-        "#{price,jdbcType=DECIMAL}, #{fee,jdbcType=DECIMAL}, #{usdkLockedAmount,jdbcType=DECIMAL}, ",
-        "#{positionLockedAmount,jdbcType=DECIMAL}, #{status}, #{averagePrice,jdbcType=DECIMAL})"
+            "insert into trade_contract_order (id, gmt_create, ",
+            "gmt_modified, user_id, ",
+            "contract_id, contract_name, ",
+            "order_direction, ",
+            "total_amount, unfilled_amount, ",
+            "price, fee, ",
+            "status, average_price)",
+            "values (#{id}, now(), ",
+            "now(), #{userId}, ",
+            "#{contractId,jdbcType=INTEGER}, #{contractName,jdbcType=VARCHAR}, ",
+            "#{orderDirection,jdbcType=TINYINT}, ",
+            "#{totalAmount,jdbcType=BIGINT}, #{unfilledAmount,jdbcType=BIGINT}, ",
+            "#{price,jdbcType=DECIMAL}, #{fee,jdbcType=DECIMAL},",
+            " #{status}, #{averagePrice,jdbcType=DECIMAL})"
     })
     int insert(ContractOrderDO record);
 

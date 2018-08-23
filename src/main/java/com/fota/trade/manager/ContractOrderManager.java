@@ -18,6 +18,7 @@ import com.fota.trade.mapper.ContractCategoryMapper;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
+import com.fota.trade.util.CommonUtils;
 import com.fota.trade.util.ContractUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.thrift.TException;
@@ -226,7 +227,8 @@ public class ContractOrderManager {
         if (contractOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()) {
             insertOrderRecord(contractOrderDO);
         } else {
-            orderId = insertOrderRecord(contractOrderDO);
+            insertOrderRecord(contractOrderDO);
+            orderId = contractOrderDO.getId();
             BigDecimal totalLockAmount = getTotalLockAmount(contractOrderDO.getUserId());
             //查询用户合约冻结金额
             UserContractDTO userContractDTO = getAssetService().getContractAccount(contractOrderDO.getUserId());
@@ -544,16 +546,16 @@ public class ContractOrderManager {
     }
 
 
-    public Long insertOrderRecord(ContractOrderDO contractOrderDO){
+    public void insertOrderRecord(ContractOrderDO contractOrderDO){
         contractOrderDO.setStatus(8);
         contractOrderDO.setFee(Constant.FEE_RATE);
+        contractOrderDO.setId(CommonUtils.generateId());
         contractOrderDO.setUnfilledAmount(contractOrderDO.getTotalAmount());
-        int insertContractOrderRet = contractOrderMapper.insertSelective(contractOrderDO);
+        int insertContractOrderRet = contractOrderMapper.insert(contractOrderDO);
         if (insertContractOrderRet <= 0) {
             log.error("insert contractOrder failed");
             throw new RuntimeException("insert contractOrder failed");
         }
-        return contractOrderDO.getId();
     }
 
     //冻结合约账户金额

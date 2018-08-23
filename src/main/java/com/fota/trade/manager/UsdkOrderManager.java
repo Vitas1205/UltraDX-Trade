@@ -15,6 +15,7 @@ import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.*;
 import com.fota.trade.mapper.UsdkMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkOrderMapper;
+import com.fota.trade.util.CommonUtils;
 import com.fota.trade.util.PriceUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -109,7 +110,7 @@ public class UsdkOrderManager {
         String orderContext;
         if (usdkOrderDO.getOrderType() == null){
             usdkOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
-            int ret = usdkOrderMapper.insertSelective(usdkOrderDO);
+            int ret = insertUsdkOrder(usdkOrderDO);
             if (ret <= 0){
                 log.error("insert contractOrder failed");
                 throw new RuntimeException("insert contractOrder failed");
@@ -163,7 +164,7 @@ public class UsdkOrderManager {
             if (userInfoMap.containsKey("mortgageId")){
                 orderContext = JSONObject.toJSONString(userInfoMap);
                 //usdkOrderDO.setOrderContext(orderContext);
-                int ret = usdkOrderMapper.insertSelective(usdkOrderDO);
+                int ret = insertUsdkOrder(usdkOrderDO);
                 if (ret <= 0){
                     log.error("insert contractOrder failed");
                     throw new RuntimeException("insert contractOrder failed");
@@ -182,7 +183,7 @@ public class UsdkOrderManager {
                 1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getTotalAmount(), transferTime, 1, usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 1);
         //todo 发送RocketMQ
         OrderMessage orderMessage = new OrderMessage();
-        orderMessage.setOrderId(usdkOrderDTO.getId());
+        orderMessage.setOrderId(usdkOrderDO.getId());
         orderMessage.setEvent(OrderOperateTypeEnum.PLACE_ORDER.getCode());
         orderMessage.setUserId(usdkOrderDTO.getUserId());
         orderMessage.setSubjectId(usdkOrderDTO.getAssetId().longValue());
@@ -198,6 +199,11 @@ public class UsdkOrderManager {
         result.setMessage("success");
         result.setData(orderId);
         return result;
+    }
+
+    private int insertUsdkOrder(UsdkOrderDO usdkOrderDO) {
+        usdkOrderDO.setId(CommonUtils.generateId());
+        return usdkOrderMapper.insert(usdkOrderDO);
     }
 
     @Transactional(rollbackFor={RuntimeException.class, Exception.class, BusinessException.class})

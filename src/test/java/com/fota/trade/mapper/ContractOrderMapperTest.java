@@ -5,6 +5,7 @@ import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.domain.query.ContractOrderQuery;
+import com.fota.trade.util.CommonUtils;
 import com.fota.trade.util.PriceUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
@@ -45,6 +46,7 @@ public class ContractOrderMapperTest {
     public void init() {
         // 准备数据
         contractOrderDO = new ContractOrderDO();
+        contractOrderDO.setId(CommonUtils.generateId());
         contractOrderDO.setCloseType(0);
         contractOrderDO.setContractId(1L);
         contractOrderDO.setContractName("BTC0930");
@@ -56,7 +58,7 @@ public class ContractOrderMapperTest {
         contractOrderDO.setUnfilledAmount(100L);
         contractOrderDO.setUserId(userId);
         contractOrderDO.setStatus(OrderStatusEnum.COMMIT.getCode());
-        int insertRet = contractOrderMapper.insertSelective(contractOrderDO);
+        int insertRet = contractOrderMapper.insert(contractOrderDO);
         Assert.assertTrue(insertRet > 0);
     }
 
