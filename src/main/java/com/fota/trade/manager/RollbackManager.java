@@ -72,6 +72,12 @@ public class RollbackManager {
         askContractOrder.setOrderDirection(bidContractOrder.getOrderDirection());
         bidContractOrder.setOrderDirection(tmp);
 
+        Integer askLever = contractLeverManager.getLeverByContractId(askContractOrder.getUserId(), askContractOrder.getContractId());
+        askContractOrder.setLever(askLever.intValue());
+
+        Integer bidLever = contractLeverManager.getLeverByContractId(bidContractOrder.getUserId(), bidContractOrder.getContractId());
+        bidContractOrder.setLever(bidLever);
+
         //更新委托状态
         long oppositeFilledAmount = matchedOrderDO.getFilledAmount().negate().longValue();
         BigDecimal filledPrice = matchedOrderDO.getFilledPrice();
@@ -87,8 +93,8 @@ public class RollbackManager {
         UpdatePositionResult bidResult = contractOrderManager.updatePosition(bidContractOrder, contractSize, filledAmount, filledPrice);
 
 
-        ContractDealer dealer1 = calRollbackBalance(askContractOrder, filledAmount, filledPrice, contractSize, askResult);
-        ContractDealer dealer2 = calRollbackBalance(bidContractOrder, filledAmount, filledPrice, contractSize, bidResult);
+        ContractDealer dealer1 = calRollbackBalance(askContractOrder, filledAmount, filledPrice, contractSize, askResult, new BigDecimal(askLever));
+        ContractDealer dealer2 = calRollbackBalance(bidContractOrder, filledAmount, filledPrice, contractSize, bidResult, new BigDecimal(bidLever));
         com.fota.common.Result result = contractService.updateBalances(dealer1, dealer2);
         if (!result.isSuccess()) {
             throw new RuntimeException("update balance failed");
@@ -97,16 +103,15 @@ public class RollbackManager {
 
     }
     private ContractDealer calRollbackBalance(ContractOrderDO contractOrderDO, long filledAmount, BigDecimal filledPrice,
-                                              BigDecimal contractSize, UpdatePositionResult positionResult){
+                                              BigDecimal contractSize, UpdatePositionResult positionResult, BigDecimal lever){
         long userId = contractOrderDO.getUserId();
         BigDecimal rate = contractOrderDO.getFee();
-        Integer lever = contractOrderDO.getLever();
 
         BigDecimal actualFee = filledPrice.multiply(new BigDecimal(filledAmount)).multiply(rate).multiply(contractSize);
         BigDecimal addedTotalAmount = new BigDecimal(positionResult.getCurAmount() - positionResult.getOriginAmount())
                 .multiply(filledPrice)
                 .multiply(contractSize)
-                .divide(new BigDecimal(lever), 8, BigDecimal.ROUND_DOWN)
+                .divide(lever, 8, BigDecimal.ROUND_DOWN)
                 .subtract(actualFee)
                 .negate();
 

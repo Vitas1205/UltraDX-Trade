@@ -629,6 +629,13 @@ public class ContractOrderManager {
         }
         long filledAmount = contractMatchedOrderDTO.getFilledAmount();
         BigDecimal filledPrice = new BigDecimal(contractMatchedOrderDTO.getFilledPrice());
+
+        Integer askLever = contractLeverManager.getLeverByContractId(askContractOrder.getUserId(), askContractOrder.getContractId());
+        askContractOrder.setLever(askLever.intValue());
+
+        Integer bidLever = contractLeverManager.getLeverByContractId(bidContractOrder.getUserId(), bidContractOrder.getContractId());
+        bidContractOrder.setLever(bidLever);
+
         askContractOrder.fillAmount(filledAmount);
         bidContractOrder.fillAmount(filledAmount);
 
@@ -642,8 +649,8 @@ public class ContractOrderManager {
         UpdatePositionResult bidResult = updatePosition(bidContractOrder, contractSize, filledAmount, filledPrice);
 
 
-        ContractDealer dealer1 = calBalanceChange(askContractOrder, filledAmount, filledPrice, contractSize, askResult);
-        ContractDealer dealer2 = calBalanceChange(bidContractOrder, filledAmount, filledPrice, contractSize, bidResult);
+        ContractDealer dealer1 = calBalanceChange(askContractOrder, filledAmount, filledPrice, contractSize, askResult, askLever);
+        ContractDealer dealer2 = calBalanceChange(bidContractOrder, filledAmount, filledPrice, contractSize, bidResult, bidLever);
         com.fota.common.Result result = contractService.updateBalances(dealer1, dealer2);
         if (!result.isSuccess()) {
             throw new RuntimeException("update balance failed");
@@ -758,10 +765,9 @@ public class ContractOrderManager {
 
         UpdatePositionResult result = new UpdatePositionResult();
 
-        Integer lever = new Integer(contractLeverManager.getLeverByContractId(userId, contractId));
         if (userPositionDO == null) {
             // 建仓
-            userPositionDO = ContractUtils.buildPosition(contractOrderDO, contractSize, lever, filledAmount, filledPrice);
+            userPositionDO = ContractUtils.buildPosition(contractOrderDO, contractSize, contractOrderDO.getLever(), filledAmount, filledPrice);
             int insertRet = userPositionMapper.insert(userPositionDO);
             if (insertRet != 1) {
                 throw new RuntimeException("insert position failed");
@@ -801,10 +807,9 @@ public class ContractOrderManager {
 
 
     public ContractDealer calBalanceChange(ContractOrderDO contractOrderDO, long filledAmount, BigDecimal filledPrice,
-                                           BigDecimal contractSize, UpdatePositionResult positionResult){
+                                           BigDecimal contractSize, UpdatePositionResult positionResult, Integer lever){
         long userId = contractOrderDO.getUserId();
         BigDecimal rate = contractOrderDO.getFee();
-        Integer lever = contractOrderDO.getLever();
         //手续费
         BigDecimal actualFee = filledPrice.multiply(new BigDecimal(filledAmount)).multiply(rate).multiply(contractSize);
 

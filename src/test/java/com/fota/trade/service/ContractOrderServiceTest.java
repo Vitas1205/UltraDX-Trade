@@ -90,7 +90,6 @@ public class ContractOrderServiceTest {
         askContractOrder.setContractId(contractId);
         askContractOrder.setContractName("BTC0930");
         askContractOrder.setFee(new BigDecimal("0.01"));
-        askContractOrder.setLever(10);
         askContractOrder.setOrderDirection(OrderDirectionEnum.ASK.getCode());
         askContractOrder.setPrice(new BigDecimal("6000"));
         askContractOrder.setTotalAmount(100L);
@@ -105,7 +104,6 @@ public class ContractOrderServiceTest {
         bidContractOrder.setContractId(contractId);
         bidContractOrder.setContractName("BTC0930");
         bidContractOrder.setFee(new BigDecimal("0.01"));
-        bidContractOrder.setLever(10);
         bidContractOrder.setOrderDirection(OrderDirectionEnum.BID.getCode());
         bidContractOrder.setPrice(new BigDecimal("6000"));
         bidContractOrder.setTotalAmount(100L);
