@@ -355,6 +355,7 @@ public class ContractOrderManager {
         tradeContractOrder.setUnfilledAmount(new BigDecimal(contractOrderDO.getUnfilledAmount()));
         tradeContractOrder.setPrice(contractOrderDO.getPrice());
         tradeContractOrder.setStatus(contractOrderDO.getStatus());
+        tradeContractOrder.setId(contractOrderDO.getId());
         return contractMatchedOrderService.cancelOrderContract(tradeContractOrder);
     }
 
