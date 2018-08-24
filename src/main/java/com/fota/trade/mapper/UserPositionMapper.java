@@ -104,7 +104,7 @@ public interface UserPositionMapper {
             "locked_amount = #{lockedAmount,jdbcType=DECIMAL},",
             "unfilled_amount = #{unfilledAmount,jdbcType=DECIMAL},",
             "position_type = #{positionType,jdbcType=INTEGER},",
-            "average_price = #{averagePrice, jdbcType=DECIMAL}",
+            "average_price = #{averagePrice, jdbcType=DECIMAL},",
             "status = #{status,jdbcType=INTEGER}",
             "where id = #{id,jdbcType=BIGINT} and user_id = #{userId} and gmt_modified = #{gmtModified,jdbcType=TIMESTAMP}"
     })
