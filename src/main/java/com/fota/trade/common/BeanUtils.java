@@ -186,7 +186,9 @@ public class BeanUtils {
         if (contractOrderDTO.getTotalAmount() != null){
             contractOrderDO.setTotalAmount(contractOrderDTO.getTotalAmount());
         }
-        contractOrderDO.setPrice(contractOrderDTO.getPrice());
+        if (contractOrderDTO.getPrice() != null){
+            contractOrderDO.setPrice(contractOrderDTO.getPrice());
+        }
         return contractOrderDO;
     }
 

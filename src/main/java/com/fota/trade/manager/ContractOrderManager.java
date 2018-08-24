@@ -219,15 +219,12 @@ public class ContractOrderManager {
             result.setData(orderId);
             return result;
         }
-        if (contractOrderDO.getOrderType() == null){
-            contractOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
-        }
         if (contractOrderDO.getCloseType() == null){
             contractOrderDO.setCloseType(OrderCloseTypeEnum.MANUAL.getCode());
         }
         contractOrderDO.setContractName(contractCategoryDO.getContractName());
         if (contractOrderDO.getOrderType() == null){
-            contractOrderDO.setCloseType(OrderCloseTypeEnum.MANUAL.getCode());
+            contractOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
         }
         if (contractOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()) {
             insertOrderRecord(contractOrderDO);
@@ -263,6 +260,8 @@ public class ContractOrderManager {
         if (contractOrderDTO.getPrice() != null){
             orderMessage.setPrice(contractOrderDTO.getPrice());
         }
+        orderMessage.setOrderDirection(contractOrderDTO.getOrderDirection());
+        orderMessage.setOrderType(contractOrderDTO.getOrderType());
         orderMessage.setTransferTime(transferTime);
         orderMessage.setOrderId(contractOrderDTO.getId());
         orderMessage.setEvent(OrderOperateTypeEnum.PLACE_ORDER.getCode());
@@ -350,6 +349,7 @@ public class ContractOrderManager {
         orderMessage.setEvent(OrderOperateTypeEnum.CANCLE_ORDER.getCode());
         orderMessage.setUserId(contractOrderDTO.getUserId());
         orderMessage.setSubjectId(contractOrderDO.getContractId());
+        orderMessage.setOrderDirection(contractOrderDO.getOrderDirection());
         Boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder", orderMessage);
         if (!sendRet) {
             log.error("Send RocketMQ Message Failed ");
@@ -728,6 +728,14 @@ public class ContractOrderManager {
         orderMessage.setMatchOrderId(contractMatchedOrderDO.getId());
         orderMessage.setContractMatchAssetName(contractCategoryDO.getAssetName());
         orderMessage.setContractType(contractCategoryDO.getContractType());
+        orderMessage.setAskOrderType(askContractOrderDTO.getOrderType());
+        orderMessage.setBidOrderType(bidContractOrderDTO.getOrderType());
+        if (askContractOrderDTO.getPrice() != null){
+            orderMessage.setAskOrderEntrustPrice(askContractOrderDTO.getPrice());
+        }
+        if (bidContractOrderDTO.getPrice() != null){
+            orderMessage.setBidOrderEntrustPrice(bidContractOrderDTO.getPrice());
+        }
         Boolean sendRet = rocketMqManager.sendMessage("match", "contract", orderMessage);
         if (!sendRet) {
             log.error("Send RocketMQ Message Failed ");

@@ -108,7 +108,10 @@ public class UsdkOrderManager {
         Long transferTime = System.currentTimeMillis();
         usdkOrderDO.setGmtModified(new Date(transferTime));
         String orderContext;
-        if (usdkOrderDO.getOrderType() == null){
+        if(usdkOrderDO.getOrderType() == null){
+            usdkOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
+        }
+        if (usdkOrderDO.getOrderType() != OrderTypeEnum.ENFORCE.getCode()){
             usdkOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
             int ret = insertUsdkOrder(usdkOrderDO);
             if (ret <= 0){
@@ -189,7 +192,9 @@ public class UsdkOrderManager {
         orderMessage.setSubjectId(usdkOrderDTO.getAssetId().longValue());
         orderMessage.setSubjectName(usdkOrderDTO.getAssetName());
         orderMessage.setAmount(usdkOrderDO.getTotalAmount());
-        if (usdkOrderDO.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
+        orderMessage.setOrderDirection(usdkOrderDO.getOrderDirection());
+        orderMessage.setOrderType(usdkOrderDO.getOrderType());
+        if (!usdkOrderDO.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
             orderMessage.setPrice(usdkOrderDO.getPrice());
         }
         orderMessage.setTransferTime(transferTime);
@@ -278,7 +283,9 @@ public class UsdkOrderManager {
             orderMessage.setSubjectName(usdkOrderDTO.getAssetName());
             orderMessage.setAmount(usdkOrderDO.getTotalAmount());
             orderMessage.setPrice(usdkOrderDO.getPrice());
+            orderMessage.setOrderType(usdkOrderDO.getOrderType());
             orderMessage.setTransferTime(transferTime);
+            orderMessage.setOrderDirection(orderDirection);
             Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", orderMessage);
             if (!sendRet){
                 log.error("Send RocketMQ Message Failed ");
@@ -455,6 +462,14 @@ public class UsdkOrderManager {
         orderMessage.setEvent(OrderOperateTypeEnum.DEAL_ORDER.getCode());
         orderMessage.setAskOrderId(usdkMatchedOrderDTO.getAskOrderId());
         orderMessage.setBidOrderId(usdkMatchedOrderDTO.getBidOrderId());
+        orderMessage.setAskOrderType(askUsdkOrder.getOrderType());
+        orderMessage.setBidOrderType(bidUsdkOrder.getOrderType());
+        if (askUsdkOrder.getPrice() != null){
+            orderMessage.setAskOrderEntrustPrice(askUsdkOrder.getPrice());
+        }
+        if (bidUsdkOrder.getPrice() != null){
+            orderMessage.setBidOrderEntrustPrice(bidUsdkOrder.getPrice());
+        }
         orderMessage.setAskUserId(askUsdkOrder.getUserId());
         orderMessage.setBidUserId(bidUsdkOrder.getUserId());
         orderMessage.setMatchOrderId(usdkMatchedOrderDO.getId());
