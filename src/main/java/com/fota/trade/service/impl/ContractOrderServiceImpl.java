@@ -355,6 +355,7 @@ public class ContractOrderServiceImpl implements
         return totalFee;
     }
 
+
     @Override
     public ContractMatchedOrderTradeDTOPage getContractMacthRecord(Long userId, List<Long> contractIds, Integer pageNo, Integer pageSize, Long startTime, Long endTime) {
         if (pageNo <= 0) {
@@ -442,6 +443,7 @@ public class ContractOrderServiceImpl implements
             throw new RuntimeException("contractOrderMapper.selectByIdAndUserId failed", e);
         }
     }
+
 
     private void updateContractAccount(ContractOrderDO contractOrderDO, ContractMatchedOrderDTO contractMatchedOrderDTO) {
     }

@@ -82,4 +82,21 @@
         order by gmt_create DESC
         limit #{startRow}, #{endRow}
     </select>
+
+    <select id="getLatestUsdkMatched" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from usdk_matched_order
+        order by gmt_create desc
+        limit 1
+    </select>
+
+    <select id="getLatestUsdkMatchedList" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from usdk_matched_order
+        where asset_id = #{assetId,jdbcType=BIGINT}  and  id  &lt; #{id,jdbcType=BIGINT}
+        order by gmt_create desc
+        limit 50
+    </select>
 </mapper>

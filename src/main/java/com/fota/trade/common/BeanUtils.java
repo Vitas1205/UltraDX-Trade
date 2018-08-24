@@ -60,6 +60,7 @@ public class BeanUtils {
         contractCategoryDO.setGmtModified(contractCategoryDTO.getGmtModified());
         contractCategoryDO.setContractName(contractCategoryDTO.getContractName());
         contractCategoryDO.setAssetId(contractCategoryDTO.getAssetId());
+        contractCategoryDO.setAssetName(contractCategoryDTO.getAssetName());
         contractCategoryDO.setTotalAmount(contractCategoryDO.getTotalAmount());
         contractCategoryDO.setUnfilledAmount(contractCategoryDO.getUnfilledAmount());
         contractCategoryDO.setDeliveryDate(new Date(contractCategoryDTO.getDeliveryDate()));
@@ -186,7 +187,9 @@ public class BeanUtils {
         if (contractOrderDTO.getTotalAmount() != null){
             contractOrderDO.setTotalAmount(contractOrderDTO.getTotalAmount());
         }
-        contractOrderDO.setPrice(contractOrderDTO.getPrice());
+        if (contractOrderDTO.getPrice() != null){
+            contractOrderDO.setPrice(contractOrderDTO.getPrice());
+        }
         return contractOrderDO;
     }
 

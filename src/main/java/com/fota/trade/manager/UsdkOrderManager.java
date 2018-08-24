@@ -13,6 +13,7 @@ import com.fota.trade.common.Constant;
 import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.*;
+import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkOrderMapper;
 import com.fota.trade.util.CommonUtils;
@@ -25,6 +26,8 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
@@ -49,6 +52,12 @@ public class UsdkOrderManager {
 
     @Autowired
     private UsdkOrderMapper usdkOrderMapper;
+
+    @Resource
+    private UsdkMatchedOrderMapper usdkMatchedOrderMapper;
+
+    @Resource
+    private ContractMatchedOrderMapper contractMatchedOrderMapper;
 
     @Autowired
     private RedisManager redisManager;
@@ -108,7 +117,10 @@ public class UsdkOrderManager {
         Long transferTime = System.currentTimeMillis();
         usdkOrderDO.setGmtModified(new Date(transferTime));
         String orderContext;
-        if (usdkOrderDO.getOrderType() == null){
+        if(usdkOrderDO.getOrderType() == null){
+            usdkOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
+        }
+        if (usdkOrderDO.getOrderType() != OrderTypeEnum.ENFORCE.getCode()){
             usdkOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
             int ret = insertUsdkOrder(usdkOrderDO);
             if (ret <= 0){
@@ -119,7 +131,7 @@ public class UsdkOrderManager {
             if (orderDirection == OrderDirectionEnum.BID.getCode()){
                 //查询usdk账户可用余额
                 for(UserCapitalDTO userCapitalDTO : list){
-                    if (userCapitalDTO.getAssetId() == AssetTypeEnum.USDK.getCode()){
+                    if (userCapitalDTO.getAssetId() == AssetTypeEnum.USDT.getCode()){
                         BigDecimal amount = new BigDecimal(userCapitalDTO.getAmount());
                         BigDecimal lockedAmount = new BigDecimal(userCapitalDTO.getLockedAmount());
                         BigDecimal availableAmount = amount.subtract(lockedAmount);
@@ -189,7 +201,9 @@ public class UsdkOrderManager {
         orderMessage.setSubjectId(usdkOrderDTO.getAssetId().longValue());
         orderMessage.setSubjectName(usdkOrderDTO.getAssetName());
         orderMessage.setAmount(usdkOrderDO.getTotalAmount());
-        if (usdkOrderDO.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
+        orderMessage.setOrderDirection(usdkOrderDO.getOrderDirection());
+        orderMessage.setOrderType(usdkOrderDO.getOrderType());
+        if (!usdkOrderDO.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
             orderMessage.setPrice(usdkOrderDO.getPrice());
         }
         orderMessage.setTransferTime(transferTime);
@@ -240,12 +254,12 @@ public class UsdkOrderManager {
             Integer assetId = 0;
             BigDecimal unlockAmount = BigDecimal.ZERO;
             if (orderDirection == OrderDirectionEnum.BID.getCode()){
-                assetId = AssetTypeEnum.USDK.getCode();
+                assetId = AssetTypeEnum.USDT.getCode();
                 BigDecimal unfilledAmount = usdkOrderDO.getUnfilledAmount();
                 BigDecimal price = usdkOrderDO.getPrice();
                 unlockAmount = unfilledAmount.multiply(price);
                 //解冻USDK钱包账户
-                Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,AssetTypeEnum.USDK.getCode(),unlockAmount.negate().toString(), 0L);
+                Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,AssetTypeEnum.USDT.getCode(),unlockAmount.negate().toString(), 0L);
                 if (!updateLockedAmountRet){
                     log.error("getCapitalService().updateLockedAmount failed{}", usdkOrderDO);
                     throw new RuntimeException("getCapitalService().updateLockedAmount failed");
@@ -278,7 +292,9 @@ public class UsdkOrderManager {
             orderMessage.setSubjectName(usdkOrderDTO.getAssetName());
             orderMessage.setAmount(usdkOrderDO.getTotalAmount());
             orderMessage.setPrice(usdkOrderDO.getPrice());
+            orderMessage.setOrderType(usdkOrderDO.getOrderType());
             orderMessage.setTransferTime(transferTime);
+            orderMessage.setOrderDirection(orderDirection);
             Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", orderMessage);
             if (!sendRet){
                 log.error("Send RocketMQ Message Failed ");
@@ -455,6 +471,14 @@ public class UsdkOrderManager {
         orderMessage.setEvent(OrderOperateTypeEnum.DEAL_ORDER.getCode());
         orderMessage.setAskOrderId(usdkMatchedOrderDTO.getAskOrderId());
         orderMessage.setBidOrderId(usdkMatchedOrderDTO.getBidOrderId());
+        //orderMessage.setAskOrderType(askUsdkOrder.getOrderType());
+        //orderMessage.setBidOrderType(bidUsdkOrder.getOrderType());
+        if (askUsdkOrder.getPrice() != null){
+            orderMessage.setAskOrderEntrustPrice(askUsdkOrder.getPrice());
+        }
+        if (bidUsdkOrder.getPrice() != null){
+            orderMessage.setBidOrderEntrustPrice(bidUsdkOrder.getPrice());
+        }
         orderMessage.setAskUserId(askUsdkOrder.getUserId());
         orderMessage.setBidUserId(bidUsdkOrder.getUserId());
         orderMessage.setMatchOrderId(usdkMatchedOrderDO.getId());
@@ -519,6 +543,24 @@ public class UsdkOrderManager {
         return ret;
     }
 
+    public Long getLatestUsdkMatched (Integer type) {
+        try {
+            if (type == 1) {
+                UsdkMatchedOrderDO latestUsdkMatched = usdkMatchedOrderMapper.getLatestUsdkMatched();
+                if (latestUsdkMatched != null) {
+                    return latestUsdkMatched.getId();
+                }
+            }else if (type ==2) {
+                ContractMatchedOrderDO latestContractMatched = contractMatchedOrderMapper.getLatestContractMatched();
+                if (latestContractMatched != null) {
+                    return latestContractMatched.getId();
+                }
+            }
+        } catch (Exception e) {
+            log.error("usdkMatchedOrderMapper.getLatestUsdkMatched error" ,e);
+        }
+        return null;
+    }
 }
 
 

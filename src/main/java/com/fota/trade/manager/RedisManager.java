@@ -12,6 +12,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -237,17 +238,36 @@ public class RedisManager {
         }
     }
 
-    public boolean tryLock(String lock, long seconds) {
-        return tryLock(lock, seconds, TimeUnit.SECONDS);
+
+    /**
+     *
+     * @param lock 锁的key
+     * @param lockExpire 锁超时间隔
+     * @param retries 重试次数
+     * @param retryDuration 重试间隔
+     * @return
+     */
+    public boolean tryLock(String lock, Duration lockExpire, int retries, Duration retryDuration){
+        for (int i=0;i<=retries;i++) {
+            if (tryLock(lock, lockExpire)){
+                return true;
+            }
+            try {
+                Thread.sleep(retryDuration.toMillis());
+            } catch (InterruptedException e) {
+                return false;
+            }
+        }
+        return false;
     }
 
 
-    public boolean tryLock(String lock, long timeout, TimeUnit timeUnit) {
+    public boolean tryLock(String lock, Duration expiration) {
         boolean a= redisTemplate.opsForValue().setIfAbsent(lock, "LOCK");
         if (!a) {
             return false;
         }
-        redisTemplate.expire(lock, timeout, timeUnit);
+        redisTemplate.expire(lock, expiration.toMillis(), TimeUnit.MILLISECONDS);
         return true;
     }
 

@@ -9,6 +9,7 @@ import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.manager.UsdkOrderManager;
+import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkOrderMapper;
 import com.fota.trade.service.UsdkOrderService;
@@ -39,6 +40,9 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
 
     @Autowired
     private UsdkOrderMapper usdkOrderMapper;
+
+    @Autowired
+    private ContractMatchedOrderMapper contractMatchedOrderMapper;
 
     @Autowired
     private UsdkOrderManager usdkOrderManager;
@@ -335,4 +339,65 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         usdkOrderDO.setUnfilledAmount(usdkOrderDO.getUnfilledAmount().subtract(filledAmount));
         return usdkOrderMapper.updateByPrimaryKeyAndOpLock(usdkOrderDO);
     }
+
+    @Override
+    public Long getLatestMatchedUsdk (Integer type) {
+        Long id = usdkOrderManager.getLatestUsdkMatched(type);
+        return id;
+    }
+
+    @Override
+    public List<UsdkMatchedOrderTradeDTO> getLatestUsdkMatchedList (Long id ,Integer assetId) {
+        List<com.fota.trade.domain.UsdkMatchedOrderTradeDTO> usdkMatchedOrderTradeDTOList = new ArrayList<>();
+        try {
+            List<UsdkMatchedOrderDO> list = usdkMatchedOrderMapper.getLatestUsdkMatchedList(assetId, id);
+            if (list != null && !list.isEmpty()) {
+                for (UsdkMatchedOrderDO usdkMatchedOrderDO : list) {
+                    com.fota.trade.domain.UsdkMatchedOrderTradeDTO usdkMatchedOrderTradeDTO = new com.fota.trade.domain.UsdkMatchedOrderTradeDTO();
+                    usdkMatchedOrderTradeDTO.setUsdkMatchedOrderId(usdkMatchedOrderDO.getId());
+                    usdkMatchedOrderTradeDTO.setAskOrderId(usdkMatchedOrderDO.getAskOrderId());
+                    usdkMatchedOrderTradeDTO.setBidOrderId(usdkMatchedOrderDO.getBidOrderId());
+                    usdkMatchedOrderTradeDTO.setFilledPrice(usdkMatchedOrderDO.getFilledPrice());
+                    usdkMatchedOrderTradeDTO.setFilledAmount(usdkMatchedOrderDO.getFilledAmount());
+                    usdkMatchedOrderTradeDTO.setFilledDate(usdkMatchedOrderDO.getGmtCreate());
+                    usdkMatchedOrderTradeDTO.setMatchType(usdkMatchedOrderDO.getMatchType().intValue());
+                    usdkMatchedOrderTradeDTO.setAssetId(usdkMatchedOrderDO.getAssetId().longValue());
+                    usdkMatchedOrderTradeDTO.setAssetName(usdkMatchedOrderDO.getAssetName());
+                    usdkMatchedOrderTradeDTOList.add(usdkMatchedOrderTradeDTO);
+                }
+                return usdkMatchedOrderTradeDTOList;
+            }
+        } catch (Exception e) {
+            log.error("UsdkOrderService getLatestUsdkMatchedList error id:{} assetId:{} ",id, assetId, e);
+        }
+        return null;
+    }
+
+    @Override
+    public List<ContractMatchedOrderTradeDTO> getLatestContractMatchedList (Long id ,Long contractId){
+        List<com.fota.trade.domain.ContractMatchedOrderTradeDTO> contractMatchedOrderTradeDTOS = new ArrayList<>();
+        try {
+            List<ContractMatchedOrderDO> list = contractMatchedOrderMapper.getLatestContractMatchedList(contractId, id);
+            if (list !=null && !list.isEmpty()) {
+                for (ContractMatchedOrderDO contractMatchedOrderDO : list){
+                    com.fota.trade.domain.ContractMatchedOrderTradeDTO contractMatchedOrderTradeDTO = new com.fota.trade.domain.ContractMatchedOrderTradeDTO();
+                    contractMatchedOrderTradeDTO.setContractMatchedOrderId(contractMatchedOrderDO.getId());
+                    contractMatchedOrderTradeDTO.setAskOrderId(contractMatchedOrderDO.getAskOrderId());
+                    contractMatchedOrderTradeDTO.setBidOrderId(contractMatchedOrderDO.getBidOrderId());
+                    contractMatchedOrderTradeDTO.setFilledAmount(contractMatchedOrderDO.getFilledAmount());
+                    contractMatchedOrderTradeDTO.setFilledPrice(contractMatchedOrderDO.getFilledPrice());
+                    contractMatchedOrderTradeDTO.setFilledDate(contractMatchedOrderDO.getGmtCreate());
+                    contractMatchedOrderTradeDTO.setMatchType(Integer.valueOf(contractMatchedOrderDO.getMatchType()));
+                    contractMatchedOrderTradeDTO.setContractId(contractMatchedOrderDO.getContractId());
+                    contractMatchedOrderTradeDTO.setContractName(contractMatchedOrderDO.getContractName());
+                    contractMatchedOrderTradeDTOS.add(contractMatchedOrderTradeDTO);
+                }
+                return contractMatchedOrderTradeDTOS;
+            }
+        } catch (Exception e) {
+            log.error("UsdkOrderService getLatestContractMatchedList error id:{} contractId:{}",id ,contractId, e);
+        }
+        return null;
+    }
+
 }
