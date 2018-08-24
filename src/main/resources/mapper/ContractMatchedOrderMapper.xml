@@ -131,4 +131,20 @@
         limit #{startRow}, #{endRow}
     </select>
 
+    <select id="getLatestContractMatched" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from contract_matched_order where status = 1
+        order by gmt_create desc
+        limit 1
+    </select>
+
+    <select id="getLatestContractMatchedList" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List" />
+        from contract_matched_order
+        where id &lt; #{id} and contract_id = #{contractId} and status = 1
+        order by gmt_create desc
+        limit 50
+    </select>
 </mapper>

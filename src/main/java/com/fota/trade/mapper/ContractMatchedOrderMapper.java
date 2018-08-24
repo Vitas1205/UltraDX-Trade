@@ -32,4 +32,8 @@ public interface ContractMatchedOrderMapper {
 
     @Update("UPDATE contract_matched_order SET gmt_modified=now(), status=#{toStatus} WHERE id=#{id}")
     int updateStatus(@Param("id") long id, @Param("toStatus") int toStatus);
+
+    ContractMatchedOrderDO getLatestContractMatched();
+
+    List<ContractMatchedOrderDO> getLatestContractMatchedList(@Param("contractId") Long contractId , @Param("id") Long id );
 }

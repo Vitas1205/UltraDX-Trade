@@ -13,6 +13,7 @@ import com.fota.trade.common.Constant;
 import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.*;
+import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkOrderMapper;
 import com.fota.trade.util.CommonUtils;
@@ -25,6 +26,8 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
@@ -49,6 +52,12 @@ public class UsdkOrderManager {
 
     @Autowired
     private UsdkOrderMapper usdkOrderMapper;
+
+    @Resource
+    private UsdkMatchedOrderMapper usdkMatchedOrderMapper;
+
+    @Resource
+    private ContractMatchedOrderMapper contractMatchedOrderMapper;
 
     @Autowired
     private RedisManager redisManager;
@@ -534,6 +543,24 @@ public class UsdkOrderManager {
         return ret;
     }
 
+    public Long getLatestUsdkMatched (Integer type) {
+        try {
+            if (type == 1) {
+                UsdkMatchedOrderDO latestUsdkMatched = usdkMatchedOrderMapper.getLatestUsdkMatched();
+                if (latestUsdkMatched != null) {
+                    return latestUsdkMatched.getId();
+                }
+            }else if (type ==2) {
+                ContractMatchedOrderDO latestContractMatched = contractMatchedOrderMapper.getLatestContractMatched();
+                if (latestContractMatched != null) {
+                    return latestContractMatched.getId();
+                }
+            }
+        } catch (Exception e) {
+            log.error("usdkMatchedOrderMapper.getLatestUsdkMatched error" ,e);
+        }
+        return null;
+    }
 }
 
 
