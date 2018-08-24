@@ -18,7 +18,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-@EnableAutoConfiguration
 @RefreshScope
 @SpringBootApplication
 @ImportResource("classpath:application-context.xml")
