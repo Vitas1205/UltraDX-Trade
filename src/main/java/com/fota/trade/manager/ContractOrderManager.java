@@ -30,6 +30,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -773,7 +774,10 @@ public class ContractOrderManager {
         long contractId = contractOrderDO.getContractId();
 
         String lockKey = "LOCK_POSITION_"+ userId+ "_" + contractId;
-        redisManager.tryLock(lockKey, 10);
+        boolean suc = redisManager.tryLock(lockKey, Duration.ofSeconds(3), 3, Duration.ofMillis(10));
+        if (!suc) {
+            throw new RuntimeException("get lock failed");
+        }
         try {
             return internalUpdatePosition(contractOrderDO, contractSize, filledAmount, filledPrice);
         }finally {
@@ -938,7 +942,7 @@ public class ContractOrderManager {
         userPositionDO.setAveragePrice(newAvaeragePrice);
         userPositionDO.setUnfilledAmount(newTotalAmount);
 
-        int updateRet = userPositionMapper.updateByPrimaryKey(userPositionDO);
+        int updateRet = userPositionMapper.updateByOpLock(userPositionDO);
         if (updateRet != 1) {
             throw new RuntimeException("doUpdatePosition failed");
         }

@@ -15,6 +15,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -71,11 +72,11 @@ public class RedisTest {
     @Test
     public void lockTest(){
         String lock = "TEST_LOCK";
-        long timeout = 3;
         long st;
+        Duration expire = Duration.ofSeconds(3);
 
         st = System.currentTimeMillis();
-        boolean suc = redisManager.tryLock(lock, timeout);
+        boolean suc = redisManager.tryLock(lock, expire);
         log.info("costOfLock={}", System.currentTimeMillis() - st);
         assert suc;
 
@@ -90,6 +91,6 @@ public class RedisTest {
         log.info("averageCost={}" ,sum*1.0/count);
 
         long t = redisTemplate.getExpire(lock, TimeUnit.MILLISECONDS);
-        assert t < timeout;
+        assert t < expire.toMillis();
     }
 }
