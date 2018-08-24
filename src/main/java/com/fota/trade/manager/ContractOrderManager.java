@@ -373,7 +373,7 @@ public class ContractOrderManager {
     }
 
 
-    //获取追加冻结金额
+    //获取实时委托冻结、实时保证金、实时浮盈亏金
     public BigDecimal getTotalLockAmount(long userId) {
         //获取所有合约类型列表
         BigDecimal totalLockedAmount = BigDecimal.ZERO;

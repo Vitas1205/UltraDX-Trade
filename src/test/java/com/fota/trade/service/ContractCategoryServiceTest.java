@@ -23,7 +23,7 @@ import java.util.List;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
-@Transactional
+//@Transactional
 public class ContractCategoryServiceTest {
 
     @Resource
@@ -51,7 +51,7 @@ public class ContractCategoryServiceTest {
     public void testSaveContract() throws Exception {
         ContractCategoryDTO newContract = new ContractCategoryDTO();
         newContract.setId(null);
-        newContract.setContractName("test_btc");
+        newContract.setContractName("test_btc3");
         newContract.setAssetId(0);
         newContract.setAssetName("btc");
         newContract.setStatus(ContractStatus.UNOPENED.getCode());
