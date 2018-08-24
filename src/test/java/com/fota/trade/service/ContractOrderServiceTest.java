@@ -7,6 +7,7 @@ import com.fota.common.Page;
 import com.fota.common.Result;
 import com.fota.trade.client.RollbackTask;
 import com.fota.trade.domain.*;
+import com.fota.trade.domain.enums.OrderCloseTypeEnum;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.domain.enums.OrderTypeEnum;
@@ -33,10 +34,7 @@ import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 import static com.fota.trade.domain.enums.OrderStatusEnum.COMMIT;
 import static com.fota.trade.domain.enums.OrderStatusEnum.PART_MATCH;
@@ -266,6 +264,22 @@ public class ContractOrderServiceTest {
         ContractMatchedOrderTradeDTOPage contractMatchedOrderTradeDTOPage =
                 contractOrderService.getContractMacthRecord(userId, contractIds, pageNo, pageSize, startTime, endTime);
         log.info("--------------------------" + contractMatchedOrderTradeDTOPage);
+    }
+
+    @Test
+    public void contractPlaceOrderTest(){
+        ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
+        Map<String, String> userInfoMap = new HashMap<>();
+        contractOrderDTO.setContractId(1001L);
+        contractOrderDTO.setContractName("BTC0201");
+        contractOrderDTO.setTotalAmount(10L);
+        contractOrderDTO.setOrderType(OrderTypeEnum.ENFORCE.getCode());
+        contractOrderDTO.setOrderDirection(OrderDirectionEnum.BID.getCode());
+        contractOrderDTO.setUserId(282L);
+        contractOrderDTO.setCloseType(OrderCloseTypeEnum.SYSTEM.getCode());
+        contractOrderDTO.setFee(new BigDecimal(0.01));
+        contractOrderDTO.setUnfilledAmount(10L);
+        contractOrderService.order(contractOrderDTO, userInfoMap);
     }
 
 }

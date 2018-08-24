@@ -1,5 +1,7 @@
 package com.fota.trade.domain.enums;
 
+import lombok.Getter;
+
 /**
  * @author Gavin Shen
  * @Date 2018/7/5
@@ -19,7 +21,9 @@ public enum  ContractTypeEnum {
      */
     SEASON(3, "SEASON"),
     ;
+    @Getter
     private int code;
+    @Getter
     private String desc;
 
     ContractTypeEnum(int code, String desc) {

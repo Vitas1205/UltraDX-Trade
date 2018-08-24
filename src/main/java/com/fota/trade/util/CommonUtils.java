@@ -18,6 +18,10 @@ public class CommonUtils {
     }
     public static long generateId(){
         UUID uuid = UUID.randomUUID();
-        return uuid.getMostSignificantBits() ^ uuid.getLeastSignificantBits();
+        long m = uuid.getMostSignificantBits() ^ uuid.getLeastSignificantBits();
+        m= Math.abs(m);
+        m = m % 999999999999999L;
+        return m;
     }
+
 }

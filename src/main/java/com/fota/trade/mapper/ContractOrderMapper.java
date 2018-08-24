@@ -7,6 +7,7 @@ import org.apache.ibatis.annotations.*;
 
 import javax.management.Query;
 import java.math.BigDecimal;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -22,22 +23,20 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
 
     @Override
     @Insert({
-        "insert into trade_contract_order (id, gmt_create, ",
-        "gmt_modified, user_id, ",
-        "contract_id, contract_name, ",
-        "order_direction, operate_type, ",
-        "operate_direction, lever, ",
-        "total_amount, unfilled_amount, ",
-        "price, fee, usdk_locked_amount, ",
-        "position_locked_amount, status, average_price)",
-        "values (#{id,jdbcType=BIGINT}, now(), ",
-        "now(), #{userId,jdbcType=BIGINT}, ",
-        "#{contractId,jdbcType=INTEGER}, #{contractName,jdbcType=VARCHAR}, ",
-        "#{orderDirection,jdbcType=TINYINT}, #{operateType,jdbcType=TINYINT}, ",
-        "#{operateDirection,jdbcType=TINYINT}, #{lever,jdbcType=INTEGER}, ",
-        "#{totalAmount,jdbcType=BIGINT}, #{unfilledAmount,jdbcType=BIGINT}, ",
-        "#{price,jdbcType=DECIMAL}, #{fee,jdbcType=DECIMAL}, #{usdkLockedAmount,jdbcType=DECIMAL}, ",
-        "#{positionLockedAmount,jdbcType=DECIMAL}, #{status}, #{averagePrice,jdbcType=DECIMAL})"
+            "insert into trade_contract_order (id, gmt_create, ",
+            "gmt_modified, user_id, ",
+            "contract_id, contract_name, ",
+            "order_direction, ",
+            "total_amount, unfilled_amount, ",
+            "price, fee, ",
+            "status, average_price, order_type, close_type)",
+            "values (#{id}, now(), ",
+            "now(), #{userId}, ",
+            "#{contractId,jdbcType=INTEGER}, #{contractName,jdbcType=VARCHAR}, ",
+            "#{orderDirection,jdbcType=TINYINT}, ",
+            "#{totalAmount,jdbcType=BIGINT}, #{unfilledAmount,jdbcType=BIGINT}, ",
+            "#{price,jdbcType=DECIMAL}, #{fee,jdbcType=DECIMAL},",
+            " #{status}, #{averagePrice,jdbcType=DECIMAL}, #{orderType}, #{closeType})"
     })
     int insert(ContractOrderDO record);
 
@@ -196,7 +195,8 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
 
     int updateAmountAndStatus(@Param("orderId") Long orderId,
                               @Param("lFilledAmount") long filledAmount,
-                              @Param("filledPrice") BigDecimal filledPrice);
+                              @Param("filledPrice") BigDecimal filledPrice,
+                              @Param("gmtModified") Date gmtModified);
 
     List<ContractOrderDO> notMatchOrderList(
             @Param("placeOrder") Integer placeOrder, @Param("partialSuccess") Integer partialSuccess,

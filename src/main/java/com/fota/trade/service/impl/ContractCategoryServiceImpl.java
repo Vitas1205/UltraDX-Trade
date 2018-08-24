@@ -20,6 +20,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -182,7 +183,7 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
         result.setData(result);
 
         //加锁，同一合约只能有一个回滚任务进行
-        if (!redisManager.tryLock(rollbackKey, 1, TimeUnit.DAYS)) {
+        if (!redisManager.tryLock(rollbackKey, Duration.ofHours(24))) {
             return result.error(CONTRACT_IS_ROLLING_BACK.getCode(), CONTRACT_IS_ROLLING_BACK.getMessage());
         }
         try {
