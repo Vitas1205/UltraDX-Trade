@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 
 import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
 import static com.fota.trade.domain.enums.OrderTypeEnum.ENFORCE;
+import static com.fota.trade.util.ContractUtils.computeAveragePrice;
 
 /**
  * @author Gavin Shen
@@ -811,19 +812,17 @@ public class ContractOrderManager {
         if (contractOrderDO.getOrderDirection().equals(userPositionDO.getPositionType())) {
             //成交单和持仓是同方向
             newTotalAmount = userPositionDO.getUnfilledAmount() + filledAmount;
-            newAveragePrice = ContractUtils.calAveragePrice(userPositionDO.getUnfilledAmount(), userPositionDO.getAveragePrice(), filledAmount, filledPrice);
+            newAveragePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount, contractSize);
         }
         //成交单和持仓是反方向 （平仓）
         else if (filledAmount - userPositionDO.getUnfilledAmount() <= 0) {
             //不改变仓位方向
             newTotalAmount = userPositionDO.getUnfilledAmount() - filledAmount;
-            if (newTotalAmount != 0){
-                newAveragePrice = userPositionDO.getAveragePrice().setScale(8, BigDecimal.ROUND_DOWN);
-            }
+            newAveragePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount, contractSize);
         } else {
             //改变仓位方向
             newTotalAmount = filledAmount - userPositionDO.getUnfilledAmount();
-            newAveragePrice = filledPrice.setScale(8, BigDecimal.ROUND_DOWN);;
+            newAveragePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount, contractSize);
             userPositionDO.setPositionType(contractOrderDO.getOrderDirection());
         }
         doUpdatePosition(userPositionDO, newAveragePrice, newTotalAmount);
