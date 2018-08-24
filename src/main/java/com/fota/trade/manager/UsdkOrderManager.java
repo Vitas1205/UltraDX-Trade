@@ -462,8 +462,8 @@ public class UsdkOrderManager {
         orderMessage.setEvent(OrderOperateTypeEnum.DEAL_ORDER.getCode());
         orderMessage.setAskOrderId(usdkMatchedOrderDTO.getAskOrderId());
         orderMessage.setBidOrderId(usdkMatchedOrderDTO.getBidOrderId());
-        orderMessage.setAskOrderType(askUsdkOrder.getOrderType());
-        orderMessage.setBidOrderType(bidUsdkOrder.getOrderType());
+        //orderMessage.setAskOrderType(askUsdkOrder.getOrderType());
+        //orderMessage.setBidOrderType(bidUsdkOrder.getOrderType());
         if (askUsdkOrder.getPrice() != null){
             orderMessage.setAskOrderEntrustPrice(askUsdkOrder.getPrice());
         }

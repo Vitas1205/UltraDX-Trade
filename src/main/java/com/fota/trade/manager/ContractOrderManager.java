@@ -728,8 +728,8 @@ public class ContractOrderManager {
         orderMessage.setMatchOrderId(contractMatchedOrderDO.getId());
         orderMessage.setContractMatchAssetName(contractCategoryDO.getAssetName());
         orderMessage.setContractType(contractCategoryDO.getContractType());
-        orderMessage.setAskOrderType(askContractOrderDTO.getOrderType());
-        orderMessage.setBidOrderType(bidContractOrderDTO.getOrderType());
+        //orderMessage.setAskOrderType(askContractOrderDTO.getOrderType());
+        //orderMessage.setBidOrderType(bidContractOrderDTO.getOrderType());
         if (askContractOrderDTO.getPrice() != null){
             orderMessage.setAskOrderEntrustPrice(askContractOrderDTO.getPrice());
         }
