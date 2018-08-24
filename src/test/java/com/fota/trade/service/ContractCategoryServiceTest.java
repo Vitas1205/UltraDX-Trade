@@ -1,6 +1,9 @@
 package com.fota.trade.service;
 
+import com.fota.trade.domain.ContractCategoryDO;
 import com.fota.trade.domain.ContractCategoryDTO;
+import com.fota.trade.domain.enums.ContractStatus;
+import com.fota.trade.domain.enums.ContractTypeEnum;
 import com.fota.trade.service.impl.ContractCategoryServiceImpl;
 import org.junit.Assert;
 import org.junit.Test;
@@ -46,11 +49,21 @@ public class ContractCategoryServiceTest {
 
     @Test
     public void testSaveContract() throws Exception {
-//        ContractCategoryDO contractCategoryDO = new ContractCategoryDO(3L,
-//                new Date(), new Date(), "ETC0932", 3, "ETH",
-//                100L,100L, new Date(), 2, 1,new BigDecimal("1.1"));
-//        Integer saveRet = contractCategoryService.saveContract(contractCategoryDO);
-//        Assert.assertTrue(saveRet != null && saveRet > 0);
+        ContractCategoryDTO newContract = new ContractCategoryDTO();
+        newContract.setId(null);
+        newContract.setContractName("test_btc");
+        newContract.setAssetId(0);
+        newContract.setAssetName("btc");
+        newContract.setStatus(ContractStatus.UNOPENED.getCode());
+        newContract.setTotalAmount(0L);
+        newContract.setUnfilledAmount(0L);
+        newContract.setDeliveryDate(System.currentTimeMillis());
+        newContract.setContractType(ContractTypeEnum.MONTH.getCode());
+        newContract.setGmtCreate(new Date());
+        newContract.setGmtModified(new Date());
+        newContract.setContractSize(new BigDecimal(0));
+        Integer saveRet = contractCategoryService.saveContract(newContract);
+        Assert.assertTrue(saveRet != null && saveRet > 0);
     }
 
     @Test

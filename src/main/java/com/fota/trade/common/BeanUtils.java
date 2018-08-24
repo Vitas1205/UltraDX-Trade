@@ -60,6 +60,7 @@ public class BeanUtils {
         contractCategoryDO.setGmtModified(contractCategoryDTO.getGmtModified());
         contractCategoryDO.setContractName(contractCategoryDTO.getContractName());
         contractCategoryDO.setAssetId(contractCategoryDTO.getAssetId());
+        contractCategoryDO.setAssetName(contractCategoryDTO.getAssetName());
         contractCategoryDO.setTotalAmount(contractCategoryDO.getTotalAmount());
         contractCategoryDO.setUnfilledAmount(contractCategoryDO.getUnfilledAmount());
         contractCategoryDO.setDeliveryDate(new Date(contractCategoryDTO.getDeliveryDate()));
