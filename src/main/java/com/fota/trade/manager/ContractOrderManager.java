@@ -18,6 +18,7 @@ import com.fota.trade.mapper.ContractCategoryMapper;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
+import com.fota.trade.service.ContractAccountService;
 import com.fota.trade.util.CommonUtils;
 import com.fota.trade.util.ContractUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -79,6 +80,9 @@ public class ContractOrderManager {
 
     @Autowired
     private ContractMatchedOrderMapper contractMatchedOrderMapper;
+
+    @Autowired
+    private ContractAccountService contractAccountService;
 
     private ContractService getContractService() {
         return contractService;
@@ -373,7 +377,6 @@ public class ContractOrderManager {
         tradeContractOrder.setId(contractOrderDO.getId());
         return contractMatchedOrderService.cancelOrderContract(tradeContractOrder);
     }
-
 
     //获取实时委托冻结、实时保证金、实时浮盈亏金
     public BigDecimal getTotalLockAmount(long userId) {
@@ -837,25 +840,23 @@ public class ContractOrderManager {
         long userId = contractOrderDO.getUserId();
         BigDecimal rate = contractOrderDO.getFee();
         //手续费
-        BigDecimal actualFee = filledPrice.multiply(new BigDecimal(filledAmount)).multiply(rate).multiply(contractSize);
+        BigDecimal actualFee = filledPrice.multiply(new BigDecimal(filledAmount)).multiply(rate).multiply(contractSize).negate();
 
-        BigDecimal addedTotalAmount = new BigDecimal(positionResult.getOriginAmount() - positionResult.getCurAmount())
-                .multiply(filledPrice)
-                .multiply(contractSize)
-                .divide(new BigDecimal(lever), 8, BigDecimal.ROUND_DOWN)
-                .subtract(actualFee);
-
-        UserContractDTO userContractDTO  = assetService.getContractAccount(userId);
-        BigDecimal lockedAmount = new BigDecimal(userContractDTO.getLockedAmount());
-        BigDecimal totalLockAmount = getTotalLockAmount(userId);
-        BigDecimal addedTotalLocked = totalLockAmount.subtract(lockedAmount);
+        com.fota.common.Result<ContractAccount> result = contractAccountService.getContractAccount(userId);
+        if (!result.isSuccess() || null==result.getData()) {
+            throw new RuntimeException("get contractAccount failed");
+        }
+        ContractAccount account = result.getData();
+        if (account.getAvailableAmount().compareTo(BigDecimal.ZERO) <= 0 && !(ENFORCE.getCode() == contractOrderDO.getOrderType())) {
+            throw new RuntimeException("available amount is not enough");
+        }
         ContractDealer dealer = new ContractDealer()
                 .setUserId(userId)
-                .setAddedTotalAmount(addedTotalAmount)
-                .setAddedLockAmount(addedTotalLocked);
+                .setAddedTotalAmount(actualFee)
+                .setTotalLockAmount(account.getFrozenAmount().add(account.getMarginCallRequirement()))
+                ;
         dealer.setDealType((null != contractOrderDO.getOrderType() && ENFORCE.getCode() == contractOrderDO.getOrderType()) ? ContractDealer.DealType.FORCE : ContractDealer.DealType.NORMAL);
         return dealer;
-
     }
 
 //    private void updateContractAccount(ContractOrderDO contractOrderDO, ContractMatchedOrderDTO contractMatchedOrderDTO) {

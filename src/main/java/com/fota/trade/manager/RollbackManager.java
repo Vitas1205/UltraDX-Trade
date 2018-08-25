@@ -107,20 +107,13 @@ public class RollbackManager {
                                               BigDecimal contractSize, UpdatePositionResult positionResult, BigDecimal lever){
         long userId = contractOrderDO.getUserId();
         BigDecimal rate = contractOrderDO.getFee();
-
         BigDecimal actualFee = filledPrice.multiply(new BigDecimal(filledAmount)).multiply(rate).multiply(contractSize);
-        BigDecimal addedTotalAmount = new BigDecimal(positionResult.getCurAmount() - positionResult.getOriginAmount())
-                .multiply(filledPrice)
-                .multiply(contractSize)
-                .divide(lever, 8, BigDecimal.ROUND_DOWN)
-                .subtract(actualFee)
-                .negate();
 
         ContractDealer dealer = new ContractDealer()
                 .setUserId(userId)
-                .setAddedTotalAmount(addedTotalAmount)
-                .setAddedLockAmount(BigDecimal.ZERO);
-        dealer.setDealType((null != contractOrderDO.getOrderType() && ENFORCE.getCode() == contractOrderDO.getOrderType()) ? ContractDealer.DealType.FORCE : ContractDealer.DealType.NORMAL);
+                .setAddedTotalAmount(actualFee)
+                .setTotalLockAmount(BigDecimal.ZERO);
+        dealer.setDealType( ContractDealer.DealType.FORCE);
         return dealer;
     }
 
