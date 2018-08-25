@@ -21,6 +21,9 @@ public class Constant {
     public static final BigDecimal FEE_RATE = new BigDecimal("0.001");
     public static final String CACHE_KEY_MATCH_CONTRACT = "CACHE_KEY_MATCH_CONTRACT_";
     public static final String CACHE_KEY_MATCH_USDK = "CACHE_KEY_MATCH_USDK_";
-    public static final String MQ_REPET_JUDGE_KEY = "MQ_REPET_JUDGE_KEY";
+    public static final String MQ_REPET_JUDGE_KEY_TRADE = "MQ_REPET_JUDGE_KEY_TRADE";
+    public static final String ENTRUST_MARGIN = "entrustMargin";
+    public static final String POSITION_MARGIN = "positionMargin";
+    public static final String FLOATING_PL = "floatingPL";
 
 }

@@ -176,6 +176,10 @@ public class ContractOrderServiceImpl implements
         com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
         try {
             result = contractOrderManager.placeOrder(contractOrderDTO, userInfoMap);
+            if (result.isSuccess()) {
+                tradeLog.info("下单@@@" + contractOrderDTO);
+                redisManager.contractOrderSaveForMatch(contractOrderDTO);
+            }
             return result;
         }catch (Exception e){
             log.error("Contract order() failed", e);

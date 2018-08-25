@@ -11,6 +11,7 @@ import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
@@ -43,8 +44,20 @@ public class ContractCategoryServiceTest {
 
     @Test
     public void testGetContractById() throws Exception {
-        ContractCategoryDTO contractCategoryDO = contractCategoryService.getContractById(3L);
+        ContractCategoryDTO contractCategoryDO = contractCategoryService.getContractById(1000L);
         Assert.assertTrue(contractCategoryDO != null);
+    }
+
+    @Test
+    public void testGetContractByStatus() throws Exception {
+        List<ContractCategoryDTO> list = contractCategoryService.getContractByStatus(2);
+        Assert.assertTrue(!CollectionUtils.isEmpty(list));
+    }
+
+    @Test
+    public void testUpdataStatusById() throws Exception {
+        int ret = contractCategoryService.updateContractStatus(1056L, ContractStatus.DELETED);
+        Assert.assertTrue(ret>0);
     }
 
     @Test
