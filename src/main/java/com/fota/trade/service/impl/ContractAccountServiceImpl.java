@@ -18,7 +18,7 @@ public class ContractAccountServiceImpl implements ContractAccountService {
         ContractAccount account = new ContractAccount();
         account.setUserId(userId)
                 .setAccountEquity(BigDecimal.ZERO)
-                .setAvailableAmount(BigDecimal.ZERO)
+                .setAvailableAmount(BigDecimal.ONE)
                 .setFrozenAmount(BigDecimal.ZERO)
                 .setMarginCallRequirement(BigDecimal.ZERO);
         return Result.<ContractAccount>create().success(account);
