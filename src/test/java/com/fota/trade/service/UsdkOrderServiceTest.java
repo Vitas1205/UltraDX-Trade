@@ -66,24 +66,24 @@ public class UsdkOrderServiceTest {
 
     @Test
     public void testPlaceOrder(){
-//        UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
-//        usdkOrderDTO.setCompleteAmount(new BigDecimal(0));
-//        usdkOrderDTO.setUserId(274L);
-//        usdkOrderDTO.setAssetId(1);
-//        usdkOrderDTO.setAssetName("BTC");
-//        usdkOrderDTO.setAveragePrice(new BigDecimal(1));
-//        usdkOrderDTO.setFee(new BigDecimal(0.01));
-//        usdkOrderDTO.setOrderDirection(OrderDirectionEnum.ASK.getCode());
-////        usdkOrderDTO.setOrderType(OrderTypeEnum.LIMIT.getCode());
-//        usdkOrderDTO.setGmtCreate(new Date());
-//        usdkOrderDTO.setPrice(new BigDecimal(1));
-//        usdkOrderDTO.setUnfilledAmount(new BigDecimal(10));
-//        usdkOrderDTO.setTotalAmount(new BigDecimal(10));
-//        usdkOrderDTO.setMatchAmount("0");
-//        com.fota.common.Result result = usdkOrderService.orderReturnId(usdkOrderDTO, new HashMap<>());
-//        System.out.println(result.getData());
-//        assert result.isSuccess()
-//                && (long)result.getData() >0;
+        UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
+        usdkOrderDTO.setCompleteAmount(new BigDecimal(0));
+        usdkOrderDTO.setUserId(282L);
+        usdkOrderDTO.setAssetId(1);
+        usdkOrderDTO.setAssetName("BTC");
+        usdkOrderDTO.setAveragePrice(new BigDecimal(0));
+        usdkOrderDTO.setFee(new BigDecimal(0.01));
+        usdkOrderDTO.setOrderDirection(OrderDirectionEnum.ASK.getCode());
+        usdkOrderDTO.setOrderType(OrderTypeEnum.LIMIT.getCode());
+        usdkOrderDTO.setGmtCreate(new Date());
+        usdkOrderDTO.setPrice(new BigDecimal(6000));
+        usdkOrderDTO.setUnfilledAmount(new BigDecimal(10));
+        usdkOrderDTO.setTotalAmount(new BigDecimal(10));
+        usdkOrderDTO.setMatchAmount("0");
+        com.fota.common.Result result = usdkOrderService.orderReturnId(usdkOrderDTO, new HashMap<>());
+        System.out.println(result.getData());
+        assert result.isSuccess()
+                && (long)result.getData() >0;
 
 
     }

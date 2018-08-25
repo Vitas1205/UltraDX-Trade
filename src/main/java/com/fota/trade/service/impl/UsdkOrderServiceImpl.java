@@ -142,6 +142,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
             result = usdkOrderManager.placeOrder(usdkOrderDTO, userInfoMap);
             if (result.isSuccess()) {
                 tradeLog.info("下单@@@" + usdkOrderDTO);
+                redisManager.usdtOrderSaveForMatch(usdkOrderDTO);
             }
             return result;
         }catch (Exception e){
