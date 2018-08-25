@@ -202,7 +202,7 @@ public class UsdkOrderManager {
             orderMessage.setPrice(usdkOrderDO.getPrice());
         }
         orderMessage.setTransferTime(transferTime);
-        Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", orderMessage);
+        Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", String.valueOf(usdkOrderDO.getId()), orderMessage);
         if (!sendRet){
             log.error("Send RocketMQ Message Failed ");
         }
@@ -290,7 +290,7 @@ public class UsdkOrderManager {
             orderMessage.setOrderType(usdkOrderDO.getOrderType());
             orderMessage.setTransferTime(transferTime);
             orderMessage.setOrderDirection(orderDirection);
-            Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", orderMessage);
+            Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", String.valueOf(usdkOrderDTO.getUserId())+usdkOrderDTO.getStatus(), orderMessage);
             if (!sendRet){
                 log.error("Send RocketMQ Message Failed ");
             }
@@ -477,7 +477,7 @@ public class UsdkOrderManager {
         orderMessage.setAskUserId(askUsdkOrder.getUserId());
         orderMessage.setBidUserId(bidUsdkOrder.getUserId());
         orderMessage.setMatchOrderId(usdkMatchedOrderDO.getId());
-        Boolean sendRet = rocketMqManager.sendMessage("match", "usdk", orderMessage);
+        Boolean sendRet = rocketMqManager.sendMessage("match", "usdk", String.valueOf(usdkMatchedOrderDO.getId()), orderMessage);
         if (!sendRet){
             log.error("Send RocketMQ Message Failed ");
         }

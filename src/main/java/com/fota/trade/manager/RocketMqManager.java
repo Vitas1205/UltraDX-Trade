@@ -28,8 +28,8 @@ public class RocketMqManager {
     @Autowired
     DefaultMQProducer producer;
 
-    public Boolean sendMessage(String topic, String tag, OrderMessage message){
-        Boolean ret = rocketMqProducer.producer(topic, tag, message.toString(), JSONObject.toJSONString(message));
+    public Boolean sendMessage(String topic, String tag, String key, OrderMessage message){
+        Boolean ret = rocketMqProducer.producer(topic, tag, key, JSONObject.toJSONString(message));
         return ret;
     }
 

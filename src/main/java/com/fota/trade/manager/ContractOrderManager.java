@@ -279,7 +279,7 @@ public class ContractOrderManager {
         orderMessage.setUserId(contractOrderDTO.getUserId());
         orderMessage.setSubjectId(contractOrderDO.getContractId());
         orderMessage.setSubjectName(contractOrderDO.getContractName());
-        Boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder", orderMessage);
+        Boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder",String.valueOf(contractOrderDTO.getId()), orderMessage);
         if (!sendRet) {
             log.error("Send RocketMQ Message Failed ");
         }
@@ -361,7 +361,7 @@ public class ContractOrderManager {
         orderMessage.setUserId(contractOrderDTO.getUserId());
         orderMessage.setSubjectId(contractOrderDO.getContractId());
         orderMessage.setOrderDirection(contractOrderDO.getOrderDirection());
-        Boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder", orderMessage);
+        Boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder", String.valueOf(contractOrderDTO.getId())+contractOrderDTO.getStatus(), orderMessage);
         if (!sendRet) {
             log.error("Send RocketMQ Message Failed ");
         }
@@ -755,7 +755,7 @@ public class ContractOrderManager {
         if (bidContractOrderDTO.getPrice() != null){
             orderMessage.setBidOrderEntrustPrice(bidContractOrderDTO.getPrice());
         }
-        Boolean sendRet = rocketMqManager.sendMessage("match", "contract", orderMessage);
+        Boolean sendRet = rocketMqManager.sendMessage("match", "contract", String.valueOf(contractMatchedOrderDO.getId()), orderMessage);
         if (!sendRet) {
             log.error("Send RocketMQ Message Failed ");
         }
