@@ -55,6 +55,12 @@ public class ContractCategoryServiceTest {
     }
 
     @Test
+    public void testUpdataStatusById() throws Exception {
+        int ret = contractCategoryService.updateContractStatus(1056L, ContractStatus.DELETED);
+        Assert.assertTrue(ret>0);
+    }
+
+    @Test
     public void testSaveContract() throws Exception {
         ContractCategoryDTO newContract = new ContractCategoryDTO();
         newContract.setId(null);
