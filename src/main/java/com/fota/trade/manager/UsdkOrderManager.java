@@ -127,6 +127,7 @@ public class UsdkOrderManager {
                 log.error("insert contractOrder failed");
                 throw new RuntimeException("insert contractOrder failed");
             }
+            orderId = usdkOrderDO.getId();
             BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
             if (orderDirection == OrderDirectionEnum.BID.getCode()){
                 //查询usdk账户可用余额
@@ -181,6 +182,7 @@ public class UsdkOrderManager {
                     log.error("insert contractOrder failed");
                     throw new RuntimeException("insert contractOrder failed");
                 }
+                orderId = usdkOrderDO.getId();
                 BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
             }else {
                 log.error("mortgageId can not be null");
