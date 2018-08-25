@@ -172,22 +172,15 @@ public class UsdkOrderManager {
                     }
                 }
             }
-        }else if (usdkOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()){
+        } else if (usdkOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()){
             //强平单处理
-            if (userInfoMap.containsKey("mortgageId")){
-                orderContext = JSONObject.toJSONString(userInfoMap);
-                usdkOrderDO.setOrderContext(orderContext);
-                int ret = insertUsdkOrder(usdkOrderDO);
-                if (ret <= 0){
-                    log.error("insert contractOrder failed");
-                    throw new RuntimeException("insert contractOrder failed");
-                }
-                orderId = usdkOrderDO.getId();
-                BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
-            }else {
-                log.error("mortgageId can not be null");
-                throw new RuntimeException("mortgageId can not be null");
+            int ret = insertUsdkOrder(usdkOrderDO);
+            if (ret <= 0){
+                log.error("insert contractOrder failed");
+                throw new RuntimeException("insert contractOrder failed");
             }
+            orderId = usdkOrderDO.getId();
+            BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
         }
         usdkOrderDTO.setCompleteAmount(BigDecimal.ZERO);
         redisManager.usdkOrderSave(usdkOrderDTO);
