@@ -237,13 +237,17 @@ public class ContractOrderManager {
         } else {
             insertOrderRecord(contractOrderDO);
             orderId = contractOrderDO.getId();
-            //委托冻结
-            BigDecimal totalLockAmount = getTotalLockAmount(contractOrderDO.getUserId()).get(Constant.ENTRUST_MARGIN);
-            //查询用户合约冻结金额
+            Map<String,BigDecimal> msg  = getAccountDetailMsg(contractOrderDO.getUserId());
+            log.info("AccountDetailMsg:"+msg.toString());
+            BigDecimal entrustLock = msg.get(Constant.ENTRUST_MARGIN);
+            BigDecimal positionMargin = msg.get(Constant.POSITION_MARGIN);
+            BigDecimal floatPL = msg.get(Constant.FLOATING_PL);
+            //查询用户合约冻结金额 判断可用是否大于委托冻结
             UserContractDTO userContractDTO = getAssetService().getContractAccount(contractOrderDO.getUserId());
-            BigDecimal lockedAmount = new BigDecimal(userContractDTO.getLockedAmount());
-            if (lockedAmount.compareTo(totalLockAmount) < 0) {
-                lockContractAccount(userContractDTO, totalLockAmount);
+            BigDecimal useableAmount = new BigDecimal(userContractDTO.getAmount()).add(floatPL).subtract(positionMargin);
+            if (useableAmount.compareTo(entrustLock) < 0) {
+                log.error("ContractAccount USDK Not Enough");
+                throw new BusinessException(ResultCodeEnum.CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(), ResultCodeEnum.CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
             }
         }
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO );
@@ -330,12 +334,12 @@ public class ContractOrderManager {
         int ret = contractOrderMapper.updateByOpLock(contractOrderDO);
         log.info("------------contractCancelEndTimeStamp"+System.currentTimeMillis());
         if (ret > 0) {
-            UserContractDTO userContractDTO = getAssetService().getContractAccount(contractOrderDO.getUserId());
+            /*UserContractDTO userContractDTO = getAssetService().getContractAccount(contractOrderDO.getUserId());
             BigDecimal lockedAmount = new BigDecimal(userContractDTO.getLockedAmount());
-            BigDecimal totalLockAmount = getTotalLockAmount(contractOrderDO.getUserId()).get(Constant.ENTRUST_MARGIN);
+            BigDecimal totalLockAmount = getAccountDetailMsg(contractOrderDO.getUserId()).get(Constant.ENTRUST_MARGIN);
             if (lockedAmount.compareTo(totalLockAmount) != 0) {
                 lockContractAccount(userContractDTO, totalLockAmount);
-            }
+            }*/
         } else {
             log.error("update contractOrder Failed{}", contractOrderDO);
             throw new RuntimeException("update contractOrder Failed");
@@ -380,7 +384,7 @@ public class ContractOrderManager {
     }
 
     //获取实时委托冻结、实时持仓保证金、实时浮盈亏金
-    public Map<String, BigDecimal> getTotalLockAmount(long userId) {
+    public Map<String, BigDecimal> getAccountDetailMsg(long userId) {
         Map<String, BigDecimal> resultMap = new HashMap<String, BigDecimal>();
         //获取所有合约类型列表
         BigDecimal entrustMargin = BigDecimal.ZERO;
