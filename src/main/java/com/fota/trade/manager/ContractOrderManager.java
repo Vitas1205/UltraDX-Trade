@@ -794,7 +794,7 @@ public class ContractOrderManager {
         String lockKey = "LOCK_POSITION_"+ userId+ "_" + contractId;
         boolean suc = redisManager.tryLock(lockKey, Duration.ofSeconds(3), 3, Duration.ofMillis(10));
         if (!suc) {
-            throw new RuntimeException("get lock failed");
+            throw new RuntimeException("get lock failed, contractOrderDO="+ JSON.toJSONString(contractOrderDO));
         }
         try {
             return internalUpdatePosition(contractOrderDO, contractSize, filledAmount, filledPrice);
