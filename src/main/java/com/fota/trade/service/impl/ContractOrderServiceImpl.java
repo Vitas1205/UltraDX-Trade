@@ -369,6 +369,12 @@ public class ContractOrderServiceImpl implements
             pageSize = 20;
         }
         Date startTimeD = null, endTimeD = null;
+        if (startTime == 0){
+            startTime = null;
+        }
+        if (endTime == 0){
+            endTime = null;
+        }
         if (startTime != null){
             startTimeD = DateUtil.LongTurntoDate(startTime);
         }
