@@ -122,6 +122,7 @@ public class UsdkOrderManager {
         }
         if (usdkOrderDO.getOrderType() != OrderTypeEnum.ENFORCE.getCode()){
             usdkOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
+            //插入委托订单记录
             int ret = insertUsdkOrder(usdkOrderDO);
             if (ret <= 0){
                 log.error("insert contractOrder failed");
@@ -214,6 +215,7 @@ public class UsdkOrderManager {
 
     private int insertUsdkOrder(UsdkOrderDO usdkOrderDO) {
         usdkOrderDO.setId(CommonUtils.generateId());
+        //redisManager.sSet(Constant.CACHE_USDT_ORDER_SET, usdkOrderDO);
         return usdkOrderMapper.insert(usdkOrderDO);
     }
 
@@ -242,6 +244,7 @@ public class UsdkOrderManager {
 
         Long transferTime = System.currentTimeMillis();
         log.info("------------usdkCancelStartTimeStamp"+System.currentTimeMillis());
+        //更新usdk委托表
         int ret = usdkOrderMapper.updateByOpLock(usdkOrderDO);
         log.info("------------usdkCancelEndTimeStamp"+System.currentTimeMillis());
         if (ret > 0){
