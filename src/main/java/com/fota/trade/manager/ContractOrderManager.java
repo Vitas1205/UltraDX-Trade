@@ -264,7 +264,7 @@ public class ContractOrderManager {
                     2, contractOrderDTO.getContractName(), username, ipAddress, contractOrderDTO.getTotalAmount(),
                     System.currentTimeMillis(), 1, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 1);
         }
-
+        redisManager.sSet(Constant.CACHE_CONTRACT_ORDER_SET, contractOrderDO);
         //推送MQ消息
         OrderMessage orderMessage = new OrderMessage();
         orderMessage.setAmount(new BigDecimal(contractOrderDTO.getUnfilledAmount()));
@@ -320,6 +320,7 @@ public class ContractOrderManager {
             resultCode.setMessage(ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getMessage());
             return resultCode;
         }
+        redisManager.sRemove(Constant.CACHE_CONTRACT_ORDER_SET, contractOrderDO);
         if (status == OrderStatusEnum.COMMIT.getCode()){
             contractOrderDO.setStatus(OrderStatusEnum.CANCEL.getCode());
         } else if (status == OrderStatusEnum.PART_MATCH.getCode()) {
@@ -351,6 +352,7 @@ public class ContractOrderManager {
         contractOrderDTO.setCompleteAmount(contractOrderDTO.getTotalAmount() - contractOrderDTO.getUnfilledAmount());
         contractOrderDTO.setContractId(contractOrderDO.getContractId());
         redisManager.contractOrderSave(contractOrderDTO);
+        redisManager.sSet(Constant.CACHE_CONTRACT_ORDER_SET, contractOrderDO);
         tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                 2, contractOrderDTO.getContractName(), username, ipAddress, contractOrderDTO.getUnfilledAmount(),
                 System.currentTimeMillis(), 2, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 1);
@@ -667,7 +669,8 @@ public class ContractOrderManager {
         }
         long filledAmount = contractMatchedOrderDTO.getFilledAmount();
         BigDecimal filledPrice = new BigDecimal(contractMatchedOrderDTO.getFilledPrice());
-
+        redisManager.sRemove(Constant.CACHE_CONTRACT_ORDER_SET, askContractOrder);
+        redisManager.sRemove(Constant.CACHE_CONTRACT_ORDER_SET, bidContractOrder);
         Integer askLever = contractLeverManager.getLeverByContractId(askContractOrder.getUserId(), askContractOrder.getContractId());
         askContractOrder.setLever(askLever.intValue());
 
@@ -680,6 +683,11 @@ public class ContractOrderManager {
         //更新委托
         updateContractOrder(contractMatchedOrderDTO.getAskOrderId(), filledAmount, filledPrice, new Date(transferTime));
         updateContractOrder(contractMatchedOrderDTO.getBidOrderId(), filledAmount, filledPrice, new Date(transferTime));
+
+        ContractOrderDO askContractOrderUpdate = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getAskOrderId());
+        ContractOrderDO bidContractOrderUpdate = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
+        redisManager.sSet(Constant.CACHE_CONTRACT_ORDER_SET, askContractOrderUpdate);
+        redisManager.sSet(Constant.CACHE_CONTRACT_ORDER_SET, bidContractOrderUpdate);
 
         BigDecimal contractSize = getContractSize(contractMatchedOrderDTO.getContractId());
         //更新持仓
