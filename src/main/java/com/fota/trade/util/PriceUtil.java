@@ -14,7 +14,7 @@ public class PriceUtil {
         }
         return oldAveragePrice.multiply(oldAmount)
                 .add(addAmount.multiply(filledPrice))
-                .divide(oldAmount.add(addAmount), 8, BigDecimal.ROUND_DOWN);
+                .divide(oldAmount.add(addAmount), 16, BigDecimal.ROUND_HALF_UP);
     }
 
 }
