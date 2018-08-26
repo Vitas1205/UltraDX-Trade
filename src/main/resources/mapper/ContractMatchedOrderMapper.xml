@@ -90,8 +90,9 @@
 
     <select id="countByUserId" resultType="java.lang.Integer">
         select count(*) from contract_matched_order where
+        1=1
         <if test="endTime != null">
-            gmt_create &lt; #{endTime}
+            and gmt_create &lt; #{endTime}
         </if>
         <if test="startTime != null">
             and gmt_create &gt;= #{startTime}
@@ -111,7 +112,7 @@
         select
         <include refid="Base_Column_List" />
         from contract_matched_order
-        where 1 = 1
+        where 1=1
         <if test="endTime != null">
             and gmt_create &lt; #{endTime}
         </if>
