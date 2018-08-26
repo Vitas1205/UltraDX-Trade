@@ -33,12 +33,11 @@ public class RocketMqProducer {
      * @param pushMsg
      * @return
      */
-    public Boolean producer(String topic, String tag, String key, String pushMsg){
+    public Boolean producer(String topic, String tag, String key, byte[] pushMsg){
 
         SendResult result = null;
         try {
-//            producer.start();
-            Message msg = new Message(topic,tag,key, pushMsg.getBytes("UTF-8"));
+            Message msg = new Message(topic,tag,key, pushMsg);
             result = producer.send(msg, 1000); // 消息在1S内没有发送成功，就会重试
 
             if (SendStatus.SEND_OK == result.getSendStatus()){
