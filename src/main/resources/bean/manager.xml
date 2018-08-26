@@ -23,7 +23,7 @@
     <dubbo:service interface="com.fota.trade.service.UserPositionService" ref="userPositionService" registry="zkreg" group="${service-group}" version="1.0.0"/>
     <dubbo:service interface="com.fota.trade.service.ContractOrderService"  ref="contractOrderService" registry="zkreg" group="${service-group}" version="1.0.0"/>
     <dubbo:service interface="com.fota.trade.service.UserContractLeverService" ref="userContractLeverService" registry="zkreg" group="${service-group}" version="1.0.0"/>
-
+    <dubbo:service interface="com.fota.trade.service.ContractAccountService" ref="contractAccountService" registry="zkreg" group="${service-group}" version="1.0.0"/>
 
     <dubbo:reference interface="com.fota.asset.service.AssetService" id="AssetService" check="false" registry="zkreg" group="${reference-group}" version="1.0.0"/>
     <dubbo:reference interface="com.fota.asset.service.CapitalService" id="capitalService" check="false"  registry="zkreg" group="${reference-group}" version="1.0.0"/>
