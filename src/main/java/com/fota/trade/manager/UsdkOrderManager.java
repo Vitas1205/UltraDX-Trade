@@ -127,6 +127,7 @@ public class UsdkOrderManager {
                 log.error("insert contractOrder failed");
                 throw new RuntimeException("insert contractOrder failed");
             }
+            orderId = usdkOrderDO.getId();
             BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
             if (orderDirection == OrderDirectionEnum.BID.getCode()){
                 //查询usdk账户可用余额
@@ -171,21 +172,15 @@ public class UsdkOrderManager {
                     }
                 }
             }
-        }else if (usdkOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()){
+        } else if (usdkOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()){
             //强平单处理
-            if (userInfoMap.containsKey("mortgageId")){
-                orderContext = JSONObject.toJSONString(userInfoMap);
-                usdkOrderDO.setOrderContext(orderContext);
-                int ret = insertUsdkOrder(usdkOrderDO);
-                if (ret <= 0){
-                    log.error("insert contractOrder failed");
-                    throw new RuntimeException("insert contractOrder failed");
-                }
-                BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
-            }else {
-                log.error("mortgageId can not be null");
-                throw new RuntimeException("mortgageId can not be null");
+            int ret = insertUsdkOrder(usdkOrderDO);
+            if (ret <= 0){
+                log.error("insert contractOrder failed");
+                throw new RuntimeException("insert contractOrder failed");
             }
+            orderId = usdkOrderDO.getId();
+            BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
         }
         usdkOrderDTO.setCompleteAmount(BigDecimal.ZERO);
         redisManager.usdkOrderSave(usdkOrderDTO);
@@ -207,7 +202,7 @@ public class UsdkOrderManager {
             orderMessage.setPrice(usdkOrderDO.getPrice());
         }
         orderMessage.setTransferTime(transferTime);
-        Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", orderMessage);
+        Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", String.valueOf(usdkOrderDO.getId()), orderMessage);
         if (!sendRet){
             log.error("Send RocketMQ Message Failed ");
         }
@@ -295,7 +290,7 @@ public class UsdkOrderManager {
             orderMessage.setOrderType(usdkOrderDO.getOrderType());
             orderMessage.setTransferTime(transferTime);
             orderMessage.setOrderDirection(orderDirection);
-            Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", orderMessage);
+            Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", String.valueOf(usdkOrderDTO.getUserId())+usdkOrderDTO.getStatus(), orderMessage);
             if (!sendRet){
                 log.error("Send RocketMQ Message Failed ");
             }
@@ -482,7 +477,7 @@ public class UsdkOrderManager {
         orderMessage.setAskUserId(askUsdkOrder.getUserId());
         orderMessage.setBidUserId(bidUsdkOrder.getUserId());
         orderMessage.setMatchOrderId(usdkMatchedOrderDO.getId());
-        Boolean sendRet = rocketMqManager.sendMessage("match", "usdk", orderMessage);
+        Boolean sendRet = rocketMqManager.sendMessage("match", "usdk", String.valueOf(usdkMatchedOrderDO.getId()), orderMessage);
         if (!sendRet){
             log.error("Send RocketMQ Message Failed ");
         }

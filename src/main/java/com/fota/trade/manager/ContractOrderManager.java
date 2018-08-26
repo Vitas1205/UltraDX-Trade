@@ -18,6 +18,7 @@ import com.fota.trade.mapper.ContractCategoryMapper;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
+import com.fota.trade.service.ContractAccountService;
 import com.fota.trade.util.CommonUtils;
 import com.fota.trade.util.ContractUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -79,6 +80,9 @@ public class ContractOrderManager {
 
     @Autowired
     private ContractMatchedOrderMapper contractMatchedOrderMapper;
+
+    @Autowired
+    private ContractAccountService contractAccountService;
 
     private ContractService getContractService() {
         return contractService;
@@ -233,12 +237,17 @@ public class ContractOrderManager {
         } else {
             insertOrderRecord(contractOrderDO);
             orderId = contractOrderDO.getId();
-            BigDecimal totalLockAmount = getTotalLockAmount(contractOrderDO.getUserId());
-            //查询用户合约冻结金额
+            Map<String,BigDecimal> msg  = getAccountDetailMsg(contractOrderDO.getUserId());
+            log.info("AccountDetailMsg:"+msg.toString());
+            BigDecimal entrustLock = msg.get(Constant.ENTRUST_MARGIN);
+            BigDecimal positionMargin = msg.get(Constant.POSITION_MARGIN);
+            BigDecimal floatPL = msg.get(Constant.FLOATING_PL);
+            //查询用户合约冻结金额 判断可用是否大于委托冻结
             UserContractDTO userContractDTO = getAssetService().getContractAccount(contractOrderDO.getUserId());
-            BigDecimal lockedAmount = new BigDecimal(userContractDTO.getLockedAmount());
-            if (lockedAmount.compareTo(totalLockAmount) < 0) {
-                lockContractAccount(userContractDTO, totalLockAmount);
+            BigDecimal useableAmount = new BigDecimal(userContractDTO.getAmount()).add(floatPL).subtract(positionMargin);
+            if (useableAmount.compareTo(entrustLock) < 0) {
+                log.error("ContractAccount USDK Not Enough");
+                throw new BusinessException(ResultCodeEnum.CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(), ResultCodeEnum.CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
             }
         }
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO );
@@ -270,7 +279,7 @@ public class ContractOrderManager {
         orderMessage.setUserId(contractOrderDTO.getUserId());
         orderMessage.setSubjectId(contractOrderDO.getContractId());
         orderMessage.setSubjectName(contractOrderDO.getContractName());
-        Boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder", orderMessage);
+        Boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder",String.valueOf(contractOrderDTO.getId()), orderMessage);
         if (!sendRet) {
             log.error("Send RocketMQ Message Failed ");
         }
@@ -325,12 +334,12 @@ public class ContractOrderManager {
         int ret = contractOrderMapper.updateByOpLock(contractOrderDO);
         log.info("------------contractCancelEndTimeStamp"+System.currentTimeMillis());
         if (ret > 0) {
-            UserContractDTO userContractDTO = getAssetService().getContractAccount(contractOrderDO.getUserId());
+            /*UserContractDTO userContractDTO = getAssetService().getContractAccount(contractOrderDO.getUserId());
             BigDecimal lockedAmount = new BigDecimal(userContractDTO.getLockedAmount());
-            BigDecimal totalLockAmount = getTotalLockAmount(contractOrderDO.getUserId());
+            BigDecimal totalLockAmount = getAccountDetailMsg(contractOrderDO.getUserId()).get(Constant.ENTRUST_MARGIN);
             if (lockedAmount.compareTo(totalLockAmount) != 0) {
                 lockContractAccount(userContractDTO, totalLockAmount);
-            }
+            }*/
         } else {
             log.error("update contractOrder Failed{}", contractOrderDO);
             throw new RuntimeException("update contractOrder Failed");
@@ -352,7 +361,7 @@ public class ContractOrderManager {
         orderMessage.setUserId(contractOrderDTO.getUserId());
         orderMessage.setSubjectId(contractOrderDO.getContractId());
         orderMessage.setOrderDirection(contractOrderDO.getOrderDirection());
-        Boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder", orderMessage);
+        Boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder", String.valueOf(contractOrderDTO.getId())+contractOrderDTO.getStatus(), orderMessage);
         if (!sendRet) {
             log.error("Send RocketMQ Message Failed ");
         }
@@ -374,11 +383,13 @@ public class ContractOrderManager {
         return contractMatchedOrderService.cancelOrderContract(tradeContractOrder);
     }
 
-
-    //获取实时委托冻结、实时保证金、实时浮盈亏金
-    public BigDecimal getTotalLockAmount(long userId) {
+    //获取实时委托冻结、实时持仓保证金、实时浮盈亏金
+    public Map<String, BigDecimal> getAccountDetailMsg(long userId) {
+        Map<String, BigDecimal> resultMap = new HashMap<String, BigDecimal>();
         //获取所有合约类型列表
-        BigDecimal totalLockedAmount = BigDecimal.ZERO;
+        BigDecimal entrustMargin = BigDecimal.ZERO;
+        BigDecimal positionMargin = BigDecimal.ZERO;
+        BigDecimal floatingPL = BigDecimal.ZERO;
         //TODO 过期就不在这个表了？
         List<ContractCategoryDO> queryList = contractCategoryMapper.getAllContractCategory();
         List<UserPositionDO> positionlist = userPositionMapper.selectByUserId(userId);
@@ -423,12 +434,15 @@ public class ContractOrderManager {
                             Integer positionType = userPositionDO.getPositionType();
                             BigDecimal positionUnfilledAmount = new BigDecimal(userPositionDO.getUnfilledAmount());
                             BigDecimal contractSize = contractCategoryDO.getContractSize();
+                            BigDecimal positionAveragePrice = userPositionDO.getAveragePrice();
                             if (positionType == PositionTypeEnum.OVER.getCode()) {
                                 if (bidCurrentPrice == null) {
                                     log.error("get bidCurrentPrice failed");
                                     throw new RuntimeException("get bidCurrentPrice failed");
                                 }
                                 BigDecimal bidPositionEntrustAmount = positionUnfilledAmount.multiply(contractSize).multiply(bidCurrentPrice).divide(lever, 8, BigDecimal.ROUND_DOWN);
+                                positionMargin = positionMargin.add(bidPositionEntrustAmount);
+                                floatingPL = floatingPL.add((bidCurrentPrice.subtract(positionAveragePrice)).multiply(positionUnfilledAmount).multiply(contractSize)).setScale(8, BigDecimal.ROUND_DOWN);
                                 totalAskExtraEntrustAmount = totalAskExtraEntrustAmount.add(getExtraEntrustAmount(bidList, askList, positionType, positionUnfilledAmount, bidPositionEntrustAmount, lever, contractSize));
                             } else if (positionType == PositionTypeEnum.EMPTY.getCode()) {
                                 if (askCurrentPrice == null) {
@@ -436,6 +450,8 @@ public class ContractOrderManager {
                                     throw new RuntimeException("get askCurrentPrice failed");
                                 }
                                 BigDecimal askPositionEntrustAmount = positionUnfilledAmount.multiply(contractSize).multiply(askCurrentPrice).divide(lever, 8, BigDecimal.ROUND_DOWN);
+                                positionMargin = positionMargin.add(askPositionEntrustAmount);
+                                floatingPL = floatingPL.add((positionAveragePrice.subtract(askCurrentPrice)).multiply(positionUnfilledAmount).multiply(contractSize)).setScale(8, BigDecimal.ROUND_DOWN);
                                 totalBidExtraEntrustAmount = totalBidExtraEntrustAmount.add(getExtraEntrustAmount(bidList, askList, positionType, positionUnfilledAmount, askPositionEntrustAmount, lever, contractSize));
                             }
                             entrustLockAmount = entrustLockAmount.add(totalBidExtraEntrustAmount.add(totalAskExtraEntrustAmount));
@@ -468,12 +484,13 @@ public class ContractOrderManager {
                         }
                     }
                 }
-                totalLockedAmount = totalLockedAmount.add(entrustLockAmount);
+                entrustMargin = entrustMargin.add(entrustLockAmount);
             }
-        } else {
-            return BigDecimal.ZERO;
         }
-        return totalLockedAmount;
+        resultMap.put(Constant.ENTRUST_MARGIN, entrustMargin);
+        resultMap.put(Constant.POSITION_MARGIN, positionMargin);
+        resultMap.put(Constant.FLOATING_PL, floatingPL);
+        return resultMap;
     }
 
     //获取多空仓额外保证金
@@ -674,7 +691,7 @@ public class ContractOrderManager {
         }
 
         ContractMatchedOrderDO contractMatchedOrderDO = com.fota.trade.common.BeanUtils.copy(contractMatchedOrderDTO);
-        BigDecimal fee = contractMatchedOrderDO.getFilledAmount().multiply(contractMatchedOrderDO.getFilledPrice()).multiply(Constant.FEE_RATE).setScale(2, BigDecimal.ROUND_UP);
+        BigDecimal fee = contractMatchedOrderDO.getFilledAmount().multiply(contractMatchedOrderDO.getFilledPrice()).multiply(contractSize).multiply(Constant.FEE_RATE).setScale(2, BigDecimal.ROUND_UP);
         contractMatchedOrderDO.setFee(fee);
         contractMatchedOrderDO.setAskUserId(askContractOrder.getUserId());
         contractMatchedOrderDO.setBidUserId(bidContractOrder.getUserId());
@@ -738,7 +755,7 @@ public class ContractOrderManager {
         if (bidContractOrderDTO.getPrice() != null){
             orderMessage.setBidOrderEntrustPrice(bidContractOrderDTO.getPrice());
         }
-        Boolean sendRet = rocketMqManager.sendMessage("match", "contract", orderMessage);
+        Boolean sendRet = rocketMqManager.sendMessage("match", "contract", String.valueOf(contractMatchedOrderDO.getId()), orderMessage);
         if (!sendRet) {
             log.error("Send RocketMQ Message Failed ");
         }
@@ -777,7 +794,7 @@ public class ContractOrderManager {
         String lockKey = "LOCK_POSITION_"+ userId+ "_" + contractId;
         boolean suc = redisManager.tryLock(lockKey, Duration.ofSeconds(3), 3, Duration.ofMillis(10));
         if (!suc) {
-            throw new RuntimeException("get lock failed");
+            throw new RuntimeException("get lock failed, contractOrderDO="+ JSON.toJSONString(contractOrderDO));
         }
         try {
             return internalUpdatePosition(contractOrderDO, contractSize, filledAmount, filledPrice);
@@ -837,25 +854,23 @@ public class ContractOrderManager {
         long userId = contractOrderDO.getUserId();
         BigDecimal rate = contractOrderDO.getFee();
         //手续费
-        BigDecimal actualFee = filledPrice.multiply(new BigDecimal(filledAmount)).multiply(rate).multiply(contractSize);
+        BigDecimal actualFee = filledPrice.multiply(new BigDecimal(filledAmount)).multiply(rate).multiply(contractSize).negate();
 
-        BigDecimal addedTotalAmount = new BigDecimal(positionResult.getOriginAmount() - positionResult.getCurAmount())
-                .multiply(filledPrice)
-                .multiply(contractSize)
-                .divide(new BigDecimal(lever), 8, BigDecimal.ROUND_DOWN)
-                .subtract(actualFee);
-
-        UserContractDTO userContractDTO  = assetService.getContractAccount(userId);
-        BigDecimal lockedAmount = new BigDecimal(userContractDTO.getLockedAmount());
-        BigDecimal totalLockAmount = getTotalLockAmount(userId);
-        BigDecimal addedTotalLocked = totalLockAmount.subtract(lockedAmount);
+        com.fota.common.Result<ContractAccount> result = contractAccountService.getContractAccount(userId);
+        if (!result.isSuccess() || null==result.getData()) {
+            throw new RuntimeException("get contractAccount failed");
+        }
+        ContractAccount account = result.getData();
+        if (account.getAvailableAmount().compareTo(BigDecimal.ZERO) <= 0 && !(ENFORCE.getCode() == contractOrderDO.getOrderType())) {
+            throw new RuntimeException("available amount is not enough");
+        }
         ContractDealer dealer = new ContractDealer()
                 .setUserId(userId)
-                .setAddedTotalAmount(addedTotalAmount)
-                .setAddedLockAmount(addedTotalLocked);
+                .setAddedTotalAmount(actualFee)
+                .setTotalLockAmount(account.getFrozenAmount().add(account.getMarginCallRequirement()))
+                ;
         dealer.setDealType((null != contractOrderDO.getOrderType() && ENFORCE.getCode() == contractOrderDO.getOrderType()) ? ContractDealer.DealType.FORCE : ContractDealer.DealType.NORMAL);
         return dealer;
-
     }
 
 //    private void updateContractAccount(ContractOrderDO contractOrderDO, ContractMatchedOrderDTO contractMatchedOrderDTO) {

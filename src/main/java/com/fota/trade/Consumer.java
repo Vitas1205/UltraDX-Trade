@@ -71,8 +71,8 @@ public class Consumer {
                 for (MessageExt messageExt:msgs){
                     try {
                         String mqKey = messageExt.getKeys();
-                        Map<String, Integer> keyMap = (Map<String, Integer>) redisManager.get(Constant.MQ_REPET_JUDGE_KEY);
-                        if (keyMap != null && keyMap.containsKey(mqKey)) {
+                        boolean isExist = redisManager.sHasKey(Constant.MQ_REPET_JUDGE_KEY_TRADE, mqKey);
+                        if (isExist) {
                             return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
                         }
                         String tag = messageExt.getTags();
@@ -99,13 +99,7 @@ public class Consumer {
                                 return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                             }
                         }
-                        if (keyMap == null) {
-                            keyMap = new HashMap<>();
-                            keyMap.put(mqKey, 0);
-                        }else {
-                            keyMap.put(mqKey, 0);
-                        }
-                        redisManager.set(Constant.MQ_REPET_JUDGE_KEY, keyMap);
+                        redisManager.sSet(Constant.MQ_REPET_JUDGE_KEY_TRADE, mqKey);
                     } catch (Exception e) {
                         log.error("trade consume error ", e);
                     }

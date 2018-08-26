@@ -40,6 +40,6 @@ public class RocketMqTest {
         orderMessage.setEvent(OrderOperateTypeEnum.PLACE_ORDER.getCode());
         /*orderMessage.setUserId(001);
         orderMessage.setSubjectId(2);*/
-        Boolean ret = rocketMqManager.sendMessage(topic,tag,orderMessage);
+        Boolean ret = rocketMqManager.sendMessage(topic,tag,"key",orderMessage);
     }
 }

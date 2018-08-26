@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.time.Duration;
@@ -106,6 +107,32 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
             log.error("contractCategoryMapper.selectByPrimaryKey({})", id, e);
         }
         return new ContractCategoryDTO();
+    }
+
+    /**
+     * 根据合约状态获取合约详情
+     *
+     * @param status
+     * @return
+     */
+    @Override
+    public List<ContractCategoryDTO> getContractByStatus(Integer status) {
+        if (status <= 0) {
+            return null;
+        }
+        try {
+            List<ContractCategoryDO> listDO = contractCategoryMapper.selectByStatus(status);
+            List<ContractCategoryDTO> listDTO = new ArrayList<ContractCategoryDTO>();
+            if (!CollectionUtils.isEmpty(listDO)){
+                for(ContractCategoryDO temp : listDO){
+                    listDTO.add(BeanUtils.copy(temp));
+                }
+            }
+            return listDTO;
+        } catch (Exception e) {
+            log.error("contractCategoryMapper.selectByStatus({})", status, e);
+        }
+        return new ArrayList<ContractCategoryDTO>();
     }
 
     @Override
