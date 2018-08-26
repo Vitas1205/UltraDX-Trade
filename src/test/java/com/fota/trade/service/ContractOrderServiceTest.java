@@ -253,14 +253,16 @@ public class ContractOrderServiceTest {
 
     @Test
     public void getContractMacthRecordTest() {
-        Long userId = null;
-        List<Long> contractIds = new ArrayList<>();
-        contractIds.add(1000L);
-        contractIds.add(1001L);
+        Long userId = 205L;
+        List<Long> contractIds = null;
+//        contractIds.add(1000L);
+//        contractIds.add(1001L);
         Integer pageNo = 1;
         Integer pageSize = 20;
-        Long startTime = System.currentTimeMillis() - 20000000L;
-        Long endTime = System.currentTimeMillis();
+//        Long startTime = System.currentTimeMillis() - 20000000L;
+//        Long endTime = System.currentTimeMillis();
+        Long startTime = 0L;
+        Long endTime = 0L;
         ContractMatchedOrderTradeDTOPage contractMatchedOrderTradeDTOPage =
                 contractOrderService.getContractMacthRecord(userId, contractIds, pageNo, pageSize, startTime, endTime);
         log.info("--------------------------" + contractMatchedOrderTradeDTOPage);

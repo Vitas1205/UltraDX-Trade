@@ -3,6 +3,7 @@ package com.fota.trade.service.impl;
 import com.fota.asset.domain.UserContractDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.common.Result;
+import com.fota.common.ResultCodeEnum;
 import com.fota.trade.common.Constant;
 import com.fota.trade.domain.ContractAccount;
 import com.fota.trade.manager.ContractOrderManager;
@@ -20,7 +21,7 @@ import java.util.Map;
  * Created by Swifree on 2018/8/25.
  * Code is the law
  */
-@Service
+@Service("contractAccountService")
 @Slf4j
 public class ContractAccountServiceImpl implements ContractAccountService {
     @Autowired
@@ -36,13 +37,13 @@ public class ContractAccountServiceImpl implements ContractAccountService {
             resultMap = contractOrderManager.getAccountDetailMsg(userId);
         }catch (Exception e){
             log.error("contractOrderManager.getAccountDetailMsg failed{}", userId, e);
-            throw new RuntimeException("contractOrderManager.getAccountDetailMsg failed{}", e);
+            return Result.<ContractAccount>create().error(ResultCodeEnum.SERVICE_FAILED);
         }
         try {
             userContractDTO = assetService.getContractAccount(userId);
         }catch (Exception e){
             log.error("assetService.getContractAccount{}", userId, e);
-            throw new RuntimeException("assetService.getContractAccount{}", e);
+            return Result.<ContractAccount>create().error(ResultCodeEnum.SERVICE_FAILED);
         }
         BigDecimal marginCallRequirement = resultMap.get(Constant.POSITION_MARGIN);
         BigDecimal floatingPL = resultMap.get(Constant.FLOATING_PL);
@@ -50,7 +51,7 @@ public class ContractAccountServiceImpl implements ContractAccountService {
         BigDecimal totalAmount = new BigDecimal(userContractDTO.getAmount());
         account.setUserId(userId)
                 .setAccountEquity(totalAmount.add(floatingPL))
-                .setAvailableAmount(totalAmount.add(floatingPL).subtract(marginCallRequirement))
+                .setAvailableAmount(totalAmount.add(floatingPL).subtract(marginCallRequirement).subtract(frozenAmount))
                 .setFrozenAmount(frozenAmount)
                 .setFloatingPL(floatingPL)
                 .setMarginCallRequirement(marginCallRequirement);

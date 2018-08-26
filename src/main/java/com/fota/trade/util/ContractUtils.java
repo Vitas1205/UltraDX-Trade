@@ -13,6 +13,8 @@ import java.util.Objects;
  * Code is the law
  */
 public class ContractUtils {
+    private static int scale = 16;
+    private static int roundingMode = BigDecimal.ROUND_HALF_UP;
     public static UserPositionDO buildPosition(ContractOrderDO contractOrderDO, BigDecimal contractSize, int lever, long filledAmount, BigDecimal filledPrice) {
         UserPositionDO userPositionDO = new UserPositionDO();
         userPositionDO.setPositionType(contractOrderDO.getOrderDirection());
@@ -48,7 +50,7 @@ public class ContractUtils {
                     temp.multiply(contractSize)
                             .multiply(contractOrderDO.getFee())
                             .multiply(x))
-                    .divide(filledAmount, 8, RoundingMode.DOWN);
+                    .divide(filledAmount, scale, roundingMode);
         } else {
             if (Objects.equals(contractOrderDO.getOrderDirection(), userPositionDO.getPositionType())) {
                 //成交单和持仓是同方向
@@ -59,7 +61,7 @@ public class ContractUtils {
                         .add(addedTotalPrice.multiply(contractSize)
                                 .multiply(contractOrderDO.getFee())
                                 .multiply(x))
-                        .divide(BigDecimal.valueOf(newTotalAmount), 8, RoundingMode.DOWN);
+                        .divide(BigDecimal.valueOf(newTotalAmount), scale, roundingMode);
             } else {
                 //成交单和持仓是反方向 （平仓）
                 if (filledAmount.longValue() - userPositionDO.getUnfilledAmount() <= 0) {
@@ -67,7 +69,7 @@ public class ContractUtils {
                     long newTotalAmount = userPositionDO.getUnfilledAmount() - filledAmount.longValue();
                     if (newTotalAmount != 0) {
                         averagePrice = userPositionDO.getAveragePrice()
-                                .setScale(8, BigDecimal.ROUND_DOWN);
+                                .setScale(scale, roundingMode);
                     }
                 } else {
                     //改变仓位方向
@@ -78,7 +80,7 @@ public class ContractUtils {
                             temp.multiply(contractSize)
                                     .multiply(contractOrderDO.getFee())
                                     .multiply(x))
-                            .divide(BigDecimal.valueOf(newTotalAmount), 8, RoundingMode.DOWN);
+                            .divide(BigDecimal.valueOf(newTotalAmount), scale, roundingMode);
                 }
             }
         }
