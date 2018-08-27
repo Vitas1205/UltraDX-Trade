@@ -1,9 +1,8 @@
 package com.fota.trade.common;
 
-import com.fota.trade.domain.ContractCategoryDO;
-import com.fota.trade.domain.ContractCategoryDTO;
-import com.fota.trade.domain.UsdkOrderDO;
-import com.fota.trade.domain.UsdkOrderDTO;
+import com.alibaba.fastjson.JSON;
+import com.fota.match.domain.MatchedOrderMarketDTO;
+import com.fota.trade.domain.*;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -43,5 +42,12 @@ public class BeanUtilsTest {
         org.springframework.beans.BeanUtils.copyProperties(usdkOrderDTO, usdkOrderDO);
         Assert.assertTrue(usdkOrderDO.getUserId() == 234L);
     }
+    @Test
+    public void testMatchOrderCopy(){
+        ContractMatchedOrderDTO matchedOrderDTO = JSON.parseObject("{\"askOrderId\":958387227080960,\"askOrderPrice\":\"6000\",\"askOrderStatus\":10,\"bidOrderId\":926329048510183,\"bidOrderPrice\":\"null\",\"bidOrderStatus\":9,\"contractId\":1001,\"contractName\":\"BTC0203\",\"filledAmount\":1,\"filledPrice\":\"6000\",\"gmtCreate\":1535282837074,\"matchType\":2}",
+                ContractMatchedOrderDTO.class);
+        BeanUtils.copy(matchedOrderDTO);
+    }
+
 
 }
