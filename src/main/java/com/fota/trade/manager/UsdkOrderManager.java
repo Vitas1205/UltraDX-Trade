@@ -1,5 +1,6 @@
 package com.fota.trade.manager;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.fota.asset.domain.BalanceTransferDTO;
 import com.fota.asset.domain.UserCapitalDTO;
@@ -102,6 +103,7 @@ public class UsdkOrderManager {
     public com.fota.common.Result<Long> placeOrder(UsdkOrderDTO usdkOrderDTO, Map<String, String> userInfoMap)throws Exception {
         com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
         UsdkOrderDO usdkOrderDO = com.fota.trade.common.BeanUtils.copy(usdkOrderDTO);
+        usdkOrderDO.setOrderContext(JSONObject.toJSONString(usdkOrderDTO.getOrderContext()));
         Long orderId = usdkOrderDO.getId();
         ResultCode resultCode = new ResultCode();
         Integer assetId = usdkOrderDO.getAssetId();
@@ -116,7 +118,6 @@ public class UsdkOrderManager {
         usdkOrderDO.setUnfilledAmount(usdkOrderDO.getTotalAmount());
         Long transferTime = System.currentTimeMillis();
         usdkOrderDO.setGmtModified(new Date(transferTime));
-        String orderContext;
         if(usdkOrderDO.getOrderType() == null){
             usdkOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
         }
@@ -454,6 +455,10 @@ public class UsdkOrderManager {
         orderMessage.setEvent(OrderOperateTypeEnum.DEAL_ORDER.getCode());
         orderMessage.setAskOrderId(usdkMatchedOrderDTO.getAskOrderId());
         orderMessage.setBidOrderId(usdkMatchedOrderDTO.getBidOrderId());
+        if (askUsdkOrder.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
+            Map<String, Object> orderContext  = JSON.parseObject(askUsdkOrder.getOrderContext());
+            orderMessage.setOrderContext(orderContext);
+        }
         //orderMessage.setAskOrderType(askUsdkOrder.getOrderType());
         //orderMessage.setBidOrderType(bidUsdkOrder.getOrderType());
         if (askUsdkOrder.getPrice() != null){
