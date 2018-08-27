@@ -632,7 +632,7 @@ public class ContractOrderManager {
         ResultCode resultCode = new ResultCode();
         if (contractMatchedOrderDTO == null) {
             log.error(ResultCodeEnum.ILLEGAL_PARAM.getMessage());
-            throw new RuntimeException(ResultCodeEnum.ILLEGAL_PARAM.getMessage());
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
         }
         ContractOrderDO askContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getAskOrderId());
         ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
@@ -641,15 +641,15 @@ public class ContractOrderManager {
         if (askContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0
                 || bidContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0) {
             log.error("unfilledAmount not enough{}",contractMatchedOrderDTO);
-            throw new RuntimeException("unfilledAmount not enough");
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
         }
         if (askContractOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && askContractOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()) {
             log.error("ask order status illegal{}", askContractOrder);
-            throw new RuntimeException("ask order status illegal");
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
         }
         if (bidContractOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && bidContractOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()) {
             log.error("bid order status illegal{}", bidContractOrder);
-            throw new RuntimeException("bid order status illegal");
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
         }
         long filledAmount = contractMatchedOrderDTO.getFilledAmount();
         BigDecimal filledPrice = new BigDecimal(contractMatchedOrderDTO.getFilledPrice());

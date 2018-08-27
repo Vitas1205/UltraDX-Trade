@@ -15,6 +15,7 @@ import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.service.ContractOrderService;
 import com.fota.trade.util.DateUtil;
 import com.fota.trade.util.PriceUtil;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -363,23 +364,17 @@ public class ContractOrderServiceImpl implements
 
     @Override
     public ContractMatchedOrderTradeDTOPage getContractMacthRecord(Long userId, List<Long> contractIds, Integer pageNo, Integer pageSize, Long startTime, Long endTime) {
-        if (pageNo <= 0) {
+        if (pageNo == null || pageNo <= 0) {
             pageNo = 1;
         }
-        if (pageSize <= 0) {
+        if (pageSize == null || pageSize <= 0) {
             pageSize = 20;
         }
         Date startTimeD = null, endTimeD = null;
-        if (startTime == 0){
-            startTime = null;
-        }
-        if (endTime == 0){
-            endTime = null;
-        }
-        if (startTime != null){
+        if (startTime != null && startTime != 0){
             startTimeD = DateUtil.LongTurntoDate(startTime);
         }
-        if (endTime != null){
+        if (endTime != null && endTime != 0){
             endTimeD = DateUtil.LongTurntoDate(endTime);
         }
         log.info("getListByUserId userId {} startTime {}, endTime {}", userId, startTimeD, endTimeD);

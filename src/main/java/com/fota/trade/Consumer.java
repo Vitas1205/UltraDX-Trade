@@ -89,6 +89,8 @@ public class Consumer {
                             ResultCode resultCode = usdkOrderService.updateOrderByMatch(usdkMatchedOrderDTO);
                             log.info("resultCode u---------------" + resultCode);
                             if (resultCode != null && resultCode.getCode() != null && resultCode.getCode() != 0) {
+                                log.error("consume message failed, msgId={}, tag={}, body={}, reconsumeTimes={}", messageExt.getMsgId(),
+                                        messageExt.getTags(), bodyStr, messageExt.getReconsumeTimes());
                                 return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                             }
                         } else if (TagsTypeEnum.CONTRACT.getDesc().equals(tag)) {
@@ -96,6 +98,8 @@ public class Consumer {
                             ResultCode resultCode = contractOrderService.updateOrderByMatch(contractMatchedOrderDTO);
                             log.info("resultCode c---------------" + resultCode);
                             if (resultCode != null && resultCode.getCode() != null && resultCode.getCode() != 0) {
+                                log.error("consume message failed, msgId={}, tag={}, body={}, reconsumeTimes={}", messageExt.getMsgId(),
+                                        messageExt.getTags(), bodyStr, messageExt.getReconsumeTimes());
                                 return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                             }
                         }
