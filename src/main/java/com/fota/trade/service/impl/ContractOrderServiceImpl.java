@@ -406,7 +406,7 @@ public class ContractOrderServiceImpl implements
                     ContractMatchedOrderTradeDTO tempTarget = new ContractMatchedOrderTradeDTO();
                     tempTarget.setAskCloseType(temp.getAskCloseType().intValue());
                     tempTarget.setAskOrderId(temp.getAskOrderId());
-                    tempTarget.setAskOrderPrice(temp.getAskOrderPrice().toString());
+                    tempTarget.setAskOrderPrice(temp.getAskOrderPrice()==null?"0":temp.getAskOrderPrice().toString());
                     tempTarget.setAskUserId(temp.getAskUserId());
                     tempTarget.setBidCloseType(temp.getBidCloseType().intValue());
                     tempTarget.setBidOrderId(temp.getBidOrderId());
