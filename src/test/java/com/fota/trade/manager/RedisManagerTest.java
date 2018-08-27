@@ -1,5 +1,6 @@
 package com.fota.trade.manager;
 
+import com.alibaba.fastjson.JSONObject;
 import com.fota.trade.domain.UsdkOrderDO;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -27,15 +28,15 @@ public class RedisManagerTest {
     @Test
     public void sSetTest(){
         UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
-        usdkOrderDO.setId(9997L);
-        redisManager.sSet("sSetTest_KEY",usdkOrderDO);
+        usdkOrderDO.setId(9996L);
+        redisManager.sSet("sSetTest_KEY",JSONObject.toJSONString(usdkOrderDO));
     }
 
     @Test
     public void sGetTest(){
-        UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
-        usdkOrderDO.setId(9999L);
-        long ret = redisManager.sRemove("sSetTest_KEY",usdkOrderDO);
+//        UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
+//        usdkOrderDO.setId(9999L);
+//        long ret = redisManager.sRemove("sSetTest_KEY",JSONObject.toJSONString(usdkOrderDO));
         Set set = redisManager.sMember("sSetTest_KEY");
         log.info(set.toString());
     }

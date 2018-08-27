@@ -35,8 +35,8 @@ public interface UsdkOrderMapper {
         "order_direction, order_type, ",
         "total_amount, unfilled_amount, ",
         "price, fee, status, average_price)",
-        "values (#{id,jdbcType=BIGINT}, now(), ",
-        "now(), #{userId,jdbcType=BIGINT}, ",
+        "values (#{id,jdbcType=BIGINT}, #{gmtModified}, ",
+        "#{gmtModified}, #{userId,jdbcType=BIGINT}, ",
         "#{assetId,jdbcType=INTEGER}, #{assetName,jdbcType=VARCHAR}, ",
         "#{orderDirection,jdbcType=TINYINT}, #{orderType,jdbcType=TINYINT}, ",
         "#{totalAmount,jdbcType=DECIMAL}, #{unfilledAmount,jdbcType=DECIMAL}, ",
@@ -159,8 +159,7 @@ public interface UsdkOrderMapper {
 
     @Update({
             "update trade_usdk_order",
-            "set gmt_create = #{gmtCreate,jdbcType=TIMESTAMP},",
-            "gmt_modified = now(),",
+            "gmt_modified = #{gmtCreate,jdbcType=TIMESTAMP},",
             "user_id = #{userId,jdbcType=BIGINT},",
             "asset_id = #{assetId,jdbcType=INTEGER},",
             "asset_name = #{assetName,jdbcType=VARCHAR},",
