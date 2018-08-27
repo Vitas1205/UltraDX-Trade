@@ -264,7 +264,6 @@ public class ContractOrderManager {
                     2, contractOrderDTO.getContractName(), username, ipAddress, contractOrderDTO.getTotalAmount(),
                     System.currentTimeMillis(), 1, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 1);
         }
-        redisManager.sSet(Constant.CACHE_CONTRACT_ORDER_SET, contractOrderDO);
         //推送MQ消息
         OrderMessage orderMessage = new OrderMessage();
         orderMessage.setAmount(new BigDecimal(contractOrderDTO.getUnfilledAmount()));
@@ -321,7 +320,6 @@ public class ContractOrderManager {
             resultCode.setMessage(ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getMessage());
             return resultCode;
         }
-        redisManager.sRemove(Constant.CACHE_CONTRACT_ORDER_SET, contractOrderDO);
         if (status == OrderStatusEnum.COMMIT.getCode()){
             contractOrderDO.setStatus(OrderStatusEnum.CANCEL.getCode());
         } else if (status == OrderStatusEnum.PART_MATCH.getCode()) {
@@ -353,11 +351,24 @@ public class ContractOrderManager {
         contractOrderDTO.setCompleteAmount(contractOrderDTO.getTotalAmount() - contractOrderDTO.getUnfilledAmount());
         contractOrderDTO.setContractId(contractOrderDO.getContractId());
         redisManager.contractOrderSave(contractOrderDTO);
-        redisManager.sSet(Constant.CACHE_CONTRACT_ORDER_SET, contractOrderDO); //??
         tradeLog.info("cancelorder@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                 2, contractOrderDTO.getContractName(), username, ipAddress, contractOrderDTO.getUnfilledAmount(),
                 System.currentTimeMillis(), 2, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 1);
-
+        OrderMessage orderMessage = new OrderMessage();
+        orderMessage.setAmount(new BigDecimal(contractOrderDTO.getUnfilledAmount()));
+        orderMessage.setPrice(contractOrderDTO.getPrice());
+        orderMessage.setTransferTime(transferTime);
+        orderMessage.setOrderId(contractOrderDTO.getId());
+        orderMessage.setEvent(OrderOperateTypeEnum.CANCLE_ORDER.getCode());
+        orderMessage.setUserId(contractOrderDTO.getUserId());
+        orderMessage.setSubjectId(contractOrderDO.getContractId());
+        orderMessage.setOrderDirection(contractOrderDO.getOrderDirection());
+        orderMessage.setContractType(contractCategoryDO.getContractType());
+        orderMessage.setContractMatchAssetName(contractCategoryDO.getAssetName());
+        Boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder", String.valueOf(contractOrderDTO.getId())+contractOrderDTO.getStatus(), orderMessage);
+        if (!sendRet) {
+            log.error("Send RocketMQ Message Failed ");
+        }
         resultCode.setCode(0);
         resultCode.setMessage("success");
         return resultCode;
@@ -635,7 +646,7 @@ public class ContractOrderManager {
         ResultCode resultCode = new ResultCode();
         if (contractMatchedOrderDTO == null) {
             log.error(ResultCodeEnum.ILLEGAL_PARAM.getMessage());
-            throw new RuntimeException(ResultCodeEnum.ILLEGAL_PARAM.getMessage());
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
         }
         ContractOrderDO askContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getAskOrderId());
         ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
@@ -644,20 +655,18 @@ public class ContractOrderManager {
         if (askContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0
                 || bidContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0) {
             log.error("unfilledAmount not enough{}",contractMatchedOrderDTO);
-            throw new RuntimeException("unfilledAmount not enough");
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
         }
         if (askContractOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && askContractOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()) {
             log.error("ask order status illegal{}", askContractOrder);
-            throw new RuntimeException("ask order status illegal");
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
         }
         if (bidContractOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && bidContractOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()) {
             log.error("bid order status illegal{}", bidContractOrder);
-            throw new RuntimeException("bid order status illegal");
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
         }
         long filledAmount = contractMatchedOrderDTO.getFilledAmount();
         BigDecimal filledPrice = new BigDecimal(contractMatchedOrderDTO.getFilledPrice());
-        redisManager.sRemove(Constant.CACHE_CONTRACT_ORDER_SET, askContractOrder);
-        redisManager.sRemove(Constant.CACHE_CONTRACT_ORDER_SET, bidContractOrder);
         Integer askLever = contractLeverManager.getLeverByContractId(askContractOrder.getUserId(), askContractOrder.getContractId());
         askContractOrder.setLever(askLever.intValue());
 
@@ -670,11 +679,6 @@ public class ContractOrderManager {
         //更新委托
         updateContractOrder(contractMatchedOrderDTO.getAskOrderId(), filledAmount, filledPrice, new Date(transferTime));
         updateContractOrder(contractMatchedOrderDTO.getBidOrderId(), filledAmount, filledPrice, new Date(transferTime));
-
-        ContractOrderDO askContractOrderUpdate = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getAskOrderId());
-        ContractOrderDO bidContractOrderUpdate = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
-        redisManager.sSet(Constant.CACHE_CONTRACT_ORDER_SET, askContractOrderUpdate);
-        redisManager.sSet(Constant.CACHE_CONTRACT_ORDER_SET, bidContractOrderUpdate);
 
         BigDecimal contractSize = getContractSize(contractMatchedOrderDTO.getContractId());
         //更新持仓
@@ -1013,10 +1017,16 @@ public class ContractOrderManager {
 
 
     public void updateContractOrder(long id, long filledAmount, BigDecimal filledPrice, Date gmtModified) {
-        int aff = contractOrderMapper.updateAmountAndStatus(id, filledAmount, filledPrice, gmtModified);
+        int aff;
+        try{
+            aff = contractOrderMapper.updateAmountAndStatus(id, filledAmount, filledPrice, gmtModified);
+        }catch (Throwable t) {
+            throw new RuntimeException(String.format("update contract order failed, orderId={}, filledAmount={}, filledPrice={}, gmtModified={}",
+                    id, filledAmount, filledPrice, gmtModified),t);
+        }
         if (0 == aff) {
-            log.error("update contract order failed");
-            throw new RuntimeException("update contract order failed");
+            throw new RuntimeException(String.format("update contract order failed, orderId={}, filledAmount={}, filledPrice={}, gmtModified={}",
+                    id, filledAmount, filledPrice, gmtModified));
         }
     }
 
