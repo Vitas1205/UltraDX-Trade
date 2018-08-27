@@ -3,6 +3,7 @@ package com.fota.trade.common;
 import com.fota.trade.domain.*;
 import org.springframework.beans.BeansException;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -211,10 +212,10 @@ public class BeanUtils {
     public static ContractMatchedOrderDO copy(ContractMatchedOrderDTO contractMatchedOrderDTO) {
         ContractMatchedOrderDO contractMatchedOrderDO = new ContractMatchedOrderDO();
         contractMatchedOrderDO.setAskOrderId(contractMatchedOrderDTO.getAskOrderId());
-        if (contractMatchedOrderDTO.getAskOrderPrice() != null){
+        if (!StringUtils.isEmpty(contractMatchedOrderDTO.getAskOrderPrice())){
             contractMatchedOrderDO.setAskOrderPrice(new BigDecimal(contractMatchedOrderDTO.getAskOrderPrice()));
         }
-        if (contractMatchedOrderDTO.getBidOrderPrice() != null){
+        if (!StringUtils.isEmpty(contractMatchedOrderDTO.getBidOrderPrice())){
             contractMatchedOrderDO.setBidOrderPrice(new BigDecimal(contractMatchedOrderDTO.getBidOrderPrice()));
         }
         contractMatchedOrderDO.setBidOrderId(contractMatchedOrderDTO.getBidOrderId());
