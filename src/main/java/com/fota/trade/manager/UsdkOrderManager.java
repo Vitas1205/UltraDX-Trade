@@ -471,10 +471,10 @@ public class UsdkOrderManager {
         orderMessage.setBidOrderId(usdkMatchedOrderDTO.getBidOrderId());
         if (askUsdkOrder.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
             Map<String, Object> orderContext  = JSON.parseObject(askUsdkOrder.getOrderContext());
-//            orderMessage.setOrderContext(orderContext);
+            orderMessage.setOrderContext(orderContext);
         }
-        //orderMessage.setAskOrderType(askUsdkOrder.getOrderType());
-        //orderMessage.setBidOrderType(bidUsdkOrder.getOrderType());
+        orderMessage.setAskOrderType(askUsdkOrder.getOrderType());
+        orderMessage.setBidOrderType(bidUsdkOrder.getOrderType());
         if (askUsdkOrder.getPrice() != null){
             orderMessage.setAskOrderEntrustPrice(askUsdkOrder.getPrice());
         }
