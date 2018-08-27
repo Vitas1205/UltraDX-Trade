@@ -1013,10 +1013,16 @@ public class ContractOrderManager {
 
 
     public void updateContractOrder(long id, long filledAmount, BigDecimal filledPrice, Date gmtModified) {
-        int aff = contractOrderMapper.updateAmountAndStatus(id, filledAmount, filledPrice, gmtModified);
+        int aff;
+        try{
+            aff = contractOrderMapper.updateAmountAndStatus(id, filledAmount, filledPrice, gmtModified);
+        }catch (Throwable t) {
+            throw new RuntimeException(String.format("update contract order failed, orderId={}, filledAmount={}, filledPrice={}, gmtModified={}",
+                    id, filledAmount, filledPrice, gmtModified),t);
+        }
         if (0 == aff) {
-            log.error("update contract order failed");
-            throw new RuntimeException("update contract order failed");
+            throw new RuntimeException(String.format("update contract order failed, orderId={}, filledAmount={}, filledPrice={}, gmtModified={}",
+                    id, filledAmount, filledPrice, gmtModified));
         }
     }
 
