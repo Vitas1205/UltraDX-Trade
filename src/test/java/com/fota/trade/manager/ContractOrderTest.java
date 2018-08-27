@@ -29,7 +29,7 @@ public class ContractOrderTest {
     public void test() {
         Long userId = 188L;
         Map<String, BigDecimal> resultMap = new HashMap<>();
-        resultMap = contractOrderManager.getAccountDetailMsg(userId);
+        resultMap = contractOrderManager.getAccountMsg(userId);
         log.info("--------"+resultMap);
     }
 }

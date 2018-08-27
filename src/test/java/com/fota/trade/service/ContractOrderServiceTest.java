@@ -15,6 +15,7 @@ import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
+import com.fota.trade.service.impl.ContractAccountServiceImpl;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
 import com.fota.trade.util.CommonUtils;
 import com.fota.trade.util.PriceUtil;
@@ -56,6 +57,8 @@ public class ContractOrderServiceTest {
     @Resource
     private ContractOrderMapper contractOrderMapper;
     @Resource
+    private ContractAccountServiceImpl contractAccountService;
+    @Resource
     AssetService assetService;
     @Resource
     private UserPositionMapper userPositionMapper;
@@ -71,7 +74,8 @@ public class ContractOrderServiceTest {
 
     UserPositionDO askPositionDO;
     UserPositionDO bidPositionDO;
-    ContractOrderManager contractOrderManager;
+    @Resource
+    private ContractOrderManager contractOrderManager;
 
 
     long askUserId = 1;
@@ -282,6 +286,24 @@ public class ContractOrderServiceTest {
         contractOrderDTO.setFee(new BigDecimal(0.01));
         contractOrderDTO.setUnfilledAmount(10L);
         contractOrderService.order(contractOrderDTO, userInfoMap);
+    }
+
+    @Test
+    public void getContractAccountTest(){
+        Result<ContractAccount> result =contractAccountService.getContractAccount(282L);
+        log.info(result.toString());
+    }
+
+    @Test
+    public void getAccountMsgTest(){
+        Map<String, BigDecimal> result = contractOrderManager.getAccountMsg(282L);
+        log.info(result.toString());
+    }
+
+    @Test
+    public void getEntrustMarginTest(){
+        BigDecimal ret = contractOrderManager.getEntrustMargin(282L);
+        log.info(ret.toString());
     }
 
 }
