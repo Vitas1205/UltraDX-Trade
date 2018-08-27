@@ -30,8 +30,8 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
             "total_amount, unfilled_amount, ",
             "price, fee, ",
             "status, average_price, order_type, close_type)",
-            "values (#{id}, now(), ",
-            "now(), #{userId}, ",
+            "values (#{id}, #{gmtCreate,jdbcType=TIMESTAMP}, ",
+            "#{gmtCreate,jdbcType=TIMESTAMP}, #{userId}, ",
             "#{contractId,jdbcType=INTEGER}, #{contractName,jdbcType=VARCHAR}, ",
             "#{orderDirection,jdbcType=TINYINT}, ",
             "#{totalAmount,jdbcType=BIGINT}, #{unfilledAmount,jdbcType=BIGINT}, ",
@@ -164,8 +164,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
 
     @Update({
             "update trade_contract_order",
-            "set gmt_create = #{gmtCreate,jdbcType=TIMESTAMP},",
-            "gmt_modified = now(),",
+            "gmt_modified = #{gmtCreate,jdbcType=TIMESTAMP},",
             "user_id = #{userId,jdbcType=BIGINT},",
             "contract_id = #{contractId,jdbcType=BIGINT},",
             "contract_name = #{contractName,jdbcType=VARCHAR},",

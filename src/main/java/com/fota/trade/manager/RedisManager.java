@@ -260,6 +260,7 @@ public class RedisManager {
      * @return 成功个数
      */
     public long sSet(String key, Object... values) {
+        log.info("开始写入Set--------key{},value{}",key,values);
         try {
             return redisTemplate.opsForSet().add(key, values);
         } catch (Exception e) {
@@ -269,6 +270,7 @@ public class RedisManager {
     }
 
     public long sRemove(String key, Object... values) {
+        log.info("开始移除Set--------key{},value{}",key,values);
         try {
             return redisTemplate.opsForSet().remove(key, values);
         } catch (Exception e) {

@@ -102,6 +102,7 @@ public class UsdkOrderManager {
     public com.fota.common.Result<Long> placeOrder(UsdkOrderDTO usdkOrderDTO, Map<String, String> userInfoMap)throws Exception {
         com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
         UsdkOrderDO usdkOrderDO = com.fota.trade.common.BeanUtils.copy(usdkOrderDTO);
+        usdkOrderDO.setGmtModified(new Date());
         Long orderId = usdkOrderDO.getId();
         ResultCode resultCode = new ResultCode();
         Integer assetId = usdkOrderDO.getAssetId();
@@ -185,7 +186,10 @@ public class UsdkOrderManager {
         }
         usdkOrderDTO.setCompleteAmount(BigDecimal.ZERO);
         redisManager.usdkOrderSave(usdkOrderDTO);
-        redisManager.sSet(Constant.CACHE_USDT_ORDER_SET, JSONObject.toJSONString(usdkOrderDO));
+        long setRet = redisManager.sSet(Constant.CACHE_USDT_ORDER_SET, JSONObject.toJSONString(usdkOrderDO));
+        if (setRet == 0){
+            log.error("usdk placeOrder set failed{}",JSONObject.toJSONString(usdkOrderDO));
+        }
         String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
         String ipAddress = StringUtils.isEmpty(userInfoMap.get("ipAddress")) ? "" : userInfoMap.get("ipAddress");
         tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
@@ -227,6 +231,8 @@ public class UsdkOrderManager {
         UsdkOrderDO usdkOrderDOUpdate = usdkOrderDO;
         Integer status = usdkOrderDOUpdate.getStatus();
         boolean judegRet = getJudegRet(usdkOrderDOUpdate);
+        Date gmtModified = new Date();
+        usdkOrderDOUpdate.setGmtCreate(gmtModified);
         if (!judegRet){
             resultCode = ResultCode.error(ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getCode(),ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getMessage());
             return resultCode;
@@ -273,14 +279,22 @@ public class UsdkOrderManager {
                     throw new RuntimeException("getCapitalService().updateLockedAmount failed");
                 }
             }
+            //更新redis记录
+            long removeRet = redisManager.sRemove(Constant.CACHE_USDT_ORDER_SET, JSONObject.toJSONString(usdkOrderDO));
+            if (removeRet == 0){
+                log.error("usdk cancel remove failed{}",JSONObject.toJSONString(usdkOrderDO));
+            }
+            usdkOrderDOUpdate.setGmtCreate(usdkOrderDO.getGmtCreate());
+            usdkOrderDOUpdate.setGmtModified(gmtModified);
+            long setRet = redisManager.sSet(Constant.CACHE_USDT_ORDER_SET, JSONObject.toJSONString(usdkOrderDOUpdate));
+            if (removeRet == 0){
+                log.error("usdk cancel set failed{}",JSONObject.toJSONString(usdkOrderDOUpdate));
+            }
             UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
             BeanUtils.copyProperties(usdkOrderDOUpdate,usdkOrderDTO);
             BigDecimal matchAmount = usdkOrderDTO.getTotalAmount().subtract(usdkOrderDTO.getUnfilledAmount());
             usdkOrderDTO.setCompleteAmount(matchAmount);
             redisManager.usdkOrderSave(usdkOrderDTO);
-            //更新redis记录
-            redisManager.sRemove(Constant.CACHE_USDT_ORDER_SET, JSONObject.toJSONString(usdkOrderDO));
-            redisManager.sSet(Constant.CACHE_USDT_ORDER_SET, JSONObject.toJSONString(usdkOrderDOUpdate));
             String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
             String ipAddress = StringUtils.isEmpty(userInfoMap.get("ipAddress")) ? "" : userInfoMap.get("ipAddress");
             tradeLog.info("cancelorder@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
@@ -365,14 +379,20 @@ public class UsdkOrderManager {
         }
         BigDecimal filledAmount = new BigDecimal(usdkMatchedOrderDTO.getFilledAmount());
         BigDecimal filledPrice = new BigDecimal(usdkMatchedOrderDTO.getFilledPrice());
-        redisManager.sRemove(Constant.CACHE_USDT_ORDER_SET, JSONObject.toJSONString(askUsdkOrder));
+        long askRemoveRet = redisManager.sRemove(Constant.CACHE_USDT_ORDER_SET, JSONObject.toJSONString(askUsdkOrder));
+        if (askRemoveRet == 0){
+            log.error("askUsdkOrder match remove failed{}", JSONObject.toJSONString(askUsdkOrder));
+        }
         askUsdkOrder.setStatus(usdkMatchedOrderDTO.getAskOrderStatus());
         int updateAskOrderRet = updateSingleOrderByFilledAmount(askUsdkOrder, filledAmount, usdkMatchedOrderDTO.getFilledPrice(), new Date(transferTime));
         if (updateAskOrderRet <= 0){
             log.error("update ask order failed{}", askUsdkOrder);
             throw new RuntimeException("update ask order failed");
         }
-        redisManager.sRemove(Constant.CACHE_USDT_ORDER_SET, JSONObject.toJSONString(bidUsdkOrder));
+        long bidRemoveRet = redisManager.sRemove(Constant.CACHE_USDT_ORDER_SET, JSONObject.toJSONString(bidUsdkOrder));
+        if (bidRemoveRet == 0){
+            log.error("bidUsdkOrder match remove failed{}", JSONObject.toJSONString(bidUsdkOrder));
+        }
         bidUsdkOrder.setStatus(usdkMatchedOrderDTO.getBidOrderStatus());
         int updateBIdOrderRet = updateSingleOrderByFilledAmount(bidUsdkOrder, filledAmount, usdkMatchedOrderDTO.getFilledPrice(), new Date(transferTime));
         if (updateBIdOrderRet <= 0){
@@ -524,7 +544,10 @@ public class UsdkOrderManager {
                     usdkOrderDO2.setStatus(OrderStatusEnum.PART_MATCH.getCode());
                     usdkOrderMapper.updateStatus(usdkOrderDO2);
                 }
-                redisManager.sSet(Constant.CACHE_USDT_ORDER_SET, JSONObject.toJSONString(usdkOrderDO2));
+                long setRet = redisManager.sSet(Constant.CACHE_USDT_ORDER_SET, JSONObject.toJSONString(usdkOrderDO2));
+                if (setRet == 0){
+                    log.error("usdkOrder match set failed",JSONObject.toJSONString(usdkOrderDO2));
+                }
             }
         }catch (Exception e){
             log.error(ResultCodeEnum.ASSET_SERVICE_FAILED.getMessage());

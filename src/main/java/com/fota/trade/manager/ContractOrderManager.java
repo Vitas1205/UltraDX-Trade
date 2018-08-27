@@ -264,7 +264,10 @@ public class ContractOrderManager {
                     2, contractOrderDTO.getContractName(), username, ipAddress, contractOrderDTO.getTotalAmount(),
                     System.currentTimeMillis(), 1, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 1);
         }
-        redisManager.sSet(Constant.CACHE_CONTRACT_ORDER_SET, JSONObject.toJSONString(contractOrderDO));
+        long setRet = redisManager.sSet(Constant.CACHE_CONTRACT_ORDER_SET, JSONObject.toJSONString(contractOrderDO));
+        if (setRet == 0){
+            log.error("contract placeOrder set failed{}",JSONObject.toJSONString(contractOrderDO));
+        }
         //推送MQ消息
         OrderMessage orderMessage = new OrderMessage();
         orderMessage.setAmount(new BigDecimal(contractOrderDTO.getUnfilledAmount()));
@@ -305,8 +308,11 @@ public class ContractOrderManager {
         String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
         String ipAddress = StringUtils.isEmpty(userInfoMap.get("ip")) ? "" : userInfoMap.get("ip");
         ResultCode resultCode = new ResultCode();
-        Integer status = contractOrderDO.getStatus();
-        ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractOrderDO.getContractId());
+        ContractOrderDO contractOrderDOUpdate = contractOrderDO;
+        Integer status = contractOrderDOUpdate.getStatus();
+        Date gmtModified = new Date();
+        contractOrderDOUpdate.setGmtCreate(gmtModified);
+        ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractOrderDOUpdate.getContractId());
         if (contractCategoryDO == null){
             log.error("Contract Is Null");
             throw new RuntimeException("Contract Is Null");
@@ -315,27 +321,26 @@ public class ContractOrderManager {
             log.error("contract status illegal,can not cancel{}", contractCategoryDO);
             throw new RuntimeException("contractCategoryDO");
         }
-        boolean judegRet = getJudegRet(contractOrderDO);
+        boolean judegRet = getJudegRet(contractOrderDOUpdate);
         if (!judegRet){
             resultCode.setCode(ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getCode());
             resultCode.setMessage(ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getMessage());
             return resultCode;
         }
-        redisManager.sRemove(Constant.CACHE_CONTRACT_ORDER_SET, JSONObject.toJSONString(contractOrderDO));
         if (status == OrderStatusEnum.COMMIT.getCode()){
-            contractOrderDO.setStatus(OrderStatusEnum.CANCEL.getCode());
+            contractOrderDOUpdate.setStatus(OrderStatusEnum.CANCEL.getCode());
         } else if (status == OrderStatusEnum.PART_MATCH.getCode()) {
-            contractOrderDO.setStatus(OrderStatusEnum.PART_CANCEL.getCode());
+            contractOrderDOUpdate.setStatus(OrderStatusEnum.PART_CANCEL.getCode());
         } else if (status == OrderStatusEnum.MATCH.getCode() || status == OrderStatusEnum.PART_CANCEL.getCode() || status == OrderStatusEnum.CANCEL.getCode()) {
-            log.error("order has completed{}", contractOrderDO);
+            log.error("order has completed{}", contractOrderDOUpdate);
             throw new RuntimeException("order has completed");
         } else {
-            log.error("order status illegal{}", contractOrderDO);
+            log.error("order status illegal{}", contractOrderDOUpdate);
             throw new RuntimeException("order status illegal");
         }
         Long transferTime = System.currentTimeMillis();
         log.info("------------contractCancelStartTimeStamp"+System.currentTimeMillis());
-        int ret = contractOrderMapper.updateByOpLock(contractOrderDO);
+        int ret = contractOrderMapper.updateByOpLock(contractOrderDOUpdate);
         log.info("------------contractCancelEndTimeStamp"+System.currentTimeMillis());
         if (ret > 0) {
             /*UserContractDTO userContractDTO = getAssetService().getContractAccount(contractOrderDO.getUserId());
@@ -345,15 +350,25 @@ public class ContractOrderManager {
                 lockContractAccount(userContractDTO, totalLockAmount);
             }*/
         } else {
-            log.error("update contractOrder Failed{}", contractOrderDO);
+            log.error("update contractOrder Failed{}", contractOrderDOUpdate);
             throw new RuntimeException("update contractOrder Failed");
         }
+        //更新redis记录
+        long removeRet = redisManager.sRemove(Constant.CACHE_CONTRACT_ORDER_SET, JSONObject.toJSONString(contractOrderDO));
+        if (removeRet == 0){
+            log.error("contract cancel remove failed",JSONObject.toJSONString(contractOrderDO));
+        }
+        contractOrderDOUpdate.setGmtModified(gmtModified);
+        contractOrderDOUpdate.setGmtCreate(contractCategoryDO.getGmtCreate());
+        long setRet = redisManager.sSet(Constant.CACHE_CONTRACT_ORDER_SET, JSONObject.toJSONString(contractOrderDOUpdate)); //??
+        if (setRet == 0){
+            log.error("contract cancel set failed{}",JSONObject.toJSONString(contractOrderDOUpdate));
+        }
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
-        BeanUtils.copyProperties(contractOrderDO, contractOrderDTO);
+        BeanUtils.copyProperties(contractOrderDOUpdate, contractOrderDTO);
         contractOrderDTO.setCompleteAmount(contractOrderDTO.getTotalAmount() - contractOrderDTO.getUnfilledAmount());
-        contractOrderDTO.setContractId(contractOrderDO.getContractId());
+        contractOrderDTO.setContractId(contractOrderDOUpdate.getContractId());
         redisManager.contractOrderSave(contractOrderDTO);
-        redisManager.sSet(Constant.CACHE_CONTRACT_ORDER_SET, JSONObject.toJSONString(contractOrderDO)); //??
         tradeLog.info("cancelorder@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                 2, contractOrderDTO.getContractName(), username, ipAddress, contractOrderDTO.getUnfilledAmount(),
                 System.currentTimeMillis(), 2, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 1);
@@ -656,8 +671,14 @@ public class ContractOrderManager {
         }
         long filledAmount = contractMatchedOrderDTO.getFilledAmount();
         BigDecimal filledPrice = new BigDecimal(contractMatchedOrderDTO.getFilledPrice());
-        redisManager.sRemove(Constant.CACHE_CONTRACT_ORDER_SET, JSONObject.toJSONString(askContractOrder));
-        redisManager.sRemove(Constant.CACHE_CONTRACT_ORDER_SET, JSONObject.toJSONString(bidContractOrder));
+        long askRemoveRet = redisManager.sRemove(Constant.CACHE_CONTRACT_ORDER_SET, JSONObject.toJSONString(askContractOrder));
+        if (askRemoveRet == 0){
+            log.error("askContractOrder match remove failed{}",JSONObject.toJSONString(askContractOrder));
+        }
+        long bidRemoveRet = redisManager.sRemove(Constant.CACHE_CONTRACT_ORDER_SET, JSONObject.toJSONString(bidContractOrder));
+        if (bidRemoveRet == 0){
+            log.error("bidContractOrder match remove failed{}",JSONObject.toJSONString(bidContractOrder));
+        }
         Integer askLever = contractLeverManager.getLeverByContractId(askContractOrder.getUserId(), askContractOrder.getContractId());
         askContractOrder.setLever(askLever.intValue());
 
@@ -673,9 +694,14 @@ public class ContractOrderManager {
 
         ContractOrderDO askContractOrderUpdate = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getAskOrderId());
         ContractOrderDO bidContractOrderUpdate = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
-        redisManager.sSet(Constant.CACHE_CONTRACT_ORDER_SET, JSONObject.toJSONString(askContractOrderUpdate));
-        redisManager.sSet(Constant.CACHE_CONTRACT_ORDER_SET, JSONObject.toJSONString(bidContractOrderUpdate));
-
+        long askSetRet = redisManager.sSet(Constant.CACHE_CONTRACT_ORDER_SET, JSONObject.toJSONString(askContractOrderUpdate));
+        if (askSetRet == 0){
+            log.error("askContractOrder match set failed{",JSONObject.toJSONString(askContractOrderUpdate));
+        }
+        long bidSetRet = redisManager.sSet(Constant.CACHE_CONTRACT_ORDER_SET, JSONObject.toJSONString(bidContractOrderUpdate));
+        if (bidSetRet == 0){
+            log.error("bidContractOrder match set failed{}",JSONObject.toJSONString(askContractOrderUpdate));
+        }
         BigDecimal contractSize = getContractSize(contractMatchedOrderDTO.getContractId());
         //更新持仓
         UpdatePositionResult askResult = updatePosition(askContractOrder, contractSize, filledAmount, filledPrice);
