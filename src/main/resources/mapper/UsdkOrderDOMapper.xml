@@ -246,7 +246,7 @@
 
   <update id="updateStatus">
     update trade_usdk_order
-    set gmt_modified = #{gmtModified},
+    set gmt_modified = now(),
     status = #{status}
     where id = #{id} and user_id = #{userId}
   </update>
