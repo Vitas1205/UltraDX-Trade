@@ -354,7 +354,21 @@ public class ContractOrderManager {
         tradeLog.info("cancelorder@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                 2, contractOrderDTO.getContractName(), username, ipAddress, contractOrderDTO.getUnfilledAmount(),
                 System.currentTimeMillis(), 2, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 1);
-
+        OrderMessage orderMessage = new OrderMessage();
+        orderMessage.setAmount(new BigDecimal(contractOrderDTO.getUnfilledAmount()));
+        orderMessage.setPrice(contractOrderDTO.getPrice());
+        orderMessage.setTransferTime(transferTime);
+        orderMessage.setOrderId(contractOrderDTO.getId());
+        orderMessage.setEvent(OrderOperateTypeEnum.CANCLE_ORDER.getCode());
+        orderMessage.setUserId(contractOrderDTO.getUserId());
+        orderMessage.setSubjectId(contractOrderDO.getContractId());
+        orderMessage.setOrderDirection(contractOrderDO.getOrderDirection());
+        orderMessage.setContractType(contractCategoryDO.getContractType());
+        orderMessage.setContractMatchAssetName(contractCategoryDO.getAssetName());
+        Boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder", String.valueOf(contractOrderDTO.getId())+contractOrderDTO.getStatus(), orderMessage);
+        if (!sendRet) {
+            log.error("Send RocketMQ Message Failed ");
+        }
         resultCode.setCode(0);
         resultCode.setMessage("success");
         return resultCode;

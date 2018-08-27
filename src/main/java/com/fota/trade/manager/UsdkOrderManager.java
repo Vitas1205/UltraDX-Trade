@@ -282,7 +282,21 @@ public class UsdkOrderManager {
             String ipAddress = StringUtils.isEmpty(userInfoMap.get("ipAddress")) ? "" : userInfoMap.get("ipAddress");
             tradeLog.info("cancelorder@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                     1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getUnfilledAmount(), System.currentTimeMillis(), 2,  usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 1);
-
+            OrderMessage orderMessage = new OrderMessage();
+            orderMessage.setOrderId(usdkOrderDTO.getId());
+            orderMessage.setEvent(OrderOperateTypeEnum.CANCLE_ORDER.getCode());
+            orderMessage.setUserId(usdkOrderDTO.getUserId());
+            orderMessage.setSubjectId(usdkOrderDTO.getAssetId().longValue());
+            orderMessage.setSubjectName(usdkOrderDTO.getAssetName());
+            orderMessage.setAmount(usdkOrderDOUpdate.getTotalAmount());
+            orderMessage.setPrice(usdkOrderDOUpdate.getPrice());
+            orderMessage.setOrderType(usdkOrderDOUpdate.getOrderType());
+            orderMessage.setTransferTime(transferTime);
+            orderMessage.setOrderDirection(orderDirection);
+            Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", String.valueOf(usdkOrderDTO.getUserId())+usdkOrderDTO.getStatus(), orderMessage);
+            if (!sendRet){
+                log.error("Send RocketMQ Message Failed ");
+            }
             resultCode = ResultCode.success();
         }else {
             log.error("usdkOrderMapper.updateByOpLock failed{}", usdkOrderDOUpdate);
