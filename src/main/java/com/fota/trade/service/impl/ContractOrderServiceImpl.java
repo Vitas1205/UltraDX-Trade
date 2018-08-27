@@ -1,5 +1,6 @@
 package com.fota.trade.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
 import com.fota.trade.common.*;
@@ -316,7 +317,7 @@ public class ContractOrderServiceImpl implements
             resultCode = contractOrderManager.updateOrderByMatch(contractMatchedOrderDTO);
             return resultCode;
         } catch (Exception e) {
-            log.error("updateOrderByMatch error", e);
+            log.error("updateOrderByMatch error, match_order={}", JSON.toJSONString(contractMatchedOrderDTO), e);
         }
         resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
         resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());
