@@ -779,6 +779,9 @@ public class ContractOrderManager {
             throw new RuntimeException("contractMatchedOrderMapper.insert exception{}", e);
         }
 
+        // todo 需要更新下Redis里面的订单数据  contract_order_for_match_
+        // 如果是10，则删除，如果是9则更新
+
         //存入Redis缓存 有相关撮合
         ContractOrderDTO bidContractOrderDTO = new ContractOrderDTO();
         ContractOrderDTO askContractOrderDTO = new ContractOrderDTO();

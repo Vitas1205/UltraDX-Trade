@@ -459,6 +459,12 @@ public class UsdkOrderManager {
             log.error("保存USDK订单数据到数据库失败({})", usdkMatchedOrderDO, e);
             throw new RuntimeException("usdkMatchedOrder.insert exception{}",e);
         }
+
+        // todo 需要更新下Redis里面的订单数据  usdt_order_for_match_
+        // 如果是10，则删除，如果是9则更新
+
+
+
         //存Redis
         org.springframework.beans.BeanUtils.copyProperties(askUsdkOrder, askUsdkOrderDTO);
         org.springframework.beans.BeanUtils.copyProperties(bidUsdkOrder, bidUsdkOrderDTO);
