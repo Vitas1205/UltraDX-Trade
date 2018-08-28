@@ -15,6 +15,7 @@ import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
+import com.fota.trade.service.impl.ContractAccountServiceImpl;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
 import com.fota.trade.util.CommonUtils;
 import com.fota.trade.util.PriceUtil;
@@ -45,7 +46,7 @@ import static com.fota.trade.domain.enums.OrderStatusEnum.PART_MATCH;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
-@Transactional
+//@Transactional
 @Slf4j
 public class ContractOrderServiceTest {
 
@@ -55,6 +56,8 @@ public class ContractOrderServiceTest {
     ContractCategoryService contractCategoryService;
     @Resource
     private ContractOrderMapper contractOrderMapper;
+    @Resource
+    private ContractAccountServiceImpl contractAccountService;
     @Resource
     AssetService assetService;
     @Resource
@@ -71,7 +74,8 @@ public class ContractOrderServiceTest {
 
     UserPositionDO askPositionDO;
     UserPositionDO bidPositionDO;
-    ContractOrderManager contractOrderManager;
+    @Resource
+    private ContractOrderManager contractOrderManager;
 
 
     long askUserId = 1;
@@ -272,16 +276,36 @@ public class ContractOrderServiceTest {
     public void contractPlaceOrderTest(){
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
         Map<String, String> userInfoMap = new HashMap<>();
+        userInfoMap.put("username", "harry");
         contractOrderDTO.setContractId(1001L);
         contractOrderDTO.setContractName("BTC0201");
         contractOrderDTO.setTotalAmount(10L);
-        contractOrderDTO.setOrderType(OrderTypeEnum.ENFORCE.getCode());
+        contractOrderDTO.setOrderType(OrderTypeEnum.LIMIT.getCode());
         contractOrderDTO.setOrderDirection(OrderDirectionEnum.BID.getCode());
         contractOrderDTO.setUserId(282L);
+        contractOrderDTO.setPrice(new BigDecimal(6000));
         contractOrderDTO.setCloseType(OrderCloseTypeEnum.SYSTEM.getCode());
         contractOrderDTO.setFee(new BigDecimal(0.01));
         contractOrderDTO.setUnfilledAmount(10L);
         contractOrderService.order(contractOrderDTO, userInfoMap);
+    }
+
+    @Test
+    public void getContractAccountTest(){
+        Result<ContractAccount> result =contractAccountService.getContractAccount(282L);
+        log.info(result.toString());
+    }
+
+    @Test
+    public void getAccountMsgTest(){
+        Map<String, BigDecimal> result = contractOrderManager.getAccountMsg(282L);
+        log.info(result.toString());
+    }
+
+    @Test
+    public void getEntrustMarginTest(){
+        BigDecimal ret = contractOrderManager.getEntrustMargin(282L);
+        log.info(ret.toString());
     }
 
 }

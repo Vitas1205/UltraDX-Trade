@@ -27,6 +27,7 @@
             <arg column="position_locked_amount" jdbcType="DECIMAL" javaType="java.math.BigDecimal"/>
             <arg column="status" jdbcType="INTEGER" javaType="java.lang.Integer"/>
             <arg column="average_price" jdbcType="DECIMAL" javaType="java.math.BigDecimal"/>
+            <arg column="order_context" jdbcType="VARCHAR" javaType="java.lang.String"/>
         </constructor>
     </resultMap>
     <sql id="Base_Column_List">
@@ -40,7 +41,7 @@
         operate_type as operateType, operate_direction as operateDirection, lever, total_amount as totalAmount,
         unfilled_amount as unfilledAmount, close_type as closeType, price, fee,
         usdk_locked_amount as usdkLockedAmount, position_locked_amount as positionLockedAmount, status, average_price as
-        averagePrice
+        averagePrice, order_context as orderContext
     </sql>
 
     <select id="notMatchOrderList" resultMap="BaseResultMap">

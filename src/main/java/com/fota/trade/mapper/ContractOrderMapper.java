@@ -29,14 +29,14 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
             "order_direction, ",
             "total_amount, unfilled_amount, ",
             "price, fee, ",
-            "status, average_price, order_type, close_type)",
+            "status, average_price, order_type, close_type, order_context)",
             "values (#{id}, now(), ",
             "now(), #{userId}, ",
             "#{contractId,jdbcType=INTEGER}, #{contractName,jdbcType=VARCHAR}, ",
             "#{orderDirection,jdbcType=TINYINT}, ",
             "#{totalAmount,jdbcType=BIGINT}, #{unfilledAmount,jdbcType=BIGINT}, ",
             "#{price,jdbcType=DECIMAL}, #{fee,jdbcType=DECIMAL},",
-            " #{status}, #{averagePrice,jdbcType=DECIMAL}, #{orderType}, #{closeType})"
+            " #{status}, #{averagePrice,jdbcType=DECIMAL}, #{orderType}, #{closeType}, #{orderContext,jdbcType=VARCHAR})"
     })
     int insert(ContractOrderDO record);
 
@@ -48,7 +48,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
         "select",
         "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, order_direction, ",
         "operate_type, operate_direction, lever, total_amount, unfilled_amount, price, ",
-        "fee, usdk_locked_amount, position_locked_amount, status, order_type, close_type, average_price",
+        "fee, usdk_locked_amount, position_locked_amount, status, order_type, close_type, average_price, order_context",
         "from trade_contract_order",
         "where id = #{id,jdbcType=BIGINT}"
     })
@@ -59,7 +59,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, order_direction, ",
             "operate_type, order_type, operate_direction, lever, total_amount, unfilled_amount, close_type, price, ",
-            "fee, usdk_locked_amount, position_locked_amount, status, average_price",
+            "fee, usdk_locked_amount, position_locked_amount, status, average_price, order_context",
             "from trade_contract_order",
             "where id = #{id,jdbcType=BIGINT} and user_id =  #{userId,jdbcType=BIGINT}"
     })
@@ -71,7 +71,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, order_direction, ",
             "operate_type,order_type,close_type, operate_direction, lever, total_amount, unfilled_amount, price, ",
-            "fee, usdk_locked_amount, position_locked_amount, status, average_price",
+            "fee, usdk_locked_amount, position_locked_amount, status, average_price, order_context",
             "from trade_contract_order",
             "where contract_id = #{contractId,jdbcType=BIGINT} and user_id =  #{userId,jdbcType=BIGINT}"
     })
@@ -82,7 +82,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, order_direction, ",
             "operate_type,order_type,close_type, operate_direction, lever, total_amount, unfilled_amount, price, ",
-            "fee, usdk_locked_amount, position_locked_amount, status, average_price",
+            "fee, usdk_locked_amount, position_locked_amount, status, average_price, order_context",
             "from trade_contract_order",
             "where user_id =  #{userId,jdbcType=BIGINT}"
     })
@@ -94,7 +94,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, order_direction, ",
             "operate_type,order_type,close_type, operate_direction, lever, total_amount, unfilled_amount, price, ",
-            "fee, usdk_locked_amount, position_locked_amount, status, average_price",
+            "fee, usdk_locked_amount, position_locked_amount, status, average_price, order_context",
             "from trade_contract_order",
             "where user_id =  #{userId,jdbcType=BIGINT} and status in (8,9)"
     })
@@ -105,7 +105,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, order_direction, ",
             "operate_type,order_type,close_type, operate_direction, lever, total_amount, unfilled_amount, price, ",
-            "fee, usdk_locked_amount, position_locked_amount, status, average_price",
+            "fee, usdk_locked_amount, position_locked_amount, status, average_price, order_context",
             "from trade_contract_order",
             "where contract_id = #{contractId,jdbcType=BIGINT} and status in (8,9)"
     })

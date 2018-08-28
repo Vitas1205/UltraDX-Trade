@@ -21,13 +21,13 @@ public enum ContractStatusEnum {
      */
     PROCESSING(2, "PROCESSING"),
     /**
-     * 已交割
-     */
-    DELIVERED(3, "DELIVERED"),
-    /**
      * 交割中
      */
-    DELIVERYING(4, "DELIVERED"),
+    DELIVERYING(3, "DELIVERED"),
+    /**
+     * 已交割
+     */
+    DELIVERED(4, "DELIVERED"),
     /**
      * 回滚中
      */

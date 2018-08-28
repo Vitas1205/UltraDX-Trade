@@ -25,5 +25,7 @@ public class Constant {
     public static final String ENTRUST_MARGIN = "entrustMargin";
     public static final String POSITION_MARGIN = "positionMargin";
     public static final String FLOATING_PL = "floatingPL";
+    public static final String LAST_USDT_MATCH_PRICE = "FOTA_LATEST_USDT_MATCHED_ORDER_";
+    public static final String LAST_CONTRACT_MATCH_PRICE = "FOTA_LATEST_CONTRACT_MATCHED_ORDER_";
 
 }

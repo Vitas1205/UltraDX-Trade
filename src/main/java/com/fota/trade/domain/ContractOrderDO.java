@@ -32,6 +32,7 @@ public class ContractOrderDO {
     private BigDecimal positionLockedAmount;
     private Integer status;
     private BigDecimal averagePrice;
+    private String orderContext;
 
     public boolean fillAmount(long filledAmount) {
         if (filledAmount - filledAmount < 0) {

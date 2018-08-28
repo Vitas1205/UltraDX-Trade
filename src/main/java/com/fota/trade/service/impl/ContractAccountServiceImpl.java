@@ -34,7 +34,7 @@ public class ContractAccountServiceImpl implements ContractAccountService {
         Map<String, BigDecimal> resultMap = new HashMap<>();
         UserContractDTO userContractDTO = new UserContractDTO();
         try {
-            resultMap = contractOrderManager.getAccountDetailMsg(userId);
+            resultMap = contractOrderManager.getAccountMsg(userId);
         }catch (Exception e){
             log.error("contractOrderManager.getAccountDetailMsg failed{}", userId, e);
             return Result.<ContractAccount>create().error(ResultCodeEnum.SERVICE_FAILED);
@@ -47,7 +47,7 @@ public class ContractAccountServiceImpl implements ContractAccountService {
         }
         BigDecimal marginCallRequirement = resultMap.get(Constant.POSITION_MARGIN);
         BigDecimal floatingPL = resultMap.get(Constant.FLOATING_PL);
-        BigDecimal frozenAmount = resultMap.get(Constant.ENTRUST_MARGIN);
+        BigDecimal frozenAmount = contractOrderManager.getEntrustMargin(userId);
         BigDecimal totalAmount = new BigDecimal(userContractDTO.getAmount());
         account.setUserId(userId)
                 .setAccountEquity(totalAmount.add(floatingPL))

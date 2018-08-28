@@ -34,13 +34,13 @@ public interface UsdkOrderMapper {
         "asset_id, asset_name, ",
         "order_direction, order_type, ",
         "total_amount, unfilled_amount, ",
-        "price, fee, status, average_price)",
+        "price, fee, status, average_price, order_context)",
         "values (#{id,jdbcType=BIGINT}, now(), ",
         "now(), #{userId,jdbcType=BIGINT}, ",
         "#{assetId,jdbcType=INTEGER}, #{assetName,jdbcType=VARCHAR}, ",
         "#{orderDirection,jdbcType=TINYINT}, #{orderType,jdbcType=TINYINT}, ",
         "#{totalAmount,jdbcType=DECIMAL}, #{unfilledAmount,jdbcType=DECIMAL}, ",
-        "#{price,jdbcType=DECIMAL}, #{fee,jdbcType=DECIMAL}, #{status,jdbcType=INTEGER}, #{averagePrice,jdbcType=DECIMAL})"
+        "#{price,jdbcType=DECIMAL}, #{fee,jdbcType=DECIMAL}, #{status,jdbcType=INTEGER}, #{averagePrice,jdbcType=DECIMAL}, #{orderContext,jdbcType=VARCHAR})"
     })
     int insert(UsdkOrderDO record);
 
