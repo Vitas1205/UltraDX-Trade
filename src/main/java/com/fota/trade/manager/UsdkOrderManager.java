@@ -364,8 +364,14 @@ public class UsdkOrderManager {
         UsdkOrderDTO askUsdkOrderDTO = new UsdkOrderDTO();
         UsdkOrderDO askUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getAskOrderId());
         UsdkOrderDO bidUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getBidOrderId());
-        Map<String, Object> askOrderContext  = JSON.parseObject(askUsdkOrder.getOrderContext());
-        Map<String, Object> bidOrderContext  = JSON.parseObject(bidUsdkOrder.getOrderContext());
+        Map<String, Object> askOrderContext = new HashMap<>();
+        Map<String, Object> bidOrderContext = new HashMap<>();
+        if (askUsdkOrder.getOrderContext() != null){
+            askOrderContext  = JSON.parseObject(askUsdkOrder.getOrderContext());
+        }
+        if (bidUsdkOrder.getOrderContext() != null){
+            bidOrderContext  = JSON.parseObject(bidUsdkOrder.getOrderContext());
+        }
         if (askUsdkOrder.getUnfilledAmount().compareTo(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount())) < 0
                 || bidUsdkOrder.getUnfilledAmount().compareTo(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount())) < 0){
             log.error("unfilledAmount not enough{}",usdkMatchedOrderDTO);
