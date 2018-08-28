@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 /**
@@ -222,18 +223,25 @@ public class UsdkOrderManager {
         return usdkOrderMapper.insert(usdkOrderDO);
     }
 
-    @Transactional(rollbackFor={RuntimeException.class, Exception.class, BusinessException.class})
     public ResultCode cancelOrder(Long userId, Long orderId, Map<String, String> userInfoMap) throws Exception{
-        //需要调用match
+        ResultCode resultCode = new ResultCode();
+        List<Long> orderIdList = new ArrayList<Long>();
+        orderIdList.add(orderId);
+        List<Long> filterList = new ArrayList<Long>();
+        filterList = getJudegRet(orderIdList, userId);
+        if (filterList.size() != 0 ){
+            return cancelOrderImpl(userId, orderId,  userInfoMap);
+        }
+        resultCode = ResultCode.error(ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getCode(), ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getMessage());
+        return resultCode;
+    }
+
+    @Transactional(rollbackFor={RuntimeException.class, Exception.class, BusinessException.class})
+    public ResultCode cancelOrderImpl(Long userId, Long orderId, Map<String, String> userInfoMap) throws Exception{
         ResultCode resultCode = new ResultCode();
         UsdkOrderDO usdkOrderDO = usdkOrderMapper.selectByIdAndUserId(orderId, userId);
         UsdkOrderDO usdkOrderDOUpdate = usdkOrderDO;
         Integer status = usdkOrderDOUpdate.getStatus();
-        boolean judegRet = getJudegRet(usdkOrderDOUpdate);
-        if (!judegRet){
-            resultCode = ResultCode.error(ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getCode(),ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getMessage());
-            return resultCode;
-        }
         if (status == OrderStatusEnum.COMMIT.getCode()){
             usdkOrderDOUpdate.setStatus(OrderStatusEnum.CANCEL.getCode());
         }else if (status == OrderStatusEnum.PART_MATCH.getCode()){
@@ -308,17 +316,33 @@ public class UsdkOrderManager {
         return resultCode;
     }
 
-    public boolean getJudegRet(UsdkOrderDO usdkOrderDO){
-        TradeUsdkOrder tradeUsdkOrder = new TradeUsdkOrder();
-        tradeUsdkOrder.setAssetId(usdkOrderDO.getAssetId());
-        tradeUsdkOrder.setAssetName(usdkOrderDO.getAssetName());
-        tradeUsdkOrder.setOrderDirection(usdkOrderDO.getOrderDirection());
-        tradeUsdkOrder.setTotalAmount(usdkOrderDO.getTotalAmount());
-        tradeUsdkOrder.setUnfilledAmount(usdkOrderDO.getUnfilledAmount());
-        tradeUsdkOrder.setPrice(usdkOrderDO.getPrice());
-        tradeUsdkOrder.setStatus(usdkOrderDO.getStatus());
-        tradeUsdkOrder.setId(usdkOrderDO.getId());
-        return usdkMatchedOrderService.cancelOrderUsdk(tradeUsdkOrder);
+    public List<Long> getJudegRet(List<Long> orderIdList,Long userId) throws Exception{
+        //发送MQ消息到match
+        Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkCancel", userId+String.valueOf(System.currentTimeMillis()), orderIdList);
+        if (sendRet){
+            Thread.sleep(5);
+            List<Long> filterList = new ArrayList<>();
+            Map<Object, Object> cancelRet = redisManager.hmget(Constant.REDIS_USDT_CANCEL_ORDER_RESULT);
+            int i = 0;
+            while (cancelRet == null && i < 1){
+                Thread.sleep(5);
+                cancelRet = redisManager.hmget(Constant.REDIS_USDT_CANCEL_ORDER_RESULT);
+                i++;
+            }
+            if (cancelRet == null){
+                return new ArrayList<>();
+            }
+            for( Object key :cancelRet.keySet()){
+                if (cancelRet.get(key).equals(0)){
+                    filterList.add(Long.valueOf(String.valueOf(key)));
+                }
+            }
+            for(Long orderId : orderIdList){
+                redisManager.hdel(Constant.REDIS_USDT_CANCEL_ORDER_RESULT, String.valueOf(orderId));
+            }
+            return filterList;
+        }
+        return new ArrayList<>();
     }
 
 
@@ -326,18 +350,25 @@ public class UsdkOrderManager {
         ResultCode resultCode = new ResultCode();
         List<UsdkOrderDO> list = usdkOrderMapper.selectUnfinishedOrderByUserId(userId);
         int i = 0;
+        List<Long> filterList = new ArrayList<>();
         if (list != null){
-            for(UsdkOrderDO usdkOrderDO : list){
-                if (usdkOrderDO.getStatus() == OrderStatusEnum.COMMIT.getCode() || usdkOrderDO.getStatus() == OrderStatusEnum.PART_MATCH.getCode()) {
-                    Long orderId = usdkOrderDO.getId();
-                    try {
-                        ResultCode resultCode2 =cancelOrder(userId, orderId, userInfoMap);
-                        if (resultCode2.getCode() == 0){
-                            i++;
-                        }
-                    }catch (Exception e){
-                        log.error("cancelAllOrder has failed",usdkOrderDO,e);
+            List<Long> orderIdList = new ArrayList<Long>();
+            for (UsdkOrderDO usdkOrderDO : list){
+                orderIdList.add(usdkOrderDO.getId());
+            }
+            filterList = getJudegRet(orderIdList, userId);
+            if (filterList.size() == 0){
+                resultCode = ResultCode.error(ResultCodeEnum.NO_CANCELLABLE_ORDERS.getCode(), ResultCodeEnum.NO_CANCELLABLE_ORDERS.getMessage());
+                return resultCode;
+            }
+            for(Long orderId : filterList){
+                try {
+                    ResultCode resultCode2 =cancelOrderImpl(userId, orderId, userInfoMap);
+                    if (resultCode2.getCode() == 0){
+                        i++;
                     }
+                }catch (Exception e){
+                    log.error("cancelAllOrder has failed",orderId,e);
                 }
             }
         }
@@ -345,7 +376,7 @@ public class UsdkOrderManager {
             resultCode = ResultCode.error(ResultCodeEnum.NO_CANCELLABLE_ORDERS.getCode(), ResultCodeEnum.NO_CANCELLABLE_ORDERS.getMessage());
             return resultCode;
         }
-        if (i != list.size()){
+        if (i != list.size() || list.size() != filterList.size()){
             resultCode = ResultCode.error(ResultCodeEnum.PARTLY_COMPLETED.getCode(), ResultCodeEnum.PARTLY_COMPLETED.getMessage());
             return resultCode;
         }

@@ -185,6 +185,21 @@ public class RedisManager {
         }
     }
 
+    /**
+     * 删除hash表中的值
+     *
+     * @param key  键 不能为null
+     * @param item 项 可以使多个 不能为null
+     */
+    public void hdel(String key, Object... item) {
+        try {
+            Long r = redisTemplate.opsForHash().delete(key, item);
+        }catch (Exception e){
+            e.printStackTrace();
+            return;
+        }
+    }
+
     public Long hRemove(String key, String hKey) {
         try {
             HashOperations<String, String, Object> hOps = redisTemplate.opsForHash();
@@ -233,6 +248,21 @@ public class RedisManager {
         } catch (Exception e) {
             log.error("redis exists error", e);
             return false;
+        }
+    }
+
+    /**
+     * 获取hashKey对应的所有键值
+     *
+     * @param key 键
+     * @return 对应的多个键值
+     */
+    public Map<Object, Object> hmget(String key) {
+        try {
+            return redisTemplate.opsForHash().entries(key);
+        } catch (Exception e) {
+            log.error("redis exists error", e);
+            return new HashMap<>();
         }
     }
 

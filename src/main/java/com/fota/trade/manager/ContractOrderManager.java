@@ -107,40 +107,6 @@ public class ContractOrderManager {
     }
 
 
-    public ResultCode cancelAllOrder(Long userId, Map<String, String> userInfoMap) throws Exception {
-        ResultCode resultCode = new ResultCode();
-        List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByUserId(userId);
-        int i = 0;
-        if (list != null){
-            for(ContractOrderDO contractOrderDO : list){
-                if (contractOrderDO.getStatus() == OrderStatusEnum.COMMIT.getCode() || contractOrderDO.getStatus() == OrderStatusEnum.PART_MATCH.getCode()){
-                    Long orderId = contractOrderDO.getId();
-                    try {
-                        ResultCode resultCode2 =cancelOrder(userId, orderId, userInfoMap);
-                        if (resultCode2.getCode() == 0){
-                            i++;
-                        }
-                    }catch (Exception e){
-                        log.error("cancelAllOrder has failed",contractOrderDO,e);
-                    }
-                }
-
-            }
-        }
-        if (i == 0) {
-            resultCode.setCode(ResultCodeEnum.NO_CANCELLABLE_ORDERS.getCode());
-            resultCode.setMessage(ResultCodeEnum.NO_CANCELLABLE_ORDERS.getMessage());
-            return resultCode;
-        }
-        if (i != list.size()){
-            resultCode = ResultCode.error(ResultCodeEnum.PARTLY_COMPLETED.getCode(), ResultCodeEnum.PARTLY_COMPLETED.getMessage());
-            return resultCode;
-        }
-        resultCode.setCode(0);
-        resultCode.setMessage("success");
-        return resultCode;
-    }
-
     public ResultCode cancelOrderByContractId(Long contractId, Map<String, String> userInfoMap) throws Exception {
         ResultCode resultCode = new ResultCode();
         List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByContractId(contractId);
@@ -299,8 +265,16 @@ public class ContractOrderManager {
 
     public ResultCode cancelOrder(Long userId, Long orderId, Map<String, String> userInfoMap) throws Exception {
         ResultCode resultCode = new ResultCode();
-        ContractOrderDO contractOrderDO = contractOrderMapper.selectByIdAndUserId(orderId, userId);
-        resultCode = cancelOrderImpl(contractOrderDO, userInfoMap);
+        List<Long> orderIdList = new ArrayList<Long>();
+        orderIdList.add(orderId);
+        List<Long> filterList = new ArrayList<Long>();
+        filterList = getJudegRet(orderIdList, userId);
+        if (filterList.size() != 0 ){
+            ContractOrderDO contractOrderDO = contractOrderMapper.selectByIdAndUserId(orderId, userId);
+            resultCode = cancelOrderImpl(contractOrderDO, userInfoMap);
+            return resultCode;
+        }
+        resultCode = ResultCode.error(ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getCode(), ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getMessage());
         return resultCode;
     }
 
@@ -319,12 +293,6 @@ public class ContractOrderManager {
         if (contractCategoryDO.getStatus() != ContractStatusEnum.PROCESSING.getCode()){
             log.error("contract status illegal,can not cancel{}", contractCategoryDO);
             throw new RuntimeException("contractCategoryDO");
-        }
-        boolean judegRet = getJudegRet(contractOrderDO);
-        if (!judegRet){
-            resultCode.setCode(ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getCode());
-            resultCode.setMessage(ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getMessage());
-            return resultCode;
         }
         if (status == OrderStatusEnum.COMMIT.getCode()){
             contractOrderDO.setStatus(OrderStatusEnum.CANCEL.getCode());
@@ -380,18 +348,76 @@ public class ContractOrderManager {
         return resultCode;
     }
 
-    public boolean getJudegRet(ContractOrderDO contractOrderDO) {
-        TradeContractOrder tradeContractOrder = new TradeContractOrder();
-        tradeContractOrder.setContractId(contractOrderDO.getContractId());
-        tradeContractOrder.setContractName(contractOrderDO.getContractName());
-        tradeContractOrder.setOrderDirection(contractOrderDO.getOrderDirection());
-        tradeContractOrder.setTotalAmount(new BigDecimal(contractOrderDO.getTotalAmount()));
-        tradeContractOrder.setUnfilledAmount(new BigDecimal(contractOrderDO.getUnfilledAmount()));
-        tradeContractOrder.setPrice(contractOrderDO.getPrice());
-        tradeContractOrder.setStatus(contractOrderDO.getStatus());
-        tradeContractOrder.setId(contractOrderDO.getId());
-        return contractMatchedOrderService.cancelOrderContract(tradeContractOrder);
+    public List<Long> getJudegRet(List<Long> orderIdList,Long userId) throws Exception{
+        //发送MQ消息到match
+        Boolean sendRet = rocketMqManager.sendMessage("order", "ContractCancel", userId+String.valueOf(System.currentTimeMillis()), orderIdList);
+        if (sendRet){
+            Thread.sleep(5);
+            List<Long> filterList = new ArrayList<>();
+            Map<String, Object> cancelRet = (Map<String, Object>) redisManager.get(Constant.REDIS_CONTRACT_CANCEL_ORDER_RESULT);
+            int i = 0;
+            while (cancelRet == null && i < 1){
+                Thread.sleep(5);
+                cancelRet = (Map<String, Object>) redisManager.get(Constant.REDIS_CONTRACT_CANCEL_ORDER_RESULT);
+                i++;
+            }
+            if (cancelRet == null){
+                return new ArrayList<>();
+            }
+            for(String key :cancelRet.keySet()){
+                if (cancelRet.get(key).equals(0)){
+                    filterList.add(Long.valueOf(key));
+                }
+            }
+            for(Long orderId : orderIdList){
+                redisManager.hdel(Constant.REDIS_CONTRACT_CANCEL_ORDER_RESULT, String.valueOf(orderId));
+            }
+            return filterList;
+        }
+        return new ArrayList<>();
     }
+
+    public ResultCode cancelAllOrder(Long userId, Map<String, String> userInfoMap) throws Exception {
+        ResultCode resultCode = new ResultCode();
+        List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByUserId(userId);
+        int i = 0;
+        List<Long> filterList = new ArrayList<>();
+        if (list != null){
+            List<Long> orderIdList = new ArrayList<Long>();
+            for (ContractOrderDO contractOrderDO : list){
+                orderIdList.add(contractOrderDO.getId());
+            }
+            filterList = getJudegRet(orderIdList, userId);
+            if (filterList.size() == 0){
+                resultCode = ResultCode.error(ResultCodeEnum.NO_CANCELLABLE_ORDERS.getCode(), ResultCodeEnum.NO_CANCELLABLE_ORDERS.getMessage());
+                return resultCode;
+            }
+            for(Long orderId : filterList){
+                try {
+                    ResultCode resultCode2 =cancelOrder(userId, orderId, userInfoMap);
+                    if (resultCode2.getCode() == 0){
+                        i++;
+                    }
+                }catch (Exception e){
+                    log.error("cancelAllOrder has failed",orderId,e);
+                }
+            }
+        }
+        if (i == 0) {
+            resultCode.setCode(ResultCodeEnum.NO_CANCELLABLE_ORDERS.getCode());
+            resultCode.setMessage(ResultCodeEnum.NO_CANCELLABLE_ORDERS.getMessage());
+            return resultCode;
+        }
+        if (i != list.size() || list.size() != filterList.size()){
+            resultCode = ResultCode.error(ResultCodeEnum.PARTLY_COMPLETED.getCode(), ResultCodeEnum.PARTLY_COMPLETED.getMessage());
+            return resultCode;
+        }
+        resultCode.setCode(0);
+        resultCode.setMessage("success");
+        return resultCode;
+    }
+
+
 
 
     //获取实时持仓保证金、实时浮盈亏金
@@ -716,14 +742,22 @@ public class ContractOrderManager {
         ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
         Map<String, Object> askOrderContext = new HashMap<>();
         Map<String, Object> bidOrderContext = new HashMap<>();
+        log.info("-------------------askContractOrder:"+askContractOrder);
+        log.info("-------------------bidContractOrder:"+bidContractOrder);
+        if (askContractOrder == null){
+            log.error("askContractOrder not exist");
+            throw new RuntimeException("askContractOrder not exist");
+        }
+        if (bidOrderContext == null){
+            log.error("bidOrderContext not exist");
+            throw new RuntimeException("bidOrderContext not exist");
+        }
         if (askContractOrder.getOrderContext() != null){
             askOrderContext  = JSON.parseObject(askContractOrder.getOrderContext());
         }
         if (bidContractOrder.getOrderContext() != null){
             bidOrderContext  = JSON.parseObject(bidContractOrder.getOrderContext());
         }
-        log.info("-------------------askContractOrder:"+askContractOrder);
-        log.info("-------------------bidContractOrder:"+bidContractOrder);
         if (askContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0
                 || bidContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0) {
             log.error("unfilledAmount not enough{}",contractMatchedOrderDTO);

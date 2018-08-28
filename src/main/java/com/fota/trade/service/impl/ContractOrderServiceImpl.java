@@ -266,7 +266,7 @@ public class ContractOrderServiceImpl implements
             resultCode = contractOrderManager.cancelOrderByOrderType(userId, orderTypes, userInfoMap);
             return resultCode;
         }catch (Exception e){
-            log.error("Contract cancelOrderByContractId() failed", e);
+            log.error("Contract cancelOrderByOrderType() failed", e);
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
                 resultCode.setCode(businessException.getCode());
