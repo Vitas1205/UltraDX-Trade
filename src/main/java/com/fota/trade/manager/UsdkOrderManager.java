@@ -405,9 +405,12 @@ public class UsdkOrderManager {
         // 卖币 ask +totalUsdk = filledAmount * filledPrice - filledAmount * filledPrice * feeRate
         // 卖币 ask -lockedAsset = filledAmount
         // 卖币 ask -totalAsset = filledAmount
+        BigDecimal addLockedUsdk = BigDecimal.ZERO;
         BigDecimal addBidTotalAsset = filledAmount.subtract(BigDecimal.ZERO);
         BigDecimal addTotalUsdk = filledAmount.multiply(filledPrice);
-        BigDecimal addLockedUsdk = filledAmount.multiply(new BigDecimal(usdkMatchedOrderDTO.getBidOrderPrice()));
+        if (usdkMatchedOrderDTO.getBidOrderPrice() != null){
+            addLockedUsdk = filledAmount.multiply(new BigDecimal(usdkMatchedOrderDTO.getBidOrderPrice()));
+        }
         BigDecimal addAskTotalUsdk = filledAmount.multiply(filledPrice);
         BigDecimal addLockedAsset = filledAmount;
         BigDecimal addTotalAsset = filledAmount;
