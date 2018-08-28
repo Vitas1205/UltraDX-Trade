@@ -64,9 +64,17 @@ public class RedisManager {
         Long count1 = getCount(Constant.USDK_REDIS_KEY);
 
     }
+
+    /**
+     * todo 以hash的方式保存，方便后面修改
+     * @param usdkOrderDTO
+     */
     public void usdtOrderSaveForMatch(UsdkOrderDTO usdkOrderDTO) {
-        String key2 = "usdt_order_for_match_";
-        rpush(key2, usdkOrderDTO);
+
+
+
+//        String key2 = "usdt_order_for_match_";
+//        rpush(key2, usdkOrderDTO);
     }
 
     public void contractOrderSave(ContractOrderDTO contractOrderDTO){
