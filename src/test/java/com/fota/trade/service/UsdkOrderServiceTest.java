@@ -19,10 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 /**
  * @author Gavin Shen
@@ -30,7 +27,7 @@ import java.util.List;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
-@Transactional
+//@Transactional
 public class UsdkOrderServiceTest {
 
     @Resource
@@ -65,7 +62,7 @@ public class UsdkOrderServiceTest {
     }
 
     @Test
-    public void testPlaceOrder(){
+    public void testOrderReturnId(){
         UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
         usdkOrderDTO.setCompleteAmount(new BigDecimal(0));
         usdkOrderDTO.setUserId(282L);
@@ -86,6 +83,26 @@ public class UsdkOrderServiceTest {
                 && (long)result.getData() >0;
 
 
+    }
+
+    @Test
+    public void testPlaceOrder(){
+        UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
+        usdkOrderDTO.setUserId(282L);
+        usdkOrderDTO.setAssetId(1);
+        usdkOrderDTO.setAssetName("BTC");
+        usdkOrderDTO.setAveragePrice(new BigDecimal(0));
+        usdkOrderDTO.setFee(new BigDecimal(0.01));
+        usdkOrderDTO.setOrderDirection(OrderDirectionEnum.ASK.getCode());
+        usdkOrderDTO.setOrderType(OrderTypeEnum.ENFORCE.getCode());
+        usdkOrderDTO.setPrice(new BigDecimal(6000));
+        usdkOrderDTO.setTotalAmount(new BigDecimal(10));
+        Map<String, Object> map = new HashMap();
+        map.put("mortgageOrderId", 123456);
+        usdkOrderDTO.setOrderContext(map);
+        Map<String, String> map2 =  new HashMap<String, String>();
+        map2.put("username", "harry");
+        com.fota.trade.domain.ResultCode result = usdkOrderService.order(usdkOrderDTO, map2);
     }
 
     @Test

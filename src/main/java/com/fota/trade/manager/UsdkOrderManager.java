@@ -30,10 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 /**
@@ -101,8 +98,16 @@ public class UsdkOrderManager {
 
     @Transactional(rollbackFor={RuntimeException.class, Exception.class, BusinessException.class})
     public com.fota.common.Result<Long> placeOrder(UsdkOrderDTO usdkOrderDTO, Map<String, String> userInfoMap)throws Exception {
+        String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
+        String ipAddress = StringUtils.isEmpty(userInfoMap.get("ipAddress")) ? "" : userInfoMap.get("ipAddress");
         com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
         UsdkOrderDO usdkOrderDO = com.fota.trade.common.BeanUtils.copy(usdkOrderDTO);
+        Map<String, Object> newMap = new HashMap<>();
+        if (usdkOrderDTO.getOrderContext() !=null){
+            newMap = usdkOrderDTO.getOrderContext();
+        }
+        newMap.put("username", username);
+        usdkOrderDTO.setOrderContext(newMap);
         usdkOrderDO.setOrderContext(JSONObject.toJSONString(usdkOrderDTO.getOrderContext()));
         Long orderId = usdkOrderDO.getId();
         ResultCode resultCode = new ResultCode();
@@ -186,8 +191,6 @@ public class UsdkOrderManager {
         }
         usdkOrderDTO.setCompleteAmount(BigDecimal.ZERO);
         redisManager.usdkOrderSave(usdkOrderDTO);
-        String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
-        String ipAddress = StringUtils.isEmpty(userInfoMap.get("ipAddress")) ? "" : userInfoMap.get("ipAddress");
         tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                 1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getTotalAmount(), transferTime, 1, usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 1);
         //todo 发送RocketMQ
@@ -361,6 +364,8 @@ public class UsdkOrderManager {
         UsdkOrderDTO askUsdkOrderDTO = new UsdkOrderDTO();
         UsdkOrderDO askUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getAskOrderId());
         UsdkOrderDO bidUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getBidOrderId());
+        Map<String, Object> askOrderContext  = JSON.parseObject(askUsdkOrder.getOrderContext());
+        Map<String, Object> bidOrderContext  = JSON.parseObject(bidUsdkOrder.getOrderContext());
         if (askUsdkOrder.getUnfilledAmount().compareTo(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount())) < 0
                 || bidUsdkOrder.getUnfilledAmount().compareTo(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount())) < 0){
             log.error("unfilledAmount not enough{}",usdkMatchedOrderDTO);
@@ -448,6 +453,8 @@ public class UsdkOrderManager {
         //存Redis
         org.springframework.beans.BeanUtils.copyProperties(askUsdkOrder, askUsdkOrderDTO);
         org.springframework.beans.BeanUtils.copyProperties(bidUsdkOrder, bidUsdkOrderDTO);
+        askUsdkOrderDTO.setOrderContext(askOrderContext);
+        bidUsdkOrderDTO.setOrderContext(bidOrderContext);
         askUsdkOrderDTO.setCompleteAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
         bidUsdkOrderDTO.setCompleteAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
         askUsdkOrderDTO.setStatus(usdkMatchedOrderDTO.getAskOrderStatus());
@@ -455,10 +462,10 @@ public class UsdkOrderManager {
         redisManager.usdkOrderSave(askUsdkOrderDTO);
         // TODO add get username
         tradeLog.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                1, askUsdkOrderDTO.getAssetName(), "", askUsdkOrderDTO.getMatchAmount(), System.currentTimeMillis(), 4, askUsdkOrderDTO.getOrderDirection(), askUsdkOrderDTO.getUserId(), 1);
+                1, askUsdkOrderDTO.getAssetName(), askOrderContext.get("username"), askUsdkOrderDTO.getMatchAmount(), System.currentTimeMillis(), 4, askUsdkOrderDTO.getOrderDirection(), askUsdkOrderDTO.getUserId(), 1);
         redisManager.usdkOrderSave(bidUsdkOrderDTO);
         tradeLog.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                1, bidUsdkOrderDTO.getAssetName(), "", bidUsdkOrderDTO.getMatchAmount(), System.currentTimeMillis(), 4,  bidUsdkOrderDTO.getOrderDirection(), bidUsdkOrderDTO.getUserId(), 1);
+                1, bidUsdkOrderDTO.getAssetName(), bidOrderContext.get("username"), bidUsdkOrderDTO.getMatchAmount(), System.currentTimeMillis(), 4,  bidUsdkOrderDTO.getOrderDirection(), bidUsdkOrderDTO.getUserId(), 1);
         // 向MQ推送消息
         OrderMessage orderMessage = new OrderMessage();
         orderMessage.setSubjectId(usdkMatchedOrderDTO.getAssetId().longValue());
@@ -469,10 +476,8 @@ public class UsdkOrderManager {
         orderMessage.setEvent(OrderOperateTypeEnum.DEAL_ORDER.getCode());
         orderMessage.setAskOrderId(usdkMatchedOrderDTO.getAskOrderId());
         orderMessage.setBidOrderId(usdkMatchedOrderDTO.getBidOrderId());
-        if (askUsdkOrder.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
-            Map<String, Object> orderContext  = JSON.parseObject(askUsdkOrder.getOrderContext());
-            orderMessage.setOrderContext(orderContext);
-        }
+        orderMessage.setAskOrderContext(askOrderContext);
+        orderMessage.setBidOrderContext(bidOrderContext);
         orderMessage.setAskOrderType(askUsdkOrder.getOrderType());
         orderMessage.setBidOrderType(bidUsdkOrder.getOrderType());
         if (askUsdkOrder.getPrice() != null){

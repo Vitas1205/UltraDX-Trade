@@ -193,8 +193,14 @@ public class ContractOrderManager {
         ContractOrderDO contractOrderDO = com.fota.trade.common.BeanUtils.copy(contractOrderDTO);
         String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
         String ipAddress = StringUtils.isEmpty(userInfoMap.get("ip")) ? "" : userInfoMap.get("ip");
-        ResultCode resultCode = new ResultCode();
         com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
+        Map<String, Object> newMap = new HashMap<>();
+        if (contractOrderDTO.getOrderContext() !=null){
+            newMap = contractOrderDTO.getOrderContext();
+        }
+        newMap.put("username", username);
+        contractOrderDTO.setOrderContext(newMap);
+        contractOrderDO.setOrderContext(JSONObject.toJSONString(contractOrderDTO.getOrderContext()));
         Long orderId = 0L;
         Long transferTime = System.currentTimeMillis();
         contractOrderDO.setGmtModified(new Date(transferTime));
@@ -708,6 +714,8 @@ public class ContractOrderManager {
         }
         ContractOrderDO askContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getAskOrderId());
         ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
+        Map<String, Object> askOrderContext  = JSON.parseObject(askContractOrder.getOrderContext());
+        Map<String, Object> bidOrderContext  = JSON.parseObject(bidContractOrder.getOrderContext());
         log.info("-------------------askContractOrder:"+askContractOrder);
         log.info("-------------------bidContractOrder:"+bidContractOrder);
         if (askContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0
@@ -782,14 +790,16 @@ public class ContractOrderManager {
         bidContractOrderDTO.setCompleteAmount(contractMatchedOrderDTO.getFilledAmount());
         bidContractOrderDTO.setStatus(contractMatchedOrderDTO.getBidOrderStatus());
         askContractOrderDTO.setStatus(contractMatchedOrderDTO.getAskOrderStatus());
+        askContractOrderDTO.setOrderContext(askOrderContext);
+        bidContractOrderDTO.setOrderContext(bidOrderContext);
         redisManager.contractOrderSave(askContractOrderDTO);
         // TODO 需要拿到matchID insert后返回
         // TODO add username matchId
         tradeLog.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                2, askContractOrderDTO.getContractName(), "", askContractOrderDTO.getMatchAmount(), System.currentTimeMillis(), 4, askContractOrderDTO.getOrderDirection(), askContractOrderDTO.getUserId(), contractMatchedOrderDO.getId());
+                2, askContractOrderDTO.getContractName(), askOrderContext.get("username"), askContractOrderDTO.getMatchAmount(), System.currentTimeMillis(), 4, askContractOrderDTO.getOrderDirection(), askContractOrderDTO.getUserId(), contractMatchedOrderDO.getId());
         redisManager.contractOrderSave(bidContractOrderDTO);
         tradeLog.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                2, askContractOrderDTO.getContractName(), "", askContractOrderDTO.getMatchAmount(), System.currentTimeMillis(), 4, askContractOrderDTO.getOrderDirection(), askContractOrderDTO.getUserId(), contractMatchedOrderDO.getId());
+                2, askContractOrderDTO.getContractName(), bidOrderContext.get("username"), askContractOrderDTO.getMatchAmount(), System.currentTimeMillis(), 4, askContractOrderDTO.getOrderDirection(), askContractOrderDTO.getUserId(), contractMatchedOrderDO.getId());
         // 向MQ推送消息
         // 通过contractId去trade_contract_category表里面获取asset_name和contract_type
         ContractCategoryDO contractCategoryDO = contractCategoryMapper.getContractCategoryById(askContractOrder.getContractId());

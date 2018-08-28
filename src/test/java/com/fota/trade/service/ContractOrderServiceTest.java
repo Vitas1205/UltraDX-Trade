@@ -46,7 +46,7 @@ import static com.fota.trade.domain.enums.OrderStatusEnum.PART_MATCH;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
-@Transactional
+//@Transactional
 @Slf4j
 public class ContractOrderServiceTest {
 
@@ -276,12 +276,14 @@ public class ContractOrderServiceTest {
     public void contractPlaceOrderTest(){
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
         Map<String, String> userInfoMap = new HashMap<>();
+        userInfoMap.put("username", "harry");
         contractOrderDTO.setContractId(1001L);
         contractOrderDTO.setContractName("BTC0201");
         contractOrderDTO.setTotalAmount(10L);
-        contractOrderDTO.setOrderType(OrderTypeEnum.ENFORCE.getCode());
+        contractOrderDTO.setOrderType(OrderTypeEnum.LIMIT.getCode());
         contractOrderDTO.setOrderDirection(OrderDirectionEnum.BID.getCode());
         contractOrderDTO.setUserId(282L);
+        contractOrderDTO.setPrice(new BigDecimal(6000));
         contractOrderDTO.setCloseType(OrderCloseTypeEnum.SYSTEM.getCode());
         contractOrderDTO.setFee(new BigDecimal(0.01));
         contractOrderDTO.setUnfilledAmount(10L);
