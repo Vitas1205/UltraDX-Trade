@@ -114,9 +114,6 @@ public class UsdkOrderManager {
         Integer assetId = usdkOrderDO.getAssetId();
         Long userId = usdkOrderDO.getUserId();
         Integer orderDirection = usdkOrderDO.getOrderDirection();
-        BigDecimal price = usdkOrderDO.getPrice();
-        BigDecimal totalAmount = usdkOrderDO.getTotalAmount();
-        BigDecimal orderValue = totalAmount.multiply(price);
         List<UserCapitalDTO> list = getAssetService().getUserCapital(userId);
         usdkOrderDO.setFee(usdkFee);
         usdkOrderDO.setStatus(OrderStatusEnum.COMMIT.getCode());
@@ -127,6 +124,9 @@ public class UsdkOrderManager {
             usdkOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
         }
         if (usdkOrderDO.getOrderType() != OrderTypeEnum.ENFORCE.getCode()){
+            BigDecimal price = usdkOrderDO.getPrice();
+            BigDecimal totalAmount = usdkOrderDO.getTotalAmount();
+            BigDecimal orderValue = totalAmount.multiply(price);
             usdkOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
             //插入委托订单记录
             int ret = insertUsdkOrder(usdkOrderDO);
