@@ -15,10 +15,10 @@ import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.service.ContractOrderService;
 import com.fota.trade.util.DateUtil;
 import com.fota.trade.util.PriceUtil;
-import org.apache.commons.lang3.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+
 import java.math.BigDecimal;
 import java.util.*;
 
@@ -410,7 +410,7 @@ public class ContractOrderServiceImpl implements
                     tempTarget.setAskUserId(temp.getAskUserId());
                     tempTarget.setBidCloseType(temp.getBidCloseType().intValue());
                     tempTarget.setBidOrderId(temp.getBidOrderId());
-                    tempTarget.setBidOrderPrice(temp.getBidOrderPrice().toString());
+                    tempTarget.setBidOrderPrice(Objects.isNull(temp.getBidOrderPrice()) ? "0" : temp.getBidOrderPrice().toString());
                     tempTarget.setBidUserId(temp.getBidUserId());
                     //tempTarget.setContractId(temp.getC)
                     tempTarget.setContractName(temp.getContractName());
