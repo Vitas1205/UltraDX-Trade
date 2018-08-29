@@ -2,6 +2,9 @@ package com.fota.trade.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fota.asset.domain.BalanceTransferDTO;
 import com.fota.asset.domain.UserCapitalDTO;
 import com.fota.asset.service.AssetService;
@@ -17,6 +20,7 @@ import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkOrderMapper;
 import com.fota.trade.util.CommonUtils;
+import com.fota.trade.util.JsonUtil;
 import com.fota.trade.util.PriceUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
@@ -346,8 +350,11 @@ public class UsdkOrderManager {
 
     public void sendCancelMessage(List<Long> orderIdList, Long userId) {
         //发送MQ消息到match
+        Map<String, Object> map = new HashMap<>();
+        map.putIfAbsent("userId", userId);
+        map.putIfAbsent("idList", orderIdList);
         Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkCancel",
-                userId + String.valueOf(System.currentTimeMillis()), orderIdList);
+                userId + String.valueOf(System.currentTimeMillis()), map);
         if (BooleanUtils.isNotTrue(sendRet)){
             log.error("failed to send cancel usdk mq, {}", userId);
         }
@@ -478,15 +485,19 @@ public class UsdkOrderManager {
             throw new RuntimeException("usdkMatchedOrder.insert exception{}",e);
         }
 
-        // todo 成交时，把Redis的数据更新下。如果是10，则删除，如果是9则更新
-        // todo 从数据库获取该订单的最终信息，进行处理
+        askUsdkOrder = usdkOrderMapper.selectByPrimaryKey(askUsdkOrder.getId());
+        bidUsdkOrder = usdkOrderMapper.selectByPrimaryKey(bidUsdkOrder.getId());
         // 状态为9
-//        redisManager.hSet(Constant.REDIS_USDT_ORDER_FOR_MATCH_HASH, String.valueOf(askContractOrder.getId()), JsonUtil.objectToJson(askContractOrder));
-//        redisManager.hSet(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(bidContractOrder.getId()), JsonUtil.objectToJson(bidContractOrder));
-        // 状态为10
-//        redisManager.hdel(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(bidContractOrder.getId()));
-
-
+        if (askUsdkOrder.getStatus() == OrderStatusEnum.PART_MATCH.getCode()) {
+            redisManager.hSet(Constant.REDIS_USDT_ORDER_FOR_MATCH_HASH, String.valueOf(askUsdkOrder.getId()), JsonUtil.objectToJson(askUsdkOrder));
+        } else if (askUsdkOrder.getStatus() == OrderStatusEnum.MATCH.getCode()) {
+            redisManager.hdel(Constant.REDIS_USDT_ORDER_FOR_MATCH_HASH, String.valueOf(askUsdkOrder.getId()));
+        }
+        if (bidUsdkOrder.getStatus() == OrderStatusEnum.PART_MATCH.getCode()) {
+            redisManager.hSet(Constant.REDIS_USDT_ORDER_FOR_MATCH_HASH, String.valueOf(bidUsdkOrder.getId()), JsonUtil.objectToJson(bidUsdkOrder));
+        } else if (bidUsdkOrder.getStatus() == OrderStatusEnum.MATCH.getCode()) {
+            redisManager.hdel(Constant.REDIS_USDT_ORDER_FOR_MATCH_HASH, String.valueOf(bidUsdkOrder.getId()));
+        }
 
         //存Redis
         org.springframework.beans.BeanUtils.copyProperties(askUsdkOrder, askUsdkOrderDTO);

@@ -22,6 +22,7 @@ import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.service.ContractAccountService;
 import com.fota.trade.util.CommonUtils;
 import com.fota.trade.util.ContractUtils;
+import com.fota.trade.util.JsonUtil;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.thrift.TException;
@@ -374,8 +375,11 @@ public class ContractOrderManager {
 
     public void sendCancelMessage(List<Long> orderIdList, Long userId) {
         //发送MQ消息到match
+        Map<String, Object> map = new HashMap<>();
+        map.putIfAbsent("userId", userId);
+        map.putIfAbsent("idList", orderIdList);
         Boolean sendRet = rocketMqManager.sendMessage("order", "ContractCancel",
-                userId + String.valueOf(System.currentTimeMillis()), orderIdList);
+                userId + String.valueOf(System.currentTimeMillis()), map);
         if (BooleanUtils.isNotTrue(sendRet)){
             log.error("failed to send cancel contract mq, {}", userId);
         }
@@ -795,14 +799,20 @@ public class ContractOrderManager {
             throw new RuntimeException("contractMatchedOrderMapper.insert exception{}", e);
         }
 
-        // todo 成交时，把Redis的数据更新下。如果是10，则删除，如果是9则更新
-        // todo 从数据库获取该订单的最终信息，进行处理
+        askContractOrder = contractOrderMapper.selectByPrimaryKey(askContractOrder.getId());
+        bidContractOrder = contractOrderMapper.selectByPrimaryKey(bidContractOrder.getId());
         // 状态为9
-//        redisManager.hSet(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(askContractOrder.getId()), JsonUtil.objectToJson(askContractOrder));
-//        redisManager.hSet(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(bidContractOrder.getId()), JsonUtil.objectToJson(bidContractOrder));
-        // 状态为10
-//        redisManager.hdel(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(bidContractOrder.getId()));
+        if (askContractOrder.getStatus() == OrderStatusEnum.PART_MATCH.getCode()) {
+            redisManager.hSet(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(askContractOrder.getId()), JsonUtil.objectToJson(askContractOrder));
+        } else if (askContractOrder.getStatus() == OrderStatusEnum.MATCH.getCode()) {
+            redisManager.hdel(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(askContractOrder.getId()));
+        }
 
+        if (bidContractOrder.getStatus() == OrderStatusEnum.PART_MATCH.getCode()) {
+            redisManager.hSet(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(bidContractOrder.getId()), JsonUtil.objectToJson(bidContractOrder));
+        } else if (bidContractOrder.getStatus() == OrderStatusEnum.MATCH.getCode()) {
+            redisManager.hdel(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(bidContractOrder.getId()));
+        }
 
         //存入Redis缓存 有相关撮合
         ContractOrderDTO bidContractOrderDTO = new ContractOrderDTO();
