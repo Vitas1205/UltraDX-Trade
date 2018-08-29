@@ -1,10 +1,10 @@
 package com.fota.trade.manager;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.fota.trade.common.Constant;
 import com.fota.trade.domain.ContractOrderDTO;
 import com.fota.trade.domain.UsdkOrderDTO;
+import com.fota.trade.util.JsonUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.ListOperations;
@@ -15,7 +15,6 @@ import javax.annotation.Resource;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 
 /**
  * @Author: Harry Wang
@@ -66,15 +65,13 @@ public class RedisManager {
     }
 
     /**
-     * todo 以hash的方式保存，方便后面修改
+     * 把数据放到Redis
      * @param usdkOrderDTO
      */
     public void usdtOrderSaveForMatch(UsdkOrderDTO usdkOrderDTO) {
-
-
-
-//        String key2 = "usdt_order_for_match_";
-//        rpush(key2, usdkOrderDTO);
+        if (null != usdkOrderDTO && usdkOrderDTO.getId() != null){
+            hSet(Constant.REDIS_USDT_ORDER_FOR_MATCH_HASH, String.valueOf(usdkOrderDTO.getId()), JsonUtil.objectToJson(usdkOrderDTO));
+        }
     }
 
     public void contractOrderSave(ContractOrderDTO contractOrderDTO){
@@ -88,12 +85,15 @@ public class RedisManager {
 
     }
 
+    /**
+     * 把数据放到Redis
+     * @param contractOrderDTO
+     */
     public void contractOrderSaveForMatch(ContractOrderDTO contractOrderDTO) {
-        String key2 = "contract_order_for_match_";
-        rpush(key2, contractOrderDTO);
+        if (null != contractOrderDTO && contractOrderDTO.getId() != null){
+            hSet(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(contractOrderDTO.getId()), JsonUtil.objectToJson(contractOrderDTO));
+        }
     }
-
-
 
 
     public Long getCount(final String redisKey) {

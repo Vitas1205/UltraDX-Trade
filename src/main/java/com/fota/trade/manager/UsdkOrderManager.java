@@ -18,6 +18,7 @@ import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkOrderMapper;
 import com.fota.trade.util.CommonUtils;
+import com.fota.trade.util.JsonUtil;
 import com.fota.trade.util.PriceUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -491,8 +492,13 @@ public class UsdkOrderManager {
             throw new RuntimeException("usdkMatchedOrder.insert exception{}",e);
         }
 
-        // todo 需要更新下Redis里面的订单数据  usdt_order_for_match_
-        // 如果是10，则删除，如果是9则更新
+        // todo 成交时，把Redis的数据更新下。如果是10，则删除，如果是9则更新
+        // todo 从数据库获取该订单的最终信息，进行处理
+        // 状态为9
+//        redisManager.hSet(Constant.REDIS_USDT_ORDER_FOR_MATCH_HASH, String.valueOf(askContractOrder.getId()), JsonUtil.objectToJson(askContractOrder));
+//        redisManager.hSet(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(bidContractOrder.getId()), JsonUtil.objectToJson(bidContractOrder));
+        // 状态为10
+//        redisManager.hdel(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(bidContractOrder.getId()));
 
 
 
