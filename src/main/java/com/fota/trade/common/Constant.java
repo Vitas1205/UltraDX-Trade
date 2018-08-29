@@ -27,5 +27,10 @@ public class Constant {
     public static final String FLOATING_PL = "floatingPL";
     public static final String LAST_USDT_MATCH_PRICE = "FOTA_LATEST_USDT_MATCHED_ORDER_";
     public static final String LAST_CONTRACT_MATCH_PRICE = "FOTA_LATEST_CONTRACT_MATCHED_ORDER_";
+    public static final String REDIS_USDT_CANCEL_ORDER_RESULT = "cancel_usdt_order_result";
+    public static final String REDIS_CONTRACT_CANCEL_ORDER_RESULT = "cancel_contract_order_result";
 
+    //-------------------Redis-------------------//
+    public static final String REDIS_USDT_ORDER_FOR_MATCH_HASH = "usdt_order_for_match_hash";
+    public static final String REDIS_CONTRACT_ORDER_FOR_MATCH_HASH = "contract_order_for_match_hash";
 }

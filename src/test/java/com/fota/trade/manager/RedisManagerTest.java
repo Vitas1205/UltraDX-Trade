@@ -40,4 +40,10 @@ public class RedisManagerTest {
         Set set = redisManager.sMember("sSetTest_KEY");
         log.info(set.toString());
     }
+
+    @Test
+    public void hSetTest(){
+        /*Set set = redisManager.hSet("hSetTest_KEY", "01", "value1");
+        log.info(set.toString());*/
+    }
 }

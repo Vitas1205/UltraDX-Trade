@@ -1,10 +1,10 @@
 package com.fota.trade.manager;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.fota.trade.common.Constant;
 import com.fota.trade.domain.ContractOrderDTO;
 import com.fota.trade.domain.UsdkOrderDTO;
+import com.fota.trade.util.JsonUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.ListOperations;
@@ -15,7 +15,6 @@ import javax.annotation.Resource;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 
 /**
  * @Author: Harry Wang
@@ -64,9 +63,15 @@ public class RedisManager {
         Long count1 = getCount(Constant.USDK_REDIS_KEY);
 
     }
+
+    /**
+     * 把数据放到Redis
+     * @param usdkOrderDTO
+     */
     public void usdtOrderSaveForMatch(UsdkOrderDTO usdkOrderDTO) {
-        String key2 = "usdt_order_for_match_";
-        rpush(key2, usdkOrderDTO);
+        if (null != usdkOrderDTO && usdkOrderDTO.getId() != null){
+            hSet(Constant.REDIS_USDT_ORDER_FOR_MATCH_HASH, String.valueOf(usdkOrderDTO.getId()), JsonUtil.objectToJson(usdkOrderDTO));
+        }
     }
 
     public void contractOrderSave(ContractOrderDTO contractOrderDTO){
@@ -80,12 +85,15 @@ public class RedisManager {
 
     }
 
+    /**
+     * 把数据放到Redis
+     * @param contractOrderDTO
+     */
     public void contractOrderSaveForMatch(ContractOrderDTO contractOrderDTO) {
-        String key2 = "contract_order_for_match_";
-        rpush(key2, contractOrderDTO);
+        if (null != contractOrderDTO && contractOrderDTO.getId() != null){
+            hSet(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(contractOrderDTO.getId()), JsonUtil.objectToJson(contractOrderDTO));
+        }
     }
-
-
 
 
     public Long getCount(final String redisKey) {
@@ -185,6 +193,21 @@ public class RedisManager {
         }
     }
 
+    /**
+     * 删除hash表中的值
+     *
+     * @param key  键 不能为null
+     * @param item 项 可以使多个 不能为null
+     */
+    public void hdel(String key, Object... item) {
+        try {
+            Long r = redisTemplate.opsForHash().delete(key, item);
+        }catch (Exception e){
+            e.printStackTrace();
+            return;
+        }
+    }
+
     public Long hRemove(String key, String hKey) {
         try {
             HashOperations<String, String, Object> hOps = redisTemplate.opsForHash();
@@ -233,6 +256,21 @@ public class RedisManager {
         } catch (Exception e) {
             log.error("redis exists error", e);
             return false;
+        }
+    }
+
+    /**
+     * 获取hashKey对应的所有键值
+     *
+     * @param key 键
+     * @return 对应的多个键值
+     */
+    public Map<Object, Object> hmget(String key) {
+        try {
+            return redisTemplate.opsForHash().entries(key);
+        } catch (Exception e) {
+            log.error("redis exists error", e);
+            return new HashMap<>();
         }
     }
 
