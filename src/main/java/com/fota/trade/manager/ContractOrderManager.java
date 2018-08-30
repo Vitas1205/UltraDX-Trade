@@ -23,6 +23,7 @@ import com.fota.trade.service.ContractAccountService;
 import com.fota.trade.util.CommonUtils;
 import com.fota.trade.util.ContractUtils;
 import com.fota.trade.util.JsonUtil;
+import com.fota.trade.util.Profiler;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.thrift.TException;
@@ -160,6 +161,7 @@ public class ContractOrderManager {
 
     @Transactional(rollbackFor = Exception.class)
     public com.fota.common.Result<Long> placeOrder(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) throws Exception{
+        Profiler profiler = new Profiler("ContractOrderManager.placeOrder");
         ContractOrderDO contractOrderDO = com.fota.trade.common.BeanUtils.copy(contractOrderDTO);
         String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
         String ipAddress = StringUtils.isEmpty(userInfoMap.get("ip")) ? "" : userInfoMap.get("ip");
@@ -212,6 +214,7 @@ public class ContractOrderManager {
             insertOrderRecord(contractOrderDO);
         } else {
             insertOrderRecord(contractOrderDO);
+            profiler.compelete("select and insert record");
             orderId = contractOrderDO.getId();
             Map<String,BigDecimal> msg  = getAccountMsg(contractOrderDO.getUserId());
             log.info("AccountDetailMsg:"+msg.toString());
@@ -221,8 +224,10 @@ public class ContractOrderManager {
             //查询用户合约冻结金额 判断可用是否大于委托冻结
             UserContractDTO userContractDTO = getAssetService().getContractAccount(contractOrderDO.getUserId());
             BigDecimal useableAmount = new BigDecimal(userContractDTO.getAmount()).add(floatPL).subtract(positionMargin);
+            profiler.compelete("compute account status");
             if (useableAmount.compareTo(entrustLock) < 0) {
                 log.error("ContractAccount USDK Not Enough");
+                profiler.log();
                 throw new BusinessException(ResultCodeEnum.CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(), ResultCodeEnum.CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
             }
         }
@@ -260,6 +265,8 @@ public class ContractOrderManager {
         if (!sendRet) {
             log.error("Send RocketMQ Message Failed ");
         }
+        profiler.compelete("send MQ message");
+        profiler.log();
         result.setCode(0);
         result.setMessage("success");
         result.setData(orderId);
@@ -715,6 +722,7 @@ public class ContractOrderManager {
     //成交
     @Transactional(rollbackFor = {Exception.class, RuntimeException.class, TException.class})
     public ResultCode updateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO) {
+        Profiler profiler = new Profiler("ContractOrderManager.updateOrderByMatch");
         ResultCode resultCode = new ResultCode();
         if (contractMatchedOrderDTO == null) {
             log.error(ResultCodeEnum.ILLEGAL_PARAM.getMessage());
@@ -767,16 +775,18 @@ public class ContractOrderManager {
         //更新委托
         updateContractOrder(contractMatchedOrderDTO.getAskOrderId(), filledAmount, filledPrice, new Date(transferTime));
         updateContractOrder(contractMatchedOrderDTO.getBidOrderId(), filledAmount, filledPrice, new Date(transferTime));
+        profiler.compelete("update contract order");
 
         BigDecimal contractSize = getContractSize(contractMatchedOrderDTO.getContractId());
         //更新持仓
         UpdatePositionResult askResult = updatePosition(askContractOrder, contractSize, filledAmount, filledPrice);
         UpdatePositionResult bidResult = updatePosition(bidContractOrder, contractSize, filledAmount, filledPrice);
-
+        profiler.compelete("update position");
 
         ContractDealer dealer1 = calBalanceChange(askContractOrder, filledAmount, filledPrice, contractSize, askResult, askLever);
         ContractDealer dealer2 = calBalanceChange(bidContractOrder, filledAmount, filledPrice, contractSize, bidResult, bidLever);
         com.fota.common.Result result = contractService.updateBalances(dealer1, dealer2);
+        profiler.compelete("update balance");
         if (!result.isSuccess()) {
             throw new RuntimeException("update balance failed");
         }
@@ -800,6 +810,7 @@ public class ContractOrderManager {
             log.error("保存Contract订单数据到数据库失败({})", contractMatchedOrderDO, e);
             throw new RuntimeException("contractMatchedOrderMapper.insert exception{}", e);
         }
+        profiler.compelete("persistMatch");
 
         askContractOrder = contractOrderMapper.selectByPrimaryKey(askContractOrder.getId());
         bidContractOrder = contractOrderMapper.selectByPrimaryKey(bidContractOrder.getId());
@@ -899,6 +910,8 @@ public class ContractOrderManager {
             e.printStackTrace();
             log.error("向Redis存储USDK撮合订单信息失败，订单id为 {}", contractMatchedOrderDO.getId());
         }
+        profiler.compelete("saveToRedis");
+        profiler.log();
         resultCode.setCode(ResultCodeEnum.SUCCESS.getCode());
         return resultCode;
     }
