@@ -818,13 +818,13 @@ public class ContractOrderManager {
         bidContractOrder = contractOrderMapper.selectByPrimaryKey(bidContractOrder.getId());
         // 状态为9
         if (askContractOrder.getStatus() == OrderStatusEnum.PART_MATCH.getCode()) {
-            redisManager.hSet(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(askContractOrder.getId()), JsonUtil.objectToJson(com.fota.trade.common.BeanUtils.copy(askContractOrder)));
+            redisManager.contractOrderSaveForMatch(com.fota.trade.common.BeanUtils.copy(askContractOrder));
         } else if (askContractOrder.getStatus() == OrderStatusEnum.MATCH.getCode()) {
             redisManager.hdel(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(askContractOrder.getId()));
         }
 
         if (bidContractOrder.getStatus() == OrderStatusEnum.PART_MATCH.getCode()) {
-            redisManager.hSet(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(bidContractOrder.getId()), JsonUtil.objectToJson(com.fota.trade.common.BeanUtils.copy(bidContractOrder)));
+            redisManager.contractOrderSaveForMatch(com.fota.trade.common.BeanUtils.copy(bidContractOrder));
         } else if (bidContractOrder.getStatus() == OrderStatusEnum.MATCH.getCode()) {
             redisManager.hdel(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(bidContractOrder.getId()));
         }

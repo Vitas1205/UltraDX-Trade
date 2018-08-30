@@ -70,6 +70,7 @@ public class RedisManager {
      */
     public void usdtOrderSaveForMatch(UsdkOrderDTO usdkOrderDTO) {
         if (null != usdkOrderDTO && usdkOrderDTO.getId() != null){
+            usdkOrderDTO.setOrderContext(null);
             hSet(Constant.REDIS_USDT_ORDER_FOR_MATCH_HASH, String.valueOf(usdkOrderDTO.getId()), JsonUtil.objectToJson(usdkOrderDTO));
         }
     }
@@ -89,6 +90,7 @@ public class RedisManager {
      */
     public void contractOrderSaveForMatch(ContractOrderDTO contractOrderDTO) {
         if (null != contractOrderDTO && contractOrderDTO.getId() != null){
+            contractOrderDTO.setOrderContext(null);
             hSet(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(contractOrderDTO.getId()), JsonUtil.objectToJson(contractOrderDTO));
         }
     }
