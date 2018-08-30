@@ -1,6 +1,5 @@
 package com.fota.trade.util;
 
-import com.google.common.base.Joiner;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.CollectionUtils;
@@ -30,7 +29,7 @@ public class Profiler {
         start = System.currentTimeMillis();
     }
 
-    public void compelete(String phase) {
+    public void complelete(String phase) {
         profilePhases.add(new ProfilePhase(phase, System.currentTimeMillis()));
     }
 
@@ -53,12 +52,13 @@ public class Profiler {
         int size = profilePhases.size();
         long total = profilePhases.get(size - 1).getCompleteTime() - start;
         StringBuilder detail = new StringBuilder(" { ");
-        ProfilePhase pre = new ProfilePhase("start", start);
+
 
         ProfilePhase cur = profilePhases.get(0);
         detail.append(cur.name)
                 .append(":")
-                .append(cur.getCompleteTime() - pre.getCompleteTime());
+                .append(cur.getCompleteTime() - start);
+        ProfilePhase pre = cur;
         for (int i=1;i<size;i++) {
             cur = profilePhases.get(i);
             detail.append(",").append(cur.name)

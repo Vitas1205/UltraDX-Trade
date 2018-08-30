@@ -10,8 +10,8 @@ public class ProfilerTest {
     @Test
     public void testProfiler(){
         Profiler profiler = new Profiler("hello");
-        profiler.compelete("a");
-        profiler.compelete("b");
+        profiler.complelete("a");
+        profiler.complelete("b");
         profiler.log();
     }
 }
