@@ -863,6 +863,8 @@ public class ContractOrderManager {
         orderMessage.setMatchOrderId(contractMatchedOrderDO.getId());
         orderMessage.setContractMatchAssetName(contractCategoryDO.getAssetName());
         orderMessage.setContractType(contractCategoryDO.getContractType());
+        orderMessage.setAskOrderUnfilledAmount(contractMatchedOrderDTO.getAskOrderUnfilledAmount());
+        orderMessage.setBidOrderUnfilledAmount(contractMatchedOrderDTO.getBidOrderUnfilledAmount());
         //orderMessage.setAskOrderType(askContractOrderDTO.getOrderType());
         //orderMessage.setBidOrderType(bidContractOrderDTO.getOrderType());
         if (askContractOrderDTO.getPrice() != null){

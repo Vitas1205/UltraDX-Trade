@@ -331,7 +331,7 @@ public class UsdkOrderManager {
             orderMessage.setUserId(usdkOrderDTO.getUserId());
             orderMessage.setSubjectId(usdkOrderDTO.getAssetId().longValue());
             orderMessage.setSubjectName(usdkOrderDTO.getAssetName());
-            orderMessage.setAmount(usdkOrderDO.getTotalAmount());
+            orderMessage.setAmount(usdkOrderDO.getUnfilledAmount());
             orderMessage.setPrice(usdkOrderDO.getPrice());
             orderMessage.setOrderType(usdkOrderDO.getOrderType());
             orderMessage.setTransferTime(transferTime);
@@ -537,6 +537,8 @@ public class UsdkOrderManager {
         orderMessage.setBidOrderContext(bidOrderContext);
         orderMessage.setAskOrderType(askUsdkOrder.getOrderType());
         orderMessage.setBidOrderType(bidUsdkOrder.getOrderType());
+        orderMessage.setBidOrderUnfilledAmount(usdkMatchedOrderDTO.getBidOrderUnfilledAmount());
+        orderMessage.setAskOrderUnfilledAmount(usdkMatchedOrderDTO.getAskOrderUnfilledAmount());
         if (askUsdkOrder.getPrice() != null){
             orderMessage.setAskOrderEntrustPrice(askUsdkOrder.getPrice());
         }
