@@ -166,6 +166,9 @@
     <if test="userId != null" >
       and user_id=#{userId,jdbcType=BIGINT}
     </if>
+    <if test="status != null" >
+      and status=#{status,jdbcType=INTEGER}
+    </if>
   </select>
 
   <select id="listByQuery" parameterType="com.fota.trade.domain.query.UserPositionQuery" resultType="com.fota.trade.domain.UserPositionDO">
@@ -178,6 +181,9 @@
     </if>
     <if test="userId > 0" >
       and user_id=#{userId,jdbcType=BIGINT}
+    </if>
+    <if test="status != null" >
+      and status=#{status,jdbcType=INTEGER}
     </if>
     order by gmt_create desc
     limit #{startRow,jdbcType=INTEGER}, #{endRow,jdbcType=INTEGER}
