@@ -490,12 +490,12 @@ public class UsdkOrderManager {
         bidUsdkOrder = usdkOrderMapper.selectByPrimaryKey(bidUsdkOrder.getId());
         // 状态为9
         if (askUsdkOrder.getStatus() == OrderStatusEnum.PART_MATCH.getCode()) {
-            redisManager.hSet(Constant.REDIS_USDT_ORDER_FOR_MATCH_HASH, String.valueOf(askUsdkOrder.getId()), JsonUtil.objectToJson(com.fota.trade.common.BeanUtils.copy(askUsdkOrder)));
+            redisManager.usdtOrderSaveForMatch(com.fota.trade.common.BeanUtils.copy(askUsdkOrder));
         } else if (askUsdkOrder.getStatus() == OrderStatusEnum.MATCH.getCode()) {
             redisManager.hdel(Constant.REDIS_USDT_ORDER_FOR_MATCH_HASH, String.valueOf(askUsdkOrder.getId()));
         }
         if (bidUsdkOrder.getStatus() == OrderStatusEnum.PART_MATCH.getCode()) {
-            redisManager.hSet(Constant.REDIS_USDT_ORDER_FOR_MATCH_HASH, String.valueOf(bidUsdkOrder.getId()), JsonUtil.objectToJson(com.fota.trade.common.BeanUtils.copy(bidUsdkOrder)));
+            redisManager.usdtOrderSaveForMatch(com.fota.trade.common.BeanUtils.copy(bidUsdkOrder));
         } else if (bidUsdkOrder.getStatus() == OrderStatusEnum.MATCH.getCode()) {
             redisManager.hdel(Constant.REDIS_USDT_ORDER_FOR_MATCH_HASH, String.valueOf(bidUsdkOrder.getId()));
         }
