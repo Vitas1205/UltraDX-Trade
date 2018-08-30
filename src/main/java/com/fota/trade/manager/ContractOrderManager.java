@@ -89,6 +89,8 @@ public class ContractOrderManager {
     @Autowired
     private ContractAccountService contractAccountService;
 
+    Random random = new Random();
+
     private ContractService getContractService() {
         return contractService;
     }
@@ -904,9 +906,14 @@ public class ContractOrderManager {
     public UpdatePositionResult updatePosition(ContractOrderDO contractOrderDO, BigDecimal contractSize, long filledAmount, BigDecimal filledPrice){
         long userId = contractOrderDO.getUserId();
         long contractId = contractOrderDO.getContractId();
-
         String lockKey = "LOCK_POSITION_"+ userId+ "_" + contractId;
-        boolean suc = redisManager.tryLock(lockKey, Duration.ofSeconds(3), 3, Duration.ofMillis(10));
+        boolean suc = false;
+        int retries = 10;
+        for (int i = 0; i< retries;i++) {
+            int mills = random.nextInt(20) + 20;
+            suc = redisManager.tryLock(lockKey, Duration.ofMinutes(2), 1, Duration.ofMillis(mills));
+            if (suc) break;
+        }
         if (!suc) {
             throw new RuntimeException("get lock failed, contractOrderDO="+ JSON.toJSONString(contractOrderDO));
         }
