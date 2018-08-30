@@ -370,6 +370,7 @@ public class ContractOrderManager {
         orderMessage.setEvent(OrderOperateTypeEnum.CANCLE_ORDER.getCode());
         orderMessage.setUserId(contractOrderDTO.getUserId());
         orderMessage.setSubjectId(contractOrderDO.getContractId());
+        orderMessage.setSubjectName(contractOrderDO.getContractName());
         orderMessage.setOrderDirection(contractOrderDO.getOrderDirection());
         orderMessage.setContractType(contractCategoryDO.getContractType());
         orderMessage.setContractMatchAssetName(contractCategoryDO.getAssetName());
