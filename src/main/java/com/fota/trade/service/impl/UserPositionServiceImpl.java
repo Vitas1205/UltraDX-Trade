@@ -87,7 +87,7 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
     @Override
     public long getTotalPositionByContractId(long contractId) {
         long totalPosition = 0L;
-        List<UserPositionDO> userPositionDOList = userPositionMapper.selectByContractId(contractId);
+        List<UserPositionDO> userPositionDOList = userPositionMapper.selectByContractId(contractId,  PositionStatusEnum.UNDELIVERED.getCode());
         if (userPositionDOList != null && userPositionDOList.size() > 0) {
             for (UserPositionDO userPositionDO : userPositionDOList) {
                 if (userPositionDO.getContractId().equals(contractId) && userPositionDO.getPositionType() == 1) {
@@ -129,7 +129,7 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
     @Override
     public List<UserPositionDTO> listPositionByUserId(long userId) {
         try {
-            List<UserPositionDO> DOlist = userPositionMapper.selectByUserId(userId);
+            List<UserPositionDO> DOlist = userPositionMapper.selectByUserId(userId, PositionStatusEnum.UNDELIVERED.getCode());
             List<UserPositionDTO> DTOlist = new ArrayList<>();
             if (DOlist != null && DOlist.size() > 0) {
                 for (UserPositionDO tmp : DOlist) {
@@ -151,7 +151,7 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
     @Override
     public List<UserPositionDTO> listPositionByContractId(Long contractId) {
         try {
-            List<UserPositionDO> DOlist = userPositionMapper.selectByContractId(contractId);
+            List<UserPositionDO> DOlist = userPositionMapper.selectByContractId(contractId, PositionStatusEnum.UNDELIVERED.getCode());
             List<UserPositionDTO> DTOlist = new ArrayList<>();
             if (DOlist != null && DOlist.size() > 0) {
                 for (UserPositionDO tmp : DOlist) {

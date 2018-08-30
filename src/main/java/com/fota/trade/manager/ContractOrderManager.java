@@ -416,7 +416,7 @@ public class ContractOrderManager {
         BigDecimal positionMargin = BigDecimal.ZERO;
         BigDecimal floatingPL = BigDecimal.ZERO;
         List<ContractCategoryDO> queryList = contractCategoryMapper.getAllContractCategory();
-        List<UserPositionDO> positionlist = userPositionMapper.selectByUserId(userId);
+        List<UserPositionDO> positionlist = userPositionMapper.selectByUserId(userId, PositionStatusEnum.UNDELIVERED.getCode());
         if (queryList != null && queryList.size() != 0 && positionlist != null && positionlist.size() != 0) {
             for (ContractCategoryDO contractCategoryDO : queryList) {
                 long contractId = contractCategoryDO.getId();
@@ -482,7 +482,7 @@ public class ContractOrderManager {
         BigDecimal entrustMargin = BigDecimal.ZERO;
         //TODO 过期就不在这个表了？
         List<ContractCategoryDO> queryList = contractCategoryMapper.getAllContractCategory();
-        List<UserPositionDO> positionlist = userPositionMapper.selectByUserId(userId);
+        List<UserPositionDO> positionlist = userPositionMapper.selectByUserId(userId, PositionStatusEnum.UNDELIVERED.getCode());
         List<ContractOrderDO> contractOrderlist = contractOrderMapper.selectUnfinishedOrderByUserId(userId);
 
         if (queryList != null && queryList.size() != 0 && contractOrderlist != null && contractOrderlist.size() != 0) {
