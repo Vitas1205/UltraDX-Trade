@@ -7,11 +7,11 @@ import org.junit.Test;
  * Code is the law
  */
 public class ProfilerTest {
-    @Test
-    public void testProfiler(){
-        Profiler profiler = new Profiler("hello");
-        profiler.complelete("a");
-        profiler.complelete("b");
-        profiler.log();
-    }
+//    @Test
+//    public void testProfiler(){
+//        Profiler profiler = new Profiler("hello");
+//        profiler.complelete("a");
+//        profiler.complelete("b");
+//        profiler.log();
+//    }
 }
