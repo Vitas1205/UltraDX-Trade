@@ -36,7 +36,7 @@ public class ContractAccountServiceImpl implements ContractAccountService {
         try {
             resultMap = contractOrderManager.getAccountMsg(userId);
         }catch (Exception e){
-            log.error("contractOrderManager.getAccountDetailMsg failed{}", userId, e);
+            log.error("contractOrderManager.getAccountMsg failed{}", userId, e);
             return Result.<ContractAccount>create().error(ResultCodeEnum.SERVICE_FAILED);
         }
         try {
