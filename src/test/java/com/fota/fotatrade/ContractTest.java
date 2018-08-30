@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.fota.trade.common.Constant;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.dto.CompetitorsPriceDTO;
+import com.fota.trade.domain.enums.PositionStatusEnum;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.mapper.ContractCategoryMapper;
@@ -137,9 +138,9 @@ public class ContractTest {
 
     @Test
     public void testbug(){
-        long userId = 201L;
+        long userId = 17764594100L;
         List<ContractCategoryDO> queryList = contractCategoryMapper.getAllContractCategory();
-        List<UserPositionDO> positionlist = userPositionMapper.selectByUserId(userId);
+        List<UserPositionDO> positionlist = userPositionMapper.selectByUserId(userId, PositionStatusEnum.DELIVERED.getCode());
         for (ContractCategoryDO contractCategoryDO : queryList){
             List<UserPositionDO> userPositionDOlist = new ArrayList<>();
             userPositionDOlist = positionlist.stream().filter(userPosition-> userPosition.getContractId().equals(contractCategoryDO.getId()))

@@ -6,6 +6,7 @@ import com.fota.asset.domain.ContractDealer;
 import com.fota.asset.domain.UserContractDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
+import com.fota.trade.util.Profiler;
 import com.fota.match.domain.ContractMatchedOrderTradeDTO;
 import com.fota.match.service.ContractMatchedOrderService;
 import com.fota.trade.common.BusinessException;
@@ -89,6 +90,8 @@ public class ContractOrderManager {
     @Autowired
     private ContractAccountService contractAccountService;
 
+    Random random = new Random();
+
     private ContractService getContractService() {
         return contractService;
     }
@@ -158,6 +161,7 @@ public class ContractOrderManager {
 
     @Transactional(rollbackFor = Exception.class)
     public com.fota.common.Result<Long> placeOrder(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) throws Exception{
+        Profiler profiler = new Profiler("ContractOrderManager.placeOrder");
         ContractOrderDO contractOrderDO = com.fota.trade.common.BeanUtils.copy(contractOrderDTO);
         String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
         String ipAddress = StringUtils.isEmpty(userInfoMap.get("ip")) ? "" : userInfoMap.get("ip");
@@ -170,7 +174,8 @@ public class ContractOrderManager {
         contractOrderDTO.setOrderContext(newMap);
         contractOrderDO.setOrderContext(JSONObject.toJSONString(contractOrderDTO.getOrderContext()));
         Long orderId = 0L;
-        Long transferTime = System.currentTimeMillis();
+        long transferTime = System.currentTimeMillis();
+        contractOrderDO.setGmtCreate(new Date(transferTime));
         contractOrderDO.setGmtModified(new Date(transferTime));
         ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractOrderDO.getContractId());
         if (contractCategoryDO == null) {
@@ -210,6 +215,7 @@ public class ContractOrderManager {
             insertOrderRecord(contractOrderDO);
         } else {
             insertOrderRecord(contractOrderDO);
+            profiler.complelete("select and insert record");
             orderId = contractOrderDO.getId();
             Map<String,BigDecimal> msg  = getAccountMsg(contractOrderDO.getUserId());
             log.info("AccountDetailMsg:"+msg.toString());
@@ -219,8 +225,10 @@ public class ContractOrderManager {
             //查询用户合约冻结金额 判断可用是否大于委托冻结
             UserContractDTO userContractDTO = getAssetService().getContractAccount(contractOrderDO.getUserId());
             BigDecimal useableAmount = new BigDecimal(userContractDTO.getAmount()).add(floatPL).subtract(positionMargin);
+            profiler.complelete("compute account status");
             if (useableAmount.compareTo(entrustLock) < 0) {
                 log.error("ContractAccount USDK Not Enough");
+                profiler.log();
                 throw new BusinessException(ResultCodeEnum.CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(), ResultCodeEnum.CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
             }
         }
@@ -258,6 +266,8 @@ public class ContractOrderManager {
         if (!sendRet) {
             log.error("Send RocketMQ Message Failed ");
         }
+        profiler.complelete("send MQ message");
+        profiler.log();
         result.setCode(0);
         result.setMessage("success");
         result.setData(orderId);
@@ -315,7 +325,8 @@ public class ContractOrderManager {
             log.error("Contract Is Null");
             throw new RuntimeException("Contract Is Null");
         }
-        if (contractCategoryDO.getStatus() != ContractStatusEnum.PROCESSING.getCode()){
+        if (contractCategoryDO.getStatus() != ContractStatusEnum.PROCESSING.getCode() && contractCategoryDO.getStatus() != ContractStatusEnum.DELIVERYING.getCode()
+                && contractCategoryDO.getStatus() != ContractStatusEnum.DELIVERED.getCode()){
             log.error("contract status illegal,can not cancel{}", contractCategoryDO);
             throw new RuntimeException("contractCategoryDO");
         }
@@ -361,6 +372,7 @@ public class ContractOrderManager {
         orderMessage.setEvent(OrderOperateTypeEnum.CANCLE_ORDER.getCode());
         orderMessage.setUserId(contractOrderDTO.getUserId());
         orderMessage.setSubjectId(contractOrderDO.getContractId());
+        orderMessage.setSubjectName(contractOrderDO.getContractName());
         orderMessage.setOrderDirection(contractOrderDO.getOrderDirection());
         orderMessage.setContractType(contractCategoryDO.getContractType());
         orderMessage.setContractMatchAssetName(contractCategoryDO.getAssetName());
@@ -407,7 +419,7 @@ public class ContractOrderManager {
         BigDecimal positionMargin = BigDecimal.ZERO;
         BigDecimal floatingPL = BigDecimal.ZERO;
         List<ContractCategoryDO> queryList = contractCategoryMapper.getAllContractCategory();
-        List<UserPositionDO> positionlist = userPositionMapper.selectByUserId(userId);
+        List<UserPositionDO> positionlist = userPositionMapper.selectByUserId(userId, PositionStatusEnum.UNDELIVERED.getCode());
         if (queryList != null && queryList.size() != 0 && positionlist != null && positionlist.size() != 0) {
             for (ContractCategoryDO contractCategoryDO : queryList) {
                 long contractId = contractCategoryDO.getId();
@@ -473,7 +485,7 @@ public class ContractOrderManager {
         BigDecimal entrustMargin = BigDecimal.ZERO;
         //TODO 过期就不在这个表了？
         List<ContractCategoryDO> queryList = contractCategoryMapper.getAllContractCategory();
-        List<UserPositionDO> positionlist = userPositionMapper.selectByUserId(userId);
+        List<UserPositionDO> positionlist = userPositionMapper.selectByUserId(userId, PositionStatusEnum.UNDELIVERED.getCode());
         List<ContractOrderDO> contractOrderlist = contractOrderMapper.selectUnfinishedOrderByUserId(userId);
 
         if (queryList != null && queryList.size() != 0 && contractOrderlist != null && contractOrderlist.size() != 0) {
@@ -713,6 +725,7 @@ public class ContractOrderManager {
     //成交
     @Transactional(rollbackFor = {Exception.class, RuntimeException.class, TException.class})
     public ResultCode updateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO) {
+        Profiler profiler = new Profiler("ContractOrderManager.updateOrderByMatch");
         ResultCode resultCode = new ResultCode();
         if (contractMatchedOrderDTO == null) {
             log.error(ResultCodeEnum.ILLEGAL_PARAM.getMessage());
@@ -765,16 +778,18 @@ public class ContractOrderManager {
         //更新委托
         updateContractOrder(contractMatchedOrderDTO.getAskOrderId(), filledAmount, filledPrice, new Date(transferTime));
         updateContractOrder(contractMatchedOrderDTO.getBidOrderId(), filledAmount, filledPrice, new Date(transferTime));
+        profiler.complelete("update contract order");
 
         BigDecimal contractSize = getContractSize(contractMatchedOrderDTO.getContractId());
         //更新持仓
         UpdatePositionResult askResult = updatePosition(askContractOrder, contractSize, filledAmount, filledPrice);
         UpdatePositionResult bidResult = updatePosition(bidContractOrder, contractSize, filledAmount, filledPrice);
-
+        profiler.complelete("update position");
 
         ContractDealer dealer1 = calBalanceChange(askContractOrder, filledAmount, filledPrice, contractSize, askResult, askLever);
         ContractDealer dealer2 = calBalanceChange(bidContractOrder, filledAmount, filledPrice, contractSize, bidResult, bidLever);
         com.fota.common.Result result = contractService.updateBalances(dealer1, dealer2);
+        profiler.complelete("update balance");
         if (!result.isSuccess()) {
             throw new RuntimeException("update balance failed");
         }
@@ -798,18 +813,19 @@ public class ContractOrderManager {
             log.error("保存Contract订单数据到数据库失败({})", contractMatchedOrderDO, e);
             throw new RuntimeException("contractMatchedOrderMapper.insert exception{}", e);
         }
+        profiler.complelete("persistMatch");
 
         askContractOrder = contractOrderMapper.selectByPrimaryKey(askContractOrder.getId());
         bidContractOrder = contractOrderMapper.selectByPrimaryKey(bidContractOrder.getId());
         // 状态为9
         if (askContractOrder.getStatus() == OrderStatusEnum.PART_MATCH.getCode()) {
-            redisManager.hSet(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(askContractOrder.getId()), JsonUtil.objectToJson(askContractOrder));
+            redisManager.contractOrderSaveForMatch(com.fota.trade.common.BeanUtils.copy(askContractOrder));
         } else if (askContractOrder.getStatus() == OrderStatusEnum.MATCH.getCode()) {
             redisManager.hdel(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(askContractOrder.getId()));
         }
 
         if (bidContractOrder.getStatus() == OrderStatusEnum.PART_MATCH.getCode()) {
-            redisManager.hSet(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(bidContractOrder.getId()), JsonUtil.objectToJson(bidContractOrder));
+            redisManager.contractOrderSaveForMatch(com.fota.trade.common.BeanUtils.copy(bidContractOrder));
         } else if (bidContractOrder.getStatus() == OrderStatusEnum.MATCH.getCode()) {
             redisManager.hdel(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(bidContractOrder.getId()));
         }
@@ -861,6 +877,8 @@ public class ContractOrderManager {
         orderMessage.setMatchOrderId(contractMatchedOrderDO.getId());
         orderMessage.setContractMatchAssetName(contractCategoryDO.getAssetName());
         orderMessage.setContractType(contractCategoryDO.getContractType());
+        orderMessage.setAskOrderUnfilledAmount(contractMatchedOrderDTO.getAskOrderUnfilledAmount());
+        orderMessage.setBidOrderUnfilledAmount(contractMatchedOrderDTO.getBidOrderUnfilledAmount());
         //orderMessage.setAskOrderType(askContractOrderDTO.getOrderType());
         //orderMessage.setBidOrderType(bidContractOrderDTO.getOrderType());
         if (askContractOrderDTO.getPrice() != null){
@@ -897,6 +915,8 @@ public class ContractOrderManager {
             e.printStackTrace();
             log.error("向Redis存储USDK撮合订单信息失败，订单id为 {}", contractMatchedOrderDO.getId());
         }
+        profiler.complelete("saveToRedis");
+        profiler.log();
         resultCode.setCode(ResultCodeEnum.SUCCESS.getCode());
         return resultCode;
     }
@@ -904,9 +924,14 @@ public class ContractOrderManager {
     public UpdatePositionResult updatePosition(ContractOrderDO contractOrderDO, BigDecimal contractSize, long filledAmount, BigDecimal filledPrice){
         long userId = contractOrderDO.getUserId();
         long contractId = contractOrderDO.getContractId();
-
         String lockKey = "LOCK_POSITION_"+ userId+ "_" + contractId;
-        boolean suc = redisManager.tryLock(lockKey, Duration.ofSeconds(3), 3, Duration.ofMillis(10));
+        boolean suc = false;
+        int retries = 10;
+        for (int i = 0; i< retries;i++) {
+            int mills = random.nextInt(20) + 20;
+            suc = redisManager.tryLock(lockKey, Duration.ofMinutes(2), 1, Duration.ofMillis(mills));
+            if (suc) break;
+        }
         if (!suc) {
             throw new RuntimeException("get lock failed, contractOrderDO="+ JSON.toJSONString(contractOrderDO));
         }
