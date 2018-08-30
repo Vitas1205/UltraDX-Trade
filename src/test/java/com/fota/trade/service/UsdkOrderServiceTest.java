@@ -47,6 +47,14 @@ public class UsdkOrderServiceTest {
     }
 
     @Test
+    public void testCancelOrder() throws Exception {
+        Long orderId = 715669044238909L;
+        Long userId = 282L;
+        Map<String, String> userInfoMap = new HashMap<>();
+        usdkOrderService.cancelOrder(userId, orderId, userInfoMap);
+    }
+
+    @Test
     public void testListUsdkOrderByQueryWithStatus() throws Exception {
         BaseQuery usdkOrderQuery = new BaseQuery();
         usdkOrderQuery.setPageSize(20);
@@ -93,10 +101,10 @@ public class UsdkOrderServiceTest {
         usdkOrderDTO.setAssetName("BTC");
         usdkOrderDTO.setAveragePrice(new BigDecimal(0));
         usdkOrderDTO.setFee(new BigDecimal(0.01));
-        usdkOrderDTO.setOrderDirection(OrderDirectionEnum.ASK.getCode());
+        usdkOrderDTO.setOrderDirection(OrderDirectionEnum.BID.getCode());
         usdkOrderDTO.setOrderType(OrderTypeEnum.ENFORCE.getCode());
-        usdkOrderDTO.setPrice(new BigDecimal(6000));
-        usdkOrderDTO.setTotalAmount(new BigDecimal(10));
+        //usdkOrderDTO.setPrice(new BigDecimal(6000));
+        usdkOrderDTO.setTotalAmount(new BigDecimal(2));
         Map<String, Object> map = new HashMap();
         map.put("mortgageOrderId", 123456);
         usdkOrderDTO.setOrderContext(map);

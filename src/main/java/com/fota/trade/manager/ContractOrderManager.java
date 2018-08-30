@@ -7,11 +7,12 @@ import com.fota.asset.domain.UserContractDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
 import com.fota.match.domain.ContractMatchedOrderTradeDTO;
-import com.fota.match.domain.TradeContractOrder;
 import com.fota.match.service.ContractMatchedOrderService;
-import com.fota.trade.common.*;
+import com.fota.trade.common.BusinessException;
+import com.fota.trade.common.Constant;
+import com.fota.trade.common.ResultCodeEnum;
+import com.fota.trade.common.UpdatePositionResult;
 import com.fota.trade.domain.*;
-import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.dto.CompetitorsPriceDTO;
 import com.fota.trade.domain.enums.*;
 import com.fota.trade.mapper.ContractCategoryMapper;
@@ -21,6 +22,8 @@ import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.service.ContractAccountService;
 import com.fota.trade.util.CommonUtils;
 import com.fota.trade.util.ContractUtils;
+import com.fota.trade.util.JsonUtil;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -29,15 +32,17 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.*;
-import java.util.stream.Collectors;
+import java.util.function.Predicate;
 
 import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
 import static com.fota.trade.domain.enums.OrderTypeEnum.ENFORCE;
 import static com.fota.trade.util.ContractUtils.computeAveragePrice;
+import static java.util.stream.Collectors.*;
 
 /**
  * @author Gavin Shen
@@ -84,6 +89,8 @@ public class ContractOrderManager {
     @Autowired
     private ContractAccountService contractAccountService;
 
+    Random random = new Random();
+
     private ContractService getContractService() {
         return contractService;
     }
@@ -107,88 +114,51 @@ public class ContractOrderManager {
     }
 
 
-    public ResultCode cancelAllOrder(Long userId, Map<String, String> userInfoMap) throws Exception {
-        ResultCode resultCode = new ResultCode();
-        List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByUserId(userId);
-        int i = 0;
-        if (list != null){
-            for(ContractOrderDO contractOrderDO : list){
-                if (contractOrderDO.getStatus() == OrderStatusEnum.COMMIT.getCode() || contractOrderDO.getStatus() == OrderStatusEnum.PART_MATCH.getCode()){
-                    Long orderId = contractOrderDO.getId();
-                    try {
-                        ResultCode resultCode2 =cancelOrder(userId, orderId, userInfoMap);
-                        if (resultCode2.getCode() == 0){
-                            i++;
-                        }
-                    }catch (Exception e){
-                        log.error("cancelAllOrder has failed",contractOrderDO,e);
-                    }
-                }
-
-            }
-        }
-        if (i == 0) {
-            resultCode.setCode(ResultCodeEnum.NO_CANCELLABLE_ORDERS.getCode());
-            resultCode.setMessage(ResultCodeEnum.NO_CANCELLABLE_ORDERS.getMessage());
-            return resultCode;
-        }
-        if (i != list.size()){
-            resultCode = ResultCode.error(ResultCodeEnum.PARTLY_COMPLETED.getCode(), ResultCodeEnum.PARTLY_COMPLETED.getMessage());
-            return resultCode;
-        }
-        resultCode.setCode(0);
-        resultCode.setMessage("success");
-        return resultCode;
-    }
-
     public ResultCode cancelOrderByContractId(Long contractId, Map<String, String> userInfoMap) throws Exception {
-        ResultCode resultCode = new ResultCode();
+        if (Objects.isNull(contractId)) {
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), ResultCodeEnum.ILLEGAL_PARAM.getMessage());
+        }
+
+        ResultCode resultCode = ResultCode.success();
         List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByContractId(contractId);
-        int i = 0;
-        if (list != null) {
-            for (ContractOrderDO contractOrderDO : list) {
-                if (contractOrderDO.getStatus() == OrderStatusEnum.COMMIT.getCode() || contractOrderDO.getStatus() == OrderStatusEnum.PART_MATCH.getCode()) {
-                    i++;
-                    Long orderId = contractOrderDO.getId();
-                    cancelOrder(contractOrderDO.getUserId(), orderId, userInfoMap);
-                }
+        if (!CollectionUtils.isEmpty(list)) {
+            Predicate<ContractOrderDO> isNotEnforce = contractOrderDO -> contractOrderDO.getOrderType() != OrderTypeEnum.ENFORCE.getCode();
+            Predicate<ContractOrderDO> isCommit = contractOrderDO -> contractOrderDO.getStatus() == OrderStatusEnum.COMMIT.getCode();
+            Predicate<ContractOrderDO> isPartMatch = contractOrderDO -> contractOrderDO.getStatus() == OrderStatusEnum.PART_MATCH.getCode();
+            Map<Long, List<Long>> orderMap = list.stream()
+                    .filter(isCommit.or(isPartMatch).and(isNotEnforce))
+                    .collect(groupingBy(ContractOrderDO::getUserId, mapping(ContractOrderDO::getId, toList())));
+
+            for (Map.Entry<Long, List<Long>> entry : orderMap.entrySet()) {
+                sendCancelMessage(entry.getValue(), entry.getKey());
             }
         }
-        if (i == 0) {
-            resultCode.setCode(ResultCodeEnum.NO_CANCELLABLE_ORDERS.getCode());
-            resultCode.setMessage(ResultCodeEnum.NO_CANCELLABLE_ORDERS.getMessage());
-            return resultCode;
-        }
-        resultCode.setCode(0);
-        resultCode.setMessage("success");
+
         return resultCode;
     }
 
     public ResultCode cancelOrderByOrderType(long userId, List<Integer> orderTypes, Map<String, String> userInfoMap) throws Exception {
         ResultCode resultCode = new ResultCode();
         List<ContractOrderDO> list = contractOrderMapper.listByUserIdAndOrderType(userId, orderTypes);
-        int i = 0;
-        if (list != null) {
-            for (ContractOrderDO contractOrderDO : list) {
-                if (contractOrderDO.getStatus() == OrderStatusEnum.COMMIT.getCode() || contractOrderDO.getStatus() == OrderStatusEnum.PART_MATCH.getCode()) {
-                    i++;
-                    Long orderId = contractOrderDO.getId();
-                    cancelOrder(contractOrderDO.getUserId(), orderId, userInfoMap);
-                }
-            }
+        if (!CollectionUtils.isEmpty(list)) {
+            Predicate<ContractOrderDO> isNotEnforce = contractOrderDO -> contractOrderDO.getOrderType() != OrderTypeEnum.ENFORCE.getCode();
+            Predicate<ContractOrderDO> isCommit = contractOrderDO -> contractOrderDO.getStatus() == OrderStatusEnum.COMMIT.getCode();
+            Predicate<ContractOrderDO> isPartMatch = contractOrderDO -> contractOrderDO.getStatus() == OrderStatusEnum.PART_MATCH.getCode();
+            List<Long> orderDOList = list.stream()
+                    .filter(isCommit.or(isPartMatch).and(isNotEnforce))
+                    .map(ContractOrderDO::getId)
+                    .collect(toList());
+
+            sendCancelMessage(orderDOList, userId);
         }
-        if (i == 0) {
-            resultCode.setCode(ResultCodeEnum.NO_CANCELLABLE_ORDERS.getCode());
-            resultCode.setMessage(ResultCodeEnum.NO_CANCELLABLE_ORDERS.getMessage());
-            return resultCode;
-        }
+
         resultCode.setCode(0);
         resultCode.setMessage("success");
         return resultCode;
     }
 
 
-    @Transactional(rollbackFor = {Exception.class, RuntimeException.class, BusinessException.class})
+    @Transactional(rollbackFor = Exception.class)
     public com.fota.common.Result<Long> placeOrder(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) throws Exception{
         ContractOrderDO contractOrderDO = com.fota.trade.common.BeanUtils.copy(contractOrderDTO);
         String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
@@ -296,17 +266,48 @@ public class ContractOrderManager {
         return result;
     }
 
-
     public ResultCode cancelOrder(Long userId, Long orderId, Map<String, String> userInfoMap) throws Exception {
-        ResultCode resultCode = new ResultCode();
-        ContractOrderDO contractOrderDO = contractOrderMapper.selectByIdAndUserId(orderId, userId);
-        resultCode = cancelOrderImpl(contractOrderDO, userInfoMap);
+        if (Objects.isNull(userId) || Objects.isNull(orderId)) {
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), ResultCodeEnum.ILLEGAL_PARAM.getMessage());
+        }
+        ContractOrderDO contractOrderDO = contractOrderMapper.selectByPrimaryKey(orderId);
+        if (Objects.isNull(contractOrderDO)) {
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), ResultCodeEnum.ILLEGAL_PARAM.getMessage());
+        }
+        if (contractOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()) {
+            return ResultCode.error(ResultCodeEnum.ENFORCE_ORDER_CANNOT_BE_CANCELED.getCode(),
+                    ResultCodeEnum.ENFORCE_ORDER_CANNOT_BE_CANCELED.getMessage());
+        }
+        ResultCode resultCode = ResultCode.success();
+        List<Long> orderIdList = Collections.singletonList(orderId);
+        sendCancelMessage(orderIdList, userId);
         return resultCode;
     }
 
-    //TODO
-    @Transactional(rollbackFor = {Exception.class, RuntimeException.class, BusinessException.class})
-    public ResultCode cancelOrderImpl(ContractOrderDO contractOrderDO, Map<String, String> userInfoMap) throws Exception {
+    /**
+     * 根据撮合发出的MQ消息撤单
+     * @param orderId 委托单ID
+     * @param status 撮合队列撤单结果 1-成功 0-失败
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void cancelOrderByMessage(String orderId, int status) {
+        if (status == 1) {
+            ContractOrderDO contractOrderDO = contractOrderMapper.selectByPrimaryKey(Long.parseLong(orderId));
+            if (Objects.isNull(contractOrderDO)) {
+                log.error("contract order does not exist, {}", orderId);
+                return;
+            }
+            cancelOrderImpl(contractOrderDO, Collections.emptyMap());
+        } else {
+            log.warn("failed to cancel order {}", orderId);
+        }
+    }
+
+    public ResultCode cancelOrderImpl(ContractOrderDO contractOrderDO, Map<String, String> userInfoMap) {
+        if (OrderTypeEnum.ENFORCE.getCode() == contractOrderDO.getOrderType()) {
+            log.error("enforce order can't be canceled, {}", contractOrderDO.getId());
+            throw new RuntimeException("enforce order can't be canceled");
+        }
         String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
         String ipAddress = StringUtils.isEmpty(userInfoMap.get("ip")) ? "" : userInfoMap.get("ip");
         ResultCode resultCode = new ResultCode();
@@ -319,12 +320,6 @@ public class ContractOrderManager {
         if (contractCategoryDO.getStatus() != ContractStatusEnum.PROCESSING.getCode()){
             log.error("contract status illegal,can not cancel{}", contractCategoryDO);
             throw new RuntimeException("contractCategoryDO");
-        }
-        boolean judegRet = getJudegRet(contractOrderDO);
-        if (!judegRet){
-            resultCode.setCode(ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getCode());
-            resultCode.setMessage(ResultCodeEnum.ORDER_CAN_NOT_CANCLE.getMessage());
-            return resultCode;
         }
         if (status == OrderStatusEnum.COMMIT.getCode()){
             contractOrderDO.setStatus(OrderStatusEnum.CANCEL.getCode());
@@ -380,19 +375,32 @@ public class ContractOrderManager {
         return resultCode;
     }
 
-    public boolean getJudegRet(ContractOrderDO contractOrderDO) {
-        TradeContractOrder tradeContractOrder = new TradeContractOrder();
-        tradeContractOrder.setContractId(contractOrderDO.getContractId());
-        tradeContractOrder.setContractName(contractOrderDO.getContractName());
-        tradeContractOrder.setOrderDirection(contractOrderDO.getOrderDirection());
-        tradeContractOrder.setTotalAmount(new BigDecimal(contractOrderDO.getTotalAmount()));
-        tradeContractOrder.setUnfilledAmount(new BigDecimal(contractOrderDO.getUnfilledAmount()));
-        tradeContractOrder.setPrice(contractOrderDO.getPrice());
-        tradeContractOrder.setStatus(contractOrderDO.getStatus());
-        tradeContractOrder.setId(contractOrderDO.getId());
-        return contractMatchedOrderService.cancelOrderContract(tradeContractOrder);
+    public void sendCancelMessage(List<Long> orderIdList, Long userId) {
+        //发送MQ消息到match
+        Map<String, Object> map = new HashMap<>();
+        map.putIfAbsent("userId", userId);
+        map.putIfAbsent("idList", orderIdList);
+        Boolean sendRet = rocketMqManager.sendMessage("order", "ContractCancel",
+                userId + String.valueOf(System.currentTimeMillis()), map);
+        if (BooleanUtils.isNotTrue(sendRet)){
+            log.error("failed to send cancel contract mq, {}", userId);
+        }
     }
 
+    public ResultCode cancelAllOrder(Long userId, Map<String, String> userInfoMap) throws Exception {
+        ResultCode resultCode = new ResultCode();
+        List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByUserId(userId);
+        if (list != null){
+            List<Long> orderIdList = list.stream()
+                    .map(ContractOrderDO::getId)
+                    .collect(toList());
+
+            sendCancelMessage(orderIdList, userId);
+        }
+        resultCode.setCode(0);
+        resultCode.setMessage("success");
+        return resultCode;
+    }
 
     //获取实时持仓保证金、实时浮盈亏金
     public Map<String, BigDecimal> getAccountMsg(long userId) {
@@ -408,7 +416,7 @@ public class ContractOrderManager {
                 List<UserPositionDO> userPositionDOlist = new ArrayList<>();
                 if (positionlist != null && positionlist.size() != 0) {
                     userPositionDOlist = positionlist.stream().filter(userPosition -> userPosition.getContractId().equals(contractCategoryDO.getId()))
-                            .limit(1).collect(Collectors.toList());
+                            .limit(1).collect(toList());
                     if (userPositionDOlist != null && userPositionDOlist.size() != 0) {
                         UserPositionDO userPositionDO = userPositionDOlist.get(0);
                         BigDecimal totalAskExtraEntrustAmount = BigDecimal.ZERO;
@@ -417,9 +425,9 @@ public class ContractOrderManager {
                         Object competiorsPriceObj = redisManager.get(Constant.CONTRACT_COMPETITOR_PRICE_KEY);
                         List<CompetitorsPriceDTO> competitorsPriceList = JSON.parseArray(competiorsPriceObj.toString(), CompetitorsPriceDTO.class);
                         List<CompetitorsPriceDTO> askCurrentPriceList = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
-                                competitorsPrice.getId() == contractId).limit(1).collect(Collectors.toList());
+                                competitorsPrice.getId() == contractId).limit(1).collect(toList());
                         List<CompetitorsPriceDTO> bidCurrentPriceList = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
-                                competitorsPrice.getId() == contractId).limit(1).collect(Collectors.toList());
+                                competitorsPrice.getId() == contractId).limit(1).collect(toList());
                         BigDecimal askCurrentPrice = BigDecimal.ZERO;
                         BigDecimal bidCurrentPrice = BigDecimal.ZERO;
                         if (askCurrentPriceList != null && askCurrentPriceList.size() != 0) {
@@ -477,14 +485,14 @@ public class ContractOrderManager {
                 BigDecimal entrustLockAmount = BigDecimal.ZERO;
                 long contractId = contractCategoryDO.getId();
                 List<ContractOrderDO> orderList = contractOrderlist.stream().filter(contractOrder -> contractOrder.getContractId().equals(contractCategoryDO.getId()))
-                        .collect(Collectors.toList());
+                        .collect(toList());
                 if (orderList != null && orderList.size() != 0) {
-                    List<ContractOrderDO> bidList = orderList.stream().filter(order -> order.getOrderDirection() == OrderDirectionEnum.BID.getCode()).collect(Collectors.toList());
-                    List<ContractOrderDO> askList = orderList.stream().filter(order -> order.getOrderDirection() == OrderDirectionEnum.ASK.getCode()).collect(Collectors.toList());
+                    List<ContractOrderDO> bidList = orderList.stream().filter(order -> order.getOrderDirection() == OrderDirectionEnum.BID.getCode()).collect(toList());
+                    List<ContractOrderDO> askList = orderList.stream().filter(order -> order.getOrderDirection() == OrderDirectionEnum.ASK.getCode()).collect(toList());
                     List<UserPositionDO> userPositionDOlist = new ArrayList<>();
                     if (positionlist != null && positionlist.size() != 0) {
                         userPositionDOlist = positionlist.stream().filter(userPosition -> userPosition.getContractId().equals(contractCategoryDO.getId()))
-                                .limit(1).collect(Collectors.toList());
+                                .limit(1).collect(toList());
                         if (userPositionDOlist != null && userPositionDOlist.size() != 0) {
                             UserPositionDO userPositionDO = userPositionDOlist.get(0);
                             BigDecimal totalAskExtraEntrustAmount = BigDecimal.ZERO;
@@ -493,9 +501,9 @@ public class ContractOrderManager {
                             Object competiorsPriceObj = redisManager.get(Constant.CONTRACT_COMPETITOR_PRICE_KEY);
                             List<CompetitorsPriceDTO> competitorsPriceList = JSON.parseArray(competiorsPriceObj.toString(), CompetitorsPriceDTO.class);
                             List<CompetitorsPriceDTO> askCurrentPriceList = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
-                                    competitorsPrice.getId() == contractId).limit(1).collect(Collectors.toList());
+                                    competitorsPrice.getId() == contractId).limit(1).collect(toList());
                             List<CompetitorsPriceDTO> bidCurrentPriceList = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
-                                    competitorsPrice.getId() == contractId).limit(1).collect(Collectors.toList());
+                                    competitorsPrice.getId() == contractId).limit(1).collect(toList());
                             BigDecimal askCurrentPrice = BigDecimal.ZERO;
                             BigDecimal bidCurrentPrice = BigDecimal.ZERO;
                             if (askCurrentPriceList != null && askCurrentPriceList.size() != 0) {
@@ -677,7 +685,7 @@ public class ContractOrderManager {
     public List<ContractOrderDO> sortListEsc(List<ContractOrderDO> list) {
         List<ContractOrderDO> sortedList = list.stream()
                 .sorted(Comparator.comparing(ContractOrderDO::getPrice))
-                .collect(Collectors.toList());
+                .collect(toList());
         return sortedList;
     }
 
@@ -685,7 +693,7 @@ public class ContractOrderManager {
     public List<ContractOrderDO> sortListDesc(List<ContractOrderDO> list) {
         List<ContractOrderDO> sortedList = list.stream()
                 .sorted(Comparator.comparing(ContractOrderDO::getPrice).reversed())
-                .collect(Collectors.toList());
+                .collect(toList());
         return sortedList;
     }
 
@@ -714,10 +722,24 @@ public class ContractOrderManager {
         }
         ContractOrderDO askContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getAskOrderId());
         ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
-        Map<String, Object> askOrderContext  = JSON.parseObject(askContractOrder.getOrderContext());
-        Map<String, Object> bidOrderContext  = JSON.parseObject(bidContractOrder.getOrderContext());
+        Map<String, Object> askOrderContext = new HashMap<>();
+        Map<String, Object> bidOrderContext = new HashMap<>();
         log.info("-------------------askContractOrder:"+askContractOrder);
         log.info("-------------------bidContractOrder:"+bidContractOrder);
+        if (askContractOrder == null){
+            log.error("askContractOrder not exist");
+            throw new RuntimeException("askContractOrder not exist");
+        }
+        if (bidOrderContext == null){
+            log.error("bidOrderContext not exist");
+            throw new RuntimeException("bidOrderContext not exist");
+        }
+        if (askContractOrder.getOrderContext() != null){
+            askOrderContext  = JSON.parseObject(askContractOrder.getOrderContext());
+        }
+        if (bidContractOrder.getOrderContext() != null){
+            bidOrderContext  = JSON.parseObject(bidContractOrder.getOrderContext());
+        }
         if (askContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0
                 || bidContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0) {
             log.error("unfilledAmount not enough{}",contractMatchedOrderDTO);
@@ -779,6 +801,21 @@ public class ContractOrderManager {
             throw new RuntimeException("contractMatchedOrderMapper.insert exception{}", e);
         }
 
+        askContractOrder = contractOrderMapper.selectByPrimaryKey(askContractOrder.getId());
+        bidContractOrder = contractOrderMapper.selectByPrimaryKey(bidContractOrder.getId());
+        // 状态为9
+        if (askContractOrder.getStatus() == OrderStatusEnum.PART_MATCH.getCode()) {
+            redisManager.hSet(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(askContractOrder.getId()), JsonUtil.objectToJson(askContractOrder));
+        } else if (askContractOrder.getStatus() == OrderStatusEnum.MATCH.getCode()) {
+            redisManager.hdel(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(askContractOrder.getId()));
+        }
+
+        if (bidContractOrder.getStatus() == OrderStatusEnum.PART_MATCH.getCode()) {
+            redisManager.hSet(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(bidContractOrder.getId()), JsonUtil.objectToJson(bidContractOrder));
+        } else if (bidContractOrder.getStatus() == OrderStatusEnum.MATCH.getCode()) {
+            redisManager.hdel(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(bidContractOrder.getId()));
+        }
+
         //存入Redis缓存 有相关撮合
         ContractOrderDTO bidContractOrderDTO = new ContractOrderDTO();
         ContractOrderDTO askContractOrderDTO = new ContractOrderDTO();
@@ -793,13 +830,21 @@ public class ContractOrderManager {
         askContractOrderDTO.setOrderContext(askOrderContext);
         bidContractOrderDTO.setOrderContext(bidOrderContext);
         redisManager.contractOrderSave(askContractOrderDTO);
+        String askUsername = "";
+        String bidUsername = "";
+        if (askOrderContext != null){
+            askUsername = askOrderContext.get("username") == null ? "": String.valueOf(askOrderContext.get("username"));
+        }
+        if (bidOrderContext != null){
+            bidUsername = bidOrderContext.get("username") == null ? "": String.valueOf(bidOrderContext.get("username"));
+        }
         // TODO 需要拿到matchID insert后返回
         // TODO add username matchId
         tradeLog.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                2, askContractOrderDTO.getContractName(), askOrderContext.get("username"), askContractOrderDTO.getMatchAmount(), System.currentTimeMillis(), 4, askContractOrderDTO.getOrderDirection(), askContractOrderDTO.getUserId(), contractMatchedOrderDO.getId());
+                2, askContractOrderDTO.getContractName(), askUsername, askContractOrderDTO.getMatchAmount(), System.currentTimeMillis(), 4, askContractOrderDTO.getOrderDirection(), askContractOrderDTO.getUserId(), contractMatchedOrderDO.getId());
         redisManager.contractOrderSave(bidContractOrderDTO);
         tradeLog.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                2, askContractOrderDTO.getContractName(), bidOrderContext.get("username"), askContractOrderDTO.getMatchAmount(), System.currentTimeMillis(), 4, askContractOrderDTO.getOrderDirection(), askContractOrderDTO.getUserId(), contractMatchedOrderDO.getId());
+                2, askContractOrderDTO.getContractName(), bidUsername, askContractOrderDTO.getMatchAmount(), System.currentTimeMillis(), 4, askContractOrderDTO.getOrderDirection(), askContractOrderDTO.getUserId(), contractMatchedOrderDO.getId());
         // 向MQ推送消息
         // 通过contractId去trade_contract_category表里面获取asset_name和contract_type
         ContractCategoryDO contractCategoryDO = contractCategoryMapper.getContractCategoryById(askContractOrder.getContractId());
@@ -861,9 +906,14 @@ public class ContractOrderManager {
     public UpdatePositionResult updatePosition(ContractOrderDO contractOrderDO, BigDecimal contractSize, long filledAmount, BigDecimal filledPrice){
         long userId = contractOrderDO.getUserId();
         long contractId = contractOrderDO.getContractId();
-
         String lockKey = "LOCK_POSITION_"+ userId+ "_" + contractId;
-        boolean suc = redisManager.tryLock(lockKey, Duration.ofSeconds(3), 3, Duration.ofMillis(10));
+        boolean suc = false;
+        int retries = 10;
+        for (int i = 0; i< retries;i++) {
+            int mills = random.nextInt(20) + 20;
+            suc = redisManager.tryLock(lockKey, Duration.ofMinutes(2), 1, Duration.ofMillis(mills));
+            if (suc) break;
+        }
         if (!suc) {
             throw new RuntimeException("get lock failed, contractOrderDO="+ JSON.toJSONString(contractOrderDO));
         }

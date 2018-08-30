@@ -308,4 +308,12 @@ public class ContractOrderServiceTest {
         log.info(ret.toString());
     }
 
+    @Test
+    public void cancelOrderByContractIdTest() throws Exception {
+        Map<String, String> usermap = new HashMap<>();
+        ResultCode resultCode = contractOrderManager.cancelOrderByContractId(1018L, usermap);
+        log.info(resultCode.toString());
+    }
+
+
 }
