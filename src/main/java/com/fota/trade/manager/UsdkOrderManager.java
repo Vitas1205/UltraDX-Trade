@@ -125,7 +125,8 @@ public class UsdkOrderManager {
         usdkOrderDO.setFee(usdkFee);
         usdkOrderDO.setStatus(OrderStatusEnum.COMMIT.getCode());
         usdkOrderDO.setUnfilledAmount(usdkOrderDO.getTotalAmount());
-        Long transferTime = System.currentTimeMillis();
+        long transferTime = System.currentTimeMillis();
+        usdkOrderDO.setGmtCreate(new Date(transferTime));
         usdkOrderDO.setGmtModified(new Date(transferTime));
         if(usdkOrderDO.getOrderType() == null){
             usdkOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
@@ -489,12 +490,12 @@ public class UsdkOrderManager {
         bidUsdkOrder = usdkOrderMapper.selectByPrimaryKey(bidUsdkOrder.getId());
         // 状态为9
         if (askUsdkOrder.getStatus() == OrderStatusEnum.PART_MATCH.getCode()) {
-            redisManager.hSet(Constant.REDIS_USDT_ORDER_FOR_MATCH_HASH, String.valueOf(askUsdkOrder.getId()), JsonUtil.objectToJson(askUsdkOrder));
+            redisManager.hSet(Constant.REDIS_USDT_ORDER_FOR_MATCH_HASH, String.valueOf(askUsdkOrder.getId()), JsonUtil.objectToJson(com.fota.trade.common.BeanUtils.copy(askUsdkOrder)));
         } else if (askUsdkOrder.getStatus() == OrderStatusEnum.MATCH.getCode()) {
             redisManager.hdel(Constant.REDIS_USDT_ORDER_FOR_MATCH_HASH, String.valueOf(askUsdkOrder.getId()));
         }
         if (bidUsdkOrder.getStatus() == OrderStatusEnum.PART_MATCH.getCode()) {
-            redisManager.hSet(Constant.REDIS_USDT_ORDER_FOR_MATCH_HASH, String.valueOf(bidUsdkOrder.getId()), JsonUtil.objectToJson(bidUsdkOrder));
+            redisManager.hSet(Constant.REDIS_USDT_ORDER_FOR_MATCH_HASH, String.valueOf(bidUsdkOrder.getId()), JsonUtil.objectToJson(com.fota.trade.common.BeanUtils.copy(bidUsdkOrder)));
         } else if (bidUsdkOrder.getStatus() == OrderStatusEnum.MATCH.getCode()) {
             redisManager.hdel(Constant.REDIS_USDT_ORDER_FOR_MATCH_HASH, String.valueOf(bidUsdkOrder.getId()));
         }

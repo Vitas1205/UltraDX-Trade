@@ -6,7 +6,7 @@ import com.fota.asset.domain.ContractDealer;
 import com.fota.asset.domain.UserContractDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
-import com.fota.common.utils.Profiler;
+import com.fota.trade.util.Profiler;
 import com.fota.match.domain.ContractMatchedOrderTradeDTO;
 import com.fota.match.service.ContractMatchedOrderService;
 import com.fota.trade.common.BusinessException;
@@ -174,7 +174,8 @@ public class ContractOrderManager {
         contractOrderDTO.setOrderContext(newMap);
         contractOrderDO.setOrderContext(JSONObject.toJSONString(contractOrderDTO.getOrderContext()));
         Long orderId = 0L;
-        Long transferTime = System.currentTimeMillis();
+        long transferTime = System.currentTimeMillis();
+        contractOrderDO.setGmtCreate(new Date(transferTime));
         contractOrderDO.setGmtModified(new Date(transferTime));
         ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractOrderDO.getContractId());
         if (contractCategoryDO == null) {
@@ -817,13 +818,13 @@ public class ContractOrderManager {
         bidContractOrder = contractOrderMapper.selectByPrimaryKey(bidContractOrder.getId());
         // 状态为9
         if (askContractOrder.getStatus() == OrderStatusEnum.PART_MATCH.getCode()) {
-            redisManager.hSet(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(askContractOrder.getId()), JsonUtil.objectToJson(askContractOrder));
+            redisManager.hSet(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(askContractOrder.getId()), JsonUtil.objectToJson(com.fota.trade.common.BeanUtils.copy(askContractOrder)));
         } else if (askContractOrder.getStatus() == OrderStatusEnum.MATCH.getCode()) {
             redisManager.hdel(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(askContractOrder.getId()));
         }
 
         if (bidContractOrder.getStatus() == OrderStatusEnum.PART_MATCH.getCode()) {
-            redisManager.hSet(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(bidContractOrder.getId()), JsonUtil.objectToJson(bidContractOrder));
+            redisManager.hSet(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(bidContractOrder.getId()), JsonUtil.objectToJson(com.fota.trade.common.BeanUtils.copy(bidContractOrder)));
         } else if (bidContractOrder.getStatus() == OrderStatusEnum.MATCH.getCode()) {
             redisManager.hdel(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(bidContractOrder.getId()));
         }
