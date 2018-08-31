@@ -740,11 +740,11 @@ public class ContractOrderManager {
         log.info("-------------------bidContractOrder:"+bidContractOrder);
         if (askContractOrder == null){
             log.error("askContractOrder not exist");
-            throw new RuntimeException("askContractOrder not exist");
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
         }
         if (bidOrderContext == null){
             log.error("bidOrderContext not exist");
-            throw new RuntimeException("bidOrderContext not exist");
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
         }
         if (askContractOrder.getOrderContext() != null){
             askOrderContext  = JSON.parseObject(askContractOrder.getOrderContext());
