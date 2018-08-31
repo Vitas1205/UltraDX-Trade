@@ -24,7 +24,7 @@ import java.util.List;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
-//@Transactional
+@Transactional
 public class ContractCategoryServiceTest {
 
     @Resource

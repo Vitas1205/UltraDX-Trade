@@ -20,6 +20,7 @@ import java.util.List;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @Slf4j
+@Transactional
 public class UsdkMatchedOrderMapperTest {
     @Resource
     UsdkMatchedOrderMapper usdkMatchedOrderMapper;

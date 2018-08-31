@@ -7,6 +7,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -14,6 +15,7 @@ import java.math.RoundingMode;
 import static com.fota.trade.util.ContractUtils.computeAveragePrice;
 
 @RunWith(JUnit4.class)
+@Transactional
 public class ContractUtilsTest {
 
     /**
