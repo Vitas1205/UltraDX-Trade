@@ -167,9 +167,11 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
         return null;
     }
 
-    /*@Override
+    @Override
     public Result<BigDecimal> getPositionMarginByContractId(Long contractId) {
+        Result<BigDecimal> result = new Result<>();
+        result.setData(BigDecimal.ZERO);
 
-        return null;
-    }*/
+        return result;
+    }
 }
