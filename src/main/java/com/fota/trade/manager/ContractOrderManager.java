@@ -959,13 +959,13 @@ public class ContractOrderManager {
                 //不改变仓位方向
                 newTotalAmount = userPositionDO.getUnfilledAmount() - filledAmount;
                 newAveragePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount, contractSize);
-                result.setCloseAmount(Math.max(filledAmount, userPositionDO.getUnfilledAmount()));
+                result.setCloseAmount(Math.min(filledAmount, userPositionDO.getUnfilledAmount()));
             } else {
                 //改变仓位方向
                 userPositionDO.setPositionType(contractOrderDO.getOrderDirection());
                 newTotalAmount = filledAmount - userPositionDO.getUnfilledAmount();
                 newAveragePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount, contractSize);
-                result.setCloseAmount(Math.max(filledAmount, userPositionDO.getUnfilledAmount()));
+                result.setCloseAmount(Math.min(filledAmount, userPositionDO.getUnfilledAmount()));
             }
 
             suc = doUpdatePosition(userPositionDO, newAveragePrice, newTotalAmount);
