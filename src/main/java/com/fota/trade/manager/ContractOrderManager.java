@@ -36,7 +36,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.util.*;
 import java.util.function.Predicate;
 
@@ -91,6 +90,8 @@ public class ContractOrderManager {
     private ContractAccountService contractAccountService;
 
     Random random = new Random();
+
+    private static final int MAX_UPDATE_RETRIES = 10;
 
     private ContractService getContractService() {
         return contractService;
@@ -489,7 +490,7 @@ public class ContractOrderManager {
         List<ContractOrderDO> contractOrderlist = contractOrderMapper.selectUnfinishedOrderByUserId(userId);
 
         if (queryList != null && queryList.size() != 0 && contractOrderlist != null && contractOrderlist.size() != 0) {
-            log.error("selectUnfinishedOrderByUserId {} contractOrderlist size {}, contractOrderlist {}", userId, contractOrderlist.size(), contractOrderlist.get(0).toString());
+            log.info("selectUnfinishedOrderByUserId {} contractOrderlist size {}, contractOrderlist {}", userId, contractOrderlist.size(), contractOrderlist.get(0).toString());
 
             for (ContractCategoryDO contractCategoryDO : queryList) {
                 BigDecimal entrustLockAmount = BigDecimal.ZERO;
@@ -724,7 +725,7 @@ public class ContractOrderManager {
 
     //成交
     @Transactional(rollbackFor = {Exception.class, RuntimeException.class, TException.class})
-    public ResultCode updateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO) {
+    public ResultCode updateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO) throws InterruptedException {
         Profiler profiler = new Profiler("ContractOrderManager.updateOrderByMatch");
         ResultCode resultCode = new ResultCode();
         if (contractMatchedOrderDTO == null) {
@@ -924,68 +925,75 @@ public class ContractOrderManager {
     public UpdatePositionResult updatePosition(ContractOrderDO contractOrderDO, BigDecimal contractSize, long filledAmount, BigDecimal filledPrice){
         long userId = contractOrderDO.getUserId();
         long contractId = contractOrderDO.getContractId();
-        String lockKey = "LOCK_POSITION_"+ userId+ "_" + contractId;
-        boolean suc = false;
-        int retries = 10;
-        for (int i = 0; i< retries;i++) {
-            int mills = random.nextInt(20) + 20;
-            suc = redisManager.tryLock(lockKey, Duration.ofMinutes(2), 1, Duration.ofMillis(mills));
-            if (suc) break;
-        }
-        if (!suc) {
-            throw new RuntimeException("get lock failed, contractOrderDO="+ JSON.toJSONString(contractOrderDO));
-        }
-        try {
-            return internalUpdatePosition(contractOrderDO, contractSize, filledAmount, filledPrice);
-        }finally {
-            redisManager.releaseLock(lockKey);
-        }
-    }
-
-    private UpdatePositionResult internalUpdatePosition(ContractOrderDO contractOrderDO, BigDecimal contractSize, long filledAmount, BigDecimal filledPrice) {
-        long userId = contractOrderDO.getUserId();
-        long contractId = contractOrderDO.getContractId();
-        UserPositionDO userPositionDO = userPositionMapper.selectByUserIdAndId(userId, contractId);
-
         UpdatePositionResult result = new UpdatePositionResult();
+        boolean suc = false;
+        for (int i=0;i<MAX_UPDATE_RETRIES;i++)
+        {
+            UserPositionDO userPositionDO;
+            userPositionDO = userPositionMapper.selectByUserIdAndId(userId, contractId);
+            if (userPositionDO == null) {
+                // 建仓
+                userPositionDO = ContractUtils.buildPosition(contractOrderDO, contractSize, contractOrderDO.getLever(), filledAmount, filledPrice);
 
-        if (userPositionDO == null) {
-            // 建仓
-            userPositionDO = ContractUtils.buildPosition(contractOrderDO, contractSize, contractOrderDO.getLever(), filledAmount, filledPrice);
-            int insertRet = userPositionMapper.insert(userPositionDO);
-            if (insertRet != 1) {
-                throw new RuntimeException("insert position failed");
+                suc = insertPosition(userPositionDO);
+                if (!suc) {
+                    randomSleep();
+                    continue;
+                }
+                return result;
             }
-            result.setOriginAmount(0)
-                    .setCurAmount(userPositionDO.getUnfilledAmount());
+
+            long newTotalAmount;
+            BigDecimal newAveragePrice = null;
+
+            result.setOpenAveragePrice(userPositionDO.getAveragePrice());
+            result.setOpenPositionDirection(ContractUtils.toDirection(userPositionDO.getPositionType()));
+
+            if (contractOrderDO.getOrderDirection().equals(userPositionDO.getPositionType())) {
+                //成交单和持仓是同方向
+                newTotalAmount = userPositionDO.getUnfilledAmount() + filledAmount;
+                newAveragePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount, contractSize);
+            }
+            //成交单和持仓是反方向 （平仓）
+            else if (filledAmount - userPositionDO.getUnfilledAmount() <= 0) {
+                //不改变仓位方向
+                newTotalAmount = userPositionDO.getUnfilledAmount() - filledAmount;
+                newAveragePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount, contractSize);
+                result.setCloseAmount(Math.max(filledAmount, userPositionDO.getUnfilledAmount()));
+            } else {
+                //改变仓位方向
+                userPositionDO.setPositionType(contractOrderDO.getOrderDirection());
+                newTotalAmount = filledAmount - userPositionDO.getUnfilledAmount();
+                newAveragePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount, contractSize);
+                result.setCloseAmount(Math.max(filledAmount, userPositionDO.getUnfilledAmount()));
+            }
+
+            suc = doUpdatePosition(userPositionDO, newAveragePrice, newTotalAmount);
+            if (!suc) {
+                randomSleep();
+                continue;
+            }
             return result;
         }
-
-        long oldPositionAmount = userPositionDO.getUnfilledAmount();
-        long newTotalAmount;
-        BigDecimal newAveragePrice = null;
-
-        if (contractOrderDO.getOrderDirection().equals(userPositionDO.getPositionType())) {
-            //成交单和持仓是同方向
-            newTotalAmount = userPositionDO.getUnfilledAmount() + filledAmount;
-            newAveragePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount, contractSize);
-        }
-        //成交单和持仓是反方向 （平仓）
-        else if (filledAmount - userPositionDO.getUnfilledAmount() <= 0) {
-            //不改变仓位方向
-            newTotalAmount = userPositionDO.getUnfilledAmount() - filledAmount;
-            newAveragePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount, contractSize);
-        } else {
-            //改变仓位方向
-            newTotalAmount = filledAmount - userPositionDO.getUnfilledAmount();
-            newAveragePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount, contractSize);
-            userPositionDO.setPositionType(contractOrderDO.getOrderDirection());
-        }
-        doUpdatePosition(userPositionDO, newAveragePrice, newTotalAmount);
-        result.setCurAmount(newTotalAmount)
-                .setOriginAmount(oldPositionAmount);
-        return result;
+        throw new RuntimeException("insert or update position failed");
     }
+    private boolean insertPosition(UserPositionDO userPositionDO){
+        try {
+            int aff = userPositionMapper.insert(userPositionDO);
+            return 1 == aff;
+        }catch (Throwable t) {
+            log.error("insert position exception", t);
+            return false;
+        }
+    }
+    private void randomSleep(){
+        try {
+            Thread.sleep(random.nextInt(110));
+        } catch (InterruptedException e) {
+            new RuntimeException(e);
+        }
+    }
+
 
 
     public ContractDealer calBalanceChange(ContractOrderDO contractOrderDO, long filledAmount, BigDecimal filledPrice,
@@ -993,7 +1001,7 @@ public class ContractOrderManager {
         long userId = contractOrderDO.getUserId();
         BigDecimal rate = contractOrderDO.getFee();
         //手续费
-        BigDecimal actualFee = filledPrice.multiply(new BigDecimal(filledAmount)).multiply(rate).multiply(contractSize).negate();
+        BigDecimal actualFee = filledPrice.multiply(new BigDecimal(filledAmount)).multiply(rate).multiply(contractSize);
 
         com.fota.common.Result<ContractAccount> result = contractAccountService.getContractAccount(userId);
         if (!result.isSuccess() || null==result.getData()) {
@@ -1003,9 +1011,19 @@ public class ContractOrderManager {
         if (account.getAvailableAmount().compareTo(BigDecimal.ZERO) <= 0 && !(ENFORCE.getCode() == contractOrderDO.getOrderType())) {
             throw new RuntimeException("available amount is not enough");
         }
+        BigDecimal addAmount = actualFee.negate();
+        //计算平仓盈亏
+        if (positionResult.getCloseAmount() != null) {
+            // (filledPrice-openAveragePrice)*closeAmount*contractSize*openPositionDirection - actualFee
+            addAmount = filledPrice.subtract(positionResult.getOpenAveragePrice())
+                    .multiply(new BigDecimal(positionResult.getCloseAmount()))
+                    .multiply(contractSize)
+                    .multiply(new BigDecimal(positionResult.getOpenPositionDirection()))
+                    .subtract(actualFee);
+        }
         ContractDealer dealer = new ContractDealer()
                 .setUserId(userId)
-                .setAddedTotalAmount(actualFee)
+                .setAddedTotalAmount(addAmount)
                 .setTotalLockAmount(account.getFrozenAmount().add(account.getMarginCallRequirement()))
                 ;
         dealer.setDealType((null != contractOrderDO.getOrderType() && ENFORCE.getCode() == contractOrderDO.getOrderType()) ? ContractDealer.DealType.FORCE : ContractDealer.DealType.NORMAL);
@@ -1091,13 +1109,15 @@ public class ContractOrderManager {
      * @param newTotalAmount  新的持仓数量
      * @return
      */
-    public void doUpdatePosition(UserPositionDO userPositionDO, BigDecimal newAvaeragePrice, long newTotalAmount) {
+    public boolean doUpdatePosition(UserPositionDO userPositionDO, BigDecimal newAvaeragePrice, long newTotalAmount) {
         userPositionDO.setAveragePrice(newAvaeragePrice);
         userPositionDO.setUnfilledAmount(newTotalAmount);
-
-        int updateRet = userPositionMapper.updateByOpLock(userPositionDO);
-        if (updateRet != 1) {
-            throw new RuntimeException("doUpdatePosition failed");
+        try{
+            int aff = userPositionMapper.updateByOpLock(userPositionDO);
+            return aff == 1;
+        }catch (Throwable t) {
+            log.error("update position exception", t);
+            return false;
         }
     }
 
