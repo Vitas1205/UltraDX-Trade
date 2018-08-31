@@ -1,22 +1,30 @@
 package com.fota.trade.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.fota.common.Page;
 import com.fota.common.Result;
 import com.fota.trade.common.BeanUtils;
 import com.fota.trade.common.Constant;
 import com.fota.trade.common.ParamUtil;
 import com.fota.trade.common.ResultCodeEnum;
+import com.fota.trade.domain.ContractCategoryDO;
 import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.UserPositionDO;
 import com.fota.trade.domain.UserPositionDTO;
+import com.fota.trade.domain.dto.CompetitorsPriceDTO;
+import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.PositionStatusEnum;
 import com.fota.trade.domain.query.UserPositionQuery;
+import com.fota.trade.manager.RedisManager;
+import com.fota.trade.mapper.ContractCategoryMapper;
 import com.fota.trade.mapper.UserPositionMapper;
 import lombok.extern.slf4j.Slf4j;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+
+import static java.util.stream.Collectors.toList;
 
 /**
  * @author Gavin Shen
@@ -28,6 +36,10 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
 
     @Resource
     private UserPositionMapper userPositionMapper;
+    @Resource
+    private RedisManager redisManager;
+    @Resource
+    private ContractCategoryMapper contractCategoryMapper;
 
     @Override
     public Page<UserPositionDTO> listPositionByQuery(long userId, long contractId, int pageNo, int pageSize) {
@@ -171,7 +183,44 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
     public Result<BigDecimal> getPositionMarginByContractId(Long contractId) {
         Result<BigDecimal> result = new Result<>();
         result.setData(BigDecimal.ZERO);
+        long totalPosition  = getTotalPositionByContractId(contractId);
+        BigDecimal oneWayPosition = new BigDecimal(totalPosition/2);
+        BigDecimal lever = new BigDecimal("10");
+        ContractCategoryDO contractCategoryDO = new ContractCategoryDO();
+        try {
+            contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractId);
+        }catch (Exception e){
+            log.error("contractCategoryMapper.selectByPrimaryKey() failed {}{}", contractId,e);
+            return result.error(-1,"getPositionMargin failed");
+        }
+        BigDecimal contractSize = contractCategoryDO.getContractSize();
+        //获取买一卖一价
+        BigDecimal askCurrentPrice = BigDecimal.ZERO;
+        BigDecimal bidCurrentPrice = BigDecimal.ZERO;
+        try{
+            Object competiorsPriceObj = redisManager.get(Constant.CONTRACT_COMPETITOR_PRICE_KEY);
+            List<CompetitorsPriceDTO> competitorsPriceList = JSON.parseArray(competiorsPriceObj.toString(), CompetitorsPriceDTO.class);
+            List<CompetitorsPriceDTO> askCurrentPriceList = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
+                    Long.valueOf(competitorsPrice.getId()).equals(contractId)).limit(1).collect(toList());
+            List<CompetitorsPriceDTO> bidCurrentPriceList = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
+                    Long.valueOf(competitorsPrice.getId()).equals(contractId)).limit(1).collect(toList());
 
+            if (askCurrentPriceList != null && askCurrentPriceList.size() != 0) {
+                askCurrentPrice = askCurrentPriceList.get(0).getPrice();
+            }
+            if (bidCurrentPriceList != null && bidCurrentPriceList.size() != 0) {
+                bidCurrentPrice = bidCurrentPriceList.get(0).getPrice();
+            }
+            log.info("askCurrentPriceList-----"+askCurrentPrice);
+            log.info("bidCurrentPrice-----"+bidCurrentPrice);
+        }catch (Exception e){
+            log.error("get competiorsPrice failed {}{}", contractId,e);
+            return result.error(-1,"getPositionMargin failed");
+        }
+        BigDecimal askPositionMargin = askCurrentPrice.multiply(oneWayPosition).multiply(contractSize).divide(lever).setScale(8,BigDecimal.ROUND_DOWN);
+        BigDecimal bidPositionMargin = bidCurrentPrice.multiply(oneWayPosition).multiply(contractSize).divide(lever).setScale(8,BigDecimal.ROUND_DOWN);
+        BigDecimal totalPositionMargin = askPositionMargin.add(bidPositionMargin);
+        result.success(totalPositionMargin);
         return result;
     }
 }

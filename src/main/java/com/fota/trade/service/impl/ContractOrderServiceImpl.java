@@ -319,6 +319,10 @@ public class ContractOrderServiceImpl implements
             return resultCode;
         } catch (Exception e) {
             log.error("updateOrderByMatch error, match_order={}", JSON.toJSONString(contractMatchedOrderDTO), e);
+            if (e instanceof BizException) {
+                BusinessException bE = (BusinessException)e;
+                return ResultCode.error(bE.getCode(), bE.getMessage());
+            }
         }
         resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
         resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());
