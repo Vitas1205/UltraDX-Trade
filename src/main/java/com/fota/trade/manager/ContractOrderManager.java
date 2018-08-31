@@ -36,7 +36,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.util.*;
 import java.util.function.Predicate;
 
@@ -723,7 +722,7 @@ public class ContractOrderManager {
 
     //成交
     @Transactional(rollbackFor = {Exception.class, RuntimeException.class, TException.class})
-    public ResultCode updateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO) {
+    public ResultCode updateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO) throws InterruptedException {
         Profiler profiler = new Profiler("ContractOrderManager.updateOrderByMatch");
         ResultCode resultCode = new ResultCode();
         if (contractMatchedOrderDTO == null) {
@@ -935,16 +934,17 @@ public class ContractOrderManager {
 
                 suc = insertPosition(userPositionDO);
                 if (!suc) {
+                    randomSleep();
                     continue;
                 }
-                result.setOriginAmount(0)
-                        .setCurAmount(userPositionDO.getUnfilledAmount());
                 return result;
             }
 
-            long oldPositionAmount = userPositionDO.getUnfilledAmount();
             long newTotalAmount;
             BigDecimal newAveragePrice = null;
+
+            result.setOpenAveragePrice(userPositionDO.getAveragePrice());
+            result.setOpenPositionDirection(ContractUtils.toDirection(userPositionDO.getPositionType()));
 
             if (contractOrderDO.getOrderDirection().equals(userPositionDO.getPositionType())) {
                 //成交单和持仓是同方向
@@ -956,18 +956,20 @@ public class ContractOrderManager {
                 //不改变仓位方向
                 newTotalAmount = userPositionDO.getUnfilledAmount() - filledAmount;
                 newAveragePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount, contractSize);
+                result.setCloseAmount(Math.max(filledAmount, userPositionDO.getUnfilledAmount()));
             } else {
                 //改变仓位方向
+                userPositionDO.setPositionType(contractOrderDO.getOrderDirection());
                 newTotalAmount = filledAmount - userPositionDO.getUnfilledAmount();
                 newAveragePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount, contractSize);
-                userPositionDO.setPositionType(contractOrderDO.getOrderDirection());
+                result.setCloseAmount(Math.max(filledAmount, userPositionDO.getUnfilledAmount()));
             }
+
             suc = doUpdatePosition(userPositionDO, newAveragePrice, newTotalAmount);
             if (!suc) {
+                randomSleep();
                 continue;
             }
-            result.setCurAmount(newTotalAmount)
-                    .setOriginAmount(oldPositionAmount);
             return result;
         }
         throw new RuntimeException("insert or update position failed");
@@ -981,6 +983,13 @@ public class ContractOrderManager {
             return false;
         }
     }
+    private void randomSleep(){
+        try {
+            Thread.sleep(random.nextInt(110));
+        } catch (InterruptedException e) {
+            new RuntimeException(e);
+        }
+    }
 
 
 
@@ -989,7 +998,7 @@ public class ContractOrderManager {
         long userId = contractOrderDO.getUserId();
         BigDecimal rate = contractOrderDO.getFee();
         //手续费
-        BigDecimal actualFee = filledPrice.multiply(new BigDecimal(filledAmount)).multiply(rate).multiply(contractSize).negate();
+        BigDecimal actualFee = filledPrice.multiply(new BigDecimal(filledAmount)).multiply(rate).multiply(contractSize);
 
         com.fota.common.Result<ContractAccount> result = contractAccountService.getContractAccount(userId);
         if (!result.isSuccess() || null==result.getData()) {
@@ -999,9 +1008,19 @@ public class ContractOrderManager {
         if (account.getAvailableAmount().compareTo(BigDecimal.ZERO) <= 0 && !(ENFORCE.getCode() == contractOrderDO.getOrderType())) {
             throw new RuntimeException("available amount is not enough");
         }
+        BigDecimal addAmount = actualFee.negate();
+        //计算平仓盈亏
+        if (positionResult.getCloseAmount() != null) {
+            // (filledPrice-openAveragePrice)*closeAmount*contractSize*openPositionDirection - actualFee
+            addAmount = filledPrice.subtract(positionResult.getOpenAveragePrice())
+                    .multiply(new BigDecimal(positionResult.getCloseAmount()))
+                    .multiply(contractSize)
+                    .multiply(new BigDecimal(positionResult.getOpenPositionDirection()))
+                    .subtract(actualFee);
+        }
         ContractDealer dealer = new ContractDealer()
                 .setUserId(userId)
-                .setAddedTotalAmount(actualFee)
+                .setAddedTotalAmount(addAmount)
                 .setTotalLockAmount(account.getFrozenAmount().add(account.getMarginCallRequirement()))
                 ;
         dealer.setDealType((null != contractOrderDO.getOrderType() && ENFORCE.getCode() == contractOrderDO.getOrderType()) ? ContractDealer.DealType.FORCE : ContractDealer.DealType.NORMAL);
