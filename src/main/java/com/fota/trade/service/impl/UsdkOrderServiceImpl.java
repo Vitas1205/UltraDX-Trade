@@ -314,7 +314,10 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     public UsdkOrderDTO getUsdkOrderById(Long orderId, Long userId) {
         try {
             UsdkOrderDO usdkOrderDO = usdkOrderMapper.selectByIdAndUserId(orderId, userId);
-            return BeanUtils.copy(usdkOrderDO);
+            if (usdkOrderDO != null){
+                return BeanUtils.copy(usdkOrderDO);
+            }
+            return new UsdkOrderDTO();
         }catch (Exception e){
             log.error("usdkOrderMapper.selectByIdAndUserId failed{}", orderId);
             throw new RuntimeException("usdkOrderMapper.selectByIdAndUserId failed", e);

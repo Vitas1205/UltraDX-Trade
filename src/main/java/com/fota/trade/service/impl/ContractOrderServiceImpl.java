@@ -443,7 +443,10 @@ public class ContractOrderServiceImpl implements
     public ContractOrderDTO getContractOrderById(Long orderId, Long userId) {
         try {
             ContractOrderDO contractOrderDO = contractOrderMapper.selectByIdAndUserId(orderId, userId);
-            return BeanUtils.copy(contractOrderDO);
+            if (contractOrderDO != null){
+                return BeanUtils.copy(contractOrderDO);
+            }
+            return new ContractOrderDTO();
         }catch (Exception e){
             log.error("contractOrderMapper.selectByIdAndUserId failed{}", orderId);
             throw new RuntimeException("contractOrderMapper.selectByIdAndUserId failed", e);
