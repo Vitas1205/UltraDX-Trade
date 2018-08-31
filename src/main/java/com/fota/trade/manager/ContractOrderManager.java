@@ -91,7 +91,7 @@ public class ContractOrderManager {
 
     Random random = new Random();
 
-    private static final int MAX_UPDATE_RETRIES = 10;
+    private static final int MAX_UPDATE_RETRIES = 50;
 
     private ContractService getContractService() {
         return contractService;
@@ -930,7 +930,7 @@ public class ContractOrderManager {
         for (int i=0;i<MAX_UPDATE_RETRIES;i++)
         {
             UserPositionDO userPositionDO;
-            userPositionDO = userPositionMapper.selectByUserIdAndId(userId, contractId);
+            userPositionDO = userPositionMapper.selectForUpdateByUserId(userId, contractId);
             if (userPositionDO == null) {
                 // 建仓
                 userPositionDO = ContractUtils.buildPosition(contractOrderDO, contractSize, contractOrderDO.getLever(), filledAmount, filledPrice);
@@ -977,6 +977,9 @@ public class ContractOrderManager {
         }
         throw new RuntimeException("insert or update position failed");
     }
+    private int randomRetries(){
+        return random.nextInt(MAX_UPDATE_RETRIES-10) + 10;
+    }
     private boolean insertPosition(UserPositionDO userPositionDO){
         try {
             int aff = userPositionMapper.insert(userPositionDO);
@@ -988,7 +991,7 @@ public class ContractOrderManager {
     }
     private void randomSleep(){
         try {
-            Thread.sleep(random.nextInt(110));
+            Thread.sleep(random.nextInt(300));
         } catch (InterruptedException e) {
             new RuntimeException(e);
         }

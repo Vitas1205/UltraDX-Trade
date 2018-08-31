@@ -135,7 +135,7 @@ public class ContractOrderServiceTest {
 //        Assert.assertTrue(result != null && result.getData() != null);
     }
 
-//    @Test
+    @Test
     public void testUpdateOrderByMatch() {
 
 
