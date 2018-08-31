@@ -1,5 +1,6 @@
 package com.fota.trade.service;
 
+import com.fota.common.Result;
 import com.fota.trade.domain.UserPositionDTO;
 import com.fota.trade.domain.query.UserPositionQuery;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +12,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -39,6 +41,12 @@ public class UserPositionServiceTest {
     public void listPositionByUserIdTest(){
         List<UserPositionDTO> list = userPositionService.listPositionByUserId(285L);
         log.info("----"+list.size());
+    }
+
+    @Test
+    public void getPositionMarginByContractIdTest(){
+        Result<BigDecimal> result = userPositionService.getPositionMarginByContractId(1000L);
+        log.info("----"+result);
     }
 
 
