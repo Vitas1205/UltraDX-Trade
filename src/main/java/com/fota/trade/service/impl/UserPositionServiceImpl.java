@@ -1,6 +1,7 @@
 package com.fota.trade.service.impl;
 
 import com.fota.common.Page;
+import com.fota.common.Result;
 import com.fota.trade.common.BeanUtils;
 import com.fota.trade.common.Constant;
 import com.fota.trade.common.ParamUtil;
@@ -13,6 +14,7 @@ import com.fota.trade.domain.query.UserPositionQuery;
 import com.fota.trade.mapper.UserPositionMapper;
 import lombok.extern.slf4j.Slf4j;
 import javax.annotation.Resource;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -163,5 +165,13 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
             log.error("listPositionByContractId failed:{}",contractId);
         }
         return null;
+    }
+
+    @Override
+    public Result<BigDecimal> getPositionMarginByContractId(Long contractId) {
+        Result<BigDecimal> result = new Result<>();
+        result.setData(BigDecimal.ZERO);
+
+        return result;
     }
 }
