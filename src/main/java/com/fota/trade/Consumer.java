@@ -123,8 +123,7 @@ public class Consumer {
                 }finally {
                     redisManager.releaseLock(lockKey);
                 }
-
-                logSuccessMsg(messageExt);
+                logSuccessMsg(messageExt, null);
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
         });
@@ -133,14 +132,17 @@ public class Consumer {
         System.out.println("Consumer Started.");
     }
 
-    private void logSuccessMsg(MessageExt messageExt) {
+    private void logSuccessMsg(MessageExt messageExt, String content) {
         String body = null;
         try {
             body = new String(messageExt.getBody(), "UTF-8");
         } catch (UnsupportedEncodingException e) {
             log.error("get mq message failed", e);
         }
-        log.error("consume message success, msgId={}, msgKey={}, tag={},  body={}, reconsumeTimes={}", messageExt.getMsgId(), messageExt.getKeys(), messageExt.getTags(),
+        if (null == content) {
+            content = "consume message success";
+        }
+        log.error("{}, msgId={}, msgKey={}, tag={},  body={}, reconsumeTimes={}",content,  messageExt.getMsgId(), messageExt.getKeys(), messageExt.getTags(),
                 body, messageExt.getReconsumeTimes());
     }
     private void logFailMsg(MessageExt messageExt, Throwable t) {

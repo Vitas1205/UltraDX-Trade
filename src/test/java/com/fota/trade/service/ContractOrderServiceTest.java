@@ -135,7 +135,7 @@ public class ContractOrderServiceTest {
 //        Assert.assertTrue(result != null && result.getData() != null);
     }
 
-    @Test
+//    @Test
     public void testUpdateOrderByMatch() {
 
 
@@ -272,7 +272,7 @@ public class ContractOrderServiceTest {
         log.info("--------------------------" + contractMatchedOrderTradeDTOPage);
     }
 
-    @Test
+//    @Test
     public void contractPlaceOrderTest(){
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
         Map<String, String> userInfoMap = new HashMap<>();
