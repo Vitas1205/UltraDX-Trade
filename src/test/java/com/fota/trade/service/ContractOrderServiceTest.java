@@ -304,7 +304,7 @@ public class ContractOrderServiceTest {
 
     @Test
     public void getEntrustMarginTest(){
-        BigDecimal ret = contractOrderManager.getEntrustMargin(282L);
+        BigDecimal ret = contractOrderManager.getEntrustMargin(17764594100L);
         log.info(ret.toString());
     }
 

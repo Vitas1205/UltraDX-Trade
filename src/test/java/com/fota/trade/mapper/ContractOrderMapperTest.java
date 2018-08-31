@@ -87,7 +87,13 @@ public class ContractOrderMapperTest {
 
     @Test
     public void testSelectUnfinishedOrder() throws Exception {
-        List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByUserId(userId);
+        List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByUserId(17764594100L);
+        log.info("----------------------------" + list.size());
+    }
+
+    @Test
+    public void testSelectNotEnforceOrderByUserId() throws Exception {
+        List<ContractOrderDO> list = contractOrderMapper.selectNotEnforceOrderByUserId(17764594100L);
         log.info("----------------------------" + list.size());
     }
 
