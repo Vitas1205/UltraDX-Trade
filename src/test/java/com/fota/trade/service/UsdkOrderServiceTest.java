@@ -27,7 +27,7 @@ import java.util.*;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
-//@Transactional
+@Transactional
 public class UsdkOrderServiceTest {
 
     @Resource

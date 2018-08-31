@@ -53,13 +53,13 @@ public class ContractOrderServiceTest {
     @Resource
     private ContractOrderServiceImpl contractOrderService;
     @Resource
-    ContractCategoryService contractCategoryService;
+    private ContractCategoryService contractCategoryService;
     @Resource
     private ContractOrderMapper contractOrderMapper;
     @Resource
     private ContractAccountServiceImpl contractAccountService;
     @Resource
-    AssetService assetService;
+    private AssetService assetService;
     @Resource
     private UserPositionMapper userPositionMapper;
 
@@ -182,7 +182,7 @@ public class ContractOrderServiceTest {
         return newObj;
     }
 
-    @Test
+//    @Test
     public void testRollbackMatchedOrder() throws ParseException {
         checkPoint = new Date();
         originAskBalance = assetService.getContractAccount(askUserId);

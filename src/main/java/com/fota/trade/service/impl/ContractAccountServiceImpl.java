@@ -25,9 +25,9 @@ import java.util.Map;
 @Slf4j
 public class ContractAccountServiceImpl implements ContractAccountService {
     @Autowired
-    ContractOrderManager contractOrderManager;
+    private ContractOrderManager contractOrderManager;
     @Autowired
-    AssetService assetService;
+    private AssetService assetService;
     @Override
     public Result<ContractAccount> getContractAccount(long userId) {
         ContractAccount account = new ContractAccount();

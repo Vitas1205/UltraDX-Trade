@@ -32,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 public class RedisTest {
 
     @Autowired
-    RedisManager redisManager;
+    private RedisManager redisManager;
 
 //    @Autowired
 //    private RealTimeEntrust realTimeEntrust;
@@ -72,25 +72,14 @@ public class RedisTest {
     @Test
     public void lockTest(){
         String lock = "TEST_LOCK";
-        long st;
         Duration expire = Duration.ofSeconds(3);
-
-        st = System.currentTimeMillis();
         boolean suc = redisManager.tryLock(lock, expire);
-        log.info("costOfLock={}", System.currentTimeMillis() - st);
         assert suc;
-
-        long sum = 0, count = 10;
-        for (int i=0;i<count;i++){
-            st = System.currentTimeMillis();
-            Object obj = redisManager.get(lock);
-            long cost = System.currentTimeMillis() - st;
-            sum += cost;
-            log.info("costOfQuery={}, result={}", cost,obj);
-        }
-        log.info("averageCost={}" ,sum*1.0/count);
+        suc = redisManager.tryLock(lock, expire);
+        assert !suc;
 
         long t = redisTemplate.getExpire(lock, TimeUnit.MILLISECONDS);
+        System.out.println(t);
         assert t < expire.toMillis();
     }
 }
