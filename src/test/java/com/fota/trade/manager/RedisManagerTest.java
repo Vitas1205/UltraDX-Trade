@@ -25,7 +25,7 @@ import java.util.Set;
 @Slf4j
 public class RedisManagerTest {
     @Autowired
-    RedisManager redisManager;
+    private RedisManager redisManager;
 
     @Test
     public void sSetTest(){

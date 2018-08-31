@@ -42,14 +42,14 @@ import static com.fota.trade.common.ResultCodeEnum.ILLEGAL_PARAM;
 public class Consumer {
 
     @Autowired
-    UsdkOrderServiceImpl usdkOrderService;
+    private UsdkOrderServiceImpl usdkOrderService;
     @Autowired
-    RedisManager redisManager;
+    private RedisManager redisManager;
     @Value("${spring.rocketmq.namesrv_addr}")
     private String namesrvAddr;
 
     @Autowired
-    ContractOrderServiceImpl contractOrderService;
+    private ContractOrderServiceImpl contractOrderService;
     public void init() throws InterruptedException, MQClientException {
         //声明并初始化一个consumer
         //需要一个consumer group名字作为构造方法的参数，这里为consumer1

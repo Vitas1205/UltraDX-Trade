@@ -27,7 +27,7 @@ import java.util.Map;
 @Transactional
 public class ContractOrderTest {
     @Autowired
-    ContractOrderManager contractOrderManager;
+    private ContractOrderManager contractOrderManager;
 
     @Test
     @Ignore

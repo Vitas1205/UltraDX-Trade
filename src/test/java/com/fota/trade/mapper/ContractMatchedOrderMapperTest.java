@@ -23,7 +23,7 @@ import java.util.List;
 @Transactional
 public class ContractMatchedOrderMapperTest {
     @Resource
-    ContractMatchedOrderMapper contractMatchedOrderMapper;
+    private ContractMatchedOrderMapper contractMatchedOrderMapper;
 
     @Test
     public void test_getLatestContractMatched() {

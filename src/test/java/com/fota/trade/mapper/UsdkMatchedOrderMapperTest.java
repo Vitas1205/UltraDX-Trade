@@ -23,7 +23,7 @@ import java.util.List;
 @Transactional
 public class UsdkMatchedOrderMapperTest {
     @Resource
-    UsdkMatchedOrderMapper usdkMatchedOrderMapper;
+    private UsdkMatchedOrderMapper usdkMatchedOrderMapper;
 
     @Test
     public void test_getLatestUsdkMatched() {

@@ -26,7 +26,7 @@ import javax.annotation.Resource;
 public class RocketMqTest {
 
     @Resource
-    RocketMqManager rocketMqManager;
+    private RocketMqManager rocketMqManager;
 
     @Test
     public void RocketMqtest(){

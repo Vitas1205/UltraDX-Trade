@@ -32,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 public class RedisTest {
 
     @Autowired
-    RedisManager redisManager;
+    private RedisManager redisManager;
 
 //    @Autowired
 //    private RealTimeEntrust realTimeEntrust;
