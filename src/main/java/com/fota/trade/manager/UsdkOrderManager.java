@@ -540,6 +540,7 @@ public class UsdkOrderManager {
         orderMessage.setBidOrderType(bidUsdkOrder.getOrderType());
         orderMessage.setBidOrderUnfilledAmount(usdkMatchedOrderDTO.getBidOrderUnfilledAmount());
         orderMessage.setAskOrderUnfilledAmount(usdkMatchedOrderDTO.getAskOrderUnfilledAmount());
+        orderMessage.setMatchType(usdkMatchedOrderDTO.getMatchType());
         if (askUsdkOrder.getPrice() != null){
             orderMessage.setAskOrderEntrustPrice(askUsdkOrder.getPrice());
         }

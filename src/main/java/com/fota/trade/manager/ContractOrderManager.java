@@ -228,6 +228,10 @@ public class ContractOrderManager {
             Map<String,BigDecimal> msg  = getAccountMsg(contractOrderDO.getUserId());
             log.info("AccountDetailMsg:"+msg.toString());
             BigDecimal entrustLock = getEntrustMargin(contractOrderDO.getUserId());
+            if (entrustLock == null){
+                log.error("get CurrentPrice failed");
+                throw new RuntimeException("get CurrentPrice failed");
+            }
             BigDecimal positionMargin = msg.get(Constant.POSITION_MARGIN);
             BigDecimal floatPL = msg.get(Constant.FLOATING_PL);
             //查询用户合约冻结金额 判断可用是否大于委托冻结
@@ -443,9 +447,9 @@ public class ContractOrderManager {
                         try{
                             List<CompetitorsPriceDTO> competitorsPriceList = realTimeEntrust.getContractCompetitorsPrice();
                             askCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
-                                    competitorsPrice.getId() == contractId).limit(1).collect(toList()).get(0).getPrice();
+                                    competitorsPrice.getId() == contractId).findFirst().get().getPrice();
                             bidCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
-                                    competitorsPrice.getId() == contractId).limit(1).collect(toList()).get(0).getPrice();
+                                    competitorsPrice.getId() == contractId).findFirst().get().getPrice();
                             log.info("askCurrentPrice:{}",askCurrentPrice);
                             log.info("bidCurrentPrice:{}",bidCurrentPrice);
                         }catch (Exception e){
@@ -509,13 +513,14 @@ public class ContractOrderManager {
                             try{
                                 List<CompetitorsPriceDTO> competitorsPriceList = realTimeEntrust.getContractCompetitorsPrice();
                                 askCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
-                                        competitorsPrice.getId() == contractId).limit(1).collect(toList()).get(0).getPrice();
+                                        competitorsPrice.getId() == contractId).findFirst().get().getPrice();
                                 bidCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
-                                        competitorsPrice.getId() == contractId).limit(1).collect(toList()).get(0).getPrice();
+                                        competitorsPrice.getId() == contractId).findFirst().get().getPrice();
                                 log.info("askCurrentPrice:{}",askCurrentPrice);
                                 log.info("bidCurrentPrice:{}",bidCurrentPrice);
                             }catch (Exception e){
                                 log.error("getContractBuyPriceSellPriceDTO failed{}",e);
+                                return null;
                             }
                             BigDecimal lever = new BigDecimal(contractLeverManager.getLeverByContractId(userId, contractId));
                             Integer positionType = userPositionDO.getPositionType();
@@ -796,7 +801,7 @@ public class ContractOrderManager {
         executorService.submit(new Runnable() {
             @Override
             public void run() {
-                postProcessAfterMatch(askContractOrder, bidContractOrder, contractMatchedOrderDO, transferTime);
+                postProcessAfterMatch(askContractOrder, bidContractOrder, contractMatchedOrderDO, transferTime, contractMatchedOrderDTO);
             }
         });
         profiler.complelete("persistMatch");
@@ -831,7 +836,7 @@ public class ContractOrderManager {
     }
 
     public void postProcessAfterMatch(ContractOrderDO contractOrderDO1, ContractOrderDO contractOrderDO2, ContractMatchedOrderDO contractMatchedOrderDO,
-                                     long updateOrderTime){
+                                     long updateOrderTime, ContractMatchedOrderDTO contractMatchedOrderDTO){
 
         ContractOrderDO askContractOrder = contractOrderMapper.selectByPrimaryKey(contractOrderDO1.getId());
         ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(contractOrderDO2.getId());
@@ -869,8 +874,9 @@ public class ContractOrderManager {
         orderMessage.setMatchOrderId(contractMatchedOrderDO.getId());
         orderMessage.setContractMatchAssetName(contractCategoryDO.getAssetName());
         orderMessage.setContractType(contractCategoryDO.getContractType());
-        orderMessage.setAskOrderUnfilledAmount(askContractOrder.getUnfilledAmount().intValue());
-        orderMessage.setBidOrderUnfilledAmount(bidContractOrder.getUnfilledAmount().intValue());
+        orderMessage.setAskOrderUnfilledAmount(contractMatchedOrderDTO.getAskOrderUnfilledAmount());
+        orderMessage.setBidOrderUnfilledAmount(contractMatchedOrderDTO.getBidOrderUnfilledAmount());
+        orderMessage.setMatchType(contractMatchedOrderDTO.getMatchType());
         //orderMessage.setAskOrderType(askContractOrderDTO.getOrderType());
         //orderMessage.setBidOrderType(bidContractOrderDTO.getOrderType());
         if (askContractOrder.getPrice() != null){
