@@ -7,13 +7,15 @@ import com.fota.asset.domain.UserContractDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
 import com.fota.common.utils.CommonUtils;
+import com.fota.ticker.entrust.RealTimeEntrust;
+import com.fota.ticker.entrust.entity.BuyPriceSellPriceDTO;
+import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
 import com.fota.trade.common.*;
 import com.fota.trade.domain.ResultCode;
 import com.fota.trade.util.Profiler;
 import com.fota.match.domain.ContractMatchedOrderTradeDTO;
 import com.fota.match.service.ContractMatchedOrderService;
 import com.fota.trade.domain.*;
-import com.fota.trade.domain.dto.CompetitorsPriceDTO;
 import com.fota.trade.domain.enums.*;
 import com.fota.trade.mapper.ContractCategoryMapper;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
@@ -21,10 +23,8 @@ import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.service.ContractAccountService;
 import com.fota.trade.util.ContractUtils;
-import com.fota.trade.util.JsonUtil;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -87,6 +87,9 @@ public class ContractOrderManager {
 
     @Autowired
     private ContractMatchedOrderMapper contractMatchedOrderMapper;
+
+    @Autowired
+    private RealTimeEntrust realTimeEntrust;
 
     @Autowired
     private ContractAccountService contractAccountService;
@@ -434,23 +437,19 @@ public class ContractOrderManager {
                             .limit(1).collect(toList());
                     if (userPositionDOlist != null && userPositionDOlist.size() != 0) {
                         UserPositionDO userPositionDO = userPositionDOlist.get(0);
-                        BigDecimal totalAskExtraEntrustAmount = BigDecimal.ZERO;
-                        BigDecimal totalBidExtraEntrustAmount = BigDecimal.ZERO;
                         //获取买一卖一价
-                        Object competiorsPriceObj = redisManager.get(Constant.CONTRACT_COMPETITOR_PRICE_KEY);
-                        List<CompetitorsPriceDTO> competitorsPriceList = JSON.parseArray(competiorsPriceObj.toString(), CompetitorsPriceDTO.class);
-                        List<CompetitorsPriceDTO> askCurrentPriceList = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
-                                competitorsPrice.getId() == contractId).limit(1).collect(toList());
-                        List<CompetitorsPriceDTO> bidCurrentPriceList = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
-                                competitorsPrice.getId() == contractId).limit(1).collect(toList());
                         BigDecimal askCurrentPrice = BigDecimal.ZERO;
                         BigDecimal bidCurrentPrice = BigDecimal.ZERO;
-                        if (askCurrentPriceList != null && askCurrentPriceList.size() != 0) {
-                            askCurrentPrice = askCurrentPriceList.get(0).getPrice();
-
-                        }
-                        if (bidCurrentPriceList != null && bidCurrentPriceList.size() != 0) {
-                            bidCurrentPrice = bidCurrentPriceList.get(0).getPrice();
+                        try{
+                            List<CompetitorsPriceDTO> competitorsPriceList = realTimeEntrust.getContractCompetitorsPrice();
+                            askCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
+                                    competitorsPrice.getId() == contractId).limit(1).collect(toList()).get(0).getPrice();
+                            bidCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
+                                    competitorsPrice.getId() == contractId).limit(1).collect(toList()).get(0).getPrice();
+                            log.info("askCurrentPrice:{}",askCurrentPrice);
+                            log.info("bidCurrentPrice:{}",bidCurrentPrice);
+                        }catch (Exception e){
+                            log.error("getContractBuyPriceSellPriceDTO failed{}",e);
                         }
                         BigDecimal lever = new BigDecimal(contractLeverManager.getLeverByContractId(userId, contractId));
                         Integer positionType = userPositionDO.getPositionType();
@@ -458,18 +457,10 @@ public class ContractOrderManager {
                         BigDecimal contractSize = contractCategoryDO.getContractSize();
                         BigDecimal positionAveragePrice = userPositionDO.getAveragePrice();
                         if (positionType == PositionTypeEnum.OVER.getCode()) {
-                            if (bidCurrentPrice == null || bidCurrentPrice.compareTo(BigDecimal.ZERO) <= 0) {
-                                Object lastPrice = redisManager.get(Constant.LAST_CONTRACT_MATCH_PRICE+contractId);
-                                bidCurrentPrice = new BigDecimal(lastPrice.toString());
-                            }
                             BigDecimal bidPositionEntrustAmount = positionUnfilledAmount.multiply(contractSize).multiply(bidCurrentPrice).divide(lever, 8, BigDecimal.ROUND_DOWN);
                             positionMargin = positionMargin.add(bidPositionEntrustAmount);
                             floatingPL = floatingPL.add((bidCurrentPrice.subtract(positionAveragePrice)).multiply(positionUnfilledAmount).multiply(contractSize)).setScale(8, BigDecimal.ROUND_DOWN);
                         } else if (positionType == PositionTypeEnum.EMPTY.getCode()) {
-                            if (askCurrentPrice == null || askCurrentPrice.compareTo(BigDecimal.ZERO) <= 0) {
-                                Object lastPrice = redisManager.get(Constant.LAST_CONTRACT_MATCH_PRICE+contractId);
-                                askCurrentPrice = new BigDecimal(lastPrice.toString());
-                            }
                             BigDecimal askPositionEntrustAmount = positionUnfilledAmount.multiply(contractSize).multiply(askCurrentPrice).divide(lever, 8, BigDecimal.ROUND_DOWN);
                             positionMargin = positionMargin.add(askPositionEntrustAmount);
                             floatingPL = floatingPL.add((positionAveragePrice.subtract(askCurrentPrice)).multiply(positionUnfilledAmount).multiply(contractSize)).setScale(8, BigDecimal.ROUND_DOWN);
@@ -513,20 +504,18 @@ public class ContractOrderManager {
                             BigDecimal totalAskExtraEntrustAmount = BigDecimal.ZERO;
                             BigDecimal totalBidExtraEntrustAmount = BigDecimal.ZERO;
                             //获取买一卖一价
-                            Object competiorsPriceObj = redisManager.get(Constant.CONTRACT_COMPETITOR_PRICE_KEY);
-                            List<CompetitorsPriceDTO> competitorsPriceList = JSON.parseArray(competiorsPriceObj.toString(), CompetitorsPriceDTO.class);
-                            List<CompetitorsPriceDTO> askCurrentPriceList = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
-                                    competitorsPrice.getId() == contractId).limit(1).collect(toList());
-                            List<CompetitorsPriceDTO> bidCurrentPriceList = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
-                                    competitorsPrice.getId() == contractId).limit(1).collect(toList());
                             BigDecimal askCurrentPrice = BigDecimal.ZERO;
                             BigDecimal bidCurrentPrice = BigDecimal.ZERO;
-                            if (askCurrentPriceList != null && askCurrentPriceList.size() != 0) {
-                                askCurrentPrice = askCurrentPriceList.get(0).getPrice();
-
-                            }
-                            if (bidCurrentPriceList != null && bidCurrentPriceList.size() != 0) {
-                                bidCurrentPrice = bidCurrentPriceList.get(0).getPrice();
+                            try{
+                                List<CompetitorsPriceDTO> competitorsPriceList = realTimeEntrust.getContractCompetitorsPrice();
+                                askCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
+                                        competitorsPrice.getId() == contractId).limit(1).collect(toList()).get(0).getPrice();
+                                bidCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
+                                        competitorsPrice.getId() == contractId).limit(1).collect(toList()).get(0).getPrice();
+                                log.info("askCurrentPrice:{}",askCurrentPrice);
+                                log.info("bidCurrentPrice:{}",bidCurrentPrice);
+                            }catch (Exception e){
+                                log.error("getContractBuyPriceSellPriceDTO failed{}",e);
                             }
                             BigDecimal lever = new BigDecimal(contractLeverManager.getLeverByContractId(userId, contractId));
                             Integer positionType = userPositionDO.getPositionType();
@@ -534,17 +523,9 @@ public class ContractOrderManager {
                             BigDecimal contractSize = contractCategoryDO.getContractSize();
                             BigDecimal positionAveragePrice = userPositionDO.getAveragePrice();
                             if (positionType == PositionTypeEnum.OVER.getCode()) {
-                                if (bidCurrentPrice == null) {
-                                    log.error("get bidCurrentPrice failed");
-                                    throw new RuntimeException("get bidCurrentPrice failed");
-                                }
                                 BigDecimal bidPositionEntrustAmount = positionUnfilledAmount.multiply(contractSize).multiply(bidCurrentPrice).divide(lever, 8, BigDecimal.ROUND_DOWN);
                                 totalAskExtraEntrustAmount = totalAskExtraEntrustAmount.add(getExtraEntrustAmount(bidList, askList, positionType, positionUnfilledAmount, bidPositionEntrustAmount, lever, contractSize));
                             } else if (positionType == PositionTypeEnum.EMPTY.getCode()) {
-                                if (askCurrentPrice == null) {
-                                    log.error("get askCurrentPrice failed");
-                                    throw new RuntimeException("get askCurrentPrice failed");
-                                }
                                 BigDecimal askPositionEntrustAmount = positionUnfilledAmount.multiply(contractSize).multiply(askCurrentPrice).divide(lever, 8, BigDecimal.ROUND_DOWN);
                                 totalBidExtraEntrustAmount = totalBidExtraEntrustAmount.add(getExtraEntrustAmount(bidList, askList, positionType, positionUnfilledAmount, askPositionEntrustAmount, lever, contractSize));
                             }
