@@ -68,16 +68,6 @@ public class RollbackManager {
         ContractOrderDO askContractOrder = contractOrderMapper.selectByPrimaryKey(matchedOrderDO.getAskOrderId());
         ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(matchedOrderDO.getBidOrderId());
 
-        int tmp = askContractOrder.getOrderDirection();
-
-        askContractOrder.setOrderDirection(bidContractOrder.getOrderDirection());
-        bidContractOrder.setOrderDirection(tmp);
-
-        Integer askLever = contractLeverManager.getLeverByContractId(askContractOrder.getUserId(), askContractOrder.getContractId());
-        askContractOrder.setLever(askLever.intValue());
-
-        Integer bidLever = contractLeverManager.getLeverByContractId(bidContractOrder.getUserId(), bidContractOrder.getContractId());
-        bidContractOrder.setLever(bidLever);
 
         //更新委托状态
         long oppositeFilledAmount = matchedOrderDO.getFilledAmount().negate().longValue();
@@ -87,15 +77,19 @@ public class RollbackManager {
         contractOrderManager.updateContractOrder(askContractOrder.getId(), oppositeFilledAmount, matchedOrderDO.getFilledPrice(), new Date());
         contractOrderManager.updateContractOrder(bidContractOrder.getId(), oppositeFilledAmount, matchedOrderDO.getFilledPrice(), new Date());
 
-        contractMatchedOrderMapper.updateStatus(matchedOrderDO.getId(), DELETE);
+        int tmp = askContractOrder.getOrderDirection();
+        askContractOrder.setOrderDirection(bidContractOrder.getOrderDirection());
+        bidContractOrder.setOrderDirection(tmp);
+
         BigDecimal contractSize = contractOrderManager.getContractSize(askContractOrder.getContractId());
         //更新持仓
         UpdatePositionResult askResult = contractOrderManager.updatePosition(askContractOrder, contractSize, filledAmount, filledPrice);
         UpdatePositionResult bidResult = contractOrderManager.updatePosition(bidContractOrder, contractSize, filledAmount, filledPrice);
 
+        contractMatchedOrderMapper.updateStatus(matchedOrderDO.getId(), DELETE);
 
-        ContractDealer dealer1 = calRollbackBalance(askContractOrder, filledAmount, filledPrice, contractSize, askResult, new BigDecimal(askLever));
-        ContractDealer dealer2 = calRollbackBalance(bidContractOrder, filledAmount, filledPrice, contractSize, bidResult, new BigDecimal(bidLever));
+        ContractDealer dealer1 = calRollbackBalance(askContractOrder, filledAmount, filledPrice, contractSize, askResult);
+        ContractDealer dealer2 = calRollbackBalance(bidContractOrder, filledAmount, filledPrice, contractSize, bidResult);
         com.fota.common.Result result = contractService.updateBalances(dealer1, dealer2);
         if (!result.isSuccess()) {
             throw new RuntimeException("update balance failed");
@@ -104,14 +98,23 @@ public class RollbackManager {
 
     }
     private ContractDealer calRollbackBalance(ContractOrderDO contractOrderDO, long filledAmount, BigDecimal filledPrice,
-                                              BigDecimal contractSize, UpdatePositionResult positionResult, BigDecimal lever){
+                                              BigDecimal contractSize, UpdatePositionResult positionResult){
         long userId = contractOrderDO.getUserId();
         BigDecimal rate = contractOrderDO.getFee();
+        if (null == positionResult.getCloseAmount()) {
+            return null;
+        }
+        //手续费
         BigDecimal actualFee = filledPrice.multiply(new BigDecimal(filledAmount)).multiply(rate).multiply(contractSize);
-
+        // (filledPrice-openAveragePrice)*closeAmount*contractSize*openPositionDirection - actualFee
+        BigDecimal addAmount = filledPrice.subtract(positionResult.getOpenAveragePrice())
+                .multiply(new BigDecimal(positionResult.getCloseAmount()))
+                .multiply(contractSize)
+                .multiply(new BigDecimal(positionResult.getOpenPositionDirection()))
+                .add(actualFee);
         ContractDealer dealer = new ContractDealer()
                 .setUserId(userId)
-                .setAddedTotalAmount(actualFee)
+                .setAddedTotalAmount(addAmount)
                 .setTotalLockAmount(BigDecimal.ZERO);
         dealer.setDealType( ContractDealer.DealType.FORCE);
         return dealer;

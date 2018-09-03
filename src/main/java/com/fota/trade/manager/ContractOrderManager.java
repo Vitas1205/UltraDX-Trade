@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
@@ -43,6 +44,7 @@ import static com.fota.trade.common.ResultCodeEnum.BALANCE_NOT_ENOUGH;
 import static com.fota.trade.domain.enums.OrderTypeEnum.ENFORCE;
 import static com.fota.trade.util.ContractUtils.computeAveragePrice;
 import static java.util.stream.Collectors.*;
+import static org.springframework.transaction.annotation.Propagation.REQUIRES_NEW;
 
 /**
  * @author Gavin Shen
@@ -94,7 +96,7 @@ public class ContractOrderManager {
 
     Random random = new Random();
 
-    private static final int MAX_UPDATE_RETRIES = 50;
+    private static final int MAX_UPDATE_RETRIES = 5;
 
     private ContractService getContractService() {
         return contractService;
@@ -727,8 +729,8 @@ public class ContractOrderManager {
 
 
     //成交
-    @Transactional(rollbackFor = {Exception.class})
-    public ResultCode updateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO) throws InterruptedException {
+    @Transactional(rollbackFor = {Exception.class}, isolation = Isolation.READ_COMMITTED)
+    public ResultCode updateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO) {
         Profiler profiler = new Profiler("ContractOrderManager.updateOrderByMatch");
         ResultCode resultCode = new ResultCode();
         if (contractMatchedOrderDTO == null) {
@@ -784,13 +786,26 @@ public class ContractOrderManager {
         UpdatePositionResult bidResult = updatePosition(bidContractOrder, contractSize, filledAmount, filledPrice);
         profiler.complelete("update position");
 
-        ContractDealer dealer1 = calBalanceChange(askContractOrder, filledAmount, filledPrice, contractSize, askResult, askLever);
-        ContractDealer dealer2 = calBalanceChange(bidContractOrder, filledAmount, filledPrice, contractSize, bidResult, bidLever);
-        com.fota.common.Result result = contractService.updateBalances(dealer1, dealer2);
-        profiler.complelete("update balance");
-        if (!result.isSuccess()) {
-            throw new RuntimeException("update balance failed");
+        //更新账户余额
+        ContractDealer dealer1 = calAndCheckBalanceChange(askContractOrder, filledAmount, filledPrice, contractSize, askResult, askLever);
+        ContractDealer dealer2 = calAndCheckBalanceChange(bidContractOrder, filledAmount, filledPrice, contractSize, bidResult, bidLever);
+        List<ContractDealer> dealers = new LinkedList();
+        if (null != dealer1) {
+            dealers.add(dealer1);
         }
+        if (null != dealer2) {
+            dealers.add(dealer2);
+        }
+        if (!dealers.isEmpty()) {
+            ContractDealer[] contractDealers = new ContractDealer[dealers.size()];
+            dealers.toArray(contractDealers);
+            com.fota.common.Result result = contractService.updateBalances(contractDealers);
+            profiler.complelete("update balance");
+            if (!result.isSuccess()) {
+                throw new RuntimeException("update balance failed");
+            }
+        }
+
 
         ContractMatchedOrderDO contractMatchedOrderDO = com.fota.trade.common.BeanUtils.copy(contractMatchedOrderDTO);
         BigDecimal fee = contractMatchedOrderDO.getFilledAmount().multiply(contractMatchedOrderDO.getFilledPrice()).multiply(contractSize).multiply(Constant.FEE_RATE).setScale(CommonUtils.scale, BigDecimal.ROUND_UP);
@@ -929,19 +944,20 @@ public class ContractOrderManager {
         }
     }
 
+
     public UpdatePositionResult updatePosition(ContractOrderDO contractOrderDO, BigDecimal contractSize, long filledAmount, BigDecimal filledPrice){
         long userId = contractOrderDO.getUserId();
         long contractId = contractOrderDO.getContractId();
         UpdatePositionResult result = new UpdatePositionResult();
         boolean suc = false;
-        for (int i=0;i<MAX_UPDATE_RETRIES;i++)
+        int retries = randomRetries();
+        for (int i=0;i<retries;i++)
         {
             UserPositionDO userPositionDO;
             userPositionDO = userPositionMapper.selectForUpdateByUserId(userId, contractId);
             if (userPositionDO == null) {
                 // 建仓
                 userPositionDO = ContractUtils.buildPosition(contractOrderDO, contractSize, contractOrderDO.getLever(), filledAmount, filledPrice);
-
                 suc = insertPosition(userPositionDO);
                 if (!suc) {
                     randomSleep();
@@ -977,6 +993,8 @@ public class ContractOrderManager {
 
             suc = doUpdatePosition(userPositionDO, newAveragePrice, newTotalAmount);
             if (!suc) {
+                log.error("update failed, userPositionDO={}, nowPosition={}", JSON.toJSONString(userPositionDO),
+                        JSON.toJSONString(userPositionMapper.selectByUserIdAndId(userId, contractId)));
                 randomSleep();
                 continue;
             }
@@ -985,7 +1003,7 @@ public class ContractOrderManager {
         throw new RuntimeException("insert or update position failed");
     }
     private int randomRetries(){
-        return random.nextInt(MAX_UPDATE_RETRIES-10) + 10;
+        return random.nextInt(MAX_UPDATE_RETRIES);
     }
     private boolean insertPosition(UserPositionDO userPositionDO){
         try {
@@ -998,7 +1016,7 @@ public class ContractOrderManager {
     }
     private void randomSleep(){
         try {
-            Thread.sleep(random.nextInt(300));
+            Thread.sleep(10);
         } catch (InterruptedException e) {
             new RuntimeException(e);
         }
@@ -1006,12 +1024,11 @@ public class ContractOrderManager {
 
 
 
-    public ContractDealer calBalanceChange(ContractOrderDO contractOrderDO, long filledAmount, BigDecimal filledPrice,
-                                           BigDecimal contractSize, UpdatePositionResult positionResult, Integer lever){
+    public ContractDealer calAndCheckBalanceChange(ContractOrderDO contractOrderDO, long filledAmount, BigDecimal filledPrice,
+                                                   BigDecimal contractSize, UpdatePositionResult positionResult, Integer lever){
         long userId = contractOrderDO.getUserId();
         BigDecimal rate = contractOrderDO.getFee();
-        //手续费
-        BigDecimal actualFee = filledPrice.multiply(new BigDecimal(filledAmount)).multiply(rate).multiply(contractSize);
+
 
         com.fota.common.Result<ContractAccount> result = contractAccountService.getContractAccount(userId);
         if (!result.isSuccess() || null==result.getData()) {
@@ -1021,16 +1038,21 @@ public class ContractOrderManager {
         if (account.getAvailableAmount().compareTo(BigDecimal.ZERO) <= 0 && !(ENFORCE.getCode() == contractOrderDO.getOrderType())) {
             throw new BizException(BALANCE_NOT_ENOUGH);
         }
-        BigDecimal addAmount = actualFee.negate();
-        //计算平仓盈亏
-        if (positionResult.getCloseAmount() != null) {
-            // (filledPrice-openAveragePrice)*closeAmount*contractSize*openPositionDirection - actualFee
-            addAmount = filledPrice.subtract(positionResult.getOpenAveragePrice())
-                    .multiply(new BigDecimal(positionResult.getCloseAmount()))
-                    .multiply(contractSize)
-                    .multiply(new BigDecimal(positionResult.getOpenPositionDirection()))
-                    .subtract(actualFee);
+        //没有平仓，不用计算
+        if (null == positionResult.getCloseAmount()) {
+            return null;
         }
+        //手续费
+        BigDecimal actualFee = filledPrice.multiply(new BigDecimal(filledAmount)).multiply(rate).multiply(contractSize);
+
+        //计算平仓盈亏
+        // (filledPrice-openAveragePrice)*closeAmount*contractSize*openPositionDirection - actualFee
+        BigDecimal addAmount = filledPrice.subtract(positionResult.getOpenAveragePrice())
+                .multiply(new BigDecimal(positionResult.getCloseAmount()))
+                .multiply(contractSize)
+                .multiply(new BigDecimal(positionResult.getOpenPositionDirection()))
+                .subtract(actualFee);
+
         ContractDealer dealer = new ContractDealer()
                 .setUserId(userId)
                 .setAddedTotalAmount(addAmount)
