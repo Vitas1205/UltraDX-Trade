@@ -96,7 +96,7 @@ public class ContractOrderManager {
 
     Random random = new Random();
 
-    private static final int MAX_UPDATE_RETRIES = 5;
+    private static final int MAX_UPDATE_RETRIES = 10;
 
     private ContractService getContractService() {
         return contractService;
@@ -935,7 +935,7 @@ public class ContractOrderManager {
         long contractId = contractOrderDO.getContractId();
         UpdatePositionResult result = new UpdatePositionResult();
         boolean suc = false;
-        int retries = randomRetries();
+        int retries = MAX_UPDATE_RETRIES;
         for (int i=0;i<retries;i++)
         {
             UserPositionDO userPositionDO;
@@ -978,8 +978,6 @@ public class ContractOrderManager {
 
             suc = doUpdatePosition(userPositionDO, newAveragePrice, newTotalAmount);
             if (!suc) {
-                log.error("update failed, userPositionDO={}, nowPosition={}", JSON.toJSONString(userPositionDO),
-                        JSON.toJSONString(userPositionMapper.selectByUserIdAndId(userId, contractId)));
                 randomSleep();
                 continue;
             }
@@ -987,9 +985,7 @@ public class ContractOrderManager {
         }
         throw new RuntimeException("insert or update position failed");
     }
-    private int randomRetries(){
-        return random.nextInt(MAX_UPDATE_RETRIES);
-    }
+
     private boolean insertPosition(UserPositionDO userPositionDO){
         try {
             int aff = userPositionMapper.insert(userPositionDO);
@@ -1130,7 +1126,7 @@ public class ContractOrderManager {
         userPositionDO.setAveragePrice(newAvaeragePrice);
         userPositionDO.setUnfilledAmount(newTotalAmount);
         try{
-            int aff = userPositionMapper.updateByOpLock(userPositionDO);
+            int aff = userPositionMapper.updateByPrimaryKey(userPositionDO);
             return aff == 1;
         }catch (Throwable t) {
             log.error("update position exception", t);
