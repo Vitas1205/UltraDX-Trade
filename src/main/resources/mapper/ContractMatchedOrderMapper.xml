@@ -28,14 +28,14 @@
         ask_order_price, ask_user_id, ask_close_type,
         bid_order_id, bid_order_price, bid_user_id,
         bid_close_type, match_type, fee,
-        filled_price, filled_amount, contract_name,contract_id
+        filled_price, filled_amount, contract_name,contract_id,status
         )
-        values (now(), now(), #{askOrderId,jdbcType=BIGINT},
+        values (#{gmtCreate}, #{gmtModified}, #{askOrderId,jdbcType=BIGINT},
         #{askOrderPrice,jdbcType=DECIMAL}, #{askUserId,jdbcType=BIGINT}, #{askCloseType,jdbcType=TINYINT},
         #{bidOrderId,jdbcType=BIGINT}, #{bidOrderPrice,jdbcType=DECIMAL}, #{bidUserId,jdbcType=BIGINT},
         #{bidCloseType,jdbcType=TINYINT}, #{matchType,jdbcType=TINYINT}, #{fee,jdbcType=DECIMAL},
         #{filledPrice,jdbcType=DECIMAL}, #{filledAmount,jdbcType=DECIMAL}, #{contractName,jdbcType=VARCHAR}
-        ,#{contractId}
+        ,#{contractId}, #{status}
         )
     </insert>
 

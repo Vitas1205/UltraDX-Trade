@@ -16,12 +16,14 @@ public enum OrderCloseTypeEnum {
      */
     SYSTEM(2, "SYSTEM"),
     /**
-     * SEASON
+     * 交割
      */
     EXPIRED(3, "EXPIRED"),
     ;
     @Getter
     private int code;
+
+    @Getter
     private String desc;
 
     OrderCloseTypeEnum(int code, String desc) {

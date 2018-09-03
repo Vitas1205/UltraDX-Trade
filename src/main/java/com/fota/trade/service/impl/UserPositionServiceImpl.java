@@ -3,26 +3,29 @@ package com.fota.trade.service.impl;
 import com.alibaba.fastjson.JSON;
 import com.fota.common.Page;
 import com.fota.common.Result;
+import com.fota.trade.client.constants.MatchedOrderStatus;
 import com.fota.trade.common.BeanUtils;
 import com.fota.trade.common.Constant;
 import com.fota.trade.common.ParamUtil;
 import com.fota.trade.common.ResultCodeEnum;
-import com.fota.trade.domain.ContractCategoryDO;
-import com.fota.trade.domain.ResultCode;
-import com.fota.trade.domain.UserPositionDO;
-import com.fota.trade.domain.UserPositionDTO;
+import com.fota.trade.domain.*;
 import com.fota.trade.domain.dto.CompetitorsPriceDTO;
+import com.fota.trade.domain.enums.OrderCloseTypeEnum;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.PositionStatusEnum;
 import com.fota.trade.domain.query.UserPositionQuery;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.mapper.ContractCategoryMapper;
+import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
 import lombok.extern.slf4j.Slf4j;
-import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 import static java.util.stream.Collectors.toList;
 
@@ -34,12 +37,17 @@ import static java.util.stream.Collectors.toList;
 @Slf4j
 public class UserPositionServiceImpl implements com.fota.trade.service.UserPositionService {
 
-    @Resource
+    @Autowired
     private UserPositionMapper userPositionMapper;
-    @Resource
+
+    @Autowired
     private RedisManager redisManager;
-    @Resource
+
+    @Autowired
     private ContractCategoryMapper contractCategoryMapper;
+
+    @Autowired
+    private ContractMatchedOrderMapper contractMatchedOrderMapper;
 
     @Override
     public Page<UserPositionDTO> listPositionByQuery(long userId, long contractId, int pageNo, int pageSize) {
@@ -113,23 +121,52 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
     }
 
     /**
-     * * * @荆轲
-     * @param id
+     * @author 荆轲
+     * @param deliveryCompletedDTO
      * @return
      */
     @Override
-    public ResultCode deliveryPosition(long id) {
-        UserPositionDO userPositionDO = new UserPositionDO();
-        userPositionDO.setId(id);
-        userPositionDO.setStatus(2);
-        int updateRet = 0;
+    public ResultCode deliveryPosition(DeliveryCompletedDTO deliveryCompletedDTO) {
         try {
-            updateRet = userPositionMapper.updateByPrimaryKeySelective(userPositionDO);
-            if (updateRet > 0) {
+            ContractMatchedOrderDO record = new ContractMatchedOrderDO();
+            record.setContractId(deliveryCompletedDTO.getContractId());
+            record.setContractName(deliveryCompletedDTO.getContractName());
+            record.setFee(deliveryCompletedDTO.getFee());
+            record.setFilledPrice(deliveryCompletedDTO.getPrice());
+            record.setFilledAmount(deliveryCompletedDTO.getAmount());
+            record.setStatus(MatchedOrderStatus.VALID);
+            record.setAskOrderId(-1L);
+            record.setBidOrderId(-1L);
+            record.setMatchType((byte) -1);
+
+            Date now = new Date();
+            record.setGmtCreate(now);
+            record.setGmtModified(now);
+            if (Objects.nonNull(deliveryCompletedDTO.getOrderDirection())) {
+                deliveryCompletedDTO.setOrderDirection(deliveryCompletedDTO.getOrderDirection());
+                if (deliveryCompletedDTO.getOrderDirection() == OrderDirectionEnum.ASK.getCode()) {
+                    record.setAskUserId(deliveryCompletedDTO.getUserId());
+                    record.setAskCloseType((byte) OrderCloseTypeEnum.EXPIRED.getCode());
+                    record.setBidUserId(-1L);
+                    record.setBidCloseType((byte) -1);
+                } else if (deliveryCompletedDTO.getOrderDirection() == OrderDirectionEnum.BID.getCode()) {
+                    record.setBidUserId(deliveryCompletedDTO.getUserId());
+                    record.setBidCloseType((byte) OrderCloseTypeEnum.EXPIRED.getCode());
+                    record.setAskUserId(-1L);
+                    record.setAskCloseType((byte) -1);
+                }
+            }
+            int insertRet = contractMatchedOrderMapper.insert(record);
+
+            UserPositionDO userPositionDO = new UserPositionDO();
+            userPositionDO.setId(deliveryCompletedDTO.getUserPositionId());
+            userPositionDO.setStatus(2);
+            int updateRet = userPositionMapper.updateByPrimaryKeySelective(userPositionDO);
+            if (updateRet > 0 && insertRet > 0) {
                 return ResultCode.success();
             }
         } catch (Exception e) {
-            log.error("userPositionMapper.updateByPrimaryKeySelective({})", userPositionDO, e);
+            log.info("deliveryPosition failed, {}", deliveryCompletedDTO, e);
         }
         return ResultCode.error(ResultCodeEnum.DATABASE_EXCEPTION.getCode(), "position delivery failed");
     }
