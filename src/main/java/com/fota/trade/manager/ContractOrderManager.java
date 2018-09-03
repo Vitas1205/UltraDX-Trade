@@ -978,6 +978,8 @@ public class ContractOrderManager {
 
             suc = doUpdatePosition(userPositionDO, newAveragePrice, newTotalAmount);
             if (!suc) {
+                log.error("update failed, userPositionDO={}, nowPosition={}", JSON.toJSONString(userPositionDO),
+                        JSON.toJSONString(userPositionMapper.selectByUserIdAndId(userId, contractId)));
                 randomSleep();
                 continue;
             }
