@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.fota.trade.common.ResultCodeEnum.BALANCE_NOT_ENOUGH;
 import static com.fota.trade.common.ResultCodeEnum.ILLEGAL_PARAM;
 
 /**
@@ -84,6 +85,8 @@ public class Consumer {
                     logFailMsg("get lock failed!", messageExt);
                     return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                 }
+                ResultCode resultCode = null;
+
                 try {
 
                     boolean isExist = redisManager.sHasKey(Constant.MQ_REPET_JUDGE_KEY_TRADE, mqKey);
@@ -102,20 +105,20 @@ public class Consumer {
                     log.info("bodyStr()------------" + bodyStr);
                     if (TagsTypeEnum.USDK.getDesc().equals(tag)) {
                         UsdkMatchedOrderDTO usdkMatchedOrderDTO = JSON.parseObject(bodyStr, UsdkMatchedOrderDTO.class);
-                        ResultCode resultCode = usdkOrderService.updateOrderByMatch(usdkMatchedOrderDTO);
+                        resultCode = usdkOrderService.updateOrderByMatch(usdkMatchedOrderDTO);
                         log.info("resultCode u---------------" + resultCode);
-                        if (resultCode != null && resultCode.getCode() != null && !resultCode.isSuccess() && !(resultCode.getCode() == ILLEGAL_PARAM.getCode())) {
-                            logFailMsg(null, messageExt);
-                            return ConsumeConcurrentlyStatus.RECONSUME_LATER;
-                        }
+
                     } else if (TagsTypeEnum.CONTRACT.getDesc().equals(tag)) {
                         ContractMatchedOrderDTO contractMatchedOrderDTO = JSON.parseObject(bodyStr, ContractMatchedOrderDTO.class);
-                        ResultCode resultCode = contractOrderService.updateOrderByMatch(contractMatchedOrderDTO);
+                        resultCode = contractOrderService.updateOrderByMatch(contractMatchedOrderDTO);
                         log.info("resultCode c---------------" + resultCode);
-                        if (resultCode != null && resultCode.getCode() != null && !resultCode.isSuccess() && !(resultCode.getCode() == ILLEGAL_PARAM.getCode())) {
-                            logFailMsg(null, messageExt);
-                            return ConsumeConcurrentlyStatus.RECONSUME_LATER;
-                        }
+
+                    }
+
+                    if (resultCode != null && resultCode.getCode() != null && !resultCode.isSuccess()
+                            && !(resultCode.getCode() == ILLEGAL_PARAM.getCode() || resultCode.getCode() == BALANCE_NOT_ENOUGH.getCode())) {
+                        logFailMsg(null, messageExt);
+                        return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                     }
                     redisManager.sSet(Constant.MQ_REPET_JUDGE_KEY_TRADE, mqKey);
                 } catch (Exception e) {
@@ -123,7 +126,11 @@ public class Consumer {
                 }finally {
                     redisManager.releaseLock(lockKey);
                 }
-                logSuccessMsg(messageExt, null);
+                if (resultCode.getCode() == ILLEGAL_PARAM.getCode() || resultCode.getCode() == BALANCE_NOT_ENOUGH.getCode()) {
+                    logSuccessMsg(messageExt, "illegal param or balance is not enough");
+                }else {
+                    logSuccessMsg(messageExt, null);
+                }
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
         });
@@ -132,17 +139,14 @@ public class Consumer {
         System.out.println("Consumer Started.");
     }
 
-    private void logSuccessMsg(MessageExt messageExt, String content) {
+    private void logSuccessMsg(MessageExt messageExt, String extInfo) {
         String body = null;
         try {
             body = new String(messageExt.getBody(), "UTF-8");
         } catch (UnsupportedEncodingException e) {
             log.error("get mq message failed", e);
         }
-        if (null == content) {
-            content = "consume message success";
-        }
-        log.error("{}, msgId={}, msgKey={}, tag={},  body={}, reconsumeTimes={}",content,  messageExt.getMsgId(), messageExt.getKeys(), messageExt.getTags(),
+        log.error("consume message success, extInfo={}, msgId={}, msgKey={}, tag={},  body={}, reconsumeTimes={}",extInfo,  messageExt.getMsgId(), messageExt.getKeys(), messageExt.getTags(),
                 body, messageExt.getReconsumeTimes());
     }
     private void logFailMsg(MessageExt messageExt, Throwable t) {
