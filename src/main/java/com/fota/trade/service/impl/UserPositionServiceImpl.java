@@ -8,6 +8,7 @@ import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.UserPositionDO;
 import com.fota.trade.domain.UserPositionDTO;
+import com.fota.trade.domain.enums.PositionStatusEnum;
 import com.fota.trade.domain.query.UserPositionQuery;
 import com.fota.trade.mapper.UserPositionMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,7 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
         userPositionQuery.setPageSize(pageSize);
         userPositionQuery.setContractId(contractId);
         userPositionQuery.setUserId(userId);
+        userPositionQuery.setStatus(PositionStatusEnum.UNDELIVERED.getCode());
         Page<UserPositionDTO> page = new Page<UserPositionDTO>();
         if (userPositionQuery.getPageNo() <= 0) {
             userPositionQuery.setPageNo(Constant.DEFAULT_PAGE_NO);
