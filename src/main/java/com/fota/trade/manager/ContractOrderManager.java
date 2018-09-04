@@ -44,6 +44,7 @@ import static com.fota.trade.common.ResultCodeEnum.BALANCE_NOT_ENOUGH;
 import static com.fota.trade.domain.enums.OrderTypeEnum.ENFORCE;
 import static com.fota.trade.util.ContractUtils.computeAveragePrice;
 import static java.util.stream.Collectors.*;
+import static org.springframework.transaction.annotation.Propagation.REQUIRED;
 import static org.springframework.transaction.annotation.Propagation.REQUIRES_NEW;
 
 /**
@@ -729,7 +730,7 @@ public class ContractOrderManager {
 
 
     //成交
-    @Transactional(rollbackFor = {Exception.class}, isolation = Isolation.READ_COMMITTED)
+    @Transactional(rollbackFor = {Exception.class}, isolation = Isolation.READ_COMMITTED, propagation = REQUIRED)
     public ResultCode updateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO) {
         Profiler profiler = new Profiler("ContractOrderManager.updateOrderByMatch");
         ResultCode resultCode = new ResultCode();
@@ -944,7 +945,7 @@ public class ContractOrderManager {
         }
     }
 
-
+    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED, propagation = REQUIRED)
     public UpdatePositionResult updatePosition(ContractOrderDO contractOrderDO, BigDecimal contractSize, long filledAmount, BigDecimal filledPrice){
         long userId = contractOrderDO.getUserId();
         long contractId = contractOrderDO.getContractId();
