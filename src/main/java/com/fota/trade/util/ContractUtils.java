@@ -3,6 +3,7 @@ package com.fota.trade.util;
 import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.domain.UserPositionDO;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
+import com.fota.trade.domain.enums.PositionTypeEnum;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -86,6 +87,13 @@ public class ContractUtils {
         }
 
         return averagePrice;
+    }
+
+    public static int toDirection(int positionType) {
+        if (positionType == PositionTypeEnum.EMPTY.getCode()) {
+            return -1;
+        }
+        return 1;
     }
 
 }
