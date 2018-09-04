@@ -11,9 +11,11 @@ import com.fota.match.domain.ContractMatchedOrderTradeDTO;
 import com.fota.match.service.ContractMatchedOrderService;
 import com.fota.ticker.entrust.RealTimeEntrust;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
-import com.fota.trade.common.*;
+import com.fota.trade.common.BusinessException;
+import com.fota.trade.common.Constant;
+import com.fota.trade.common.ResultCodeEnum;
+import com.fota.trade.common.UpdatePositionResult;
 import com.fota.trade.domain.*;
-import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.enums.*;
 import com.fota.trade.mapper.ContractCategoryMapper;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
@@ -42,12 +44,9 @@ import java.util.concurrent.Executors;
 import java.util.function.Predicate;
 
 import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
-import static com.fota.trade.common.ResultCodeEnum.BALANCE_NOT_ENOUGH;
-import static com.fota.trade.domain.enums.OrderTypeEnum.ENFORCE;
 import static com.fota.trade.util.ContractUtils.computeAveragePrice;
 import static java.util.stream.Collectors.*;
 import static org.springframework.transaction.annotation.Propagation.REQUIRED;
-import static org.springframework.transaction.annotation.Propagation.REQUIRES_NEW;
 
 /**
  * @author Gavin Shen
@@ -97,9 +96,14 @@ public class ContractOrderManager {
     @Autowired
     private ContractAccountService contractAccountService;
 
+    ThreadLocal<Map<String, Object>> updateContext = new ThreadLocal();
+
+    public static final String POST_MATCH_TASK = "POST_MATCH_TASK";
+    public static final String MATCH_PROFILER = "MATCH_PROFILER";
+
     Random random = new Random();
 
-    private static final int MAX_UPDATE_RETRIES = 300;
+    private static final int MAX_UPDATE_RETRIES = 1000;
 
     private ContractService getContractService() {
         return contractService;
@@ -736,10 +740,30 @@ public class ContractOrderManager {
     }
 
 
+    public ResultCode updateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO) {
+        Map<String, Object> map = new HashMap();
+        Profiler profiler = new Profiler("ContractOrderManager.updateOrderByMatch");
+        map.put(MATCH_PROFILER, profiler);
+        updateContext.set(map);
+        try {
+            ResultCode code = internalUpdateOrderByMatch(contractMatchedOrderDTO);
+            if (code.isSuccess()) {
+                Runnable task = (Runnable) map.get(POST_MATCH_TASK);
+                task.run();
+            }
+            return code;
+        }finally {
+            updateContext.remove();
+            profiler.log();
+        }
+    }
+
     //成交
     @Transactional(rollbackFor = {Exception.class}, isolation = Isolation.REPEATABLE_READ, propagation = REQUIRED)
-    public ResultCode updateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO) {
-        Profiler profiler = new Profiler("ContractOrderManager.updateOrderByMatch");
+    public ResultCode internalUpdateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO) {
+        Map<String, Object> context = updateContext.get();
+        Profiler profiler = (Profiler) context.get(MATCH_PROFILER);
+
         ResultCode resultCode = new ResultCode();
         if (contractMatchedOrderDTO == null) {
             log.error(ResultCodeEnum.ILLEGAL_PARAM.getMessage());
@@ -801,25 +825,6 @@ public class ContractOrderManager {
         UpdatePositionResult bidResult = updatePosition(bidContractOrder, contractSize, filledAmount, filledPrice);
         profiler.complelete("update position");
 
-        //更新账户余额
-        ContractDealer dealer1 = calBalanceChange(askContractOrder, filledAmount, filledPrice, contractSize, askResult, askLever);
-        ContractDealer dealer2 = calBalanceChange(bidContractOrder, filledAmount, filledPrice, contractSize, bidResult, bidLever);
-        List<ContractDealer> dealers = new LinkedList();
-        if (null != dealer1 && !CommonUtils.equal(dealer1.getAddedTotalAmount(), BigDecimal.ZERO)) {
-            dealers.add(dealer1);
-        }
-        if (null != dealer2 && !CommonUtils.equal(dealer2.getAddedTotalAmount(), BigDecimal.ZERO)) {
-            dealers.add(dealer2);
-        }
-        if (!dealers.isEmpty()) {
-            ContractDealer[] contractDealers = new ContractDealer[dealers.size()];
-            dealers.toArray(contractDealers);
-            com.fota.common.Result result = contractService.updateBalances(contractDealers);
-            profiler.complelete("update balance");
-            if (!result.isSuccess()) {
-                throw new RuntimeException("update balance failed, params={}"+ JSON.toJSONString(dealers));
-            }
-        }
         ContractMatchedOrderDO contractMatchedOrderDO = com.fota.trade.common.BeanUtils.copy(contractMatchedOrderDTO);
         BigDecimal fee = contractMatchedOrderDO.getFilledAmount().multiply(contractMatchedOrderDO.getFilledPrice()).multiply(contractSize).multiply(Constant.FEE_RATE).setScale(CommonUtils.scale, BigDecimal.ROUND_UP);
         contractMatchedOrderDO.setFee(fee);
@@ -840,14 +845,33 @@ public class ContractOrderManager {
             log.error("保存Contract订单数据到数据库失败({})", contractMatchedOrderDO, e);
             throw new RuntimeException("contractMatchedOrderMapper.insert exception{}", e);
         }
-        executorService.submit(new Runnable() {
-            @Override
-            public void run() {
-                postProcessAfterMatch(askContractOrder, bidContractOrder, contractMatchedOrderDO, transferTime, contractMatchedOrderDTO);
-            }
-        });
         profiler.complelete("persistMatch");
-        profiler.log();
+
+        //更新账户余额
+        Runnable postTask = () -> {
+            ContractDealer dealer1 = calBalanceChange(askContractOrder, filledAmount, filledPrice, contractSize, askResult, askLever);
+            ContractDealer dealer2 = calBalanceChange(bidContractOrder, filledAmount, filledPrice, contractSize, bidResult, bidLever);
+            List<ContractDealer> dealers = new LinkedList();
+            if (null != dealer1 && !CommonUtils.equal(dealer1.getAddedTotalAmount(), BigDecimal.ZERO)) {
+                dealers.add(dealer1);
+            }
+            if (null != dealer2 && !CommonUtils.equal(dealer2.getAddedTotalAmount(), BigDecimal.ZERO)) {
+                dealers.add(dealer2);
+            }
+            if (!dealers.isEmpty()) {
+                ContractDealer[] contractDealers = new ContractDealer[dealers.size()];
+                dealers.toArray(contractDealers);
+                com.fota.common.Result result = contractService.updateBalances(contractDealers);
+                profiler.complelete("update balance");
+                if (!result.isSuccess()) {
+                    throw new RuntimeException("update balance failed, params={}"+ JSON.toJSONString(dealers));
+                }
+            }
+            postProcessAfterMatch(askContractOrder, bidContractOrder, contractMatchedOrderDO, transferTime, contractMatchedOrderDTO);
+            profiler.complelete("saveAndNotify");
+        };
+        context.put(POST_MATCH_TASK, postTask);
+
         resultCode.setCode(ResultCodeEnum.SUCCESS.getCode());
         return resultCode;
     }
