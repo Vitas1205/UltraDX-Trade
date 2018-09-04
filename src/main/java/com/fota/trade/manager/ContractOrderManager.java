@@ -328,7 +328,6 @@ public class ContractOrderManager {
             log.error("enforce order can't be canceled, {}", contractOrderDO.getId());
             throw new RuntimeException("enforce order can't be canceled");
         }
-        String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
         String ipAddress = StringUtils.isEmpty(userInfoMap.get("ip")) ? "" : userInfoMap.get("ip");
         ResultCode resultCode = new ResultCode();
         Integer status = contractOrderDO.getStatus();
@@ -372,8 +371,14 @@ public class ContractOrderManager {
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO);
         contractOrderDTO.setCompleteAmount(contractOrderDTO.getTotalAmount() - contractOrderDTO.getUnfilledAmount());
         contractOrderDTO.setContractId(contractOrderDO.getContractId());
+        Map<String, Object> contextMap = contractOrderDTO.getOrderContext();
+        // 日志系统需要
+        String username = "";
+        if (!contextMap.isEmpty()) {
+            username = contextMap.get("username") == null ? "" : contextMap.get("username").toString();
+        }
         redisManager.contractOrderSave(contractOrderDTO);
-        tradeLog.info("cancelorder@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
+        tradeLog.info("cancelorder@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                 2, contractOrderDTO.getContractName(), username, ipAddress, contractOrderDTO.getUnfilledAmount(),
                 System.currentTimeMillis(), 2, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 1);
         OrderMessage orderMessage = new OrderMessage();
