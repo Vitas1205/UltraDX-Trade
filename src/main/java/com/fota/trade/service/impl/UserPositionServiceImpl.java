@@ -225,6 +225,9 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
         Result<BigDecimal> result = new Result<>();
         result.setData(BigDecimal.ZERO);
         long totalPosition  = getTotalPositionByContractId(contractId);
+        if (totalPosition == 0){
+            return  result.success(BigDecimal.ZERO);
+        }
         BigDecimal oneWayPosition = new BigDecimal(totalPosition/2);
         BigDecimal lever = new BigDecimal("10");
         ContractCategoryDO contractCategoryDO = new ContractCategoryDO();
