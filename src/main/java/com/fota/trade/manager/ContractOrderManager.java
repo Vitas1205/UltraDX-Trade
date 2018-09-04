@@ -802,13 +802,13 @@ public class ContractOrderManager {
         profiler.complelete("update position");
 
         //更新账户余额
-        ContractDealer dealer1 = calAndCheckBalanceChange(askContractOrder, filledAmount, filledPrice, contractSize, askResult, askLever);
-        ContractDealer dealer2 = calAndCheckBalanceChange(bidContractOrder, filledAmount, filledPrice, contractSize, bidResult, bidLever);
+        ContractDealer dealer1 = calBalanceChange(askContractOrder, filledAmount, filledPrice, contractSize, askResult, askLever);
+        ContractDealer dealer2 = calBalanceChange(bidContractOrder, filledAmount, filledPrice, contractSize, bidResult, bidLever);
         List<ContractDealer> dealers = new LinkedList();
-        if (null != dealer1) {
+        if (null != dealer1 && !CommonUtils.equal(dealer1.getAddedTotalAmount(), BigDecimal.ZERO)) {
             dealers.add(dealer1);
         }
-        if (null != dealer2) {
+        if (null != dealer2 && !CommonUtils.equal(dealer2.getAddedTotalAmount(), BigDecimal.ZERO)) {
             dealers.add(dealer2);
         }
         if (!dealers.isEmpty()) {
@@ -817,11 +817,9 @@ public class ContractOrderManager {
             com.fota.common.Result result = contractService.updateBalances(contractDealers);
             profiler.complelete("update balance");
             if (!result.isSuccess()) {
-                throw new RuntimeException("update balance failed");
+                throw new RuntimeException("update balance failed, params={}"+ JSON.toJSONString(dealers));
             }
         }
-
-
         ContractMatchedOrderDO contractMatchedOrderDO = com.fota.trade.common.BeanUtils.copy(contractMatchedOrderDTO);
         BigDecimal fee = contractMatchedOrderDO.getFilledAmount().multiply(contractMatchedOrderDO.getFilledPrice()).multiply(contractSize).multiply(Constant.FEE_RATE).setScale(CommonUtils.scale, BigDecimal.ROUND_UP);
         contractMatchedOrderDO.setFee(fee);
@@ -977,7 +975,7 @@ public class ContractOrderManager {
         if (!suc) {
             throw new RuntimeException("lock failed, key="+lock);
         }
-        log.info("lock profile: retries={}, cost={}", i, System.currentTimeMillis() - st);
+        log.info("lock profile: key={}, retries={}, cost={}",lock, i, System.currentTimeMillis() - st);
         try {
             return internalUpdatePosition(contractOrderDO, contractSize, filledAmount, filledPrice);
         }finally {
@@ -1026,7 +1024,7 @@ public class ContractOrderManager {
         }
         boolean suc =  doUpdatePosition(userPositionDO, newAveragePrice, newTotalAmount);
         if (!suc) {
-            throw new RuntimeException("doUpdate positin failed");
+            throw new RuntimeException("doUpdate position failed");
         }
         return result;
     }
@@ -1050,20 +1048,14 @@ public class ContractOrderManager {
 
 
 
-    public ContractDealer calAndCheckBalanceChange(ContractOrderDO contractOrderDO, long filledAmount, BigDecimal filledPrice,
+    public ContractDealer calBalanceChange(ContractOrderDO contractOrderDO, long filledAmount, BigDecimal filledPrice,
                                                    BigDecimal contractSize, UpdatePositionResult positionResult, Integer lever){
         long userId = contractOrderDO.getUserId();
         BigDecimal rate = contractOrderDO.getFee();
 
 
-        com.fota.common.Result<ContractAccount> result = contractAccountService.getContractAccount(userId);
-        if (!result.isSuccess() || null==result.getData()) {
-            throw new RuntimeException("get contractAccount failed");
-        }
-        ContractAccount account = result.getData();
-        if (account.getAvailableAmount().compareTo(BigDecimal.ZERO) <= 0 && !(ENFORCE.getCode() == contractOrderDO.getOrderType())) {
-            throw new BizException(BALANCE_NOT_ENOUGH);
-        }
+        UserContractDTO userContractDTO = assetService.getContractAccount(userId);
+
         //没有平仓，不用计算
         if (null == positionResult.getCloseAmount()) {
             return null;
@@ -1082,9 +1074,9 @@ public class ContractOrderManager {
         ContractDealer dealer = new ContractDealer()
                 .setUserId(userId)
                 .setAddedTotalAmount(addAmount)
-                .setTotalLockAmount(account.getFrozenAmount().add(account.getMarginCallRequirement()))
+                .setTotalLockAmount(BigDecimal.ZERO)
                 ;
-        dealer.setDealType((null != contractOrderDO.getOrderType() && ENFORCE.getCode() == contractOrderDO.getOrderType()) ? ContractDealer.DealType.FORCE : ContractDealer.DealType.NORMAL);
+        dealer.setDealType(ContractDealer.DealType.FORCE);
         return dealer;
     }
 
