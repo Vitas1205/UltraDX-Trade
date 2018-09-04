@@ -371,11 +371,11 @@ public class ContractOrderManager {
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO);
         contractOrderDTO.setCompleteAmount(contractOrderDTO.getTotalAmount() - contractOrderDTO.getUnfilledAmount());
         contractOrderDTO.setContractId(contractOrderDO.getContractId());
-        Map<String, Object> contextMap = contractOrderDTO.getOrderContext();
+        JSONObject jsonObject = JSONObject.parseObject(contractOrderDO.getOrderContext());
         // 日志系统需要
         String username = "";
-        if (!contextMap.isEmpty()) {
-            username = contextMap.get("username") == null ? "" : contextMap.get("username").toString();
+        if (jsonObject != null && !jsonObject.isEmpty()) {
+            username = jsonObject.get("username") == null ? "" : jsonObject.get("username").toString();
         }
         redisManager.contractOrderSave(contractOrderDTO);
         tradeLog.info("cancelorder@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",

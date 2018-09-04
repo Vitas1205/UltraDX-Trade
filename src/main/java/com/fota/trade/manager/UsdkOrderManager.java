@@ -322,10 +322,10 @@ public class UsdkOrderManager {
             BigDecimal matchAmount = usdkOrderDTO.getTotalAmount().subtract(usdkOrderDTO.getUnfilledAmount());
             usdkOrderDTO.setCompleteAmount(matchAmount);
             redisManager.usdkOrderSave(usdkOrderDTO);
-            Map<String, Object> contextMap = usdkOrderDTO.getOrderContext();
+            JSONObject jsonObject = JSONObject.parseObject(usdkOrderDO.getOrderContext());
             String username = "";
-            if (!contextMap.isEmpty()) {
-                username = contextMap.get("username") == null ? "" : contextMap.get("username").toString();
+            if (jsonObject != null && !jsonObject.isEmpty()) {
+                username = jsonObject.get("username") == null ? "" : jsonObject.get("username").toString();
             }
             String ipAddress = StringUtils.isEmpty(userInfoMap.get("ipAddress")) ? "" : userInfoMap.get("ipAddress");
             tradeLog.info("cancelorder@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
