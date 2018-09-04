@@ -759,7 +759,7 @@ public class ContractOrderManager {
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
         }
 
-        String messageKey = Joiner.on("_").join(contractMatchedOrderDTO.getAskOrderId().toString(),
+        String messageKey = Joiner.on("-").join(contractMatchedOrderDTO.getAskOrderId().toString(),
                 contractMatchedOrderDTO.getAskOrderStatus(), contractMatchedOrderDTO.getBidOrderId(),
                 contractMatchedOrderDTO.getBidOrderStatus());
 
@@ -992,7 +992,7 @@ public class ContractOrderManager {
 
         UpdatePositionResult result = new UpdatePositionResult();
 
-        userPositionDO = userPositionMapper.selectByUserIdAndId(userId, contractId);
+        userPositionDO = userPositionMapper.selectByUserIdAndContractId(userId, contractId);
         if (userPositionDO == null) {
             // 建仓
             userPositionDO = ContractUtils.buildPosition(contractOrderDO, contractSize, contractOrderDO.getLever(), filledAmount, filledPrice);

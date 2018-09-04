@@ -50,9 +50,17 @@ public interface UserPositionMapper {
             "where contract_id = #{contractId,jdbcType=BIGINT} and user_id = #{userId,jdbcType=BIGINT} and unfilled_amount > 0"
     })
     @ResultMap("BaseResultMap")
-
     UserPositionDO selectByUserIdAndId(@Param("userId") Long userId, @Param("contractId") Long contractId);
 
+    @Select({
+            "select",
+            "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, locked_amount, ",
+            "unfilled_amount, position_type, average_price, status, lever, contract_size",
+            "from trade_user_position",
+            "where contract_id = #{contractId,jdbcType=BIGINT} and user_id = #{userId,jdbcType=BIGINT}"
+    })
+    @ResultMap("BaseResultMap")
+    UserPositionDO selectByUserIdAndContractId(@Param("userId") Long userId, @Param("contractId") Long contractId);
 
     @Select({
             "select",
