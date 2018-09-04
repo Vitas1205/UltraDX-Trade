@@ -3,13 +3,14 @@ package com.fota.trade.service.impl;
 import com.alibaba.fastjson.JSON;
 import com.fota.common.Page;
 import com.fota.common.Result;
+import com.fota.ticker.entrust.RealTimeEntrust;
+import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
 import com.fota.trade.client.constants.MatchedOrderStatus;
 import com.fota.trade.common.BeanUtils;
 import com.fota.trade.common.Constant;
 import com.fota.trade.common.ParamUtil;
 import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.domain.*;
-import com.fota.trade.domain.dto.CompetitorsPriceDTO;
 import com.fota.trade.domain.enums.OrderCloseTypeEnum;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.PositionStatusEnum;
@@ -48,6 +49,9 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
 
     @Autowired
     private ContractMatchedOrderMapper contractMatchedOrderMapper;
+
+    @Autowired
+    private RealTimeEntrust realTimeEntrust;
 
     @Override
     public Page<UserPositionDTO> listPositionByQuery(long userId, long contractId, int pageNo, int pageSize) {
@@ -235,19 +239,11 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
         BigDecimal askCurrentPrice = BigDecimal.ZERO;
         BigDecimal bidCurrentPrice = BigDecimal.ZERO;
         try{
-            Object competiorsPriceObj = redisManager.get(Constant.CONTRACT_COMPETITOR_PRICE_KEY);
-            List<CompetitorsPriceDTO> competitorsPriceList = JSON.parseArray(competiorsPriceObj.toString(), CompetitorsPriceDTO.class);
-            List<CompetitorsPriceDTO> askCurrentPriceList = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
-                    Long.valueOf(competitorsPrice.getId()).equals(contractId)).limit(1).collect(toList());
-            List<CompetitorsPriceDTO> bidCurrentPriceList = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
-                    Long.valueOf(competitorsPrice.getId()).equals(contractId)).limit(1).collect(toList());
-
-            if (askCurrentPriceList != null && askCurrentPriceList.size() != 0) {
-                askCurrentPrice = askCurrentPriceList.get(0).getPrice();
-            }
-            if (bidCurrentPriceList != null && bidCurrentPriceList.size() != 0) {
-                bidCurrentPrice = bidCurrentPriceList.get(0).getPrice();
-            }
+            List<CompetitorsPriceDTO> competitorsPriceList = realTimeEntrust.getContractCompetitorsPrice();
+            bidCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
+                    competitorsPrice.getId() == contractId.longValue()).findFirst().get().getPrice();
+            askCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
+                    competitorsPrice.getId() == contractId.longValue()).findFirst().get().getPrice();
             log.info("askCurrentPriceList-----"+askCurrentPrice);
             log.info("bidCurrentPrice-----"+bidCurrentPrice);
         }catch (Exception e){
