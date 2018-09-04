@@ -3,6 +3,8 @@ package com.fota.fotatrade;
 import com.fota.ticker.entrust.RealTimeEntrust;
 import com.fota.ticker.entrust.entity.BuyPriceSellPriceDTO;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
+import com.fota.trade.domain.enums.OrderDirectionEnum;
+import com.fota.trade.domain.enums.PositionTypeEnum;
 import com.fota.trade.manager.RedisManager;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Before;
@@ -15,6 +17,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -34,8 +37,8 @@ public class RedisTest {
     @Autowired
     private RedisManager redisManager;
 
-//    @Autowired
-//    private RealTimeEntrust realTimeEntrust;
+    @Autowired
+    private RealTimeEntrust realTimeEntrust;
 
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
@@ -64,11 +67,20 @@ public class RedisTest {
         log.info("costOfQuery={}, result={}", System.currentTimeMillis() - st,obj);
     }
 
-//    @Test
-//    public void testRealTimeEntrust() {
-//        List<CompetitorsPriceDTO> list =  realTimeEntrust.getContractCompetitorsPrice();
-//        list.forEach(System.out::println);
-//    }
+    @Test
+    public void testRealTimeEntrust() {
+        //获取买一卖一价
+        BigDecimal askCurrentPrice = BigDecimal.ZERO;
+        BigDecimal bidCurrentPrice = BigDecimal.ZERO;
+        long contractId = 1002L;
+        List<CompetitorsPriceDTO> competitorsPriceList = realTimeEntrust.getContractCompetitorsPrice();
+            bidCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
+                    competitorsPrice.getId() == contractId).findFirst().get().getPrice();
+            BigDecimal bidPositionEntrustAmount;
+            askCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
+                    competitorsPrice.getId() == contractId).findFirst().get().getPrice();
+            BigDecimal askPositionEntrustAmount;
+    }
     @Test
     public void lockTest(){
         String lock = "TEST_LOCK";

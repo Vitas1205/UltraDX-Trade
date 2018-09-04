@@ -345,7 +345,7 @@ public class ContractOrderServiceImpl implements
         Date startDate = calendar.getTime();
         BigDecimal totalFee = BigDecimal.ZERO;
         try {
-            totalFee = contractMatchedOrderMapper.getAllFee(startDate, endDate);
+            totalFee = contractMatchedOrderMapper.getAllFee(startDate, endDate).multiply(new BigDecimal(2));
             return totalFee;
         }catch (Exception e){
             log.error("getTodayFee failed",e);
@@ -357,7 +357,7 @@ public class ContractOrderServiceImpl implements
     public BigDecimal getFeeByDate(Date startDate, Date endDate) {
         BigDecimal totalFee = BigDecimal.ZERO;
         try {
-            totalFee = contractMatchedOrderMapper.getAllFee(startDate, endDate);
+            totalFee = contractMatchedOrderMapper.getAllFee(startDate, endDate).multiply(new BigDecimal(2));
             return totalFee;
         }catch (Exception e){
             log.error("getTodayFee failed",e);

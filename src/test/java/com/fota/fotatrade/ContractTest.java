@@ -124,8 +124,8 @@ public class ContractTest {
     @Test
     public void competitorsPriceList_test(){
         Object competiorsPriceObj = redisManager.get(Constant.CONTRACT_COMPETITOR_PRICE_KEY);
-        List<CompetitorsPriceDTO> competitorsPriceList = JSON.parseArray(competiorsPriceObj.toString(),CompetitorsPriceDTO.class);
-        log.info("---------------"+competitorsPriceList);
+        //List<CompetitorsPriceDTO> competitorsPriceList = JSON.parseArray(competiorsPriceObj.toString(),CompetitorsPriceDTO.class);
+        //log.info("---------------"+competitorsPriceList);
     }
 
     @Test
