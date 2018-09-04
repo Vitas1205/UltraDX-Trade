@@ -253,6 +253,9 @@
                 #{item}
             </foreach>
         </if>
+        <if test="orderType != null">
+            and order_type = #{orderType}
+        </if>
     </select>
 
     <select id="listByQuery" resultType="com.fota.trade.domain.ContractOrderDO">
@@ -277,6 +280,9 @@
             <foreach item="item" index="index" collection="orderStatus" open="(" separator="," close=")">
                 #{item,jdbcType=INTEGER}
             </foreach>
+        </if>
+        <if test="orderType != null">
+            and order_type = #{orderType}
         </if>
         order by gmt_create desc
         limit #{startRow,jdbcType=INTEGER}, #{endRow,jdbcType=INTEGER}

@@ -35,6 +35,8 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
@@ -81,6 +83,8 @@ public class UsdkOrderManager {
 
     @Autowired
     private UsdkMatchedOrderMapper usdkMatchedOrder;
+
+    ExecutorService cachedThreadPool = Executors.newCachedThreadPool();
 
     private CapitalService getCapitalService() {
         return capitalService;
