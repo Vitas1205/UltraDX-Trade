@@ -1330,7 +1330,7 @@ public class ContractOrderManager {
             }
             Long currentPosition = redisManager.counter(Constant.CONTRACT_TOTAL_POSITION + contractMatchedOrderDO.getContractId(), increase);
             if (currentPosition.equals(increase)) {
-                Long position = userPositionMapper.countTotalPosition(contractMatchedOrderDO.getContractId());
+                Long position = userPositionMapper.countTotalPosition(contractMatchedOrderDO.getContractId()) * 2;
                 redisManager.counter(Constant.CONTRACT_TOTAL_POSITION + contractMatchedOrderDO.getContractId(), position - increase);
             }
             log.info("update total position------contractId :{}   currentPosition :{}" ,contractMatchedOrderDO.getContractId(), currentPosition);
