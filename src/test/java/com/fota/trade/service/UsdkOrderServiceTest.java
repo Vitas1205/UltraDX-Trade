@@ -89,8 +89,6 @@ public class UsdkOrderServiceTest {
         System.out.println(result.getData());
         assert result.isSuccess()
                 && (long)result.getData() >0;
-
-
     }
 
     @Test

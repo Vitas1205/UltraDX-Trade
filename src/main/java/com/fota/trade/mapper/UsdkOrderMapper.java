@@ -35,7 +35,7 @@ public interface UsdkOrderMapper {
         "order_direction, order_type, ",
         "total_amount, unfilled_amount, ",
         "price, fee, status, average_price, order_context)",
-        "values (#{id,jdbcType=BIGINT}, now(), ",
+        "values (#{id,jdbcType=BIGINT}, #{gmtCreate}, #{gmtModified}, ",
         "now(), #{userId,jdbcType=BIGINT}, ",
         "#{assetId,jdbcType=INTEGER}, #{assetName,jdbcType=VARCHAR}, ",
         "#{orderDirection,jdbcType=TINYINT}, #{orderType,jdbcType=TINYINT}, ",

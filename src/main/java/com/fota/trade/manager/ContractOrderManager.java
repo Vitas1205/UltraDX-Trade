@@ -249,6 +249,7 @@ public class ContractOrderManager {
             Map<String,BigDecimal> msg  = getAccountMsg(contractOrderDO.getUserId());
             log.info("AccountDetailMsg:"+msg.toString());
             BigDecimal entrustLock = getEntrustMargin(contractOrderDO.getUserId());
+            log.info("EntrustMargin:"+entrustLock);
             if (entrustLock == null){
                 log.error("get CurrentPrice failed");
                 throw new RuntimeException("get CurrentPrice failed");
@@ -487,12 +488,14 @@ public class ContractOrderManager {
                             if (positionType == PositionTypeEnum.OVER.getCode()) {
                                 bidCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
                                         competitorsPrice.getId() == contractId).findFirst().get().getPrice();
+                                log.info("bidCurrentPrice:"+bidCurrentPrice);
                                 BigDecimal bidPositionEntrustAmount = positionUnfilledAmount.multiply(contractSize).multiply(bidCurrentPrice).divide(lever, 8, BigDecimal.ROUND_DOWN);
                                 positionMargin = positionMargin.add(bidPositionEntrustAmount);
                                 floatingPL = floatingPL.add((bidCurrentPrice.subtract(positionAveragePrice)).multiply(positionUnfilledAmount).multiply(contractSize)).setScale(8, BigDecimal.ROUND_DOWN);
                             } else if (positionType == PositionTypeEnum.EMPTY.getCode()) {
                                 askCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
                                         competitorsPrice.getId() == contractId).findFirst().get().getPrice();
+                                log.info("askCurrentPrice:"+askCurrentPrice);
                                 BigDecimal askPositionEntrustAmount = positionUnfilledAmount.multiply(contractSize).multiply(askCurrentPrice).divide(lever, 8, BigDecimal.ROUND_DOWN);
                                 positionMargin = positionMargin.add(askPositionEntrustAmount);
                                 floatingPL = floatingPL.add((positionAveragePrice.subtract(askCurrentPrice)).multiply(positionUnfilledAmount).multiply(contractSize)).setScale(8, BigDecimal.ROUND_DOWN);
@@ -510,6 +513,8 @@ public class ContractOrderManager {
         }
         resultMap.put(Constant.POSITION_MARGIN, positionMargin);
         resultMap.put(Constant.FLOATING_PL, floatingPL);
+        log.info("positionMargin:"+positionMargin);
+        log.info("floatingPL:"+floatingPL);
         return resultMap;
     }
 
