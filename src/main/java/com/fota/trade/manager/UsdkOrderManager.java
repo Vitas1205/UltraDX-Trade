@@ -84,8 +84,6 @@ public class UsdkOrderManager {
     @Autowired
     private UsdkMatchedOrderMapper usdkMatchedOrder;
 
-    ExecutorService cachedThreadPool = Executors.newCachedThreadPool();
-
     private CapitalService getCapitalService() {
         return capitalService;
     }
@@ -179,8 +177,14 @@ public class UsdkOrderManager {
                         //断账户可用余额是否大于tatalValue
                         if (availableAmount.compareTo(usdkOrderDO.getTotalAmount()) >= 0){
                             Date gmtModified = userCapitalDTO.getGmtModified();
-                            Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,
-                                    userCapitalDTO.getAssetId(), String.valueOf(usdkOrderDO.getTotalAmount()), gmtModified.getTime());
+                            Boolean updateLockedAmountRet = false;
+                            try {
+                                updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,
+                                        userCapitalDTO.getAssetId(), String.valueOf(usdkOrderDO.getTotalAmount()), gmtModified.getTime());
+                            }catch (Exception e){
+                                log.error("capitalService failed{}", userId, userCapitalDTO.getAssetId(), usdkOrderDO.getTotalAmount(), gmtModified.getTime(), e);
+                                throw new RuntimeException("capitalService failed");
+                            }
                             if (!updateLockedAmountRet){
                                 log.error("getCapitalService().updateLockedAmount failed{}", usdkOrderDO);
                                 throw new RuntimeException("getCapitalService().updateLockedAmount failed");
