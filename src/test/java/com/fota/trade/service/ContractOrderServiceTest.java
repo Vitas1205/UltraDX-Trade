@@ -124,15 +124,27 @@ public class ContractOrderServiceTest {
     @Test
     public void testListContractOrderByQuery() throws Exception {
 
-        BaseQuery contractOrderQuery = new BaseQuery();
-        contractOrderQuery.setUserId(282L);
-        contractOrderQuery.setPageSize(20);
-        contractOrderQuery.setPageNo(1);
-        contractOrderQuery.setEndTime(LocalDate.now().plusDays(1).toDate());
-        contractOrderQuery.setSourceId(1000);
-        contractOrderQuery.setOrderStatus(Arrays.asList(PART_MATCH.getCode(), COMMIT.getCode()));
-        Page<ContractOrderDTO> result = contractOrderService.listContractOrderByQuery(contractOrderQuery);
+//        BaseQuery contractOrderQuery = new BaseQuery();
+//        contractOrderQuery.setUserId(282L);
+//        contractOrderQuery.setPageSize(20);
+//        contractOrderQuery.setPageNo(1);
+//        contractOrderQuery.setEndTime(LocalDate.now().plusDays(1).toDate());
+//        contractOrderQuery.setSourceId(1000);
+//        contractOrderQuery.setOrderStatus(Arrays.asList(PART_MATCH.getCode(), COMMIT.getCode()));
+//        Page<ContractOrderDTO> result = contractOrderService.listContractOrderByQuery(contractOrderQuery);
 //        Assert.assertTrue(result != null && result.getData() != null);
+        BaseQuery baseQuery = new BaseQuery();
+        baseQuery.setPageNo(1);
+        baseQuery.setPageSize(10);
+        baseQuery.setUserId(17764594443L);
+        List<Integer> orderStatus = new ArrayList<>();
+        //orderStatus.add(OrderStatusEnum.COMMIT.getCode());
+        //orderStatus.add(OrderStatusEnum.PART_MATCH.getCode());
+        baseQuery.setOrderStatus(orderStatus);
+        baseQuery.setOrderType(OrderTypeEnum.ENFORCE.getCode());
+        Page<ContractOrderDTO> contractOrderDTOPage = null;
+        contractOrderDTOPage = contractOrderService.listContractOrderByQuery(baseQuery);
+        log.info(String.valueOf(contractOrderDTOPage));
     }
 
 //    @Test
