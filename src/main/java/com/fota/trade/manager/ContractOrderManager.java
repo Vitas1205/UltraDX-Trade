@@ -954,7 +954,7 @@ public class ContractOrderManager {
             userName = orderContext.get("username") == null ? "": String.valueOf(orderContext.get("username"));
         }
         tradeLog.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                2, contractOrderDTO.getContractName(), userName, contractOrderDTO.getMatchAmount(), System.currentTimeMillis(), 4, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(),matchId);
+                2, contractOrderDTO.getContractName(), userName, contractOrderDTO.getCompleteAmount(), System.currentTimeMillis(), 4, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(),matchId);
 
 
     }
