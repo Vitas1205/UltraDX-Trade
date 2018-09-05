@@ -113,8 +113,6 @@ public class ContractOrderManager {
         return assetService;
     }
 
-    ExecutorService executorService = Executors.newFixedThreadPool(5);
-
     public List<ContractOrderDO> listNotMatchOrder(Long contractOrderIndex, Integer orderDirection) {
         List<ContractOrderDO> notMatchOrderList = null;
         try {
@@ -775,11 +773,11 @@ public class ContractOrderManager {
         log.info("-------------------askContractOrder:"+askContractOrder);
         log.info("-------------------bidContractOrder:"+bidContractOrder);
         if (askContractOrder == null){
-            log.error("askContractOrder not exist");
+            log.error("askContractOrder not exist, matchOrder={}",  contractMatchedOrderDTO);
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
         }
         if (bidContractOrder == null){
-            log.error("bidOrderContext not exist");
+            log.error("bidOrderContext not exist, matchOrder={}", contractMatchedOrderDTO);
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
         }
 
