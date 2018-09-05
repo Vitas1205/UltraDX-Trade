@@ -189,4 +189,12 @@
     limit #{startRow,jdbcType=INTEGER}, #{endRow,jdbcType=INTEGER}
   </select>
 
+  <select id="countTotalPosition" resultType="java.lang.Long">
+    select sum(unfilled_amount)
+    from trade_user_position
+    where status = 1
+    and position_type = 1
+    and contract_id = #{contractId, jdbcType=BIGINT}
+  </select>
+
 </mapper>

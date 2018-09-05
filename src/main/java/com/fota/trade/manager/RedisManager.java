@@ -106,6 +106,16 @@ public class RedisManager {
         return null;
     }
 
+    public Long counter(final String redisKey, Long sum) {
+        try {
+            long count = redisTemplate.opsForValue().increment(redisKey, sum);
+            return count;
+        } catch (Exception e) {
+            log.error("redis getCount", e);
+        }
+        return null;
+    }
+
     public boolean expire(final String key, long expire) {
         return redisTemplate.expire(key, expire, TimeUnit.SECONDS);
     }

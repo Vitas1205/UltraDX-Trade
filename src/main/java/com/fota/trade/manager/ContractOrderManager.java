@@ -955,6 +955,7 @@ public class ContractOrderManager {
             e.printStackTrace();
             log.error("向Redis存储USDK撮合订单信息失败，订单id为 {}", contractMatchedOrderDO.getId());
         }
+        updateTotalPosition(contractMatchedOrderDO);
     }
 
     public UpdatePositionResult updatePosition(ContractOrderDO contractOrderDO, BigDecimal contractSize, long filledAmount, BigDecimal filledPrice){
@@ -1236,5 +1237,23 @@ public class ContractOrderManager {
         }
     }
 
-
+    public void updateTotalPosition(ContractMatchedOrderDO contractMatchedOrderDO){
+        Long increase = 0L;
+        Long bidUserId = contractMatchedOrderDO.getBidUserId();
+        BigDecimal filledAmount = contractMatchedOrderDO.getFilledAmount();
+        UserPositionDO bidUserPosition =  userPositionMapper.selectByUserIdAndId(bidUserId, contractMatchedOrderDO.getContractId());
+        if (bidUserPosition != null && bidUserPosition.getPositionType() == PositionTypeEnum.OVER.getCode()){
+            if (bidUserPosition.getUnfilledAmount().compareTo(filledAmount.longValue()) >= 0){
+                increase =  filledAmount.longValue() * 2;
+            } else {
+                increase = bidUserPosition.getUnfilledAmount() * 2;
+            }
+            Long currentPosition = redisManager.counter(Constant.CONTRACT_TOTAL_POSITION + contractMatchedOrderDO.getContractId(), increase);
+            if (currentPosition.equals(increase)) {
+                Long position = userPositionMapper.countTotalPosition(contractMatchedOrderDO.getContractId());
+                redisManager.counter(Constant.CONTRACT_TOTAL_POSITION + contractMatchedOrderDO.getContractId(), position - increase);
+            }
+            log.info("update total position------contractId :{}   currentPosition :{}" ,contractMatchedOrderDO.getContractId(), currentPosition);
+        }
+    }
 }
