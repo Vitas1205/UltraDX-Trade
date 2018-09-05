@@ -133,5 +133,5 @@ public interface UserPositionMapper {
 
     List<UserPositionDO> listByQuery(Map<String, Object> param);
 
-    long countTotalPosition(@Param("contractId")Long contractId);
+    Long countTotalPosition(@Param("contractId")Long contractId);
 }

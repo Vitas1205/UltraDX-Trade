@@ -77,7 +77,7 @@ public class UserPositionServiceTest {
 
     @Test
     public void test_getTotalPositionByContractId() {
-        long total = userPositionService.getTotalPositionByContractId(1000);
+        Long total = userPositionService.getTotalPositionByContractId(1006L);
         System.out.println("totalPosition" + total);
     }
 

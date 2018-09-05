@@ -116,7 +116,10 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
         if (result != null) {
             return Long.valueOf(result.toString());
         }
-        long totalPosition = userPositionMapper.countTotalPosition(contractId);
+        Long totalPosition = userPositionMapper.countTotalPosition(contractId);
+        if (totalPosition == null) {
+            return 0;
+        }
         return totalPosition * 2;
     }
 
