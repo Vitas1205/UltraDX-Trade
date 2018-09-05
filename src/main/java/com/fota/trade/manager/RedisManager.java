@@ -357,7 +357,17 @@ public class RedisManager {
     }
 
     public boolean releaseLock(String lock) {
-        return redisTemplate.delete(lock);
+        boolean suc=false;
+        for (int i=0;i<3;i++) {
+            suc = redisTemplate.delete(lock);
+            if (suc) {
+                return true;
+            }
+        }
+        if (!suc) {
+            log.error("release lock failed, key={}", lock);
+        }
+        return suc;
     }
 
 

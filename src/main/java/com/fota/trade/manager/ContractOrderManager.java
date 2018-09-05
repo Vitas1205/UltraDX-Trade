@@ -103,7 +103,7 @@ public class ContractOrderManager {
 
     Random random = new Random();
 
-    private static final int MAX_UPDATE_RETRIES = 1000;
+    private static final int MAX_UPDATE_RETRIES = 3000;
 
     private ContractService getContractService() {
         return contractService;
@@ -814,15 +814,40 @@ public class ContractOrderManager {
         askContractOrder.fillAmount(filledAmount);
         bidContractOrder.fillAmount(filledAmount);
         Long transferTime = System.currentTimeMillis();
+
+        //排序，防止死锁
+        List<ContractOrderDO> contractOrderDOS = new ArrayList<>();
+        contractOrderDOS.add(askContractOrder);
+        contractOrderDOS.add(bidContractOrder);
+        Collections.sort(contractOrderDOS, Comparator.comparing(ContractOrderDO::getUserId));
+
         //更新委托
-        updateContractOrder(contractMatchedOrderDTO.getAskOrderId(), filledAmount, filledPrice, new Date(transferTime));
-        updateContractOrder(contractMatchedOrderDTO.getBidOrderId(), filledAmount, filledPrice, new Date(transferTime));
+        contractOrderDOS.forEach(x -> updateContractOrder(x.getId(), filledAmount, filledPrice, new Date(transferTime)));
         profiler.complelete("update contract order");
 
         BigDecimal contractSize = getContractSize(contractMatchedOrderDTO.getContractId());
-        //更新持仓
-        UpdatePositionResult askResult = updatePosition(askContractOrder, contractSize, filledAmount, filledPrice);
-        UpdatePositionResult bidResult = updatePosition(bidContractOrder, contractSize, filledAmount, filledPrice);
+
+        //获取锁
+        Set<String> locks = contractOrderDOS.stream().map(x -> "POSITION_LOCK_"+ x.getUserId()+"_"+ x.getContractId())
+                .collect(toSet());
+
+        log.info("locks={}", locks);
+        boolean suc = multiLock(locks);
+        if (!suc) {
+            throw new RuntimeException("lock failed");
+        }
+
+        Map<ContractOrderDO, UpdatePositionResult> resultMap = new HashMap<>();
+        try {
+            //更新持仓
+            contractOrderDOS.forEach(x -> {
+                UpdatePositionResult result = updatePosition(x, contractSize, filledAmount, filledPrice);
+                resultMap.put(x, result);
+            });
+        }finally {
+            locks.forEach(redisManager::releaseLock);
+        }
+
         profiler.complelete("update position");
 
         ContractMatchedOrderDO contractMatchedOrderDO = com.fota.trade.common.BeanUtils.copy(contractMatchedOrderDTO);
@@ -849,15 +874,15 @@ public class ContractOrderManager {
 
         //更新账户余额
         Runnable postTask = () -> {
-            ContractDealer dealer1 = calBalanceChange(askContractOrder, filledAmount, filledPrice, contractSize, askResult, askLever);
-            ContractDealer dealer2 = calBalanceChange(bidContractOrder, filledAmount, filledPrice, contractSize, bidResult, bidLever);
+
             List<ContractDealer> dealers = new LinkedList();
-            if (null != dealer1 && !CommonUtils.equal(dealer1.getAddedTotalAmount(), BigDecimal.ZERO)) {
-                dealers.add(dealer1);
-            }
-            if (null != dealer2 && !CommonUtils.equal(dealer2.getAddedTotalAmount(), BigDecimal.ZERO)) {
-                dealers.add(dealer2);
-            }
+            contractOrderDOS.forEach(x -> {
+                ContractDealer dealer = calBalanceChange(x, filledAmount, filledPrice, contractSize, resultMap.get(x));
+                if (null != dealer && !CommonUtils.equal(dealer.getAddedTotalAmount(), BigDecimal.ZERO)) {
+                    dealers.add(dealer);
+                }
+            });
+
             if (!dealers.isEmpty()) {
                 ContractDealer[] contractDealers = new ContractDealer[dealers.size()];
                 dealers.toArray(contractDealers);
@@ -874,6 +899,39 @@ public class ContractOrderManager {
 
         resultCode.setCode(ResultCodeEnum.SUCCESS.getCode());
         return resultCode;
+    }
+
+    private boolean multiLock(Set<String> locks) {
+        Set<String> locked = new HashSet<>();
+        for (String lock : locks) {
+            boolean suc = lock(lock);
+            if (!suc) {
+                locked.forEach(redisManager::releaseLock);
+                return false;
+            }
+            locked.add(lock);
+        }
+        return true;
+    }
+
+    private boolean lock(String lock) {
+        long st = System.currentTimeMillis();
+        boolean suc = false;
+        int i=0;
+        for (;i < MAX_UPDATE_RETRIES;i++)
+        {
+            suc = redisManager.tryLock(lock, Duration.ofMinutes(10));
+            if (suc) {
+                break;
+            }
+            randomSleep();
+        }
+        if (!suc) {
+            log.error("lock failed, key="+lock);
+            return false;
+        }
+        log.info("lock profile: key={}, retries={}, cost={}",lock, i, System.currentTimeMillis() - st);
+        return true;
     }
 
     private void saveToRedis(ContractOrderDO contractOrderDO,  long completeAmount,  Map<String, Object> orderContext, long matchId){
@@ -982,29 +1040,7 @@ public class ContractOrderManager {
     }
 
     public UpdatePositionResult updatePosition(ContractOrderDO contractOrderDO, BigDecimal contractSize, long filledAmount, BigDecimal filledPrice){
-        long userId = contractOrderDO.getUserId();
-        long contractId = contractOrderDO.getContractId();
-        String lock = "POSITION_LOCK_"+ userId+"_"+contractId;
-        long st = System.currentTimeMillis();
-        boolean suc = false;
-        int i=0;
-        for (;i < MAX_UPDATE_RETRIES;i++)
-        {
-            suc = redisManager.tryLock(lock, Duration.ofMinutes(10));
-            if (suc) {
-                break;
-            }
-            randomSleep();
-        }
-        if (!suc) {
-            throw new RuntimeException("lock failed, key="+lock);
-        }
-        log.info("lock profile: key={}, retries={}, cost={}",lock, i, System.currentTimeMillis() - st);
-        try {
-            return internalUpdatePosition(contractOrderDO, contractSize, filledAmount, filledPrice);
-        }finally {
-            redisManager.releaseLock(lock);
-        }
+        return internalUpdatePosition(contractOrderDO, contractSize, filledAmount, filledPrice);
     }
 
     public UpdatePositionResult internalUpdatePosition(ContractOrderDO contractOrderDO, BigDecimal contractSize, long filledAmount, BigDecimal filledPrice){
@@ -1073,7 +1109,7 @@ public class ContractOrderManager {
 
 
     public ContractDealer calBalanceChange(ContractOrderDO contractOrderDO, long filledAmount, BigDecimal filledPrice,
-                                                   BigDecimal contractSize, UpdatePositionResult positionResult, Integer lever){
+                                                   BigDecimal contractSize, UpdatePositionResult positionResult){
         long userId = contractOrderDO.getUserId();
         BigDecimal rate = contractOrderDO.getFee();
 
