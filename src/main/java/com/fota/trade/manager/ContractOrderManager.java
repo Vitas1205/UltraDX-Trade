@@ -11,9 +11,11 @@ import com.fota.match.domain.ContractMatchedOrderTradeDTO;
 import com.fota.match.service.ContractMatchedOrderService;
 import com.fota.ticker.entrust.RealTimeEntrust;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
-import com.fota.trade.common.*;
+import com.fota.trade.common.BusinessException;
+import com.fota.trade.common.Constant;
+import com.fota.trade.common.ResultCodeEnum;
+import com.fota.trade.common.UpdatePositionResult;
 import com.fota.trade.domain.*;
-import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.enums.*;
 import com.fota.trade.mapper.ContractCategoryMapper;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
@@ -42,12 +44,9 @@ import java.util.concurrent.Executors;
 import java.util.function.Predicate;
 
 import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
-import static com.fota.trade.common.ResultCodeEnum.BALANCE_NOT_ENOUGH;
-import static com.fota.trade.domain.enums.OrderTypeEnum.ENFORCE;
 import static com.fota.trade.util.ContractUtils.computeAveragePrice;
 import static java.util.stream.Collectors.*;
 import static org.springframework.transaction.annotation.Propagation.REQUIRED;
-import static org.springframework.transaction.annotation.Propagation.REQUIRES_NEW;
 
 /**
  * @author Gavin Shen
@@ -97,9 +96,14 @@ public class ContractOrderManager {
     @Autowired
     private ContractAccountService contractAccountService;
 
+    ThreadLocal<Map<String, Object>> updateContext = new ThreadLocal();
+
+    public static final String POST_MATCH_TASK = "POST_MATCH_TASK";
+    public static final String MATCH_PROFILER = "MATCH_PROFILER";
+
     Random random = new Random();
 
-    private static final int MAX_UPDATE_RETRIES = 300;
+    private static final int MAX_UPDATE_RETRIES = 3000;
 
     private ContractService getContractService() {
         return contractService;
@@ -736,10 +740,30 @@ public class ContractOrderManager {
     }
 
 
+    public ResultCode updateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO) {
+        Map<String, Object> map = new HashMap();
+        Profiler profiler = new Profiler("ContractOrderManager.updateOrderByMatch");
+        map.put(MATCH_PROFILER, profiler);
+        updateContext.set(map);
+        try {
+            ResultCode code = internalUpdateOrderByMatch(contractMatchedOrderDTO);
+            if (code.isSuccess()) {
+                Runnable task = (Runnable) map.get(POST_MATCH_TASK);
+                task.run();
+            }
+            return code;
+        }finally {
+            updateContext.remove();
+            profiler.log();
+        }
+    }
+
     //成交
     @Transactional(rollbackFor = {Exception.class}, isolation = Isolation.REPEATABLE_READ, propagation = REQUIRED)
-    public ResultCode updateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO) {
-        Profiler profiler = new Profiler("ContractOrderManager.updateOrderByMatch");
+    public ResultCode internalUpdateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO) {
+        Map<String, Object> context = updateContext.get();
+        Profiler profiler = (Profiler) context.get(MATCH_PROFILER);
+
         ResultCode resultCode = new ResultCode();
         if (contractMatchedOrderDTO == null) {
             log.error(ResultCodeEnum.ILLEGAL_PARAM.getMessage());
@@ -790,37 +814,41 @@ public class ContractOrderManager {
         askContractOrder.fillAmount(filledAmount);
         bidContractOrder.fillAmount(filledAmount);
         Long transferTime = System.currentTimeMillis();
+
+        //排序，防止死锁
+        List<ContractOrderDO> contractOrderDOS = new ArrayList<>();
+        contractOrderDOS.add(askContractOrder);
+        contractOrderDOS.add(bidContractOrder);
+        Collections.sort(contractOrderDOS, Comparator.comparing(ContractOrderDO::getUserId));
+
         //更新委托
-        updateContractOrder(contractMatchedOrderDTO.getAskOrderId(), filledAmount, filledPrice, new Date(transferTime));
-        updateContractOrder(contractMatchedOrderDTO.getBidOrderId(), filledAmount, filledPrice, new Date(transferTime));
+        contractOrderDOS.forEach(x -> updateContractOrder(x.getId(), filledAmount, filledPrice, new Date(transferTime)));
         profiler.complelete("update contract order");
 
         BigDecimal contractSize = getContractSize(contractMatchedOrderDTO.getContractId());
-        //更新持仓
-        UpdatePositionResult askResult = updatePosition(askContractOrder, contractSize, filledAmount, filledPrice);
-        UpdatePositionResult bidResult = updatePosition(bidContractOrder, contractSize, filledAmount, filledPrice);
+
+        //获取锁
+        Set<String> locks = contractOrderDOS.stream().map(x -> "POSITION_LOCK_"+ x.getUserId()+"_"+ x.getContractId())
+                .collect(toSet());
+
+        log.info("locks={}", locks);
+        boolean suc = multiLock(locks);
+        if (!suc) {
+            throw new RuntimeException("lock failed");
+        }
+
+        Map<ContractOrderDO, UpdatePositionResult> resultMap = new HashMap<>();
+        try {
+            //更新持仓
+            contractOrderDOS.forEach(x -> {
+                UpdatePositionResult result = updatePosition(x, contractSize, filledAmount, filledPrice);
+                resultMap.put(x, result);
+            });
+        }finally {
+            locks.forEach(redisManager::releaseLock);
+        }
+
         profiler.complelete("update position");
-
-        //更新账户余额
-        ContractDealer dealer1 = calAndCheckBalanceChange(askContractOrder, filledAmount, filledPrice, contractSize, askResult, askLever);
-        ContractDealer dealer2 = calAndCheckBalanceChange(bidContractOrder, filledAmount, filledPrice, contractSize, bidResult, bidLever);
-        List<ContractDealer> dealers = new LinkedList();
-        if (null != dealer1) {
-            dealers.add(dealer1);
-        }
-        if (null != dealer2) {
-            dealers.add(dealer2);
-        }
-        if (!dealers.isEmpty()) {
-            ContractDealer[] contractDealers = new ContractDealer[dealers.size()];
-            dealers.toArray(contractDealers);
-            com.fota.common.Result result = contractService.updateBalances(contractDealers);
-            profiler.complelete("update balance");
-            if (!result.isSuccess()) {
-                throw new RuntimeException("update balance failed");
-            }
-        }
-
 
         ContractMatchedOrderDO contractMatchedOrderDO = com.fota.trade.common.BeanUtils.copy(contractMatchedOrderDTO);
         BigDecimal fee = contractMatchedOrderDO.getFilledAmount().multiply(contractMatchedOrderDO.getFilledPrice()).multiply(contractSize).multiply(Constant.FEE_RATE).setScale(CommonUtils.scale, BigDecimal.ROUND_UP);
@@ -842,16 +870,68 @@ public class ContractOrderManager {
             log.error("保存Contract订单数据到数据库失败({})", contractMatchedOrderDO, e);
             throw new RuntimeException("contractMatchedOrderMapper.insert exception{}", e);
         }
-        executorService.submit(new Runnable() {
-            @Override
-            public void run() {
-                postProcessAfterMatch(askContractOrder, bidContractOrder, contractMatchedOrderDO, transferTime, contractMatchedOrderDTO);
-            }
-        });
         profiler.complelete("persistMatch");
-        profiler.log();
+
+        //更新账户余额
+        Runnable postTask = () -> {
+
+            List<ContractDealer> dealers = new LinkedList();
+            contractOrderDOS.forEach(x -> {
+                ContractDealer dealer = calBalanceChange(x, filledAmount, filledPrice, contractSize, resultMap.get(x));
+                if (null != dealer && !CommonUtils.equal(dealer.getAddedTotalAmount(), BigDecimal.ZERO)) {
+                    dealers.add(dealer);
+                }
+            });
+
+            if (!dealers.isEmpty()) {
+                ContractDealer[] contractDealers = new ContractDealer[dealers.size()];
+                dealers.toArray(contractDealers);
+                com.fota.common.Result result = contractService.updateBalances(contractDealers);
+                profiler.complelete("update balance");
+                if (!result.isSuccess()) {
+                    throw new RuntimeException("update balance failed, params={}"+ JSON.toJSONString(dealers));
+                }
+            }
+            postProcessAfterMatch(askContractOrder, bidContractOrder, contractMatchedOrderDO, transferTime, contractMatchedOrderDTO);
+            profiler.complelete("saveAndNotify");
+        };
+        context.put(POST_MATCH_TASK, postTask);
+
         resultCode.setCode(ResultCodeEnum.SUCCESS.getCode());
         return resultCode;
+    }
+
+    private boolean multiLock(Set<String> locks) {
+        Set<String> locked = new HashSet<>();
+        for (String lock : locks) {
+            boolean suc = lock(lock);
+            if (!suc) {
+                locked.forEach(redisManager::releaseLock);
+                return false;
+            }
+            locked.add(lock);
+        }
+        return true;
+    }
+
+    private boolean lock(String lock) {
+        long st = System.currentTimeMillis();
+        boolean suc = false;
+        int i=0;
+        for (;i < MAX_UPDATE_RETRIES;i++)
+        {
+            suc = redisManager.tryLock(lock, Duration.ofMinutes(10));
+            if (suc) {
+                break;
+            }
+            randomSleep();
+        }
+        if (!suc) {
+            log.error("lock failed, key="+lock);
+            return false;
+        }
+        log.info("lock profile: key={}, retries={}, cost={}",lock, i, System.currentTimeMillis() - st);
+        return true;
     }
 
     private void saveToRedis(ContractOrderDO contractOrderDO,  long completeAmount,  Map<String, Object> orderContext, long matchId){
@@ -960,29 +1040,7 @@ public class ContractOrderManager {
     }
 
     public UpdatePositionResult updatePosition(ContractOrderDO contractOrderDO, BigDecimal contractSize, long filledAmount, BigDecimal filledPrice){
-        long userId = contractOrderDO.getUserId();
-        long contractId = contractOrderDO.getContractId();
-        String lock = "POSITION_LOCK_"+ userId+"_"+contractId;
-        long st = System.currentTimeMillis();
-        boolean suc = false;
-        int i=0;
-        for (;i < MAX_UPDATE_RETRIES;i++)
-        {
-            suc = redisManager.tryLock(lock, Duration.ofMinutes(10));
-            if (suc) {
-                break;
-            }
-            randomSleep();
-        }
-        if (!suc) {
-            throw new RuntimeException("lock failed, key="+lock);
-        }
-        log.info("lock profile: retries={}, cost={}", i, System.currentTimeMillis() - st);
-        try {
-            return internalUpdatePosition(contractOrderDO, contractSize, filledAmount, filledPrice);
-        }finally {
-            redisManager.releaseLock(lock);
-        }
+        return internalUpdatePosition(contractOrderDO, contractSize, filledAmount, filledPrice);
     }
 
     public UpdatePositionResult internalUpdatePosition(ContractOrderDO contractOrderDO, BigDecimal contractSize, long filledAmount, BigDecimal filledPrice){
@@ -1026,7 +1084,7 @@ public class ContractOrderManager {
         }
         boolean suc =  doUpdatePosition(userPositionDO, newAveragePrice, newTotalAmount);
         if (!suc) {
-            throw new RuntimeException("doUpdate positin failed");
+            throw new RuntimeException("doUpdate position failed");
         }
         return result;
     }
@@ -1050,20 +1108,14 @@ public class ContractOrderManager {
 
 
 
-    public ContractDealer calAndCheckBalanceChange(ContractOrderDO contractOrderDO, long filledAmount, BigDecimal filledPrice,
-                                                   BigDecimal contractSize, UpdatePositionResult positionResult, Integer lever){
+    public ContractDealer calBalanceChange(ContractOrderDO contractOrderDO, long filledAmount, BigDecimal filledPrice,
+                                                   BigDecimal contractSize, UpdatePositionResult positionResult){
         long userId = contractOrderDO.getUserId();
         BigDecimal rate = contractOrderDO.getFee();
 
 
-        com.fota.common.Result<ContractAccount> result = contractAccountService.getContractAccount(userId);
-        if (!result.isSuccess() || null==result.getData()) {
-            throw new RuntimeException("get contractAccount failed");
-        }
-        ContractAccount account = result.getData();
-        if (account.getAvailableAmount().compareTo(BigDecimal.ZERO) <= 0 && !(ENFORCE.getCode() == contractOrderDO.getOrderType())) {
-            throw new BizException(BALANCE_NOT_ENOUGH);
-        }
+        UserContractDTO userContractDTO = assetService.getContractAccount(userId);
+
         //没有平仓，不用计算
         if (null == positionResult.getCloseAmount()) {
             return null;
@@ -1082,9 +1134,9 @@ public class ContractOrderManager {
         ContractDealer dealer = new ContractDealer()
                 .setUserId(userId)
                 .setAddedTotalAmount(addAmount)
-                .setTotalLockAmount(account.getFrozenAmount().add(account.getMarginCallRequirement()))
+                .setTotalLockAmount(BigDecimal.ZERO)
                 ;
-        dealer.setDealType((null != contractOrderDO.getOrderType() && ENFORCE.getCode() == contractOrderDO.getOrderType()) ? ContractDealer.DealType.FORCE : ContractDealer.DealType.NORMAL);
+        dealer.setDealType(ContractDealer.DealType.FORCE);
         return dealer;
     }
 
