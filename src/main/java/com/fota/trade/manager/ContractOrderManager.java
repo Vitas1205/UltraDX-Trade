@@ -6,6 +6,7 @@ import com.fota.asset.domain.ContractDealer;
 import com.fota.asset.domain.UserContractDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
+import com.fota.common.Result;
 import com.fota.common.utils.CommonUtils;
 import com.fota.match.domain.ContractMatchedOrderTradeDTO;
 import com.fota.match.service.ContractMatchedOrderService;
@@ -39,8 +40,6 @@ import org.springframework.util.CollectionUtils;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.function.Predicate;
 
 import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
@@ -97,6 +96,8 @@ public class ContractOrderManager {
     private ContractAccountService contractAccountService;
 
     ThreadLocal<Map<String, Object>> updateContext = new ThreadLocal();
+    ThreadLocal<Runnable> placeOrderTaskContext = new ThreadLocal();
+    ThreadLocal<Profiler> profilerContext = new ThreadLocal<>();
 
     public static final String POST_MATCH_TASK = "POST_MATCH_TASK";
     public static final String MATCH_PROFILER = "MATCH_PROFILER";
@@ -171,10 +172,25 @@ public class ContractOrderManager {
         return resultCode;
     }
 
+    public Result<Long> placeOrder(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) throws Exception{
+        Profiler profiler = new Profiler("ContractOrderManager.placeOrder");
+        profilerContext.set(profiler);
+        try {
+            Result<Long> result = internalPlaceOrder(contractOrderDTO, userInfoMap);
+            if (result.isSuccess()) {
+                placeOrderTaskContext.get().run();
+            }
+            return result;
+        }finally {
+            profiler.log();
+            placeOrderTaskContext.remove();
+            profilerContext.remove();
+        }
+    }
 
     @Transactional(rollbackFor = Exception.class)
-    public com.fota.common.Result<Long> placeOrder(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) throws Exception{
-        Profiler profiler = new Profiler("ContractOrderManager.placeOrder");
+    public Result<Long> internalPlaceOrder(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) throws Exception{
+        Profiler profiler = profilerContext.get();
         ContractOrderDO contractOrderDO = com.fota.trade.common.BeanUtils.copy(contractOrderDTO);
         String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
         String ipAddress = StringUtils.isEmpty(userInfoMap.get("ip")) ? "" : userInfoMap.get("ip");
@@ -263,32 +279,38 @@ public class ContractOrderManager {
                     2, contractOrderDTO.getContractName(), username, ipAddress, contractOrderDTO.getTotalAmount(),
                     System.currentTimeMillis(), 1, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 1);
         }
-        //推送MQ消息
-        OrderMessage orderMessage = new OrderMessage();
-        orderMessage.setAmount(new BigDecimal(contractOrderDTO.getUnfilledAmount()));
-        if (contractOrderDTO.getPrice() != null){
-            orderMessage.setPrice(contractOrderDTO.getPrice());
-        }
-        orderMessage.setOrderDirection(contractOrderDTO.getOrderDirection());
-        orderMessage.setOrderType(contractOrderDTO.getOrderType());
-        orderMessage.setTransferTime(transferTime);
-        orderMessage.setOrderId(contractOrderDTO.getId());
-        orderMessage.setEvent(OrderOperateTypeEnum.PLACE_ORDER.getCode());
-        orderMessage.setUserId(contractOrderDTO.getUserId());
-        orderMessage.setSubjectId(contractOrderDO.getContractId());
-        orderMessage.setSubjectName(contractOrderDO.getContractName());
-        orderMessage.setContractType(contractCategoryDO.getContractType());
-        orderMessage.setContractMatchAssetName(contractCategoryDO.getAssetName());
-        Boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder",String.valueOf(contractOrderDTO.getId()), orderMessage);
-        if (!sendRet) {
-            log.error("Send RocketMQ Message Failed ");
-        }
-        profiler.complelete("send MQ message");
-        profiler.log();
+        Runnable runnable = () -> {
+            sendPlaceOrderMessage(contractOrderDO, contractCategoryDO.getContractType(), contractCategoryDO.getAssetName());
+            profiler.complelete("send MQ message");
+        };
+        placeOrderTaskContext.set(runnable);
         result.setCode(0);
         result.setMessage("success");
         result.setData(orderId);
         return result;
+    }
+
+    private void sendPlaceOrderMessage(ContractOrderDO contractOrderDO, Integer contractType, String assetName){
+        //推送MQ消息
+        OrderMessage orderMessage = new OrderMessage();
+        orderMessage.setAmount(new BigDecimal(contractOrderDO.getUnfilledAmount()));
+        if (contractOrderDO.getPrice() != null){
+            orderMessage.setPrice(contractOrderDO.getPrice());
+        }
+        orderMessage.setOrderDirection(contractOrderDO.getOrderDirection());
+        orderMessage.setOrderType(contractOrderDO.getOrderType());
+        orderMessage.setTransferTime(contractOrderDO.getGmtCreate().getTime());
+        orderMessage.setOrderId(contractOrderDO.getId());
+        orderMessage.setEvent(OrderOperateTypeEnum.PLACE_ORDER.getCode());
+        orderMessage.setUserId(contractOrderDO.getUserId());
+        orderMessage.setSubjectId(contractOrderDO.getContractId());
+        orderMessage.setSubjectName(contractOrderDO.getContractName());
+        orderMessage.setContractType(contractType);
+        orderMessage.setContractMatchAssetName(assetName);
+        Boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder",String.valueOf(contractOrderDO.getId()), orderMessage);
+        if (!sendRet) {
+            log.error("Send RocketMQ Message Failed ");
+        }
     }
 
     public ResultCode cancelOrder(Long userId, Long orderId, Map<String, String> userInfoMap) throws Exception {
