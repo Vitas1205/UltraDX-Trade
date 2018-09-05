@@ -35,6 +35,8 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
@@ -175,8 +177,14 @@ public class UsdkOrderManager {
                         //断账户可用余额是否大于tatalValue
                         if (availableAmount.compareTo(usdkOrderDO.getTotalAmount()) >= 0){
                             Date gmtModified = userCapitalDTO.getGmtModified();
-                            Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,
-                                    userCapitalDTO.getAssetId(), String.valueOf(usdkOrderDO.getTotalAmount()), gmtModified.getTime());
+                            Boolean updateLockedAmountRet = false;
+                            try {
+                                updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,
+                                        userCapitalDTO.getAssetId(), String.valueOf(usdkOrderDO.getTotalAmount()), gmtModified.getTime());
+                            }catch (Exception e){
+                                log.error("capitalService failed{}", userId, userCapitalDTO.getAssetId(), usdkOrderDO.getTotalAmount(), gmtModified.getTime(), e);
+                                throw new RuntimeException("capitalService failed");
+                            }
                             if (!updateLockedAmountRet){
                                 log.error("getCapitalService().updateLockedAmount failed{}", usdkOrderDO);
                                 throw new RuntimeException("getCapitalService().updateLockedAmount failed");
@@ -524,10 +532,10 @@ public class UsdkOrderManager {
         }
         // TODO add get username
         tradeLog.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                1, askUsdkOrderDTO.getAssetName(), askUsername, askUsdkOrderDTO.getMatchAmount(), System.currentTimeMillis(), 4, askUsdkOrderDTO.getOrderDirection(), askUsdkOrderDTO.getUserId(), 1);
+                1, askUsdkOrderDTO.getAssetName(), askUsername, askUsdkOrderDTO.getCompleteAmount(), System.currentTimeMillis(), 4, askUsdkOrderDTO.getOrderDirection(), askUsdkOrderDTO.getUserId(), 1);
         redisManager.usdkOrderSave(bidUsdkOrderDTO);
         tradeLog.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                1, bidUsdkOrderDTO.getAssetName(), bidUsername, bidUsdkOrderDTO.getMatchAmount(), System.currentTimeMillis(), 4,  bidUsdkOrderDTO.getOrderDirection(), bidUsdkOrderDTO.getUserId(), 1);
+                1, bidUsdkOrderDTO.getAssetName(), bidUsername, bidUsdkOrderDTO.getCompleteAmount(), System.currentTimeMillis(), 4,  bidUsdkOrderDTO.getOrderDirection(), bidUsdkOrderDTO.getUserId(), 1);
         // 向MQ推送消息
         OrderMessage orderMessage = new OrderMessage();
         orderMessage.setSubjectId(usdkMatchedOrderDTO.getAssetId().longValue());

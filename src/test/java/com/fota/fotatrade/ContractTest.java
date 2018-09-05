@@ -56,7 +56,7 @@ public class ContractTest {
     @Autowired
     private RedisManager redisManager;
 
-//    @Test
+    @Test
     public void placeOrder(){
         for (int i = 0;i < 1;i++){
             /*List<CompetitorsPriceDTO> list = new ArrayList<>();
