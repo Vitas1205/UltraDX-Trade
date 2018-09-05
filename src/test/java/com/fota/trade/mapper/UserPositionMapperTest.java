@@ -59,11 +59,12 @@ public class UserPositionMapperTest {
     @Test
     public void testListByQuery() throws Exception {
         UserPositionQuery userPositionQuery = new UserPositionQuery();
-        userPositionQuery.setUserId(userId);
-        userPositionQuery.setContractId(1L);
+   //     userPositionQuery.setUserId(userId);
+        userPositionQuery.setContractId(1000L);
         userPositionQuery.setPageNo(1);
         userPositionQuery.setPageSize(20);
         List<UserPositionDO> list = userPositionMapper.listByQuery(ParamUtil.objectToMap(userPositionQuery));
+        System.out.println(list);
 //        Assert.assertTrue(list != null && list.size() >= 1);
 //        Assert.assertTrue(list.get(0).getUserId().longValue() ==  userId.longValue());
     }
@@ -86,4 +87,9 @@ public class UserPositionMapperTest {
         Assert.assertTrue(userPositionDOlist.size() > 0);
     }
 
+    @Test
+    public void test_countTotalPosition() {
+        Long result = userPositionMapper.countTotalPosition(1000L);
+        System.out.println("result : "+ result);
+    }
 }

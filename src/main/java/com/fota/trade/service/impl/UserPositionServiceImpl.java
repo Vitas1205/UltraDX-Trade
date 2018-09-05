@@ -112,16 +112,15 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
 
     @Override
     public long getTotalPositionByContractId(long contractId) {
-        long totalPosition = 0L;
-        List<UserPositionDO> userPositionDOList = userPositionMapper.selectByContractId(contractId,  PositionStatusEnum.UNDELIVERED.getCode());
-        if (userPositionDOList != null && userPositionDOList.size() > 0) {
-            for (UserPositionDO userPositionDO : userPositionDOList) {
-                if (userPositionDO.getContractId().equals(contractId) && userPositionDO.getPositionType() == 1) {
-                    totalPosition += userPositionDO.getUnfilledAmount();
-                }
-            }
+        Object result = redisManager.get(Constant.CONTRACT_TOTAL_POSITION + contractId);
+        if (result != null) {
+            return Long.valueOf(result.toString());
         }
-        return totalPosition*2;
+        Long totalPosition = userPositionMapper.countTotalPosition(contractId);
+        if (totalPosition == null) {
+            return 0;
+        }
+        return totalPosition * 2;
     }
 
     /**

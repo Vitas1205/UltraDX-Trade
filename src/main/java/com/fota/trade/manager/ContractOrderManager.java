@@ -1062,6 +1062,7 @@ public class ContractOrderManager {
             e.printStackTrace();
             log.error("向Redis存储USDK撮合订单信息失败，订单id为 {}", contractMatchedOrderDO.getId());
         }
+        updateTotalPosition(contractMatchedOrderDO);
     }
 
     public UpdatePositionResult updatePosition(ContractOrderDO contractOrderDO, BigDecimal contractSize, long filledAmount, BigDecimal filledPrice){
@@ -1321,5 +1322,29 @@ public class ContractOrderManager {
         }
     }
 
+    public void updateTotalPosition(ContractMatchedOrderDO contractMatchedOrderDO){
+        Long increase = 0L;
+        Long bidUserId = contractMatchedOrderDO.getBidUserId();
+        Long askUserId = contractMatchedOrderDO.getAskUserId();
+        BigDecimal filledAmount = contractMatchedOrderDO.getFilledAmount();
+        UserPositionDO bidUserPosition = userPositionMapper.selectByUserIdAndId(bidUserId, contractMatchedOrderDO.getContractId());
+        UserPositionDO askUserPosition = userPositionMapper.selectByUserIdAndId(askUserId, contractMatchedOrderDO.getContractId());
+        Long bidPositionAmount = 0L, askPositionAmount = 0L;
+        if (bidUserPosition != null) {
+            bidPositionAmount = bidUserPosition.getUnfilledAmount() * (bidUserPosition.getPositionType() == 1 ? -1 : 1);
+        }
+        if (askUserPosition != null) {
+            askPositionAmount = askUserPosition.getUnfilledAmount() * (askUserPosition.getPositionType() == 1 ? -1 : 1);
+        }
+        Long formerBidPositionAmount = bidPositionAmount - filledAmount.longValue();
+        Long formerAskPositionAmount = askPositionAmount + filledAmount.longValue();
+        increase = Math.abs(bidPositionAmount) - Math.abs(formerBidPositionAmount) + Math.abs(askPositionAmount) - Math.abs(formerAskPositionAmount);
+        Long currentPosition = redisManager.counter(Constant.CONTRACT_TOTAL_POSITION + contractMatchedOrderDO.getContractId(), increase);
+        if (currentPosition.equals(increase)) {
+            Long position = userPositionMapper.countTotalPosition(contractMatchedOrderDO.getContractId()) * 2;
+            redisManager.counter(Constant.CONTRACT_TOTAL_POSITION + contractMatchedOrderDO.getContractId(), position - increase);
+        }
+        log.info("update total position------contractId :{}   currentPosition :{}", contractMatchedOrderDO.getContractId(), currentPosition);
 
+    }
 }
