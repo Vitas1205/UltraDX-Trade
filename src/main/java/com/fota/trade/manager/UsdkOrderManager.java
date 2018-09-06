@@ -22,7 +22,6 @@ import com.fota.trade.mapper.UsdkOrderMapper;
 import com.fota.trade.util.CommonUtils;
 import com.fota.trade.util.JsonUtil;
 import com.fota.trade.util.PriceUtil;
-import com.fota.trade.util.Profiler;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -32,7 +31,6 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
@@ -93,9 +91,6 @@ public class UsdkOrderManager {
         return assetService;
     }
 
-    ThreadLocal<Runnable> placeOrderTaskContext = new ThreadLocal();
-    ThreadLocal<Profiler> profilerContext = new ThreadLocal<>();
-
     public List<UsdkOrderDO> listNotMatchOrder(Long contractOrderIndex, Integer orderDirection) {
         List<UsdkOrderDO> notMatchOrderList = null;
         try {
@@ -110,46 +105,35 @@ public class UsdkOrderManager {
         return notMatchOrderList;
     }
 
-    public com.fota.common.Result<Long> placeOrder(UsdkOrderDTO usdkOrderDTO, Map<String, String> userInfoMap)throws Exception {
-        Profiler profiler = new Profiler("UsdkOrderManager.placeOrder");
-        profilerContext.set(profiler);
-        com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
-        try {
-            result = internalPlaceOrder(usdkOrderDTO, userInfoMap);
-            if (result.isSuccess()) {
-                placeOrderTaskContext.get().run();
-            }
-            return result;
-        }finally {
-            profiler.log();
-            placeOrderTaskContext.remove();
-            profilerContext.remove();
-        }
-    }
-
     @Transactional(rollbackFor={RuntimeException.class, Exception.class, BusinessException.class})
-    public com.fota.common.Result<Long> internalPlaceOrder(UsdkOrderDTO usdkOrderDTO, Map<String, String> userInfoMap)throws Exception {
-        com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
-        Profiler profiler = profilerContext.get();
+    public com.fota.common.Result<Long> placeOrder(UsdkOrderDTO usdkOrderDTO, Map<String, String> userInfoMap)throws Exception {
         String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
         String ipAddress = StringUtils.isEmpty(userInfoMap.get("ipAddress")) ? "" : userInfoMap.get("ipAddress");
-        long transferTime = System.currentTimeMillis();
+        com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
         UsdkOrderDO usdkOrderDO = com.fota.trade.common.BeanUtils.copy(usdkOrderDTO);
-        packOrder(usdkOrderDO,usdkOrderDTO,username,transferTime);
-        Long orderId = -1L;
-        List<UserCapitalDTO> list = new ArrayList<>();
-        try{
-            list = getAssetService().getUserCapital(usdkOrderDTO.getUserId());
-            if (CollectionUtils.isEmpty(list)){
-                log.error("user do not hava capital", usdkOrderDTO.getUserId());
-                throw new RuntimeException("user do not hava capital");
-            }
-        }catch (Exception e){
-            log.error("invoke rpc assetService.getUserCapital() failed{}", usdkOrderDTO.getUserId());
-            throw new RuntimeException("invoke rpc assetService.getUserCapital() failed");
+        Map<String, Object> newMap = new HashMap<>();
+        if (usdkOrderDTO.getOrderContext() !=null){
+            newMap = usdkOrderDTO.getOrderContext();
+        }
+        newMap.put("username", username);
+        usdkOrderDTO.setOrderContext(newMap);
+        usdkOrderDO.setOrderContext(JSONObject.toJSONString(usdkOrderDTO.getOrderContext()));
+        Long orderId = usdkOrderDO.getId();
+        ResultCode resultCode = new ResultCode();
+        Integer assetId = usdkOrderDO.getAssetId();
+        Long userId = usdkOrderDO.getUserId();
+        Integer orderDirection = usdkOrderDO.getOrderDirection();
+        List<UserCapitalDTO> list = getAssetService().getUserCapital(userId);
+        usdkOrderDO.setFee(usdkFee);
+        usdkOrderDO.setStatus(OrderStatusEnum.COMMIT.getCode());
+        usdkOrderDO.setUnfilledAmount(usdkOrderDO.getTotalAmount());
+        long transferTime = System.currentTimeMillis();
+        usdkOrderDO.setGmtCreate(new Date(transferTime));
+        usdkOrderDO.setGmtModified(new Date(transferTime));
+        if(usdkOrderDO.getOrderType() == null){
+            usdkOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
         }
         if (usdkOrderDO.getOrderType() != OrderTypeEnum.ENFORCE.getCode()){
-            //非强平单处理
             BigDecimal price = usdkOrderDO.getPrice();
             BigDecimal totalAmount = usdkOrderDO.getTotalAmount();
             BigDecimal orderValue = totalAmount.multiply(price);
@@ -157,116 +141,74 @@ public class UsdkOrderManager {
             //插入委托订单记录
             int ret = insertUsdkOrder(usdkOrderDO);
             if (ret <= 0){
-                log.error("insert contractOrder failed", usdkOrderDO);
+                log.error("insert contractOrder failed");
                 throw new RuntimeException("insert contractOrder failed");
             }
             orderId = usdkOrderDO.getId();
             BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
-            dealNotEnforceOrder(usdkOrderDO, list,orderValue);
-        } else if (usdkOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()){
-            //强平单处理
-            int ret = insertUsdkOrder(usdkOrderDO);
-            if (ret <= 0){
-                log.error("insert contractOrder failed", usdkOrderDO);
-                throw new RuntimeException("insert contractOrder failed");
-            }
-            BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
-        }
-        tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getTotalAmount(), transferTime, 1, usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 1);
-        Runnable runnable = () -> {
-            sendPlaceOrderMessage(usdkOrderDO, usdkOrderDTO, transferTime);
-            profiler.complelete("send MQ message");
-        };
-        placeOrderTaskContext.set(runnable);
-        result.success(orderId);
-        return result;
-    }
-
-
-    public void packOrder(UsdkOrderDO usdkOrderDO, UsdkOrderDTO usdkOrderDTO, String username, long transferTime){
-        if (usdkOrderDTO.getOrderContext() !=null){
-            Map<String, Object> newMap = usdkOrderDTO.getOrderContext();
-            newMap.put("username", username);
-            usdkOrderDTO.setOrderContext(newMap);
-        }
-        usdkOrderDO.setOrderContext(JSONObject.toJSONString(usdkOrderDTO.getOrderContext()));
-        usdkOrderDO.setFee(usdkFee);
-        usdkOrderDO.setStatus(OrderStatusEnum.COMMIT.getCode());
-        usdkOrderDO.setUnfilledAmount(usdkOrderDO.getTotalAmount());
-        usdkOrderDO.setGmtCreate(new Date(transferTime));
-        usdkOrderDO.setGmtModified(new Date(transferTime));
-        if(usdkOrderDO.getOrderType() == null){
-            usdkOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
-        }
-    }
-
-    public void dealNotEnforceOrder(UsdkOrderDO usdkOrderDO, List<UserCapitalDTO> list, BigDecimal orderValue) throws Exception{
-        if (usdkOrderDO.getOrderDirection() == OrderDirectionEnum.BID.getCode()){
-            //查询usdk账户可用余额
-            for(UserCapitalDTO userCapitalDTO : list){
-                if (userCapitalDTO.getAssetId() == AssetTypeEnum.USDT.getCode()){
-                    BigDecimal amount = new BigDecimal(userCapitalDTO.getAmount());
-                    BigDecimal lockedAmount = new BigDecimal(userCapitalDTO.getLockedAmount());
-                    BigDecimal availableAmount = amount.subtract(lockedAmount);
-                    //判断账户可用余额是否大于orderValue
-                    if (availableAmount.compareTo(orderValue) >= 0){
-                        Date gmtModified = userCapitalDTO.getGmtModified();
-                        try {
-                            Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(usdkOrderDO.getUserId(),
+            if (orderDirection == OrderDirectionEnum.BID.getCode()){
+                //查询usdk账户可用余额
+                for(UserCapitalDTO userCapitalDTO : list){
+                    if (userCapitalDTO.getAssetId() == AssetTypeEnum.USDT.getCode()){
+                        BigDecimal amount = new BigDecimal(userCapitalDTO.getAmount());
+                        BigDecimal lockedAmount = new BigDecimal(userCapitalDTO.getLockedAmount());
+                        BigDecimal availableAmount = amount.subtract(lockedAmount);
+                        //判断账户可用余额是否大于orderValue
+                        if (availableAmount.compareTo(orderValue) >= 0){
+                            Date gmtModified = userCapitalDTO.getGmtModified();
+                            Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,
                                     userCapitalDTO.getAssetId(), String.valueOf(orderValue), gmtModified.getTime());
                             if (!updateLockedAmountRet){
                                 log.error("getCapitalService().updateLockedAmount failed{}", usdkOrderDO);
                                 throw new RuntimeException("getCapitalService().updateLockedAmount failed");
                             }
-                        }catch (Exception e){
-                            log.error("invoke rpc capitalService failed", usdkOrderDO);
-                            throw new RuntimeException("invoke rpc capitalService failed");
+                        }else {
+                            throw new BusinessException(ResultCodeEnum.USDT_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(), ResultCodeEnum.USDT_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
                         }
-
-                    }else {
-                        throw new BusinessException(ResultCodeEnum.USDT_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(), ResultCodeEnum.USDT_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
                     }
                 }
-            }
-        }else if (usdkOrderDO.getOrderDirection() == OrderDirectionEnum.ASK.getCode()){
-            //查询对应资产账户可用余额
-            for (UserCapitalDTO userCapitalDTO : list){
-                if (usdkOrderDO.getAssetId().equals(userCapitalDTO.getAssetId())){
-                    BigDecimal amount = new BigDecimal(userCapitalDTO.getAmount());
-                    BigDecimal lockedAmount = new BigDecimal(userCapitalDTO.getLockedAmount());
-                    BigDecimal availableAmount = amount.subtract(lockedAmount);
-                    //断账户可用余额是否大于tatalValue
-                    if (availableAmount.compareTo(usdkOrderDO.getTotalAmount()) >= 0){
-                        Date gmtModified = userCapitalDTO.getGmtModified();
-                        try {
-                            Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(usdkOrderDO.getUserId(),
-                                    userCapitalDTO.getAssetId(), String.valueOf(usdkOrderDO.getTotalAmount()), gmtModified.getTime());
+            }else if (orderDirection == OrderDirectionEnum.ASK.getCode()){
+                //查询对应资产账户可用余额
+                for (UserCapitalDTO userCapitalDTO : list){
+                    if (assetId.equals(userCapitalDTO.getAssetId())){
+                        BigDecimal amount = new BigDecimal(userCapitalDTO.getAmount());
+                        BigDecimal lockedAmount = new BigDecimal(userCapitalDTO.getLockedAmount());
+                        BigDecimal availableAmount = amount.subtract(lockedAmount);
+                        //断账户可用余额是否大于tatalValue
+                        if (availableAmount.compareTo(usdkOrderDO.getTotalAmount()) >= 0){
+                            Date gmtModified = userCapitalDTO.getGmtModified();
+                            Boolean updateLockedAmountRet = false;
+                            try {
+                                updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,
+                                        userCapitalDTO.getAssetId(), String.valueOf(usdkOrderDO.getTotalAmount()), gmtModified.getTime());
+                            }catch (Exception e){
+                                log.error("capitalService failed{}", userId, userCapitalDTO.getAssetId(), usdkOrderDO.getTotalAmount(), gmtModified.getTime(), e);
+                                throw new RuntimeException("capitalService failed");
+                            }
                             if (!updateLockedAmountRet){
                                 log.error("getCapitalService().updateLockedAmount failed{}", usdkOrderDO);
                                 throw new RuntimeException("getCapitalService().updateLockedAmount failed");
                             }
-                        }catch (Exception e){
-                            log.error("invoke rpc capitalService failed", usdkOrderDO.getUserId(), userCapitalDTO.getAssetId(), usdkOrderDO.getTotalAmount(), gmtModified.getTime(), e);
-                            throw new RuntimeException("invoke rpc capitalService failed");
+                        }else {
+                            throw new BusinessException(ResultCodeEnum.COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(), ResultCodeEnum.COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
                         }
-                    }else {
-                        throw new BusinessException(ResultCodeEnum.COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(), ResultCodeEnum.COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
                     }
                 }
             }
+        } else if (usdkOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()){
+            //强平单处理
+            int ret = insertUsdkOrder(usdkOrderDO);
+            if (ret <= 0){
+                log.error("insert contractOrder failed");
+                throw new RuntimeException("insert contractOrder failed");
+            }
+            orderId = usdkOrderDO.getId();
+            BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
         }
-    }
-
-
-    private int insertUsdkOrder(UsdkOrderDO usdkOrderDO) {
-        usdkOrderDO.setId(CommonUtils.generateId());
-        return usdkOrderMapper.insert(usdkOrderDO);
-    }
-
-
-    public void sendPlaceOrderMessage(UsdkOrderDO usdkOrderDO, UsdkOrderDTO usdkOrderDTO, long transferTime){
+        usdkOrderDTO.setCompleteAmount(BigDecimal.ZERO);
         redisManager.usdkOrderSave(usdkOrderDTO);
+        tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
+                1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getTotalAmount(), transferTime, 1, usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 1);
         //todo 发送RocketMQ
         OrderMessage orderMessage = new OrderMessage();
         orderMessage.setOrderId(usdkOrderDO.getId());
@@ -285,8 +227,16 @@ public class UsdkOrderManager {
         if (!sendRet){
             log.error("Send RocketMQ Message Failed ");
         }
+        result.setCode(0);
+        result.setMessage("success");
+        result.setData(orderId);
+        return result;
     }
 
+    private int insertUsdkOrder(UsdkOrderDO usdkOrderDO) {
+        usdkOrderDO.setId(CommonUtils.generateId());
+        return usdkOrderMapper.insert(usdkOrderDO);
+    }
 
     public ResultCode cancelOrder(Long userId, Long orderId, Map<String, String> userInfoMap) throws Exception{
         ResultCode resultCode = ResultCode.success();
@@ -344,6 +294,7 @@ public class UsdkOrderManager {
             log.error("order status illegal{}", usdkOrderDO);
             throw new RuntimeException("order status illegal");
         }
+
         Long transferTime = System.currentTimeMillis();
         log.info("------------usdkCancelStartTimeStamp"+System.currentTimeMillis());
         //更新usdk委托表
