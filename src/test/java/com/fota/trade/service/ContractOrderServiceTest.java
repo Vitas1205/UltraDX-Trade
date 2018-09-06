@@ -46,7 +46,7 @@ import static com.fota.trade.domain.enums.OrderStatusEnum.PART_MATCH;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
-@Transactional
+//@Transactional
 @Slf4j
 public class ContractOrderServiceTest {
 
@@ -148,7 +148,7 @@ public class ContractOrderServiceTest {
         log.info(String.valueOf(contractOrderDTOPage));
     }
 
-//    @Test
+    @Test
     public void testUpdateOrderByMatch() {
 
 
@@ -285,7 +285,7 @@ public class ContractOrderServiceTest {
         log.info("--------------------------" + contractMatchedOrderTradeDTOPage);
     }
 
-//    @Test
+    @Test
     public void contractPlaceOrderTest(){
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
         Map<String, String> userInfoMap = new HashMap<>();

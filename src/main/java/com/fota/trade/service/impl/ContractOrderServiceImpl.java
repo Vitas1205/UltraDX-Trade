@@ -15,12 +15,16 @@ import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.service.ContractOrderService;
 import com.fota.trade.util.DateUtil;
 import com.fota.trade.util.PriceUtil;
+import com.fota.trade.util.Profiler;
+import com.fota.trade.util.ThreadContextUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.util.*;
+
+import static com.fota.trade.common.ResultCodeEnum.SYSTEM_ERROR;
 
 /**
  * @Author: JianLi.Gao
@@ -150,37 +154,29 @@ public class ContractOrderServiceImpl implements
 
     @Override
     public ResultCode order(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
+        com.fota.common.Result<Long> result = orderReturnId(contractOrderDTO, userInfoMap);
         ResultCode resultCode = new ResultCode();
-        try {
-            com.fota.common.Result<Long> result = contractOrderManager.placeOrder(contractOrderDTO, userInfoMap);
-            resultCode.setCode(result.getCode());
-            resultCode.setMessage(result.getMessage());
-            if (resultCode.isSuccess()) {
-                tradeLog.info("下单@@@" + contractOrderDTO);
-                redisManager.contractOrderSaveForMatch(contractOrderDTO);
-            }
-            return resultCode;
-        }catch (Exception e){
-            log.error("Contract order() failed", e);
-            if (e instanceof BusinessException){
-                BusinessException businessException = (BusinessException) e;
-                resultCode.setCode(businessException.getCode());
-                resultCode.setMessage(businessException.getMessage());
-                return resultCode;
-            }
-        }
-        resultCode = ResultCode.error(ResultCodeEnum.ORDER_FAILED.getCode(), ResultCodeEnum.ORDER_FAILED.getMessage());
+        resultCode.setCode(result.getCode());
+        resultCode.setMessage(result.getMessage());
         return resultCode;
     }
 
     @Override
     public com.fota.common.Result<Long> orderReturnId(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
         com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
+        Profiler profiler = new Profiler("ContractOrderManager.placeOrder");
+        ThreadContextUtil.setPrifiler(profiler);
         try {
             result = contractOrderManager.placeOrder(contractOrderDTO, userInfoMap);
             if (result.isSuccess()) {
                 tradeLog.info("下单@@@" + contractOrderDTO);
                 redisManager.contractOrderSaveForMatch(contractOrderDTO);
+                Runnable postTask = ThreadContextUtil.getPostTask();
+                if (null == postTask) {
+                    log.error("null postTask");
+                }else {
+                    postTask.run();
+                }
             }
             return result;
         }catch (Exception e){
@@ -192,6 +188,9 @@ public class ContractOrderServiceImpl implements
                 result.setData(0L);
                 return result;
             }
+        }finally {
+            profiler.log();
+            ThreadContextUtil.clear();
         }
         result.setCode(ResultCodeEnum.ORDER_FAILED.getCode());
         result.setMessage(ResultCodeEnum.ORDER_FAILED.getMessage());
@@ -313,20 +312,32 @@ public class ContractOrderServiceImpl implements
 
     @Override
     public ResultCode updateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO) {
-        ResultCode resultCode = new ResultCode();
+        Profiler profiler = new Profiler("ContractOrderManager.updateOrderByMatch");
+        ThreadContextUtil.setPrifiler(profiler);
         try {
-            resultCode = contractOrderManager.updateOrderByMatch(contractMatchedOrderDTO);
-            return resultCode;
+
+            ResultCode code = contractOrderManager.updateOrderByMatch(contractMatchedOrderDTO);
+            if (code.isSuccess()) {
+                //执行事务之外的任务
+                Runnable postTask = ThreadContextUtil.getPostTask();
+                if (null == postTask) {
+                    log.error("null postTask");
+                }
+                else postTask.run();
+            }
+            return code;
+
         } catch (Exception e) {
-            log.error("updateOrderByMatch error, match_order={}", JSON.toJSONString(contractMatchedOrderDTO), e);
+            log.error("updateOrderByMatch exception, match_order={}", contractMatchedOrderDTO, e);
             if (e instanceof BizException) {
-                BusinessException bE = (BusinessException)e;
+                BizException bE = (BizException) e;
                 return ResultCode.error(bE.getCode(), bE.getMessage());
             }
+            return ResultCode.error(SYSTEM_ERROR.getCode(), SYSTEM_ERROR.getMessage());
+        }finally {
+            profiler.log();
+            ThreadContextUtil.clear();
         }
-        resultCode.setCode(ResultCodeEnum.DATABASE_EXCEPTION.getCode());
-        resultCode.setMessage(ResultCodeEnum.DATABASE_EXCEPTION.getMessage());
-        return resultCode;
     }
 
     /**
