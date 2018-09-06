@@ -89,8 +89,6 @@ public class UsdkOrderServiceTest {
         System.out.println(result.getData());
         assert result.isSuccess()
                 && (long)result.getData() >0;
-
-
     }
 
     @Test
@@ -103,10 +101,9 @@ public class UsdkOrderServiceTest {
         usdkOrderDTO.setFee(new BigDecimal(0.01));
         usdkOrderDTO.setOrderDirection(OrderDirectionEnum.BID.getCode());
         usdkOrderDTO.setOrderType(OrderTypeEnum.ENFORCE.getCode());
-        //usdkOrderDTO.setPrice(new BigDecimal(6000));
+        usdkOrderDTO.setPrice(new BigDecimal(6000));
         usdkOrderDTO.setTotalAmount(new BigDecimal(2));
         Map<String, Object> map = new HashMap();
-        map.put("mortgageOrderId", 123456);
         usdkOrderDTO.setOrderContext(map);
         Map<String, String> map2 =  new HashMap<String, String>();
         map2.put("username", "harry");

@@ -46,7 +46,7 @@ import static com.fota.trade.domain.enums.OrderStatusEnum.PART_MATCH;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
-@Transactional
+//@Transactional
 @Slf4j
 public class ContractOrderServiceTest {
 
@@ -135,19 +135,20 @@ public class ContractOrderServiceTest {
 //        Assert.assertTrue(result != null && result.getData() != null);
         BaseQuery baseQuery = new BaseQuery();
         baseQuery.setPageNo(1);
-        baseQuery.setPageSize(10);
-        baseQuery.setUserId(17764594443L);
+        baseQuery.setPageSize(50);
+        //baseQuery.setUserId(17764594443L);
         List<Integer> orderStatus = new ArrayList<>();
+        baseQuery.setSourceId(1000);
         //orderStatus.add(OrderStatusEnum.COMMIT.getCode());
         //orderStatus.add(OrderStatusEnum.PART_MATCH.getCode());
-        baseQuery.setOrderStatus(orderStatus);
-        baseQuery.setOrderType(OrderTypeEnum.ENFORCE.getCode());
+        //baseQuery.setOrderStatus(orderStatus);
+        //baseQuery.setOrderType(OrderTypeEnum.ENFORCE.getCode());
         Page<ContractOrderDTO> contractOrderDTOPage = null;
         contractOrderDTOPage = contractOrderService.listContractOrderByQuery(baseQuery);
         log.info(String.valueOf(contractOrderDTOPage));
     }
 
-//    @Test
+    @Test
     public void testUpdateOrderByMatch() {
 
 
@@ -284,7 +285,7 @@ public class ContractOrderServiceTest {
         log.info("--------------------------" + contractMatchedOrderTradeDTOPage);
     }
 
-//    @Test
+    @Test
     public void contractPlaceOrderTest(){
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
         Map<String, String> userInfoMap = new HashMap<>();

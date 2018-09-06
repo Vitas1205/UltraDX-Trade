@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -45,6 +46,8 @@ public class UsdkOrderMapperTest {
         usdkOrderDO.setPrice(new BigDecimal("6000.1"));
         usdkOrderDO.setFee(new BigDecimal("1.1"));
         usdkOrderDO.setStatus(OrderStatusEnum.COMMIT.getCode());
+        usdkOrderDO.setGmtModified(new Date(System.currentTimeMillis()));
+        usdkOrderDO.setGmtCreate(new Date(System.currentTimeMillis()));
         long st = System.currentTimeMillis();
         int insertRet = usdkOrderMapper.insert(usdkOrderDO);
         System.out.println("cost="+(System.currentTimeMillis() - st));
