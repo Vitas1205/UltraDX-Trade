@@ -95,7 +95,6 @@ public class ContractOrderManager {
     @Autowired
     private ContractAccountService contractAccountService;
 
-    ThreadLocal<Runnable> placeOrderTaskContext = new ThreadLocal();
 
 
     Random random = new Random();
@@ -266,7 +265,7 @@ public class ContractOrderManager {
             sendPlaceOrderMessage(contractOrderDO, contractCategoryDO.getContractType(), contractCategoryDO.getAssetName());
             profiler.complelete("send MQ message");
         };
-        placeOrderTaskContext.set(runnable);
+        ThreadContextUtil.setPostTask(runnable);
         result.setCode(0);
         result.setMessage("success");
         result.setData(orderId);
