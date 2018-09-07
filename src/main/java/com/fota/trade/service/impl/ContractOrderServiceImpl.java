@@ -189,6 +189,7 @@ public class ContractOrderServiceImpl implements
         }catch (Exception e){
             if (e instanceof BizException){
                 BizException bizException = (BizException) e;
+                log.error("place order failed, code={}, msg={}", bizException.getCode(), bizException.getMessage());
                 result.setCode(bizException.getCode());
                 result.setMessage(bizException.getMessage());
                 result.setData(0L);

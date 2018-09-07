@@ -189,6 +189,7 @@ public class ContractOrderManager {
         contractOrderDO.setGmtCreate(new Date(transferTime));
         contractOrderDO.setGmtModified(new Date(transferTime));
         ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractOrderDO.getContractId());
+        profiler.complelete("select contract category");
         if (contractCategoryDO == null) {
             log.error("Contract Is Null");
             throw new RuntimeException("Contract Is Null");
@@ -226,7 +227,7 @@ public class ContractOrderManager {
             insertOrderRecord(contractOrderDO);
         } else {
             insertOrderRecord(contractOrderDO);
-            profiler.complelete("select and insert record");
+            profiler.complelete("insert record");
             orderId = contractOrderDO.getId();
             Map<String,BigDecimal> msg  = getAccountMsg(contractOrderDO.getUserId());
             log.info("AccountDetailMsg:"+msg.toString());
@@ -445,6 +446,8 @@ public class ContractOrderManager {
         BigDecimal floatingPL = BigDecimal.ZERO;
         List<ContractCategoryDO> queryList = contractCategoryMapper.getAllContractCategory();
         List<UserPositionDO> positionlist = userPositionMapper.selectByUserId(userId, PositionStatusEnum.UNDELIVERED.getCode());
+        List<CompetitorsPriceDTO> competitorsPriceList = realTimeEntrust.getContractCompetitorsPrice();
+
         if (queryList != null && queryList.size() != 0 && positionlist != null && positionlist.size() != 0) {
             for (ContractCategoryDO contractCategoryDO : queryList) {
                 long contractId = contractCategoryDO.getId();
@@ -458,7 +461,6 @@ public class ContractOrderManager {
                         BigDecimal askCurrentPrice = BigDecimal.ZERO;
                         BigDecimal bidCurrentPrice = BigDecimal.ZERO;
 
-                        List<CompetitorsPriceDTO> competitorsPriceList = realTimeEntrust.getContractCompetitorsPrice();
                         BigDecimal lever = new BigDecimal(contractLeverManager.getLeverByContractId(userId, contractId));
                         Integer positionType = userPositionDO.getPositionType();
                         BigDecimal positionUnfilledAmount = new BigDecimal(userPositionDO.getUnfilledAmount());
