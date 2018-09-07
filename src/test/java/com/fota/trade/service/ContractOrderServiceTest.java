@@ -195,7 +195,7 @@ public class ContractOrderServiceTest {
         return newObj;
     }
 
-//    @Test
+    @Test
     public void testRollbackMatchedOrder() throws ParseException {
         checkPoint = new Date();
         originAskBalance = assetService.getContractAccount(askUserId);

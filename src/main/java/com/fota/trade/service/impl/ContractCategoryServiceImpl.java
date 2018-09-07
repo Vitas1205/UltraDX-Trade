@@ -3,6 +3,7 @@ package com.fota.trade.service.impl;
 import com.fota.common.Result;
 import com.fota.trade.client.RollbackTask;
 import com.fota.trade.common.BeanUtils;
+import com.fota.trade.common.BizException;
 import com.fota.trade.common.BusinessException;
 import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.domain.*;
@@ -214,12 +215,12 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
             return result.error(CONTRACT_IS_ROLLING_BACK.getCode(), CONTRACT_IS_ROLLING_BACK.getMessage());
         }
         try {
-            ResultCode resultCode = internalRollBack(safePoint, contractId);
+            ResultCode resultCode = rollbackManager.rollBack(safePoint, contractId);
             return result.error(resultCode.getCode(), resultCode.getMessage());
         } catch (Exception e) {
             log.error("rollback failed, time={}, contractId={}", safePoint, contractId, e);
-            if (e instanceof BusinessException) {
-                BusinessException bizE = (BusinessException) e;
+            if (e instanceof BizException) {
+                BizException bizE = (BizException) e;
                 return result.error(bizE.getCode(), bizE.getMessage());
             }
             return result.error(SYSTEM_ERROR.getCode(), SYSTEM_ERROR.getMessage());
@@ -236,43 +237,5 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
     @Override
     public ResultCode rollback(Long timestamp, Long contractId) {
         return ResultCode.error(SYSTEM_ERROR.getCode(), SYSTEM_ERROR.getMessage());
-    }
-
-    @Transactional(rollbackFor = {Exception.class})
-    public ResultCode internalRollBack(Date safePoint, long contractId) {
-        int pageSize = 100;
-        int pageIndex = 1;
-        Date startTaskTime = new Date();
-
-        BaseQuery query = new BaseQuery();
-        query.setSourceId((int) contractId);
-        query.setStartTime(safePoint);
-        query.setEndTime(new Date());
-        long count = matchedOrderMapper.count(query);
-        if (0 >= count) {
-            log.info("there is nothing to rollback");
-            return ResultCode.success();
-        }
-
-        //分割任务
-        int maxPageIndex = ((int) count - 1) / pageSize + 1;;
-        List<RollbackTask> tasks = new ArrayList<>();
-        while (pageIndex <= maxPageIndex) {
-            RollbackTask rollbackTask = new RollbackTask();
-            rollbackTask.setContractId(contractId);
-            rollbackTask.setPageSize(pageSize);
-            rollbackTask.setRollbackPoint(safePoint);
-            rollbackTask.setTaskStartPoint(startTaskTime);
-            rollbackTask.setPageSize(pageSize)
-                    .setPageIndex(pageIndex);
-            tasks.add(rollbackTask);
-            pageIndex++;
-        }
-        tasks.parallelStream().forEach(task ->{
-            rollbackManager.rollbackMatchedOrder(task);
-        });
-
-        return ResultCode.success();
-
     }
 }

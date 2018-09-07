@@ -43,6 +43,7 @@ import java.util.function.Predicate;
 
 import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
 import static com.fota.trade.common.ResultCodeEnum.BALANCE_NOT_ENOUGH;
+import static com.fota.trade.common.ResultCodeEnum.CONCURRENT_PROBLEM;
 import static com.fota.trade.util.ContractUtils.computeAveragePrice;
 import static java.util.stream.Collectors.*;
 import static org.springframework.transaction.annotation.Propagation.REQUIRED;
@@ -99,7 +100,6 @@ public class ContractOrderManager {
 
     Random random = new Random();
 
-    private static final int MAX_UPDATE_RETRIES = 3000;
 
     private ContractService getContractService() {
         return contractService;
@@ -243,8 +243,7 @@ public class ContractOrderManager {
             BigDecimal useableAmount = new BigDecimal(userContractDTO.getAmount()).add(floatPL).subtract(positionMargin);
             profiler.complelete("compute account status");
             if (useableAmount.compareTo(entrustLock) < 0) {
-                log.error("ContractAccount USDK Not Enough");
-                throw new BusinessException(ResultCodeEnum.CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(), ResultCodeEnum.CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
+                throw new BizException(ResultCodeEnum.CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(), ResultCodeEnum.CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
             }
         }
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO );
@@ -698,22 +697,7 @@ public class ContractOrderManager {
         }
     }
 
-    //冻结合约账户金额
-    public void lockContractAccount(UserContractDTO userContractDTO, BigDecimal totalLockAmount) throws Exception {
-        BigDecimal amount = new BigDecimal(userContractDTO.getAmount());
-        if (amount.compareTo(totalLockAmount) < 0) {
-            log.error("ContractAccount USDK Not Enough");
-            throw new BusinessException(ResultCodeEnum.CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(), ResultCodeEnum.CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
-        }
-        //调用RPC接口冻结合约账户（加锁）
-        BigDecimal addLockAmount = totalLockAmount.subtract(new BigDecimal(userContractDTO.getLockedAmount()));
-        long gmtModified = userContractDTO.getGmtModified().getTime();
-        Boolean lockContractAmountRet = getContractService().lockContractAmount(userContractDTO.getUserId(), addLockAmount.toString(), gmtModified);
-        if (!lockContractAmountRet) {
-            log.error("update contract account lockedAmount failed");
-            throw new RuntimeException("update contract account lockedAmount failed");
-        }
-    }
+
 
     //升序排列
     public List<ContractOrderDO> sortListEsc(List<ContractOrderDO> list) {
@@ -752,96 +736,38 @@ public class ContractOrderManager {
      * @return
      */
     @Transactional(rollbackFor = {Throwable.class}, isolation = Isolation.REPEATABLE_READ, propagation = REQUIRED)
-    public ResultCode updateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO) {
+    public ResultCode updateOrderByMatch(ContractOrderDO askContractOrder, ContractOrderDO bidContractOrder, List<ContractOrderDO> contractOrderDOS, ContractMatchedOrderDTO contractMatchedOrderDTO) {
 
         Profiler profiler = null == ThreadContextUtil.getPrifiler()
                 ? new Profiler("ContractOrderManager.updateOrderByMatch"):ThreadContextUtil.getPrifiler();
 
         ResultCode resultCode = new ResultCode();
-        if (contractMatchedOrderDTO == null) {
-            log.error(ResultCodeEnum.ILLEGAL_PARAM.getMessage());
-            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
-        }
-        ContractOrderDO askContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getAskOrderId());
-        ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
 
-        log.info("-------------------askContractOrder:"+askContractOrder);
-        log.info("-------------------bidContractOrder:"+bidContractOrder);
-        if (askContractOrder == null){
-            log.error("askContractOrder not exist, matchOrder={}",  contractMatchedOrderDTO);
-            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
-        }
-        if (bidContractOrder == null){
-            log.error("bidOrderContext not exist, matchOrder={}", contractMatchedOrderDTO);
-            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
-        }
 
-        String messageKey = Joiner.on("-").join(contractMatchedOrderDTO.getAskOrderId().toString(),
-                contractMatchedOrderDTO.getAskOrderStatus(), contractMatchedOrderDTO.getBidOrderId(),
-                contractMatchedOrderDTO.getBidOrderStatus());
-
-        if (askContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0) {
-            log.error("ask unfilledAmount not enough.order={}, messageKey={}", askContractOrder, messageKey);
-            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
-        }
-        if (bidContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0) {
-            log.error("bid unfilledAmount not enough.order={}, messageKey={}",bidContractOrder, messageKey);
-            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
-        }
-        if (askContractOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && askContractOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()) {
-            log.error("ask order status illegal{}", askContractOrder);
-            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
-        }
-        if (bidContractOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && bidContractOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()) {
-            log.error("bid order status illegal{}", bidContractOrder);
-            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
-        }
         long filledAmount = contractMatchedOrderDTO.getFilledAmount();
         BigDecimal filledPrice = new BigDecimal(contractMatchedOrderDTO.getFilledPrice());
-        Integer askLever = contractLeverManager.getLeverByContractId(askContractOrder.getUserId(), askContractOrder.getContractId());
-        askContractOrder.setLever(askLever.intValue());
-
-        Integer bidLever = contractLeverManager.getLeverByContractId(bidContractOrder.getUserId(), bidContractOrder.getContractId());
-        bidContractOrder.setLever(bidLever);
-
-        askContractOrder.fillAmount(filledAmount);
-        bidContractOrder.fillAmount(filledAmount);
         Long transferTime = System.currentTimeMillis();
 
-        //排序，防止死锁
-        List<ContractOrderDO> contractOrderDOS = new ArrayList<>();
-        contractOrderDOS.add(askContractOrder);
-        contractOrderDOS.add(bidContractOrder);
-        Collections.sort(contractOrderDOS, Comparator.comparing(ContractOrderDO::getUserId));
-
         //更新委托
-        contractOrderDOS.forEach(x -> updateContractOrder(x.getId(), filledAmount, filledPrice, new Date(transferTime)));
+        contractOrderDOS.forEach(x -> {
+            int lever = contractLeverManager.getLeverByContractId(x.getUserId(), x.getContractId());
+            x.setLever(lever);
+            x.fillAmount(filledAmount);
+            updateContractOrder(x.getId(), filledAmount, filledPrice, new Date(transferTime));
+        });
         profiler.complelete("update contract order");
 
+
         BigDecimal contractSize = getContractSize(contractMatchedOrderDTO.getContractId());
-
-        //获取锁
-        Set<String> locks = contractOrderDOS.stream().map(x -> "POSITION_LOCK_"+ x.getUserId()+"_"+ x.getContractId())
-                .collect(toSet());
-
-        log.info("locks={}", locks);
-        boolean suc = multiLock(locks);
-        if (!suc) {
-            throw new RuntimeException("lock failed");
-        }
-
         Map<ContractOrderDO, UpdatePositionResult> resultMap = new HashMap<>();
-        try {
-            //更新持仓
-            contractOrderDOS.forEach(x -> {
-                UpdatePositionResult result = updatePosition(x, contractSize, filledAmount, filledPrice);
-                resultMap.put(x, result);
-            });
-        }finally {
-            locks.forEach(redisManager::releaseLock);
-        }
 
+        //更新持仓
+        contractOrderDOS.forEach(x -> {
+            UpdatePositionResult result = updatePosition(x, contractSize, filledAmount, filledPrice);
+            resultMap.put(x, result);
+        });
         profiler.complelete("update position");
+
 
         ContractMatchedOrderDO contractMatchedOrderDO = com.fota.trade.common.BeanUtils.copy(contractMatchedOrderDTO);
         BigDecimal fee = contractMatchedOrderDO.getFilledAmount().multiply(contractMatchedOrderDO.getFilledPrice()).multiply(contractSize).multiply(Constant.FEE_RATE).setScale(CommonUtils.scale, BigDecimal.ROUND_UP);
@@ -881,7 +807,7 @@ public class ContractOrderManager {
                 com.fota.common.Result result = contractService.updateBalances(contractDealers);
                 profiler.complelete("update balance");
                 if (!result.isSuccess()) {
-                    throw new RuntimeException("update balance failed, params={}"+ dealers);
+                    throw new BizException(ResultCodeEnum.BALANCE_NOT_ENOUGH.getCode(), "update balance failed, params="+ dealers);
                 }
             }
             postProcessAfterMatch(askContractOrder, bidContractOrder, contractMatchedOrderDO, transferTime, contractMatchedOrderDTO);
@@ -892,38 +818,7 @@ public class ContractOrderManager {
         return resultCode;
     }
 
-    private boolean multiLock(Set<String> locks) {
-        Set<String> locked = new HashSet<>();
-        for (String lock : locks) {
-            boolean suc = lock(lock);
-            if (!suc) {
-                locked.forEach(redisManager::releaseLock);
-                return false;
-            }
-            locked.add(lock);
-        }
-        return true;
-    }
 
-    private boolean lock(String lock) {
-        long st = System.currentTimeMillis();
-        boolean suc = false;
-        int i=0;
-        for (;i < MAX_UPDATE_RETRIES;i++)
-        {
-            suc = redisManager.tryLock(lock, Duration.ofMinutes(10));
-            if (suc) {
-                break;
-            }
-            randomSleep();
-        }
-        if (!suc) {
-            log.error("lock failed, key="+lock);
-            return false;
-        }
-        log.info("lock profile: key={}, retries={}, cost={}",lock, i, System.currentTimeMillis() - st);
-        return true;
-    }
 
     private void saveToRedis(ContractOrderDO contractOrderDO,  long completeAmount,  Map<String, Object> orderContext, long matchId){
 
@@ -950,11 +845,8 @@ public class ContractOrderManager {
 
     }
 
-    public void postProcessAfterMatch(ContractOrderDO contractOrderDO1, ContractOrderDO contractOrderDO2, ContractMatchedOrderDO contractMatchedOrderDO,
+    public void postProcessAfterMatch(ContractOrderDO askContractOrder, ContractOrderDO bidContractOrder, ContractMatchedOrderDO contractMatchedOrderDO,
                                      long updateOrderTime, ContractMatchedOrderDTO contractMatchedOrderDTO){
-
-        ContractOrderDO askContractOrder = contractOrderMapper.selectByPrimaryKey(contractOrderDO1.getId());
-        ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(contractOrderDO2.getId());
 
 
         Map<String, Object> askOrderContext = new HashMap<>();
@@ -1076,7 +968,7 @@ public class ContractOrderManager {
         }
         boolean suc =  doUpdatePosition(userPositionDO, newAveragePrice, newTotalAmount);
         if (!suc) {
-            throw new RuntimeException("doUpdate position failed");
+            throw new BizException(CONCURRENT_PROBLEM.getCode(), "doUpdate position failed");
         }
         return result;
     }
@@ -1088,13 +980,6 @@ public class ContractOrderManager {
         }catch (Throwable t) {
             log.error("insert position exception", t);
             return false;
-        }
-    }
-    private void randomSleep(){
-        try {
-            Thread.sleep(10);
-        } catch (InterruptedException e) {
-            new RuntimeException(e);
         }
     }
 
@@ -1279,7 +1164,7 @@ public class ContractOrderManager {
         try{
             aff = contractOrderMapper.updateAmountAndStatus(id, filledAmount, filledPrice, gmtModified);
         }catch (Throwable t) {
-            throw new RuntimeException(String.format("update contract order failed, orderId={}, filledAmount={}, filledPrice={}, gmtModified={}",
+            throw new RuntimeException(String.format("update contract order failed, orderId=%d, filledAmount=%s, filledPrice=%s, gmtModified=%s",
                     id, filledAmount, filledPrice, gmtModified),t);
         }
         if (0 == aff) {

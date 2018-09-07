@@ -79,12 +79,7 @@ public class Consumer {
                 MessageExt messageExt = msgs.get(0);
 
                 String mqKey = messageExt.getKeys();
-                String lockKey = "LOCK_MESSAGE_KEY_"+ mqKey;
-                boolean locked = redisManager.tryLock(lockKey, Duration.ofMinutes(1));
-                if (!locked) {
-                    logFailMsg("get lock failed!", messageExt);
-                    return ConsumeConcurrentlyStatus.RECONSUME_LATER;
-                }
+
                 ResultCode resultCode = null;
 
                 try {
@@ -123,8 +118,6 @@ public class Consumer {
                     redisManager.sSet(Constant.MQ_REPET_JUDGE_KEY_TRADE, mqKey);
                 } catch (Exception e) {
                     logFailMsg(messageExt, e);
-                }finally {
-                    redisManager.releaseLock(lockKey);
                 }
                 if (resultCode.getCode() == ILLEGAL_PARAM.getCode() || resultCode.getCode() == BALANCE_NOT_ENOUGH.getCode()) {
                     logSuccessMsg(messageExt, "illegal param or balance is not enough");

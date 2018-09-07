@@ -39,7 +39,7 @@ public class UsdkOrderManagerTest {
         tradeUsdkOrder.setId(444L);
         tradeUsdkOrder.setAssetId(2);
         tradeUsdkOrder.setOrderDirection(2);
-        usdkMatchedOrderService.cancelOrderUsdk(tradeUsdkOrder);
+//        usdkMatchedOrderService.cancelOrderUsdk(tradeUsdkOrder);
     }
 
     @Test
