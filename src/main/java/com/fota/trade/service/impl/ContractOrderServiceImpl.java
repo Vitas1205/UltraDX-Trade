@@ -6,6 +6,7 @@ import com.fota.asset.service.ContractService;
 import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.ResultCode;
+import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.manager.ContractLeverManager;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.RedisManager;
@@ -17,14 +18,18 @@ import com.fota.trade.util.DateUtil;
 import com.fota.trade.util.PriceUtil;
 import com.fota.trade.util.Profiler;
 import com.fota.trade.util.ThreadContextUtil;
+import com.google.common.base.Joiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.*;
 
+import static com.fota.trade.common.ResultCodeEnum.LOCK_FAILED;
 import static com.fota.trade.common.ResultCodeEnum.SYSTEM_ERROR;
+import static java.util.stream.Collectors.toSet;
 
 /**
  * @Author: JianLi.Gao
@@ -65,6 +70,8 @@ public class ContractOrderServiceImpl implements
     private ContractService getContractService() {
         return contractService;
     }
+
+    private static final int MAX_RETRIES = 10000;
 
 
     @Override
@@ -180,13 +187,15 @@ public class ContractOrderServiceImpl implements
             }
             return result;
         }catch (Exception e){
-            log.error("Contract order() failed", e);
-            if (e instanceof BusinessException){
-                BusinessException businessException = (BusinessException) e;
-                result.setCode(businessException.getCode());
-                result.setMessage(businessException.getMessage());
+            if (e instanceof BizException){
+                BizException bizException = (BizException) e;
+                log.error("place order failed, code={}, msg={}", bizException.getCode(), bizException.getMessage());
+                result.setCode(bizException.getCode());
+                result.setMessage(bizException.getMessage());
                 result.setData(0L);
                 return result;
+            }else {
+                log.error("Contract order() failed", e);
             }
         }finally {
             profiler.log();
@@ -312,12 +321,47 @@ public class ContractOrderServiceImpl implements
 
     @Override
     public ResultCode updateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO) {
+        if (contractMatchedOrderDTO == null) {
+            log.error(ResultCodeEnum.ILLEGAL_PARAM.getMessage());
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
+        }
+
+        ContractOrderDO askContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getAskOrderId());
+        ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
+
+        ResultCode checkResult = checkParam(askContractOrder, bidContractOrder, contractMatchedOrderDTO);
+        if (!checkResult.isSuccess()) {
+            return checkResult;
+        }
+
+        //排序，防止死锁
+        List<ContractOrderDO> contractOrderDOS = new ArrayList<>();
+        contractOrderDOS.add(askContractOrder);
+        contractOrderDOS.add(bidContractOrder);
+        Collections.sort(contractOrderDOS, (a, b) -> {
+            int c = a.getUserId().compareTo(b.getUserId());
+            if (c!=0) {
+                return c;
+            }
+            return a.getId().compareTo(b.getId());
+        });
+
         Profiler profiler = new Profiler("ContractOrderManager.updateOrderByMatch");
         ThreadContextUtil.setPrifiler(profiler);
-        try {
+        //获取锁
+        Set<String> locks = contractOrderDOS.stream().map(x -> "POSITION_LOCK_"+ x.getUserId()+"_"+ x.getContractId())
+                .collect(toSet());
 
-            ResultCode code = contractOrderManager.updateOrderByMatch(contractMatchedOrderDTO);
+        log.info("locks={}", locks);
+        boolean suc = redisManager.multiConcurrentLock(locks, Duration.ofSeconds(120), MAX_RETRIES);
+        profiler.complelete("lock");
+        if (!suc) {
+            return ResultCode.error(LOCK_FAILED.getCode(), LOCK_FAILED.getMessage());
+        }
+        try {
+            ResultCode code = contractOrderManager.updateOrderByMatch(askContractOrder, bidContractOrder, contractOrderDOS, contractMatchedOrderDTO);
             if (code.isSuccess()) {
+                locks.forEach(redisManager::releaseLock);
                 //执行事务之外的任务
                 Runnable postTask = ThreadContextUtil.getPostTask();
                 if (null == postTask) {
@@ -328,16 +372,51 @@ public class ContractOrderServiceImpl implements
             return code;
 
         } catch (Exception e) {
-            log.error("updateOrderByMatch exception, match_order={}", contractMatchedOrderDTO, e);
+            locks.forEach(redisManager::releaseLock);
             if (e instanceof BizException) {
                 BizException bE = (BizException) e;
                 return ResultCode.error(bE.getCode(), bE.getMessage());
+            }else {
+                log.error("updateOrderByMatch exception, match_order={}", contractMatchedOrderDTO, e);
+                return ResultCode.error(SYSTEM_ERROR.getCode(), SYSTEM_ERROR.getMessage());
             }
-            return ResultCode.error(SYSTEM_ERROR.getCode(), SYSTEM_ERROR.getMessage());
         }finally {
             profiler.log();
             ThreadContextUtil.clear();
         }
+    }
+
+    private  ResultCode checkParam(ContractOrderDO askContractOrder, ContractOrderDO bidContractOrder, ContractMatchedOrderDTO contractMatchedOrderDTO) {
+        if (askContractOrder == null){
+            log.error("askContractOrder not exist, matchOrder={}",  contractMatchedOrderDTO);
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
+        }
+        if (bidContractOrder == null){
+            log.error("bidOrderContext not exist, matchOrder={}", contractMatchedOrderDTO);
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
+        }
+
+        String messageKey = Joiner.on("-").join(contractMatchedOrderDTO.getAskOrderId().toString(),
+                contractMatchedOrderDTO.getAskOrderStatus(), contractMatchedOrderDTO.getBidOrderId(),
+                contractMatchedOrderDTO.getBidOrderStatus());
+
+        if (askContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0) {
+            log.error("ask unfilledAmount not enough.order={}, messageKey={}", askContractOrder, messageKey);
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
+        }
+        if (bidContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0) {
+            log.error("bid unfilledAmount not enough.order={}, messageKey={}",bidContractOrder, messageKey);
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
+        }
+        if (askContractOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && askContractOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()) {
+            log.error("ask order status illegal{}", askContractOrder);
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
+        }
+        if (bidContractOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && bidContractOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()) {
+            log.error("bid order status illegal{}", bidContractOrder);
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
+        }
+        return ResultCode.success();
     }
 
     /**

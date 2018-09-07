@@ -39,6 +39,8 @@ public enum ResultCodeEnum {
     ORDER_CAN_NOT_CANCLE(120018, "ORDER_CAN_NOT_CANCLE"),
     ENFORCE_ORDER_CANNOT_BE_CANCELED(120020, "ENFORCE_ORDER_CANNOT_BE_CANCELED"),
     BALANCE_NOT_ENOUGH(120021, "balance is not enough"),
+    LOCK_FAILED(120022, "get lock failed"),
+    CONCURRENT_PROBLEM(120023, "concurrent problem"),
 
 
     ;

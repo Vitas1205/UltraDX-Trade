@@ -84,7 +84,7 @@ public class ContractTest {
             Map<String, String> map = new HashMap<>();
             map.put("usernmae", "123");
             map.put("ip", "192.169.1.1");
-            contractOrderService.order(contractOrderDTO,map);
+            //contractOrderService.order(contractOrderDTO,map);
         }
         //int insertContractOrderRet = contractOrderMapper.insertSelective(BeanUtils.copy(contractOrderDTO));
     }
@@ -118,7 +118,7 @@ public class ContractTest {
     @Test
     public void cancleAllOrder(){
         Long userId = 284L;
-        contractOrderService.cancelAllOrder(userId);
+        //contractOrderService.cancelAllOrder(userId);
     }
 
     @Test

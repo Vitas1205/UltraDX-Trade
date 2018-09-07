@@ -85,7 +85,7 @@ public class UsdkTradeTest {
         Map<String, String> map = new HashMap<>();
         map.put("usernmae", "123");
         map.put("ip", "192.169.1.1");
-        usdkOrderManager.cancelAllOrder(175L, map);
+        //usdkOrderManager.cancelAllOrder(175L, map);
     }
 
 

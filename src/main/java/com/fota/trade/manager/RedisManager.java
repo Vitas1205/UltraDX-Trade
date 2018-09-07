@@ -380,6 +380,45 @@ public class RedisManager {
         return suc;
     }
 
+    public boolean multiConcurrentLock(Set<String> locks, Duration expireTime, Integer maxRetries) {
+        Set<String> locked = new HashSet<>();
+        for (String lock : locks) {
+            boolean suc = concurrentLock(lock, expireTime,  maxRetries);
+            if (!suc) {
+                locked.forEach(this::releaseLock);
+                return false;
+            }
+            locked.add(lock);
+        }
+        return true;
+    }
+
+    public boolean concurrentLock(String lock, Duration expireTime, Integer maxRetries) {
+        long st = System.currentTimeMillis();
+        boolean suc = false;
+        int i=0;
+        for (;i < maxRetries;i++)
+        {
+            suc = tryLock(lock, expireTime);
+            if (suc) {
+                break;
+            }
+            randomSleep();
+        }
+        if (!suc) {
+            log.error("lock failed, key="+lock);
+            return false;
+        }
+        log.info("lock profile: key={}, retries={}, cost={}",lock, i, System.currentTimeMillis() - st);
+        return true;
+    }
+    private void randomSleep(){
+        try {
+            Thread.sleep(10);
+        } catch (InterruptedException e) {
+            new RuntimeException(e);
+        }
+    }
 
     public Long inc(String key, long value) {
         ValueOperations<String, Object> ops = redisTemplate.opsForValue();

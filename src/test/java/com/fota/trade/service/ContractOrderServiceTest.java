@@ -116,9 +116,9 @@ public class ContractOrderServiceTest {
 
 //        contractService.addTotaldAmount(askUserId, new BigDecimal(500000000));
 //        contractService.addTotaldAmount(bidUserId, new BigDecimal(500000000));
-        int insertRet = contractOrderMapper.insertSelective(askContractOrder);
-        int ret2 = contractOrderMapper.insertSelective(bidContractOrder);
-        Assert.assertTrue(insertRet > 0 && ret2 > 0);
+        //int insertRet = contractOrderMapper.insertSelective(askContractOrder);
+        //int ret2 = contractOrderMapper.insertSelective(bidContractOrder);
+        //Assert.assertTrue(insertRet > 0 && ret2 > 0);
     }
 
     @Test
@@ -182,8 +182,8 @@ public class ContractOrderServiceTest {
         contractMatchedOrderDTO.setBidOrderPrice(bidContractOrder.getPrice().toString());
         contractMatchedOrderDTO.setBidOrderStatus(bidContractOrder.getStatus());
         contractMatchedOrderDTO.setMatchType(1);
-        ResultCode resultCode = contractOrderService.updateOrderByMatch(contractMatchedOrderDTO);
-        Assert.assertTrue(resultCode.isSuccess());
+        //ResultCode resultCode = contractOrderService.updateOrderByMatch(contractMatchedOrderDTO);
+        //Assert.assertTrue(resultCode.isSuccess());
     }
 
     private UserPositionDO cloneObject(UserPositionDO userPositionDO){
@@ -195,7 +195,7 @@ public class ContractOrderServiceTest {
         return newObj;
     }
 
-//    @Test
+    @Test
     public void testRollbackMatchedOrder() throws ParseException {
         checkPoint = new Date();
         originAskBalance = assetService.getContractAccount(askUserId);
@@ -300,7 +300,7 @@ public class ContractOrderServiceTest {
         contractOrderDTO.setCloseType(OrderCloseTypeEnum.SYSTEM.getCode());
         contractOrderDTO.setFee(new BigDecimal(0.01));
         contractOrderDTO.setUnfilledAmount(10L);
-        contractOrderService.order(contractOrderDTO, userInfoMap);
+        //contractOrderService.order(contractOrderDTO, userInfoMap);
     }
 
     @Test
