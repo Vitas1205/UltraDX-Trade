@@ -333,9 +333,6 @@ public class ContractOrderServiceImpl implements
             return checkResult;
         }
 
-        Profiler profiler = new Profiler("ContractOrderManager.updateOrderByMatch");
-        ThreadContextUtil.setPrifiler(profiler);
-
         //排序，防止死锁
         List<ContractOrderDO> contractOrderDOS = new ArrayList<>();
         contractOrderDOS.add(askContractOrder);
@@ -348,18 +345,22 @@ public class ContractOrderServiceImpl implements
             return a.getId().compareTo(b.getId());
         });
 
+        Profiler profiler = new Profiler("ContractOrderManager.updateOrderByMatch");
+        ThreadContextUtil.setPrifiler(profiler);
         //获取锁
         Set<String> locks = contractOrderDOS.stream().map(x -> "POSITION_LOCK_"+ x.getUserId()+"_"+ x.getContractId())
                 .collect(toSet());
 
         log.info("locks={}", locks);
         boolean suc = redisManager.multiConcurrentLock(locks, Duration.ofSeconds(120), MAX_RETRIES);
+        profiler.complelete("lock");
         if (!suc) {
             return ResultCode.error(LOCK_FAILED.getCode(), LOCK_FAILED.getMessage());
         }
         try {
             ResultCode code = contractOrderManager.updateOrderByMatch(askContractOrder, bidContractOrder, contractOrderDOS, contractMatchedOrderDTO);
             if (code.isSuccess()) {
+                locks.forEach(redisManager::releaseLock);
                 //执行事务之外的任务
                 Runnable postTask = ThreadContextUtil.getPostTask();
                 if (null == postTask) {
@@ -370,6 +371,7 @@ public class ContractOrderServiceImpl implements
             return code;
 
         } catch (Exception e) {
+            locks.forEach(redisManager::releaseLock);
             if (e instanceof BizException) {
                 BizException bE = (BizException) e;
                 return ResultCode.error(bE.getCode(), bE.getMessage());
@@ -378,7 +380,6 @@ public class ContractOrderServiceImpl implements
                 return ResultCode.error(SYSTEM_ERROR.getCode(), SYSTEM_ERROR.getMessage());
             }
         }finally {
-            locks.forEach(redisManager::releaseLock);
             profiler.log();
             ThreadContextUtil.clear();
         }

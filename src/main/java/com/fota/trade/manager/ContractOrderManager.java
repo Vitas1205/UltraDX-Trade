@@ -807,7 +807,7 @@ public class ContractOrderManager {
                 com.fota.common.Result result = contractService.updateBalances(contractDealers);
                 profiler.complelete("update balance");
                 if (!result.isSuccess()) {
-                    throw new BizException(ResultCodeEnum.BALANCE_NOT_ENOUGH.getCode(), "update balance failed, params="+ dealers);
+                    throw new RuntimeException("update balance failed, params="+ dealers);
                 }
             }
             postProcessAfterMatch(askContractOrder, bidContractOrder, contractMatchedOrderDO, transferTime, contractMatchedOrderDTO);

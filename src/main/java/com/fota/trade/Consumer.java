@@ -111,7 +111,7 @@ public class Consumer {
                     }
 
                     if (resultCode != null && resultCode.getCode() != null && !resultCode.isSuccess()
-                            && !(resultCode.getCode() == ILLEGAL_PARAM.getCode() || resultCode.getCode() == BALANCE_NOT_ENOUGH.getCode())) {
+                            && !(resultCode.getCode() == ILLEGAL_PARAM.getCode()) ) {
                         logFailMsg(null, messageExt);
                         return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                     }
@@ -119,7 +119,7 @@ public class Consumer {
                 } catch (Exception e) {
                     logFailMsg(messageExt, e);
                 }
-                if (resultCode.getCode() == ILLEGAL_PARAM.getCode() || resultCode.getCode() == BALANCE_NOT_ENOUGH.getCode()) {
+                if (resultCode.getCode() == ILLEGAL_PARAM.getCode()) {
                     logSuccessMsg(messageExt, "illegal param or balance is not enough");
                 }else {
                     logSuccessMsg(messageExt, null);
