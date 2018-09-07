@@ -30,9 +30,8 @@ public class ContractOrderTest {
     private ContractOrderManager contractOrderManager;
 
     @Test
-    @Ignore
     public void test() {
-        Long userId = 188L;
+        Long userId = 282L;
         Map<String, BigDecimal> resultMap = new HashMap<>();
         resultMap = contractOrderManager.getAccountMsg(userId);
         log.info("--------"+resultMap);

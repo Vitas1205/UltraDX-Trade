@@ -1,5 +1,6 @@
 package com.fota.trade.service;
 
+import com.fota.common.Page;
 import com.fota.trade.domain.ContractMatchedOrderDO;
 import com.fota.trade.domain.DeliveryCompletedDTO;
 import com.fota.trade.domain.UserPositionDTO;
@@ -47,7 +48,14 @@ public class UserPositionServiceTest {
         UserPositionQuery userPositionQuery = new UserPositionQuery();
         userPositionQuery.setUserId(9528L);
         userPositionQuery.setContractId(1001L);
-        com.fota.common.Page<com.fota.trade.domain.UserPositionDTO> page = userPositionService.listPositionByQuery(482,100, 1, 10 );
+        Page<UserPositionDTO> page = userPositionService.listPositionByQuery(482,100, 1, 10 );
+//        Assert.assertTrue(null != page && null != page.getData());
+    }
+
+    @Test
+    public void testlistPositionByUserIdAndContractId() throws Exception {
+        Page<UserPositionDTO> page = userPositionService.listPositionByUserIdAndContractId(188L,null, 1, 10 );
+        log.info(page.toString());
 //        Assert.assertTrue(null != page && null != page.getData());
     }
 
@@ -56,6 +64,7 @@ public class UserPositionServiceTest {
         List<UserPositionDTO> list = userPositionService.listPositionByUserId(285L);
         log.info("----"+list.size());
     }
+
 
     @Test
     public void testDeliveryPosition() {
@@ -88,7 +97,7 @@ public class UserPositionServiceTest {
         contractMatchedOrderDO.setAskUserId(211L);
         contractMatchedOrderDO.setContractId(1000L);
         contractMatchedOrderDO.setFilledAmount(new BigDecimal("8"));
-        contractOrderManager.updateTotalPosition(contractMatchedOrderDO);
+        //contractOrderManager.updateTotalPosition(contractMatchedOrderDO);
     }
 
     @Test

@@ -258,4 +258,52 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
         result.success(totalPositionMargin);
         return result;
     }
+
+    @Override
+    public Page<UserPositionDTO> listPositionByUserIdAndContractId(Long userId, Long contractId, Integer pageNo, Integer pageSize) {
+        UserPositionQuery userPositionQuery = new UserPositionQuery();
+        userPositionQuery.setPageNo(pageNo);
+        userPositionQuery.setPageSize(pageSize);
+        userPositionQuery.setContractId(contractId);
+        userPositionQuery.setUserId(userId);
+        userPositionQuery.setStatus(PositionStatusEnum.UNDELIVERED.getCode());
+        Page<UserPositionDTO> page = new Page<UserPositionDTO>();
+        if (userPositionQuery.getPageNo() <= 0) {
+            userPositionQuery.setPageNo(Constant.DEFAULT_PAGE_NO);
+        }
+        if (userPositionQuery.getPageSize() <= 0
+                || userPositionQuery.getPageSize() > 50) {
+            userPositionQuery.setPageSize(Constant.DEFAULT_MAX_PAGE_SIZE);
+        }
+        page.setPageNo(userPositionQuery.getPageNo());
+        page.setPageSize(userPositionQuery.getPageSize());
+        userPositionQuery.setStartRow((userPositionQuery.getPageNo() - 1) * userPositionQuery.getPageSize());
+        userPositionQuery.setEndRow(userPositionQuery.getPageSize());
+        int total = 0;
+        try {
+            total = userPositionMapper.countByQuery(ParamUtil.objectToMap(userPositionQuery));
+        } catch (Exception e) {
+            log.error("userPositionMapper.countByQuery({})", userPositionQuery, e);
+            return page;
+        }
+        page.setTotal(total);
+        if (total == 0) {
+            return page;
+        }
+        List<UserPositionDO> userPositionDOList = null;
+        List<UserPositionDTO> list = new ArrayList<>();
+        try {
+            userPositionDOList = userPositionMapper.listByQuery(ParamUtil.objectToMap(userPositionQuery));
+            if (userPositionDOList != null && userPositionDOList.size() > 0) {
+                for (UserPositionDO tmp : userPositionDOList) {
+                    list.add(BeanUtils.copy(tmp));
+                }
+            }
+        } catch (Exception e) {
+            log.error("userPositionMapper.listByQuery({})", userPositionQuery, e);
+            return page;
+        }
+        page.setData(list);
+        return page;
+    }
 }

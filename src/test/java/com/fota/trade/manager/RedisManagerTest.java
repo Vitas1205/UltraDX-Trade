@@ -41,7 +41,7 @@ public class RedisManagerTest {
     public void sSetTest(){
         UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
         usdkOrderDO.setId(9996L);
-        redisManager.sSet("sSetTest_KEY",JSONObject.toJSONString(usdkOrderDO));
+        //redisManager.sSet("sSetTest_KEY",JSONObject.toJSONString(usdkOrderDO));
     }
 
     @Test
@@ -49,8 +49,8 @@ public class RedisManagerTest {
 //        UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
 //        usdkOrderDO.setId(9999L);
 //        long ret = redisManager.sRemove("sSetTest_KEY",JSONObject.toJSONString(usdkOrderDO));
-        Set set = redisManager.sMember("sSetTest_KEY");
-        log.info(set.toString());
+        //Set set = redisManager.sMember("sSetTest_KEY");
+        //log.info(set.toString());
     }
 
     @Test
