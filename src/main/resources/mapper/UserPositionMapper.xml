@@ -21,7 +21,7 @@
 
   <sql id="Base_Column_List" >
     id, gmt_create as gmtCreate, gmt_modified as gmtModified, user_id as userId, contract_id as contractId, contract_name as contractName, locked_amount as lockedAmount,
-    unfilled_amount as unfilledAmount, position_type as positionType, average_price as averagePrice, status, lever, contract_size
+    unfilled_amount as unfilledAmount, position_type as positionType, average_price as averagePrice, status, lever, contract_size as contractSize
   </sql>
 
   <insert id="insertSelective" parameterType="com.fota.trade.domain.UserPositionDO" >
@@ -166,6 +166,9 @@
     <if test="userId != null" >
       and user_id=#{userId,jdbcType=BIGINT}
     </if>
+    <if test="status != null" >
+      and status=#{status,jdbcType=INTEGER}
+    </if>
   </select>
 
   <select id="listByQuery" parameterType="com.fota.trade.domain.query.UserPositionQuery" resultType="com.fota.trade.domain.UserPositionDO">
@@ -179,8 +182,19 @@
     <if test="userId > 0" >
       and user_id=#{userId,jdbcType=BIGINT}
     </if>
+    <if test="status != null" >
+      and status=#{status,jdbcType=INTEGER}
+    </if>
     order by gmt_create desc
     limit #{startRow,jdbcType=INTEGER}, #{endRow,jdbcType=INTEGER}
+  </select>
+
+  <select id="countTotalPosition" resultType="java.lang.Long">
+    select sum(unfilled_amount)
+    from trade_user_position
+    where status = 1
+    and position_type = 1
+    and contract_id = #{contractId, jdbcType=BIGINT}
   </select>
 
 </mapper>

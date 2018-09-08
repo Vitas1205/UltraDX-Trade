@@ -1,5 +1,6 @@
 package com.fota.trade.domain;
 
+import com.fota.trade.domain.enums.OrderStatusEnum;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -18,8 +19,8 @@ public class ContractOrderDO {
     private Long contractId;
     private String contractName;
     private Integer orderDirection;
-    private Integer orderType;
     private Integer operateType;
+    private Integer orderType;
     private Integer operateDirection;
     private Integer lever;
     private Long totalAmount;
@@ -31,4 +32,18 @@ public class ContractOrderDO {
     private BigDecimal positionLockedAmount;
     private Integer status;
     private BigDecimal averagePrice;
+    private String orderContext;
+
+    public boolean fillAmount(long filledAmount) {
+        if (filledAmount - filledAmount < 0) {
+            return false;
+        }
+        unfilledAmount -= filledAmount;
+        if (unfilledAmount == 0) {
+            setStatus(OrderStatusEnum.MATCH.getCode());
+        } else {
+            setStatus(OrderStatusEnum.PART_MATCH.getCode());
+        }
+        return true;
+    }
 }

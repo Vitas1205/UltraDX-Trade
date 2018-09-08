@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.fota.trade.common.Constant;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.dto.CompetitorsPriceDTO;
+import com.fota.trade.domain.enums.PositionStatusEnum;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.mapper.ContractCategoryMapper;
@@ -18,8 +19,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -69,14 +73,18 @@ public class ContractTest {
 
             ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
             //contractOrderDTO.setContractId(1000);
-            contractOrderDTO.setContractName("BTC0102");
+            contractOrderDTO.setContractName("BTC0203");
+            contractOrderDTO.setContractId(1001L);
             contractOrderDTO.setUserId(282L);
             contractOrderDTO.setOrderDirection(1);
             contractOrderDTO.setOperateType(0);
-            contractOrderDTO.setOrderType(0);
+            contractOrderDTO.setOrderType(1);
             contractOrderDTO.setTotalAmount(1L);
-            //contractOrderDTO.setPrice("8500");
-            contractOrderService.order(contractOrderDTO);
+            contractOrderDTO.setPrice(new BigDecimal("8500"));
+            Map<String, String> map = new HashMap<>();
+            map.put("usernmae", "123");
+            map.put("ip", "192.169.1.1");
+            //contractOrderService.order(contractOrderDTO,map);
         }
         //int insertContractOrderRet = contractOrderMapper.insertSelective(BeanUtils.copy(contractOrderDTO));
     }
@@ -110,31 +118,29 @@ public class ContractTest {
     @Test
     public void cancleAllOrder(){
         Long userId = 284L;
-        contractOrderService.cancelAllOrder(userId);
+        //contractOrderService.cancelAllOrder(userId);
     }
 
     @Test
     public void competitorsPriceList_test(){
         Object competiorsPriceObj = redisManager.get(Constant.CONTRACT_COMPETITOR_PRICE_KEY);
-        List<CompetitorsPriceDTO> competitorsPriceList = JSON.parseArray(competiorsPriceObj.toString(),CompetitorsPriceDTO.class);
-        log.info("---------------"+competitorsPriceList);
+        //List<CompetitorsPriceDTO> competitorsPriceList = JSON.parseArray(competiorsPriceObj.toString(),CompetitorsPriceDTO.class);
+        //log.info("---------------"+competitorsPriceList);
     }
 
     @Test
     public void TestSelect(){
-        Long userId = 9527L;
-        /*Long orderId = 349L;
+        Long userId = 17764594330L;
+        Long orderId = 107480908236466L;
         ContractOrderDO contractOrderDO = contractOrderMapper.selectByIdAndUserId(orderId,userId);
-        log.info(contractOrderDO.toString());*/
-        List<ContractOrderDO> list = contractOrderMapper.selectByUserId(userId);
-        log.info("----------------"+list.size());
+        log.info(contractOrderDO.toString());
     }
 
     @Test
     public void testbug(){
-        long userId = 201L;
+        long userId = 17764594100L;
         List<ContractCategoryDO> queryList = contractCategoryMapper.getAllContractCategory();
-        List<UserPositionDO> positionlist = userPositionMapper.selectByUserId(userId);
+        List<UserPositionDO> positionlist = userPositionMapper.selectByUserId(userId, PositionStatusEnum.DELIVERED.getCode());
         for (ContractCategoryDO contractCategoryDO : queryList){
             List<UserPositionDO> userPositionDOlist = new ArrayList<>();
             userPositionDOlist = positionlist.stream().filter(userPosition-> userPosition.getContractId().equals(contractCategoryDO.getId()))

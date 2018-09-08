@@ -1,9 +1,8 @@
 package com.fota.trade.common;
 
-import com.fota.trade.domain.ContractCategoryDO;
-import com.fota.trade.domain.ContractCategoryDTO;
-import com.fota.trade.domain.UsdkOrderDO;
-import com.fota.trade.domain.UsdkOrderDTO;
+import com.alibaba.fastjson.JSON;
+import com.fota.match.domain.MatchedOrderMarketDTO;
+import com.fota.trade.domain.*;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,10 +37,11 @@ public class BeanUtilsTest {
     public void testCopy() throws Exception {
         UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
         usdkOrderDTO.setUserId(234L);
-        usdkOrderDTO.setGmtCreate(new Date().getTime());
+        usdkOrderDTO.setGmtCreate(new Date());
         UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
         org.springframework.beans.BeanUtils.copyProperties(usdkOrderDTO, usdkOrderDO);
         Assert.assertTrue(usdkOrderDO.getUserId() == 234L);
     }
+
 
 }

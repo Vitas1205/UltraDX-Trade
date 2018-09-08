@@ -4,28 +4,25 @@ import lombok.Getter;
 
 /**
  * @author Gavin Shen
- * @Date 2018/8/7
+ * @Date 2018/8/30
  */
-public enum PositionType {
+public enum PositionStatusEnum {
 
     /**
-     * 多仓
+     * 未交割
      */
-    OVER(2, "OVER"),
+    UNDELIVERED(1, "UNDELIVERED"),
     /**
-     * 空仓
+     * 已交割
      */
-    EMPTY(1, "EMPTY"),
+    DELIVERED(2, "DELIVERED"),
     ;
-
     @Getter
     private int code;
     private String desc;
 
-    PositionType(int code, String desc) {
+    PositionStatusEnum(int code, String desc) {
         this.code = code;
         this.desc = desc;
     }
-
-
 }

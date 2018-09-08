@@ -32,7 +32,17 @@ public interface ContractCategoryMapper {
         "id, gmt_create, gmt_modified, contract_name, asset_id, asset_name, total_amount, ",
         "unfilled_amount, delivery_date, status, contract_type, price, contract_size",
         "from trade_contract_category",
-        "where id = #{id,jdbcType=BIGINT}"
+        "where status = #{status,jdbcType=TINYINT}"
+    })
+    @ResultMap("BaseResultMap")
+    List<ContractCategoryDO> selectByStatus(Integer status);
+
+    @Select({
+            "select",
+            "id, gmt_create, gmt_modified, contract_name, asset_id, asset_name, total_amount, ",
+            "unfilled_amount, delivery_date, status, contract_type, price, contract_size",
+            "from trade_contract_category",
+            "where id = #{id,jdbcType=BIGINT}"
     })
     @ResultMap("BaseResultMap")
     ContractCategoryDO selectByPrimaryKey(Long id);
@@ -83,4 +93,12 @@ public interface ContractCategoryMapper {
             "where id = #{id,jdbcType=BIGINT}"
     })
     int deleteByPrimaryKey(Long id);
+
+    @Update({
+            "update trade_contract_category",
+            "set status = #{status,jdbcType=INTEGER},",
+            "gmt_modified = now()",
+            "where id = #{id,jdbcType=BIGINT}"
+    })
+    int updataStatusById(@Param("id") Long id, @Param("status") Integer status);
 }

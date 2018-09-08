@@ -13,7 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author Gavin Shen
@@ -57,11 +59,12 @@ public class UserPositionMapperTest {
     @Test
     public void testListByQuery() throws Exception {
         UserPositionQuery userPositionQuery = new UserPositionQuery();
-        userPositionQuery.setUserId(userId);
-        userPositionQuery.setContractId(1L);
+   //     userPositionQuery.setUserId(userId);
+        userPositionQuery.setContractId(1000L);
         userPositionQuery.setPageNo(1);
         userPositionQuery.setPageSize(20);
         List<UserPositionDO> list = userPositionMapper.listByQuery(ParamUtil.objectToMap(userPositionQuery));
+        System.out.println(list);
 //        Assert.assertTrue(list != null && list.size() >= 1);
 //        Assert.assertTrue(list.get(0).getUserId().longValue() ==  userId.longValue());
     }
@@ -72,4 +75,21 @@ public class UserPositionMapperTest {
         Assert.assertTrue(deleteRet > 0);
     }
 
+    @Test
+    public void testLamda() throws Exception {
+        List<UserPositionDO> positionlist = new ArrayList<>();
+        List<UserPositionDO> userPositionDOlist = new ArrayList<>();
+        UserPositionDO userPositionDO = new UserPositionDO();
+        userPositionDO.setContractId(2L);
+        positionlist.add(userPositionDO);
+        userPositionDOlist = positionlist.stream().filter(userPosition-> userPosition.getContractId().equals(282L))
+                .limit(1).collect(Collectors.toList());
+        Assert.assertTrue(userPositionDOlist.size() > 0);
+    }
+
+    @Test
+    public void test_countTotalPosition() {
+        Long result = userPositionMapper.countTotalPosition(1000L);
+        System.out.println("result : "+ result);
+    }
 }

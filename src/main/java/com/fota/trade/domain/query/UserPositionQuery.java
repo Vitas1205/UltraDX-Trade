@@ -14,4 +14,5 @@ public class UserPositionQuery extends PageQuery implements Serializable{
     private static final long serialVersionUID = 8046590860424387795L;
     private Long contractId;
     private Long userId;
+    private Integer status;
 }

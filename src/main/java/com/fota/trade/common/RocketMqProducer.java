@@ -33,16 +33,15 @@ public class RocketMqProducer {
      * @param pushMsg
      * @return
      */
-    public Boolean producer(String topic, String tag, String key, String pushMsg){
+    public Boolean producer(String topic, String tag, String key, byte[] pushMsg){
 
         SendResult result = null;
         try {
-//            producer.start();
-            Message msg = new Message(topic,tag,key, pushMsg.getBytes("UTF-8"));
+            Message msg = new Message(topic,tag,key, pushMsg);
             result = producer.send(msg, 1000); // 消息在1S内没有发送成功，就会重试
 
             if (SendStatus.SEND_OK == result.getSendStatus()){
-                log.info("向Topic：{}，发送消息：{}，消息发送成功", topic, pushMsg);
+                log.info("向Topic：{}，发送消息：{}，消息发送成功", topic, new String(pushMsg));
             }else if (SendStatus.FLUSH_DISK_TIMEOUT == result.getSendStatus()){
                 log.error("向Topic：{}，发送消息：{}，消息发送成功，但是服务器刷盘超时，消息已经进入服务器队列，只有此时服务器宕机，消息才会丢失", topic, pushMsg);
             }else if (SendStatus.FLUSH_SLAVE_TIMEOUT == result.getSendStatus()){

@@ -17,6 +17,7 @@
         <result column="fee" jdbcType="DECIMAL" property="fee" />
         <result column="filled_price" jdbcType="DECIMAL" property="filledPrice" />
         <result column="filled_amount" jdbcType="DECIMAL" property="filledAmount" />
+        <result column="contract_id" property="contractId"/>
         <result column="contract_name" jdbcType="VARCHAR" property="contractName" />
     </resultMap>
     <insert id="insert" parameterType="com.fota.trade.domain.ContractMatchedOrderDO">
@@ -27,21 +28,165 @@
         ask_order_price, ask_user_id, ask_close_type,
         bid_order_id, bid_order_price, bid_user_id,
         bid_close_type, match_type, fee,
-        filled_price, filled_amount, contract_name
+        filled_price, filled_amount, contract_name,contract_id,status
         )
-        values (#{gmtCreate,jdbcType=TIMESTAMP}, now(), #{askOrderId,jdbcType=BIGINT},
+        values (#{gmtCreate}, #{gmtModified}, #{askOrderId,jdbcType=BIGINT},
         #{askOrderPrice,jdbcType=DECIMAL}, #{askUserId,jdbcType=BIGINT}, #{askCloseType,jdbcType=TINYINT},
         #{bidOrderId,jdbcType=BIGINT}, #{bidOrderPrice,jdbcType=DECIMAL}, #{bidUserId,jdbcType=BIGINT},
         #{bidCloseType,jdbcType=TINYINT}, #{matchType,jdbcType=TINYINT}, #{fee,jdbcType=DECIMAL},
         #{filledPrice,jdbcType=DECIMAL}, #{filledAmount,jdbcType=DECIMAL}, #{contractName,jdbcType=VARCHAR}
+        ,#{contractId}, #{status}
         )
     </insert>
 
-    <select id="getTodayFee" resultType="java.math.BigDecimal">
-        SELECT SUM fee
+    <sql id="Base_Column_List">
+        id, gmt_create, gmt_modified, ask_order_id, ask_order_price, ask_user_id, ask_close_type, bid_order_id, bid_order_price,
+        bid_user_id, bid_close_type, match_type, fee, filled_price, filled_amount, contract_id, contract_name
+    </sql>
+
+    <select id="getAllFee" resultType="java.math.BigDecimal">
+        SELECT sum(fee)
         FROM contract_matched_order
         WHERE gmt_create > #{startDate} AND gmt_create &lt; #{endDate}
     </select>
 
+    <select id="count" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM contract_matched_order
+        WHERE 1=1
+        <if test="sourceId != null" >
+            and contract_id=#{sourceId}
+        </if>
+        <if test="userId != null" >
+            and user_id=#{userId}
+        </if>
+        <if test="startTime != null">
+            and gmt_create &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            and gmt_create &lt; #{endTime}
+        </if>
+    </select>
 
+    <select id="queryMatchedOrder" resultMap="BaseResultMap">
+        SELECT *
+        FROM contract_matched_order
+        WHERE 1=1
+        <if test="sourceId != null" >
+            and contract_id=#{sourceId}
+        </if>
+        <if test="userId != null" >
+            and user_id=#{userId}
+        </if>
+        <if test="startTime != null">
+            and gmt_create &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            and gmt_create &lt; #{endTime}
+        </if>
+        order by gmt_create desc
+        limit #{startRow}, #{endRow}
+    </select>
+
+    <select id="countByUserId" resultType="java.lang.Integer">
+        select sum(a) from(
+        select count(*) a from contract_matched_order where
+        1=1
+        <if test="endTime != null">
+            and gmt_create &lt; #{endTime}
+        </if>
+        <if test="startTime != null">
+            and gmt_create &gt;= #{startTime}
+        </if>
+        <if test="contractIds != null and contractIds.size != 0">
+            and contract_id in
+            <foreach item="item" index="index" collection="contractIds" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="userId != null">
+            and bid_user_id=#{userId}
+        </if>
+        UNION ALL
+        select count(*) a from contract_matched_order where
+        1=1
+        <if test="endTime != null">
+            and gmt_create &lt; #{endTime}
+        </if>
+        <if test="startTime != null">
+            and gmt_create &gt;= #{startTime}
+        </if>
+        <if test="contractIds != null and contractIds.size != 0">
+            and contract_id in
+            <foreach item="item" index="index" collection="contractIds" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="userId != null">
+            and ask_user_id=#{userId}
+        </if>
+        ) b
+    </select>
+
+    <select id="listByUserId" resultMap="BaseResultMap">
+        select * from
+        (select
+        <include refid="Base_Column_List" />
+        from contract_matched_order
+        where 1=1
+        <if test="endTime != null">
+            and gmt_create &lt; #{endTime}
+        </if>
+        <if test="startTime != null">
+            and gmt_create &gt;= #{startTime}
+        </if>
+        <if test="contractIds != null and contractIds.size != 0">
+            and contract_id in
+            <foreach item="item" index="index" collection="contractIds" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="userId != null">
+            and bid_user_id=#{userId}
+        </if>
+        UNION ALL
+        select
+        <include refid="Base_Column_List" />
+        from contract_matched_order
+        where 1=1
+        <if test="endTime != null">
+            and gmt_create &lt; #{endTime}
+        </if>
+        <if test="startTime != null">
+            and gmt_create &gt;= #{startTime}
+        </if>
+        <if test="contractIds != null and contractIds.size != 0">
+            and contract_id in
+            <foreach item="item" index="index" collection="contractIds" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="userId != null">
+            and ask_user_id=#{userId}
+        </if>) a
+        order by gmt_create DESC
+        limit #{startRow}, #{endRow}
+    </select>
+
+    <select id="getLatestContractMatched" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from contract_matched_order where status = 1
+        order by gmt_create desc
+        limit 1
+    </select>
+
+    <select id="getLatestContractMatchedList" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List" />
+        from contract_matched_order
+        where id &lt; #{id} and contract_id = #{contractId} and status = 1
+        order by gmt_create desc
+        limit 50
+    </select>
 </mapper>

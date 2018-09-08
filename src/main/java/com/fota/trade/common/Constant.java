@@ -21,6 +21,17 @@ public class Constant {
     public static final BigDecimal FEE_RATE = new BigDecimal("0.001");
     public static final String CACHE_KEY_MATCH_CONTRACT = "CACHE_KEY_MATCH_CONTRACT_";
     public static final String CACHE_KEY_MATCH_USDK = "CACHE_KEY_MATCH_USDK_";
-    public static final String MQ_REPET_JUDGE_KEY = "MQ_REPET_JUDGE_KEY";
+    public static final String MQ_REPET_JUDGE_KEY_TRADE = "MQ_REPET_JUDGE_KEY_TRADE";
+    public static final String ENTRUST_MARGIN = "entrustMargin";
+    public static final String POSITION_MARGIN = "positionMargin";
+    public static final String FLOATING_PL = "floatingPL";
+    public static final String LAST_USDT_MATCH_PRICE = "FOTA_LATEST_USDT_MATCHED_ORDER_";
+    public static final String LAST_CONTRACT_MATCH_PRICE = "FOTA_LATEST_CONTRACT_MATCHED_ORDER_";
+    public static final String REDIS_USDT_CANCEL_ORDER_RESULT = "cancel_usdt_order_result";
+    public static final String REDIS_CONTRACT_CANCEL_ORDER_RESULT = "cancel_contract_order_result";
+    public static final String CONTRACT_TOTAL_POSITION = "FOTA_CONTRACT_TOTAL_POSITION_";
 
+    //-------------------Redis-------------------//
+    public static final String REDIS_USDT_ORDER_FOR_MATCH_HASH = "usdt_order_for_match_hash";
+    public static final String REDIS_CONTRACT_ORDER_FOR_MATCH_HASH = "contract_order_for_match_hash";
 }

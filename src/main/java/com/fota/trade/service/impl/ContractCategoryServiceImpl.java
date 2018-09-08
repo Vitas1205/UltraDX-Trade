@@ -1,19 +1,35 @@
 package com.fota.trade.service.impl;
 
+import com.fota.common.Result;
+import com.fota.trade.client.RollbackTask;
 import com.fota.trade.common.BeanUtils;
-import com.fota.trade.domain.ContractCategoryDO;
-import com.fota.trade.domain.ContractCategoryDTO;
+import com.fota.trade.common.BizException;
+import com.fota.trade.common.BusinessException;
+import com.fota.trade.common.ResultCodeEnum;
+import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.ContractStatus;
 import com.fota.trade.domain.enums.ContractStatusEnum;
+import com.fota.trade.manager.RedisManager;
+import com.fota.trade.manager.RollbackManager;
 import com.fota.trade.mapper.ContractCategoryMapper;
+import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.service.ContractCategoryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import static com.fota.trade.common.ResultCodeEnum.CONTRACT_IS_ROLLING_BACK;
+import static com.fota.trade.common.ResultCodeEnum.SYSTEM_ERROR;
 
 /**
  * @author Gavin Shen
@@ -25,6 +41,14 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
 
     @Resource
     private ContractCategoryMapper contractCategoryMapper;
+    @Resource
+    private ContractMatchedOrderMapper matchedOrderMapper;
+    @Autowired
+    RedisTemplate redisTemplate;
+    @Resource
+    private RedisManager redisManager;
+    @Autowired
+    private RollbackManager rollbackManager;
 
     @Override
     public List<ContractCategoryDTO> listActiveContract() {
@@ -86,6 +110,32 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
         return new ContractCategoryDTO();
     }
 
+    /**
+     * 根据合约状态获取合约详情
+     *
+     * @param status
+     * @return
+     */
+    @Override
+    public List<ContractCategoryDTO> getContractByStatus(Integer status) {
+        if (status <= 0) {
+            return null;
+        }
+        try {
+            List<ContractCategoryDO> listDO = contractCategoryMapper.selectByStatus(status);
+            List<ContractCategoryDTO> listDTO = new ArrayList<ContractCategoryDTO>();
+            if (!CollectionUtils.isEmpty(listDO)){
+                for(ContractCategoryDO temp : listDO){
+                    listDTO.add(BeanUtils.copy(temp));
+                }
+            }
+            return listDTO;
+        } catch (Exception e) {
+            log.error("contractCategoryMapper.selectByStatus({})", status, e);
+        }
+        return new ArrayList<ContractCategoryDTO>();
+    }
+
     @Override
     public ContractCategoryDTO getPreviousContract(long l) {
         return null;
@@ -133,6 +183,7 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
 
     /**
      * 更新合约状态
+     * @王冕
      *
      * @param id
      * @param contractStatus
@@ -140,7 +191,51 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
      */
     @Override
     public int updateContractStatus(long id, ContractStatus contractStatus) {
+        try {
+            int ret = contractCategoryMapper.updataStatusById(id, contractStatus.getCode());
+            return ret;
+        } catch (Exception e) {
+            log.error("updateContractStatus failed ({})", id, e);
+        }
         return 0;
     }
 
+    @Override
+    public Result<RollbackResponse> rollback(Date safePoint, long contractId) {
+        log.info("start to rollback, time={}, contractId={}", safePoint, contractId);
+        String rollbackKey = RollbackTask.getContractRollbackLock(contractId);
+        Result result = Result.create();
+        RollbackResponse response = new RollbackResponse();
+        response.setContractId(contractId);
+        response.setSafePoint(safePoint);
+        result.setData(result);
+
+        //加锁，同一合约只能有一个回滚任务进行
+        if (!redisManager.tryLock(rollbackKey, Duration.ofHours(24))) {
+            return result.error(CONTRACT_IS_ROLLING_BACK.getCode(), CONTRACT_IS_ROLLING_BACK.getMessage());
+        }
+        try {
+            ResultCode resultCode = rollbackManager.rollBack(safePoint, contractId);
+            return result.error(resultCode.getCode(), resultCode.getMessage());
+        } catch (Exception e) {
+            log.error("rollback failed, time={}, contractId={}", safePoint, contractId, e);
+            if (e instanceof BizException) {
+                BizException bizE = (BizException) e;
+                return result.error(bizE.getCode(), bizE.getMessage());
+            }
+            return result.error(SYSTEM_ERROR.getCode(), SYSTEM_ERROR.getMessage());
+        }finally {
+            redisManager.releaseLock(rollbackKey);
+        }
+    }
+
+    /**
+     * @param timestamp
+     * @param contractId
+     * @return
+     */
+    @Override
+    public ResultCode rollback(Long timestamp, Long contractId) {
+        return ResultCode.error(SYSTEM_ERROR.getCode(), SYSTEM_ERROR.getMessage());
+    }
 }

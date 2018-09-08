@@ -1,7 +1,12 @@
 package com.fota.trade.service;
 
+import com.fota.trade.common.Result;
+import com.fota.trade.common.ResultCode;
 import com.fota.trade.domain.BaseQuery;
+import com.fota.trade.domain.UsdkOrderDTO;
+import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
+import com.fota.trade.domain.enums.OrderTypeEnum;
 import com.fota.trade.mapper.UsdkOrderMapper;
 import com.fota.trade.service.impl.UsdkOrderServiceImpl;
 import org.junit.Assert;
@@ -13,8 +18,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
-import java.util.ArrayList;
-import java.util.List;
+import java.math.BigDecimal;
+import java.util.*;
 
 /**
  * @author Gavin Shen
@@ -30,7 +35,7 @@ public class UsdkOrderServiceTest {
     @Resource
     private UsdkOrderMapper usdkOrderMapper;
 
-    private Long userId = 9528L;
+    private Long userId = 274L;
     @Test
     public void testListUsdkOrderByQuery() throws Exception {
         BaseQuery usdkOrderQuery = new BaseQuery();
@@ -39,6 +44,14 @@ public class UsdkOrderServiceTest {
         usdkOrderQuery.setUserId(userId);
         com.fota.common.Page<com.fota.trade.domain.UsdkOrderDTO> result = usdkOrderService.listUsdkOrderByQuery(usdkOrderQuery);
 //        Assert.assertTrue(result != null && result.getData() != null && result.getData() != null);
+    }
+
+    @Test
+    public void testCancelOrder() throws Exception {
+        Long orderId = 715669044238909L;
+        Long userId = 282L;
+        Map<String, String> userInfoMap = new HashMap<>();
+        //usdkOrderService.cancelOrder(userId, orderId, userInfoMap);
     }
 
     @Test
@@ -54,6 +67,47 @@ public class UsdkOrderServiceTest {
         usdkOrderQuery.setOrderStatus(orderStatus);
         com.fota.common.Page<com.fota.trade.domain.UsdkOrderDTO> result = usdkOrderService.listUsdkOrderByQuery(usdkOrderQuery);
 //        Assert.assertTrue(result != null && result.getData() != null && result.getData() != null);
+    }
+
+    @Test
+    public void testOrderReturnId(){
+        UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
+        usdkOrderDTO.setCompleteAmount(new BigDecimal(0));
+        usdkOrderDTO.setUserId(282L);
+        usdkOrderDTO.setAssetId(1);
+        usdkOrderDTO.setAssetName("BTC");
+        usdkOrderDTO.setAveragePrice(new BigDecimal(0));
+        usdkOrderDTO.setFee(new BigDecimal(0.01));
+        usdkOrderDTO.setOrderDirection(OrderDirectionEnum.ASK.getCode());
+        usdkOrderDTO.setOrderType(OrderTypeEnum.LIMIT.getCode());
+        usdkOrderDTO.setGmtCreate(new Date());
+        usdkOrderDTO.setPrice(new BigDecimal(6000));
+        usdkOrderDTO.setUnfilledAmount(new BigDecimal(10));
+        usdkOrderDTO.setTotalAmount(new BigDecimal(10));
+        usdkOrderDTO.setMatchAmount("0");
+        //com.fota.common.Result result = usdkOrderService.orderReturnId(usdkOrderDTO, new HashMap<>());
+        //System.out.println(result.getData());
+       // assert result.isSuccess()
+                //&& (long)result.getData() >0;
+    }
+
+    @Test
+    public void testPlaceOrder(){
+        UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
+        usdkOrderDTO.setUserId(282L);
+        usdkOrderDTO.setAssetId(1);
+        usdkOrderDTO.setAssetName("BTC");
+        usdkOrderDTO.setAveragePrice(new BigDecimal(0));
+        usdkOrderDTO.setFee(new BigDecimal(0.01));
+        usdkOrderDTO.setOrderDirection(OrderDirectionEnum.BID.getCode());
+        usdkOrderDTO.setOrderType(OrderTypeEnum.ENFORCE.getCode());
+        usdkOrderDTO.setPrice(new BigDecimal(6000));
+        usdkOrderDTO.setTotalAmount(new BigDecimal(2));
+        Map<String, Object> map = new HashMap();
+        usdkOrderDTO.setOrderContext(map);
+        Map<String, String> map2 =  new HashMap<String, String>();
+        map2.put("username", "harry");
+        //com.fota.trade.domain.ResultCode result = usdkOrderService.order(usdkOrderDTO, map2);
     }
 
     @Test

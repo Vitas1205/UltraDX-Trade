@@ -26,6 +26,11 @@
 	</properties>
 
 	<dependencies>
+		<dependency>
+			<groupId>com.fota</groupId>
+			<artifactId>ticker-client</artifactId>
+			<version>1.0.2-SNAPSHOT</version>
+		</dependency>
 		<!--log4j-->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -112,19 +117,25 @@
 		<dependency>
 			<groupId>com.fota</groupId>
 			<artifactId>asset-client</artifactId>
-			<version>1.0.1-SNAPSHOT</version>
+			<version>1.0.2-SNAPSHOT</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.fota</groupId>
 			<artifactId>match-client</artifactId>
-			<version>1.0.3-SNAPSHOT</version>
+			<version>1.0.0-SNAPSHOT</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.fota</groupId>
 			<artifactId>trade-client</artifactId>
-            <version>1.0.5-SNAPSHOT</version>
+            <version>1.0.3-SNAPSHOT</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.fota</groupId>
+			<artifactId>common-client</artifactId>
+			<version>1.0.1-SNAPSHOT</version>
 		</dependency>
 
 		<dependency>
@@ -196,6 +207,14 @@
 				<configuration>
 					<verbose>true</verbose>
 					<overwrite>true</overwrite>
+				</configuration>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<testFailureIgnore>true</testFailureIgnore>
 				</configuration>
 			</plugin>
 		</plugins>
