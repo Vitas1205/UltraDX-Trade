@@ -356,8 +356,8 @@ public class ContractOrderServiceImpl implements
         }
         try {
             ResultCode code = contractOrderManager.updateOrderByMatch(contractMatchedOrderDTO);
+            locks.forEach(redisManager::releaseLock);
             if (code.isSuccess()) {
-                locks.forEach(redisManager::releaseLock);
                 //执行事务之外的任务
                 Runnable postTask = ThreadContextUtil.getPostTask();
                 if (null == postTask) {
