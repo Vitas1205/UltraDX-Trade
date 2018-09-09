@@ -251,7 +251,7 @@ public class ContractOrderManager {
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO );
         contractOrderDTO.setCompleteAmount(0L);
         contractOrderDTO.setContractId(contractOrderDO.getContractId());
-        redisManager.contractOrderSave(contractOrderDTO);
+        //redisManager.contractOrderSave(contractOrderDTO);
         if (contractOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()) {
             // 强平单
             tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
@@ -386,7 +386,7 @@ public class ContractOrderManager {
         if (jsonObject != null && !jsonObject.isEmpty()) {
             username = jsonObject.get("username") == null ? "" : jsonObject.get("username").toString();
         }
-        redisManager.contractOrderSave(contractOrderDTO);
+        //redisManager.contractOrderSave(contractOrderDTO);
         tradeLog.info("cancelorder@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                 2, contractOrderDTO.getContractName(), username, ipAddress, contractOrderDTO.getUnfilledAmount(),
                 System.currentTimeMillis(), 2, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 1);
@@ -919,8 +919,8 @@ public class ContractOrderManager {
 
         long filledAmount = contractMatchedOrderDO.getFilledAmount().longValue();
         //存入Redis缓存 有相关撮合
-        saveToRedis(askContractOrder, filledAmount, askOrderContext, contractMatchedOrderDO.getId());
-        saveToRedis(bidContractOrder, filledAmount, bidOrderContext, contractMatchedOrderDO.getId());
+        //saveToRedis(askContractOrder, filledAmount, askOrderContext, contractMatchedOrderDO.getId());
+        //saveToRedis(bidContractOrder, filledAmount, bidOrderContext, contractMatchedOrderDO.getId());
 
         // 向MQ推送消息
         // 通过contractId去trade_contract_category表里面获取asset_name和contract_type

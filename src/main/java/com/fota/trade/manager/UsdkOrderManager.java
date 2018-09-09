@@ -210,7 +210,7 @@ public class UsdkOrderManager {
                     1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getTotalAmount(), transferTime, 1, usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 2);
         }
         usdkOrderDTO.setCompleteAmount(BigDecimal.ZERO);
-        redisManager.usdkOrderSave(usdkOrderDTO);
+        //redisManager.usdkOrderSave(usdkOrderDTO);
         //todo 发送RocketMQ
         OrderMessage orderMessage = new OrderMessage();
         orderMessage.setOrderId(usdkOrderDO.getId());
@@ -331,7 +331,7 @@ public class UsdkOrderManager {
             BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
             BigDecimal matchAmount = usdkOrderDTO.getTotalAmount().subtract(usdkOrderDTO.getUnfilledAmount());
             usdkOrderDTO.setCompleteAmount(matchAmount);
-            redisManager.usdkOrderSave(usdkOrderDTO);
+            //redisManager.usdkOrderSave(usdkOrderDTO);
             JSONObject jsonObject = JSONObject.parseObject(usdkOrderDO.getOrderContext());
             String username = "";
             if (jsonObject != null && !jsonObject.isEmpty()) {
@@ -523,7 +523,7 @@ public class UsdkOrderManager {
         bidUsdkOrderDTO.setCompleteAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
         askUsdkOrderDTO.setStatus(usdkMatchedOrderDTO.getAskOrderStatus());
         bidUsdkOrderDTO.setStatus(usdkMatchedOrderDTO.getAskOrderStatus());
-        redisManager.usdkOrderSave(askUsdkOrderDTO);
+        //redisManager.usdkOrderSave(askUsdkOrderDTO);
         String askUsername = "";
         String bidUsername = "";
         if (askOrderContext != null){
@@ -535,7 +535,7 @@ public class UsdkOrderManager {
         // TODO add get username
         tradeLog.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                 1, askUsdkOrderDTO.getAssetName(), askUsername, askUsdkOrderDTO.getCompleteAmount(), System.currentTimeMillis(), 4, askUsdkOrderDTO.getOrderDirection(), askUsdkOrderDTO.getUserId(), 1);
-        redisManager.usdkOrderSave(bidUsdkOrderDTO);
+        //redisManager.usdkOrderSave(bidUsdkOrderDTO);
         tradeLog.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                 1, bidUsdkOrderDTO.getAssetName(), bidUsername, bidUsdkOrderDTO.getCompleteAmount(), System.currentTimeMillis(), 4,  bidUsdkOrderDTO.getOrderDirection(), bidUsdkOrderDTO.getUserId(), 1);
         // 向MQ推送消息

@@ -117,7 +117,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
             result = usdkOrderManager.placeOrder(usdkOrderDTO, userInfoMap);
             if (result.isSuccess()) {
                 tradeLog.info("下单@@@" + usdkOrderDTO);
-                redisManager.usdtOrderSaveForMatch(usdkOrderDTO);
+                //redisManager.usdtOrderSaveForMatch(usdkOrderDTO);
             }
             resultCode.setCode(result.getCode());
             resultCode.setMessage(result.getMessage());
@@ -142,7 +142,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
             result = usdkOrderManager.placeOrder(usdkOrderDTO, userInfoMap);
             if (result.isSuccess()) {
                 tradeLog.info("下单@@@" + usdkOrderDTO);
-                redisManager.usdtOrderSaveForMatch(usdkOrderDTO);
+                //redisManager.usdtOrderSaveForMatch(usdkOrderDTO);
             }
             return result;
         }catch (Exception e){
@@ -279,11 +279,11 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
                     UsdkMatchedOrderTradeDTO tempTarget = new UsdkMatchedOrderTradeDTO();
                     tempTarget.setAskCloseType(temp.getAskCloseType().intValue());
                     tempTarget.setAskOrderId(temp.getAskOrderId());
-                    tempTarget.setAskOrderPrice(temp.getAskOrderPrice().toString());
+                    tempTarget.setAskOrderPrice(temp.getAskOrderPrice()==null?"0":temp.getAskOrderPrice().toString());
                     tempTarget.setAskUserId(temp.getAskUserId());
                     tempTarget.setBidCloseType(temp.getBidCloseType().intValue());
                     tempTarget.setBidOrderId(temp.getBidOrderId());
-                    tempTarget.setBidOrderPrice(temp.getBidOrderPrice().toString());
+                    tempTarget.setBidOrderPrice(temp.getBidOrderPrice()==null?"0":temp.getBidOrderPrice().toString());
                     tempTarget.setBidUserId(temp.getBidUserId());
                     tempTarget.setAssetName(temp.getAssetName());
                     tempTarget.setUsdkMatchedOrderId(temp.getId());
@@ -359,6 +359,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
                 for (UsdkMatchedOrderDO usdkMatchedOrderDO : list) {
                     com.fota.trade.domain.UsdkMatchedOrderTradeDTO usdkMatchedOrderTradeDTO = new com.fota.trade.domain.UsdkMatchedOrderTradeDTO();
                     usdkMatchedOrderTradeDTO.setUsdkMatchedOrderId(usdkMatchedOrderDO.getId());
+                    if (usdkMatchedOrderDO.getAskOrderId() != null){}
                     usdkMatchedOrderTradeDTO.setAskOrderId(usdkMatchedOrderDO.getAskOrderId());
                     usdkMatchedOrderTradeDTO.setBidOrderId(usdkMatchedOrderDO.getBidOrderId());
                     usdkMatchedOrderTradeDTO.setFilledPrice(usdkMatchedOrderDO.getFilledPrice());

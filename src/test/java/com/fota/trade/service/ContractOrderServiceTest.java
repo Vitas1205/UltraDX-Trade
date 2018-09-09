@@ -238,9 +238,9 @@ public class ContractOrderServiceTest {
         ContractOrderDO curContract = contractOrderMapper.selectByPrimaryKey(contractOrderDO.getId());
         log.info("oldOrder={}", contractOrderDO);
         log.info("curOrder={}", curContract);
-        assert curContract.getUnfilledAmount() == contractOrderDO.getUnfilledAmount().longValue()
+        /*assert curContract.getUnfilledAmount() == contractOrderDO.getUnfilledAmount().longValue()
                 && curContract.getStatus().intValue() == contractOrderDO.getStatus()
-                && CommonUtils.equal(curContract.getAveragePrice(), contractOrderDO.getAveragePrice());
+                && CommonUtils.equal(curContract.getAveragePrice(), contractOrderDO.getAveragePrice());*/
     }
 
     private void checkPosition(long userId, long contractId, UserPositionDO userPositionDO) {

@@ -177,7 +177,7 @@ public class ContractOrderServiceImpl implements
             result = contractOrderManager.placeOrder(contractOrderDTO, userInfoMap);
             if (result.isSuccess()) {
                 tradeLog.info("下单@@@" + contractOrderDTO);
-                redisManager.contractOrderSaveForMatch(contractOrderDTO);
+                //redisManager.contractOrderSaveForMatch(contractOrderDTO);
                 Runnable postTask = ThreadContextUtil.getPostTask();
                 if (null == postTask) {
                     log.error("null postTask");

@@ -3,6 +3,7 @@ package com.fota.trade.service;
 import com.fota.trade.common.Result;
 import com.fota.trade.common.ResultCode;
 import com.fota.trade.domain.BaseQuery;
+import com.fota.trade.domain.UsdkMatchedOrderTradeDTOPage;
 import com.fota.trade.domain.UsdkOrderDTO;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
@@ -130,6 +131,20 @@ public class UsdkOrderServiceTest {
 //        ResultCode resultCode = usdkOrderService.updateOrderByMatch(usdkMatchedOrderDTO);
 
 //        Assert.assertTrue(resultCode != null && resultCode.isSuccess());
+    }
+
+    @Test
+    public void getUsdkMatchRecordTest(){
+        List<Long> assetIds = new ArrayList<>();
+        assetIds.add(2L);
+        assetIds.add(3L);
+        assetIds.add(4L);
+        Integer pageNo = 1;
+        Integer pageSize = 100;
+        Long startTime  = 1536226652433L;
+        Long endTime  = 1536485218068L;
+        UsdkMatchedOrderTradeDTOPage usdkMatchedOrderTradeDTOPage =
+                usdkOrderService.getUsdkMatchRecord(null, assetIds, pageNo, pageSize, startTime, endTime);
     }
 
 }
