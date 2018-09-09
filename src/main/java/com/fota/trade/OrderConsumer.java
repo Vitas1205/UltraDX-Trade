@@ -39,7 +39,8 @@ public class OrderConsumer {
 
     @Value("${spring.rocketmq.namesrv_addr}")
     private String namesrvAddr;
-
+    @Value("${spring.rocketmq.group}")
+    private String group;
     @Autowired
     private ContractOrderManager contractOrderManager;
 
@@ -50,7 +51,7 @@ public class OrderConsumer {
     private ObjectMapper objectMapper;
 
     public void init() throws InterruptedException, MQClientException {
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("fota-trade-testenv-order");
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group);
         consumer.setNamesrvAddr(namesrvAddr);
         consumer.setMaxReconsumeTimes(16);
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
