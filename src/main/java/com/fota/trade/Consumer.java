@@ -74,6 +74,7 @@ public class Consumer {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context) {
 
+                log.info("consumeMessage jjj {}", msgs.size());
                 if (CollectionUtils.isEmpty(msgs)) {
                     log.error("message error!");
                     return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
@@ -81,6 +82,8 @@ public class Consumer {
                 MessageExt messageExt = msgs.get(0);
 
                 String mqKey = messageExt.getKeys();
+                log.info("consumeMessage jjj {}", mqKey);
+
 
                 ResultCode resultCode = null;
 
