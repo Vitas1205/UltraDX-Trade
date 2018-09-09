@@ -329,10 +329,6 @@ public class ContractOrderServiceImpl implements
         ContractOrderDO askContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getAskOrderId());
         ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
 
-        ResultCode checkResult = checkParam(askContractOrder, bidContractOrder, contractMatchedOrderDTO);
-        if (!checkResult.isSuccess()) {
-            return checkResult;
-        }
 
         //排序，防止死锁
         List<ContractOrderDO> contractOrderDOS = new ArrayList<>();
@@ -359,7 +355,7 @@ public class ContractOrderServiceImpl implements
             return ResultCode.error(LOCK_FAILED.getCode(), LOCK_FAILED.getMessage());
         }
         try {
-            ResultCode code = contractOrderManager.updateOrderByMatch(askContractOrder, bidContractOrder, contractOrderDOS, contractMatchedOrderDTO);
+            ResultCode code = contractOrderManager.updateOrderByMatch(contractMatchedOrderDTO);
             if (code.isSuccess()) {
                 locks.forEach(redisManager::releaseLock);
                 //执行事务之外的任务
@@ -386,38 +382,7 @@ public class ContractOrderServiceImpl implements
         }
     }
 
-    private  ResultCode checkParam(ContractOrderDO askContractOrder, ContractOrderDO bidContractOrder, ContractMatchedOrderDTO contractMatchedOrderDTO) {
-        if (askContractOrder == null){
-            log.error("askContractOrder not exist, matchOrder={}",  contractMatchedOrderDTO);
-            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
-        }
-        if (bidContractOrder == null){
-            log.error("bidOrderContext not exist, matchOrder={}", contractMatchedOrderDTO);
-            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
-        }
 
-        String messageKey = Joiner.on("-").join(contractMatchedOrderDTO.getAskOrderId().toString(),
-                contractMatchedOrderDTO.getAskOrderStatus(), contractMatchedOrderDTO.getBidOrderId(),
-                contractMatchedOrderDTO.getBidOrderStatus());
-
-        if (askContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0) {
-            log.error("ask unfilledAmount not enough.order={}, messageKey={}", askContractOrder, messageKey);
-            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
-        }
-        if (bidContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0) {
-            log.error("bid unfilledAmount not enough.order={}, messageKey={}",bidContractOrder, messageKey);
-            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
-        }
-        if (askContractOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && askContractOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()) {
-            log.error("ask order status illegal{}", askContractOrder);
-            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
-        }
-        if (bidContractOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && bidContractOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()) {
-            log.error("bid order status illegal{}", bidContractOrder);
-            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
-        }
-        return ResultCode.success();
-    }
 
     /**
      * 获取昨天六点到今天六点的平台手续费

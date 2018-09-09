@@ -173,6 +173,7 @@ public class ContractOrderManager {
 
         Profiler profiler = null == ThreadContextUtil.getPrifiler() ?
                 new Profiler("ContractOrderManager.placeOrder"): ThreadContextUtil.getPrifiler();
+        profiler.complelete("start transaction");
         ContractOrderDO contractOrderDO = com.fota.trade.common.BeanUtils.copy(contractOrderDTO);
         String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
         String ipAddress = StringUtils.isEmpty(userInfoMap.get("ip")) ? "" : userInfoMap.get("ip");
@@ -738,8 +739,28 @@ public class ContractOrderManager {
      * @return
      */
     @Transactional(rollbackFor = {Throwable.class}, isolation = Isolation.REPEATABLE_READ, propagation = REQUIRED)
-    public ResultCode updateOrderByMatch(ContractOrderDO askContractOrder, ContractOrderDO bidContractOrder, List<ContractOrderDO> contractOrderDOS, ContractMatchedOrderDTO contractMatchedOrderDTO) {
+    public ResultCode updateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO) {
 
+
+        ContractOrderDO askContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getAskOrderId());
+        ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
+
+        ResultCode checkResult = checkParam(askContractOrder, bidContractOrder, contractMatchedOrderDTO);
+        if (!checkResult.isSuccess()) {
+            return checkResult;
+        }
+
+        //排序，防止死锁
+        List<ContractOrderDO> contractOrderDOS = new ArrayList<>();
+        contractOrderDOS.add(askContractOrder);
+        contractOrderDOS.add(bidContractOrder);
+        Collections.sort(contractOrderDOS, (a, b) -> {
+            int c = a.getUserId().compareTo(b.getUserId());
+            if (c!=0) {
+                return c;
+            }
+            return a.getId().compareTo(b.getId());
+        });
         Profiler profiler = null == ThreadContextUtil.getPrifiler()
                 ? new Profiler("ContractOrderManager.updateOrderByMatch"):ThreadContextUtil.getPrifiler();
 
@@ -822,6 +843,39 @@ public class ContractOrderManager {
         ThreadContextUtil.setPostTask(postTask);
         resultCode.setCode(ResultCodeEnum.SUCCESS.getCode());
         return resultCode;
+    }
+
+    private  ResultCode checkParam(ContractOrderDO askContractOrder, ContractOrderDO bidContractOrder, ContractMatchedOrderDTO contractMatchedOrderDTO) {
+        if (askContractOrder == null){
+            log.error("askContractOrder not exist, matchOrder={}",  contractMatchedOrderDTO);
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
+        }
+        if (bidContractOrder == null){
+            log.error("bidOrderContext not exist, matchOrder={}", contractMatchedOrderDTO);
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
+        }
+
+        String messageKey = Joiner.on("-").join(contractMatchedOrderDTO.getAskOrderId().toString(),
+                contractMatchedOrderDTO.getAskOrderStatus(), contractMatchedOrderDTO.getBidOrderId(),
+                contractMatchedOrderDTO.getBidOrderStatus());
+
+        if (askContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0) {
+            log.error("ask unfilledAmount not enough.order={}, messageKey={}", askContractOrder, messageKey);
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
+        }
+        if (bidContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0) {
+            log.error("bid unfilledAmount not enough.order={}, messageKey={}",bidContractOrder, messageKey);
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
+        }
+        if (askContractOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && askContractOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()) {
+            log.error("ask order status illegal{}", askContractOrder);
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
+        }
+        if (bidContractOrder.getStatus() != OrderStatusEnum.COMMIT.getCode() && bidContractOrder.getStatus() != OrderStatusEnum.PART_MATCH.getCode()) {
+            log.error("bid order status illegal{}", bidContractOrder);
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
+        }
+        return ResultCode.success();
     }
 
 
