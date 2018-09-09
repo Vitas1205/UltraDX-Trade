@@ -346,8 +346,7 @@ public class ContractOrderManager {
             log.error("Contract Is Null");
             throw new RuntimeException("Contract Is Null");
         }
-        if (contractCategoryDO.getStatus() != ContractStatusEnum.PROCESSING.getCode() && contractCategoryDO.getStatus() != ContractStatusEnum.DELIVERYING.getCode()
-                && contractCategoryDO.getStatus() != ContractStatusEnum.DELIVERED.getCode()){
+        if (contractCategoryDO.getStatus() != ContractStatusEnum.PROCESSING.getCode()){
             log.error("contract status illegal,can not cancel{}", contractCategoryDO);
             throw new RuntimeException("contractCategoryDO");
         }
