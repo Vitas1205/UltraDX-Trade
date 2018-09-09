@@ -51,7 +51,7 @@ public class OrderConsumer {
     private ObjectMapper objectMapper;
 
     public void init() throws InterruptedException, MQClientException {
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group);
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group + "_cancel");
         consumer.setNamesrvAddr(namesrvAddr);
         consumer.setMaxReconsumeTimes(16);
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
