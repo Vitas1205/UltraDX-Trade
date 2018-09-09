@@ -48,13 +48,15 @@ public class Consumer {
     private RedisManager redisManager;
     @Value("${spring.rocketmq.namesrv_addr}")
     private String namesrvAddr;
+    @Value("${spring.rocketmq.group}")
+    private String group;
 
     @Autowired
     private ContractOrderServiceImpl contractOrderService;
     public void init() throws InterruptedException, MQClientException {
         //声明并初始化一个consumer
         //需要一个consumer group名字作为构造方法的参数，这里为consumer1
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("fota-trade-testenv");
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group);
         //同样也要设置NameServer地址
         consumer.setNamesrvAddr(namesrvAddr);
         consumer.setMaxReconsumeTimes(32);
