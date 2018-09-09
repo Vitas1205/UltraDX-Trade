@@ -68,6 +68,7 @@ public class BeanUtils {
         contractCategoryDO.setStatus(contractCategoryDTO.getStatus());
         contractCategoryDO.setContractType(contractCategoryDTO.getContractType());
         contractCategoryDO.setPrice(new BigDecimal("0.01"));
+        contractCategoryDO.setContractSize(contractCategoryDTO.getContractSize());
         return contractCategoryDO;
     }
 

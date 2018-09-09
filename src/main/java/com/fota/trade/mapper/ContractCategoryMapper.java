@@ -15,13 +15,13 @@ public interface ContractCategoryMapper {
         "asset_id, asset_name, ",
         "total_amount, unfilled_amount, ",
         "delivery_date, status, ",
-        "contract_type, price)",
+        "contract_type, price, contract_size)",
         "values (#{gmtCreate,jdbcType=TIMESTAMP}, ",
         "#{gmtModified,jdbcType=TIMESTAMP}, #{contractName,jdbcType=VARCHAR}, ",
         "#{assetId,jdbcType=INTEGER}, #{assetName,jdbcType=VARCHAR}, ",
         "#{totalAmount,jdbcType=DECIMAL}, #{unfilledAmount,jdbcType=DECIMAL}, ",
         "#{deliveryDate,jdbcType=TIMESTAMP}, #{status,jdbcType=INTEGER}, ",
-        "#{contractType,jdbcType=TINYINT}, #{price,jdbcType=DECIMAL})"
+        "#{contractType,jdbcType=TINYINT}, #{price,jdbcType=DECIMAL}, #{contractSize})"
     })
     int insert(ContractCategoryDO record);
 

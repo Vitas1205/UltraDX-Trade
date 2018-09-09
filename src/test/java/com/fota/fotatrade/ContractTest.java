@@ -133,7 +133,7 @@ public class ContractTest {
         Long userId = 17764594330L;
         Long orderId = 107480908236466L;
         ContractOrderDO contractOrderDO = contractOrderMapper.selectByIdAndUserId(orderId,userId);
-        log.info(contractOrderDO.toString());
+        log.info(String.valueOf(contractOrderDO));
     }
 
     @Test
