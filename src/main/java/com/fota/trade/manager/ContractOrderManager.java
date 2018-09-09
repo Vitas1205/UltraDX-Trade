@@ -43,6 +43,7 @@ import java.util.function.Predicate;
 
 import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
 import static com.fota.trade.common.ResultCodeEnum.BALANCE_NOT_ENOUGH;
+import static com.fota.trade.common.ResultCodeEnum.BIZ_ERROR;
 import static com.fota.trade.common.ResultCodeEnum.CONCURRENT_PROBLEM;
 import static com.fota.trade.util.ContractUtils.computeAveragePrice;
 import static java.util.stream.Collectors.*;
@@ -184,7 +185,9 @@ public class ContractOrderManager {
         }
         newMap.put("username", username);
         contractOrderDTO.setOrderContext(newMap);
+        profiler.complelete("before json serialization");
         contractOrderDO.setOrderContext(JSONObject.toJSONString(contractOrderDTO.getOrderContext()));
+        profiler.complelete("json serialization");
         Long orderId = 0L;
         long transferTime = System.currentTimeMillis();
         contractOrderDO.setGmtCreate(new Date(transferTime));
@@ -319,7 +322,6 @@ public class ContractOrderManager {
      * @param orderId 委托单ID
      * @param status 撮合队列撤单结果 1-成功 0-失败
      */
-    @Transactional(rollbackFor = Exception.class)
     public void cancelOrderByMessage(String orderId, int status) {
         if (status == 1) {
             ContractOrderDO contractOrderDO = contractOrderMapper.selectByPrimaryKey(Long.parseLong(orderId));
@@ -343,38 +345,26 @@ public class ContractOrderManager {
         Integer status = contractOrderDO.getStatus();
         ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractOrderDO.getContractId());
         if (contractCategoryDO == null){
-            log.error("Contract Is Null");
-            throw new RuntimeException("Contract Is Null");
+            return ResultCode.error(BIZ_ERROR.getCode(),"contract is null, id="+contractOrderDO.getContractId());
         }
         if (contractCategoryDO.getStatus() != ContractStatusEnum.PROCESSING.getCode()){
             log.error("contract status illegal,can not cancel{}", contractCategoryDO);
-            throw new RuntimeException("contractCategoryDO");
+            return ResultCode.error(BIZ_ERROR.getCode(),"illegal status, id="+contractCategoryDO.getId() + ", status="+ contractCategoryDO.getStatus());
         }
         if (status == OrderStatusEnum.COMMIT.getCode()){
             contractOrderDO.setStatus(OrderStatusEnum.CANCEL.getCode());
         } else if (status == OrderStatusEnum.PART_MATCH.getCode()) {
             contractOrderDO.setStatus(OrderStatusEnum.PART_CANCEL.getCode());
-        } else if (status == OrderStatusEnum.MATCH.getCode() || status == OrderStatusEnum.PART_CANCEL.getCode() || status == OrderStatusEnum.CANCEL.getCode()) {
-            log.error("order has completed{}", contractOrderDO);
-            throw new RuntimeException("order has completed");
         } else {
-            log.error("order status illegal{}", contractOrderDO);
-            throw new RuntimeException("order status illegal");
+            return ResultCode.error(BIZ_ERROR.getCode(),"illegal order status, id="+contractOrderDO.getId() + ", status="+ contractOrderDO.getStatus());
         }
         Long transferTime = System.currentTimeMillis();
         log.info("------------contractCancelStartTimeStamp"+System.currentTimeMillis());
-        int ret = contractOrderMapper.updateByOpLock(contractOrderDO);
+        int ret = contractOrderMapper.updateStatus(contractOrderDO);
         log.info("------------contractCancelEndTimeStamp"+System.currentTimeMillis());
         if (ret > 0) {
-            /*UserContractDTO userContractDTO = getAssetService().getContractAccount(contractOrderDO.getUserId());
-            BigDecimal lockedAmount = new BigDecimal(userContractDTO.getLockedAmount());
-            BigDecimal totalLockAmount = getAccountDetailMsg(contractOrderDO.getUserId()).get(Constant.ENTRUST_MARGIN);
-            if (lockedAmount.compareTo(totalLockAmount) != 0) {
-                lockContractAccount(userContractDTO, totalLockAmount);
-            }*/
         } else {
-            log.error("update contractOrder Failed{}", contractOrderDO);
-            throw new RuntimeException("update contractOrder Failed");
+            return ResultCode.error(BIZ_ERROR.getCode(),"cancel failed, id="+ contractOrderDO.getId());
         }
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO);
@@ -386,7 +376,6 @@ public class ContractOrderManager {
         if (jsonObject != null && !jsonObject.isEmpty()) {
             username = jsonObject.get("username") == null ? "" : jsonObject.get("username").toString();
         }
-        //redisManager.contractOrderSave(contractOrderDTO);
         tradeLog.info("cancelorder@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                 2, contractOrderDTO.getContractName(), username, ipAddress, contractOrderDTO.getUnfilledAmount(),
                 System.currentTimeMillis(), 2, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 1);
