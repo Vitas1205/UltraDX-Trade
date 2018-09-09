@@ -270,7 +270,7 @@ public class ContractOrderServiceTest {
 
     @Test
     public void getContractMacthRecordTest() {
-        Long userId = 205L;
+        Long userId = 200L;
         List<Long> contractIds = null;
 //        contractIds.add(1000L);
 //        contractIds.add(1001L);
