@@ -31,6 +31,8 @@ public class RedisManager {
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
 
+    Random random = new Random();
+
     public boolean set(final String key, final Object value) {
         try {
             ValueOperations<String, Object> vOps = redisTemplate.opsForValue();
@@ -414,7 +416,8 @@ public class RedisManager {
     }
     private void randomSleep(){
         try {
-            Thread.sleep(10);
+            int mills = random.nextInt(10) + 10;
+            Thread.sleep(mills);
         } catch (InterruptedException e) {
             new RuntimeException(e);
         }
