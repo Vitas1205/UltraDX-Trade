@@ -45,6 +45,7 @@ import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
 import static com.fota.trade.common.ResultCodeEnum.BALANCE_NOT_ENOUGH;
 import static com.fota.trade.common.ResultCodeEnum.BIZ_ERROR;
 import static com.fota.trade.common.ResultCodeEnum.CONCURRENT_PROBLEM;
+import static com.fota.trade.domain.enums.ContractStatusEnum.PROCESSING;
 import static com.fota.trade.util.ContractUtils.computeAveragePrice;
 import static java.util.stream.Collectors.*;
 import static org.springframework.transaction.annotation.Propagation.REQUIRED;
@@ -98,13 +99,6 @@ public class ContractOrderManager {
     private ContractAccountService contractAccountService;
 
 
-
-    Random random = new Random();
-
-
-    private ContractService getContractService() {
-        return contractService;
-    }
 
     private AssetService getAssetService() {
         return assetService;
@@ -213,7 +207,7 @@ public class ContractOrderManager {
             result.setMessage(ResultCodeEnum.CONTRACT_HAS_DELIVERIED.getMessage());
             result.setData(orderId);
             return result;
-        }else if(contractCategoryDO.getStatus() == ContractStatusEnum.PROCESSING.getCode()){
+        }else if(contractCategoryDO.getStatus() == PROCESSING.getCode()){
         }else {
             result.setCode(ResultCodeEnum.CONTRACT_STATUS_ILLEGAL.getCode());
             result.setMessage(ResultCodeEnum.CONTRACT_STATUS_ILLEGAL.getMessage());
@@ -347,7 +341,7 @@ public class ContractOrderManager {
         if (contractCategoryDO == null){
             return ResultCode.error(BIZ_ERROR.getCode(),"contract is null, id="+contractOrderDO.getContractId());
         }
-        if (contractCategoryDO.getStatus() != ContractStatusEnum.PROCESSING.getCode()){
+        if (contractCategoryDO.getStatus() != PROCESSING.getCode()){
             log.error("contract status illegal,can not cancel{}", contractCategoryDO);
             return ResultCode.error(BIZ_ERROR.getCode(),"illegal status, id="+contractCategoryDO.getId() + ", status="+ contractCategoryDO.getStatus());
         }
@@ -729,7 +723,16 @@ public class ContractOrderManager {
     @Transactional(rollbackFor = {Throwable.class}, isolation = Isolation.REPEATABLE_READ, propagation = REQUIRED)
     public ResultCode updateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO) {
 
+        long contractId = contractMatchedOrderDTO.getContractId();
+        ContractCategoryDO contractCategoryDO = contractCategoryMapper.getContractCategoryById(contractId);
+        if (null == contractCategoryDO){
+            return ResultCode.error(BIZ_ERROR.getCode(), "null contractCategoryDO, id="+contractId);
+        }
+        if(!Objects.equals(PROCESSING.getCode(), contractCategoryDO.getStatus())) {
+            return ResultCode.error(BIZ_ERROR.getCode(), "illegal contract status, id="+contractId + ", status="+contractCategoryDO.getStatus());
+        }
 
+        BigDecimal contractSize = contractCategoryDO.getContractSize();
         ContractOrderDO askContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getAskOrderId());
         ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
 
@@ -768,8 +771,6 @@ public class ContractOrderManager {
         });
         profiler.complelete("update contract order");
 
-
-        BigDecimal contractSize = getContractSize(contractMatchedOrderDTO.getContractId());
         Map<ContractOrderDO, UpdatePositionResult> resultMap = new HashMap<>();
 
         //更新持仓
@@ -833,7 +834,7 @@ public class ContractOrderManager {
         return resultCode;
     }
 
-    private  ResultCode checkParam(ContractOrderDO askContractOrder, ContractOrderDO bidContractOrder, ContractMatchedOrderDTO contractMatchedOrderDTO) {
+    public   ResultCode checkParam(ContractOrderDO askContractOrder, ContractOrderDO bidContractOrder, ContractMatchedOrderDTO contractMatchedOrderDTO) {
         if (askContractOrder == null){
             log.error("askContractOrder not exist, matchOrder={}",  contractMatchedOrderDTO);
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
