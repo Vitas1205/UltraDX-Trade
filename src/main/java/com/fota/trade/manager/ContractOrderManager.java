@@ -125,11 +125,11 @@ public class ContractOrderManager {
         ResultCode resultCode = ResultCode.success();
         List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByContractId(contractId);
         if (!CollectionUtils.isEmpty(list)) {
-            Predicate<ContractOrderDO> isNotEnforce = contractOrderDO -> contractOrderDO.getOrderType() != OrderTypeEnum.ENFORCE.getCode();
+            //Predicate<ContractOrderDO> isNotEnforce = contractOrderDO -> contractOrderDO.getOrderType() != OrderTypeEnum.ENFORCE.getCode();
             Predicate<ContractOrderDO> isCommit = contractOrderDO -> contractOrderDO.getStatus() == OrderStatusEnum.COMMIT.getCode();
             Predicate<ContractOrderDO> isPartMatch = contractOrderDO -> contractOrderDO.getStatus() == OrderStatusEnum.PART_MATCH.getCode();
             Map<Long, List<Long>> orderMap = list.stream()
-                    .filter(isCommit.or(isPartMatch).and(isNotEnforce))
+                    .filter(isCommit.or(isPartMatch))
                     .collect(groupingBy(ContractOrderDO::getUserId, mapping(ContractOrderDO::getId, toList())));
 
             for (Map.Entry<Long, List<Long>> entry : orderMap.entrySet()) {
@@ -329,10 +329,6 @@ public class ContractOrderManager {
     }
 
     public ResultCode cancelOrderImpl(ContractOrderDO contractOrderDO, Map<String, String> userInfoMap) {
-        if (OrderTypeEnum.ENFORCE.getCode() == contractOrderDO.getOrderType()) {
-            log.error("enforce order can't be canceled, {}", contractOrderDO.getId());
-            throw new RuntimeException("enforce order can't be canceled");
-        }
         String ipAddress = StringUtils.isEmpty(userInfoMap.get("ip")) ? "" : userInfoMap.get("ip");
         ResultCode resultCode = new ResultCode();
         Integer status = contractOrderDO.getStatus();
@@ -408,7 +404,13 @@ public class ContractOrderManager {
     public ResultCode cancelAllOrder(Long userId, Map<String, String> userInfoMap) throws Exception {
         ResultCode resultCode = new ResultCode();
         List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByUserId(userId);
-        if (list != null){
+        List<ContractOrderDO> listFilter = new ArrayList<>();
+        for (ContractOrderDO temp : list){
+            if (temp.getOrderType() != OrderTypeEnum.ENFORCE.getCode()){
+                listFilter.add(temp);
+            }
+        }
+        if (listFilter != null){
             List<Long> orderIdList = list.stream()
                     .map(ContractOrderDO::getId)
                     .collect(toList());
