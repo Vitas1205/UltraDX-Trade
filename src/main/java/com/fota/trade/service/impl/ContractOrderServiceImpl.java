@@ -26,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.fota.trade.common.ResultCodeEnum.LOCK_FAILED;
 import static com.fota.trade.common.ResultCodeEnum.SYSTEM_ERROR;
@@ -71,7 +72,7 @@ public class ContractOrderServiceImpl implements
         return contractService;
     }
 
-    private static final int MAX_RETRIES = 500;
+    private static final int MAX_RETRIES = 1000;
 
 
     @Override
@@ -349,18 +350,21 @@ public class ContractOrderServiceImpl implements
         Profiler profiler = new Profiler("ContractOrderManager.updateOrderByMatch");
         ThreadContextUtil.setPrifiler(profiler);
         //获取锁
-        Set<String> locks = contractOrderDOS.stream().map(x -> "POSITION_LOCK_"+ x.getUserId()+"_"+ x.getContractId())
-                .collect(toSet());
+        //获取锁
+        List<String> locks = contractOrderDOS.stream()
+                .map(x -> "POSITION_LOCK_"+ x.getUserId()+"_"+ x.getContractId())
+                .distinct()
+                .collect(Collectors.toList());
 
         log.info("locks={}", locks);
-        boolean suc = redisManager.multiConcurrentLock(locks, Duration.ofSeconds(120), MAX_RETRIES);
+        boolean suc = redisManager.multiConcurrentLock(locks, Duration.ofSeconds(60), MAX_RETRIES);
         profiler.complelete("lock");
         if (!suc) {
             return ResultCode.error(LOCK_FAILED.getCode(), LOCK_FAILED.getMessage());
         }
         try {
             ResultCode code = contractOrderManager.updateOrderByMatch(contractMatchedOrderDTO);
-            locks.forEach(redisManager::releaseLock);
+            redisManager.multiUnLock(locks);
             if (code.isSuccess()) {
                 //执行事务之外的任务
                 Runnable postTask = ThreadContextUtil.getPostTask();
@@ -372,7 +376,7 @@ public class ContractOrderServiceImpl implements
             return code;
 
         } catch (Exception e) {
-            locks.forEach(redisManager::releaseLock);
+            redisManager.multiUnLock(locks);
             if (e instanceof BizException) {
                 BizException bE = (BizException) e;
                 return ResultCode.error(bE.getCode(), bE.getMessage());
