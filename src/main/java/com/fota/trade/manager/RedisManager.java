@@ -11,6 +11,8 @@ import org.springframework.data.redis.core.ListOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
+
 import javax.annotation.Resource;
 import java.time.Duration;
 import java.util.*;
@@ -382,17 +384,30 @@ public class RedisManager {
         return suc;
     }
 
-    public boolean multiConcurrentLock(Set<String> locks, Duration expireTime, Integer maxRetries) {
-        Set<String> locked = new HashSet<>();
+    public boolean multiConcurrentLock(List<String> locks, Duration expireTime, Integer maxRetries) {
+        List<String> locked = new ArrayList<>();
         for (String lock : locks) {
             boolean suc = concurrentLock(lock, expireTime,  maxRetries);
             if (!suc) {
-                locked.forEach(this::releaseLock);
+                multiUnLock(locked);
                 return false;
             }
             locked.add(lock);
         }
         return true;
+    }
+
+    public boolean multiUnLock(List<String> locked) {
+        if (CollectionUtils.isEmpty(locked)) {
+            return true;
+        }
+        int i=locked.size()-1;
+        boolean suc = true;
+        while (i>=0) {
+            suc = suc && releaseLock(locked.get(i));
+            i--;
+        }
+        return suc;
     }
 
     public boolean concurrentLock(String lock, Duration expireTime, Integer maxRetries) {
@@ -416,7 +431,7 @@ public class RedisManager {
     }
     private void randomSleep(){
         try {
-            int mills = random.nextInt(10) + 10;
+            int mills = random.nextInt(10) + 5;
             Thread.sleep(mills);
         } catch (InterruptedException e) {
             new RuntimeException(e);
