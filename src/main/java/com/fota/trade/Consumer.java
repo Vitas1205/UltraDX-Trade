@@ -51,8 +51,8 @@ public class Consumer {
     @Value("${spring.rocketmq.group}")
     private String group;
 
-    @Value("${spring.rocketmq.instanceName}")
-    private String clientInstanceName;
+//    @Value("${spring.rocketmq.instanceName}")
+//    private String clientInstanceName;
 
     @Autowired
     private ContractOrderServiceImpl contractOrderService;

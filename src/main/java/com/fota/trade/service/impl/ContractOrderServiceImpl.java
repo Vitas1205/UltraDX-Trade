@@ -329,6 +329,10 @@ public class ContractOrderServiceImpl implements
         ContractOrderDO askContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getAskOrderId());
         ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
 
+        ResultCode checkResult = contractOrderManager.checkParam(askContractOrder, bidContractOrder, contractMatchedOrderDTO);
+        if (!checkResult.isSuccess()) {
+            return checkResult;
+        }
 
         //排序，防止死锁
         List<ContractOrderDO> contractOrderDOS = new ArrayList<>();
