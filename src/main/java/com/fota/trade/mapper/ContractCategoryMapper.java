@@ -5,6 +5,7 @@ import com.fota.trade.mapper.common.BaseMapper;
 import org.apache.ibatis.annotations.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface ContractCategoryMapper {
@@ -48,6 +49,8 @@ public interface ContractCategoryMapper {
     ContractCategoryDO selectByPrimaryKey(Long id);
 
     List<ContractCategoryDO> listByQuery(ContractCategoryDO contractCategoryDO);
+
+    List<ContractCategoryDO> listByStatus(Map<String, Object> param);
 
 
     @Select({
