@@ -51,12 +51,16 @@ public class Consumer {
     @Value("${spring.rocketmq.group}")
     private String group;
 
+    @Value("${spring.rocketmq.instanceName}")
+    private String clientInstanceName;
+
     @Autowired
     private ContractOrderServiceImpl contractOrderService;
     public void init() throws InterruptedException, MQClientException {
         //声明并初始化一个consumer
         //需要一个consumer group名字作为构造方法的参数，这里为consumer1
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group + "-match");
+        consumer.setInstanceName(clientInstanceName);
         //同样也要设置NameServer地址
         consumer.setNamesrvAddr(namesrvAddr);
         consumer.setMaxReconsumeTimes(32);
