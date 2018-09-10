@@ -416,7 +416,7 @@ public class RedisManager {
     }
     private void randomSleep(){
         try {
-            int mills = random.nextInt(10) + 10;
+            int mills = random.nextInt(10) + 5;
             Thread.sleep(mills);
         } catch (InterruptedException e) {
             new RuntimeException(e);
