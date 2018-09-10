@@ -71,7 +71,7 @@ public class ContractOrderServiceImpl implements
         return contractService;
     }
 
-    private static final int MAX_RETRIES = 10000;
+    private static final int MAX_RETRIES = 500;
 
 
     @Override
@@ -353,7 +353,7 @@ public class ContractOrderServiceImpl implements
                 .collect(toSet());
 
         log.info("locks={}", locks);
-        boolean suc = redisManager.multiConcurrentLock(locks, Duration.ofSeconds(120), MAX_RETRIES);
+        boolean suc = redisManager.multiConcurrentLock(locks, Duration.ofSeconds(20), MAX_RETRIES);
         profiler.complelete("lock");
         if (!suc) {
             return ResultCode.error(LOCK_FAILED.getCode(), LOCK_FAILED.getMessage());

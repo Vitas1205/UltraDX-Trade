@@ -4,10 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fota.trade.common.Constant;
+import com.fota.trade.domain.ResultCode;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.manager.UsdkOrderManager;
-import com.fota.trade.service.ContractOrderService;
 import com.fota.trade.service.impl.UsdkOrderServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
@@ -96,7 +96,10 @@ public class OrderConsumer {
                     if ("UsdkCancelResult".equals(tag)) {
                         usdkOrderManager.cancelOrderByMessage(orderId, status);
                     } else if ("ContractCancelResult".equals(tag)) {
-                        contractOrderManager.cancelOrderByMessage(orderId, status);
+                        ResultCode resultCode = contractOrderManager.cancelOrderByMessage(orderId, status);
+                        if (!resultCode.isSuccess()) {
+                            log.error("cancel message failed, messageKey={}, resultCode={}", mqKey, resultCode);
+                        }
                     }
                     redisManager.sSet(Constant.MQ_REPET_JUDGE_KEY_TRADE, mqKey);
                 } catch (Exception e) {

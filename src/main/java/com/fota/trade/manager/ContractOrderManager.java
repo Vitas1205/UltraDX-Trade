@@ -42,9 +42,7 @@ import java.util.*;
 import java.util.function.Predicate;
 
 import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
-import static com.fota.trade.common.ResultCodeEnum.BALANCE_NOT_ENOUGH;
-import static com.fota.trade.common.ResultCodeEnum.BIZ_ERROR;
-import static com.fota.trade.common.ResultCodeEnum.CONCURRENT_PROBLEM;
+import static com.fota.trade.common.ResultCodeEnum.*;
 import static com.fota.trade.domain.enums.ContractStatusEnum.PROCESSING;
 import static com.fota.trade.util.ContractUtils.computeAveragePrice;
 import static java.util.stream.Collectors.*;
@@ -316,17 +314,18 @@ public class ContractOrderManager {
      * @param orderId 委托单ID
      * @param status 撮合队列撤单结果 1-成功 0-失败
      */
-    public void cancelOrderByMessage(String orderId, int status) {
+    @Transactional(rollbackFor = Throwable.class)
+    public ResultCode cancelOrderByMessage(String orderId, int status) {
         if (status == 1) {
             ContractOrderDO contractOrderDO = contractOrderMapper.selectByPrimaryKey(Long.parseLong(orderId));
             if (Objects.isNull(contractOrderDO)) {
-                log.error("contract order does not exist, {}", orderId);
-                return;
+                return ResultCode.error(ILLEGAL_PARAM.getCode(), "contract order does not exist, id="+orderId);
             }
-            cancelOrderImpl(contractOrderDO, Collections.emptyMap());
+            return cancelOrderImpl(contractOrderDO, Collections.emptyMap());
         } else {
             log.warn("failed to cancel order {}", orderId);
         }
+        return ResultCode.success();
     }
 
     public ResultCode cancelOrderImpl(ContractOrderDO contractOrderDO, Map<String, String> userInfoMap) {
