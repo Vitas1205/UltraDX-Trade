@@ -287,10 +287,10 @@ public class UsdkOrderManager {
     public ResultCode cancelOrderImpl(UsdkOrderDO usdkOrderDO, Map<String, String> userInfoMap) throws Exception{
         ResultCode resultCode;
         Integer status = usdkOrderDO.getStatus();
-        if (OrderTypeEnum.ENFORCE.getCode() == usdkOrderDO.getOrderType()) {
-            log.error("enforce order can't be canceled, {}", usdkOrderDO.getId());
-            return null;
-        }
+//        if (OrderTypeEnum.ENFORCE.getCode() == usdkOrderDO.getOrderType()) {
+//            log.error("enforce order can't be canceled, {}", usdkOrderDO.getId());
+//            return null;
+//        }
         if (status == OrderStatusEnum.COMMIT.getCode()){
             usdkOrderDO.setStatus(OrderStatusEnum.CANCEL.getCode());
         }else if (status == OrderStatusEnum.PART_MATCH.getCode()){
@@ -344,7 +344,7 @@ public class UsdkOrderManager {
                 username = jsonObject.get("username") == null ? "" : jsonObject.get("username").toString();
             }
             String ipAddress = StringUtils.isEmpty(userInfoMap.get("ipAddress")) ? "" : userInfoMap.get("ipAddress");
-            tradeLog.info("cancelorder@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
+            tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                     1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getUnfilledAmount(), System.currentTimeMillis(), 1,  usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 1);
             OrderMessage orderMessage = new OrderMessage();
             orderMessage.setOrderId(usdkOrderDTO.getId());

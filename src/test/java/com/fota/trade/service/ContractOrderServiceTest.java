@@ -85,7 +85,7 @@ public class ContractOrderServiceTest {
     Date checkPoint;
 
 
-    @Before
+    //@Before
     public void init() {
         // 准备数据
         askContractOrder.setId(CommonUtils.generateId());
@@ -325,10 +325,24 @@ public class ContractOrderServiceTest {
     }
 
     @Test
+    public void cancelOrderTest() throws Exception {
+//        Map<String, String> usermap = new HashMap<>();
+//        ResultCode resultCode = contractOrderManager.cancelOrder(282L, 707427967800392L , usermap);
+//        log.info(resultCode.toString());
+    }
+
+    @Test
     public void cancelOrderByContractIdTest() throws Exception {
-        Map<String, String> usermap = new HashMap<>();
-        ResultCode resultCode = contractOrderManager.cancelOrderByContractId(1018L, usermap);
-        log.info(resultCode.toString());
+//        Map<String, String> usermap = new HashMap<>();
+//        ResultCode resultCode = contractOrderManager.cancelOrderByContractId(1001L, usermap);
+//        log.info(resultCode.toString());
+    }
+
+    @Test
+    public void cancelAllOrderTest() throws Exception {
+//        Map<String, String> usermap = new HashMap<>();
+//        ResultCode resultCode = contractOrderManager.cancelAllOrder(282L, usermap);
+//        log.info(resultCode.toString());
     }
 
 
