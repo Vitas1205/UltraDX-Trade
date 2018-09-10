@@ -10,6 +10,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -41,6 +42,24 @@ public class BeanUtilsTest {
         UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
         org.springframework.beans.BeanUtils.copyProperties(usdkOrderDTO, usdkOrderDO);
         Assert.assertTrue(usdkOrderDO.getUserId() == 234L);
+    }
+
+    @Test
+    public void testCopyContractCategoryDO() throws Exception {
+        ContractCategoryDO contractCategoryDO = new ContractCategoryDO();
+        contractCategoryDO.setId(2L);
+        contractCategoryDO.setGmtCreate(new Date());
+        contractCategoryDO.setGmtModified(new Date());
+        contractCategoryDO.setContractName("BTC0203");
+        contractCategoryDO.setAssetId(2);
+        contractCategoryDO.setAssetName("BTC");
+        contractCategoryDO.setTotalAmount(20L);
+        contractCategoryDO.setUnfilledAmount(20L);
+        contractCategoryDO.setDeliveryDate(new Date());
+        contractCategoryDO.setStatus(2);
+        contractCategoryDO.setContractType(2);
+        contractCategoryDO.setContractSize(new BigDecimal(0.01));
+        BeanUtils.copy(contractCategoryDO);
     }
 
 

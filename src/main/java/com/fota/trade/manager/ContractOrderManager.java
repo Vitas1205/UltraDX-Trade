@@ -125,11 +125,11 @@ public class ContractOrderManager {
         ResultCode resultCode = ResultCode.success();
         List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByContractId(contractId);
         if (!CollectionUtils.isEmpty(list)) {
-            Predicate<ContractOrderDO> isNotEnforce = contractOrderDO -> contractOrderDO.getOrderType() != OrderTypeEnum.ENFORCE.getCode();
+            //Predicate<ContractOrderDO> isNotEnforce = contractOrderDO -> contractOrderDO.getOrderType() != OrderTypeEnum.ENFORCE.getCode();
             Predicate<ContractOrderDO> isCommit = contractOrderDO -> contractOrderDO.getStatus() == OrderStatusEnum.COMMIT.getCode();
             Predicate<ContractOrderDO> isPartMatch = contractOrderDO -> contractOrderDO.getStatus() == OrderStatusEnum.PART_MATCH.getCode();
             Map<Long, List<Long>> orderMap = list.stream()
-                    .filter(isCommit.or(isPartMatch).and(isNotEnforce))
+                    .filter(isCommit.or(isPartMatch))
                     .collect(groupingBy(ContractOrderDO::getUserId, mapping(ContractOrderDO::getId, toList())));
 
             for (Map.Entry<Long, List<Long>> entry : orderMap.entrySet()) {
@@ -161,7 +161,7 @@ public class ContractOrderManager {
     }
 
 
-    @Transactional(rollbackFor = Throwable.class)
+//    @Transactional(rollbackFor = Throwable.class)
     public Result<Long> placeOrder(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) throws Exception{
 
         Profiler profiler = null == ThreadContextUtil.getPrifiler() ?
@@ -222,8 +222,7 @@ public class ContractOrderManager {
         if (contractOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()) {
             insertOrderRecord(contractOrderDO);
         } else {
-            insertOrderRecord(contractOrderDO);
-            profiler.complelete("insert record");
+
             orderId = contractOrderDO.getId();
             Map<String,BigDecimal> msg  = getAccountMsg(contractOrderDO.getUserId());
             log.info("AccountDetailMsg:"+msg.toString());
@@ -242,6 +241,10 @@ public class ContractOrderManager {
             if (useableAmount.compareTo(entrustLock) < 0) {
                 throw new BizException(ResultCodeEnum.CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(), ResultCodeEnum.CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
             }
+
+            insertOrderRecord(contractOrderDO);
+            profiler.complelete("insert record");
+
         }
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO );
         contractOrderDTO.setCompleteAmount(0L);
@@ -249,6 +252,11 @@ public class ContractOrderManager {
         //redisManager.contractOrderSave(contractOrderDTO);
         if (contractOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()) {
             // 强平单
+            JSONObject jsonObject = JSONObject.parseObject(contractOrderDO.getOrderContext());
+            // 日志系统需要
+            if (jsonObject != null && !jsonObject.isEmpty()) {
+                username = jsonObject.get("username") == null ? "" : jsonObject.get("username").toString();
+            }
             tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                     2, contractOrderDTO.getContractName(), username, ipAddress, contractOrderDTO.getTotalAmount(),
                     System.currentTimeMillis(), 3, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 2);
@@ -329,10 +337,6 @@ public class ContractOrderManager {
     }
 
     public ResultCode cancelOrderImpl(ContractOrderDO contractOrderDO, Map<String, String> userInfoMap) {
-        if (OrderTypeEnum.ENFORCE.getCode() == contractOrderDO.getOrderType()) {
-            log.error("enforce order can't be canceled, {}", contractOrderDO.getId());
-            throw new RuntimeException("enforce order can't be canceled");
-        }
         String ipAddress = StringUtils.isEmpty(userInfoMap.get("ip")) ? "" : userInfoMap.get("ip");
         ResultCode resultCode = new ResultCode();
         Integer status = contractOrderDO.getStatus();
@@ -369,7 +373,7 @@ public class ContractOrderManager {
         if (jsonObject != null && !jsonObject.isEmpty()) {
             username = jsonObject.get("username") == null ? "" : jsonObject.get("username").toString();
         }
-        tradeLog.info("cancelorder@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
+        tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                 2, contractOrderDTO.getContractName(), username, ipAddress, contractOrderDTO.getUnfilledAmount(),
                 System.currentTimeMillis(), 1, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 1);
         OrderMessage orderMessage = new OrderMessage();
@@ -408,7 +412,13 @@ public class ContractOrderManager {
     public ResultCode cancelAllOrder(Long userId, Map<String, String> userInfoMap) throws Exception {
         ResultCode resultCode = new ResultCode();
         List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByUserId(userId);
-        if (list != null){
+        List<ContractOrderDO> listFilter = new ArrayList<>();
+        for (ContractOrderDO temp : list){
+            if (temp.getOrderType() != OrderTypeEnum.ENFORCE.getCode()){
+                listFilter.add(temp);
+            }
+        }
+        if (listFilter != null){
             List<Long> orderIdList = list.stream()
                     .map(ContractOrderDO::getId)
                     .collect(toList());
