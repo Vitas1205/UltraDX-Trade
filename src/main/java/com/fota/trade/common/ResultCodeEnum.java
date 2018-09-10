@@ -8,6 +8,7 @@ import lombok.Getter;
  */
 public enum ResultCodeEnum {
     SUCCESS(0,"SUCCESS"),
+    BIZ_ERROR(-1, ""),
     SYSTEM_ERROR(100001, "SYSTEM_ERROR"),
     // 参数异常
     ILLEGAL_PARAM(11001, "ILLEGAL_PARAM"),

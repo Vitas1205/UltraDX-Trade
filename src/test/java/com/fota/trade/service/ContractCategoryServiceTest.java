@@ -64,8 +64,8 @@ public class ContractCategoryServiceTest {
     public void testSaveContract() throws Exception {
         ContractCategoryDTO newContract = new ContractCategoryDTO();
         newContract.setId(null);
-        newContract.setContractName("test_btc3");
-        newContract.setAssetId(0);
+        newContract.setContractName("test_btc0909");
+        newContract.setAssetId(2);
         newContract.setAssetName("btc");
         newContract.setStatus(ContractStatus.UNOPENED.getCode());
         newContract.setTotalAmount(0L);
@@ -74,9 +74,9 @@ public class ContractCategoryServiceTest {
         newContract.setContractType(ContractTypeEnum.MONTH.getCode());
         newContract.setGmtCreate(new Date());
         newContract.setGmtModified(new Date());
-        newContract.setContractSize(new BigDecimal(0));
-        //Integer saveRet = contractCategoryService.saveContract(newContract);
-        //Assert.assertTrue(saveRet != null && saveRet > 0);
+        newContract.setContractSize(new BigDecimal(0.01));
+        Integer saveRet = contractCategoryService.saveContract(newContract);
+        Assert.assertTrue(saveRet != null && saveRet > 0);
     }
 
     @Test

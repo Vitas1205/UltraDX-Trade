@@ -41,6 +41,9 @@ public class OrderConsumer {
     private String namesrvAddr;
     @Value("${spring.rocketmq.group}")
     private String group;
+    @Value("${spring.rocketmq.instanceName}")
+    private String clientInstanceName;
+
     @Autowired
     private ContractOrderManager contractOrderManager;
 
@@ -52,6 +55,7 @@ public class OrderConsumer {
 
     public void init() throws InterruptedException, MQClientException {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group + "-cancel");
+        consumer.setInstanceName(clientInstanceName);
         consumer.setNamesrvAddr(namesrvAddr);
         consumer.setMaxReconsumeTimes(16);
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);

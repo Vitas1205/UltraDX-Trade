@@ -210,7 +210,7 @@ public class UsdkOrderManager {
                     1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getTotalAmount(), transferTime, 1, usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 2);
         }
         usdkOrderDTO.setCompleteAmount(BigDecimal.ZERO);
-        redisManager.usdkOrderSave(usdkOrderDTO);
+        //redisManager.usdkOrderSave(usdkOrderDTO);
         //todo 发送RocketMQ
         OrderMessage orderMessage = new OrderMessage();
         orderMessage.setOrderId(usdkOrderDO.getId());
@@ -272,29 +272,35 @@ public class UsdkOrderManager {
                 log.error("usdk order does not exist, {}", orderId);
                 return;
             }
-            cancelOrderImpl(usdkOrderDO, Collections.emptyMap());
+            try {
+                cancelOrderImpl(usdkOrderDO, Collections.emptyMap());
+            }catch (Exception e){
+                if (e instanceof BusinessException){
+                    log.error(e.getMessage());
+                }
+            }
         } else {
             log.warn("failed to cancel order {}", orderId);
         }
     }
 
-    public ResultCode cancelOrderImpl(UsdkOrderDO usdkOrderDO, Map<String, String> userInfoMap) {
+    public ResultCode cancelOrderImpl(UsdkOrderDO usdkOrderDO, Map<String, String> userInfoMap) throws Exception{
         ResultCode resultCode;
         Integer status = usdkOrderDO.getStatus();
         if (OrderTypeEnum.ENFORCE.getCode() == usdkOrderDO.getOrderType()) {
             log.error("enforce order can't be canceled, {}", usdkOrderDO.getId());
-            throw new RuntimeException("enforce order can't be canceled");
+            return null;
         }
         if (status == OrderStatusEnum.COMMIT.getCode()){
             usdkOrderDO.setStatus(OrderStatusEnum.CANCEL.getCode());
         }else if (status == OrderStatusEnum.PART_MATCH.getCode()){
             usdkOrderDO.setStatus(OrderStatusEnum.PART_CANCEL.getCode());
         }else if (status == OrderStatusEnum.MATCH.getCode() || status == OrderStatusEnum.PART_CANCEL.getCode()  | status == OrderStatusEnum.CANCEL.getCode()){
-            log.error("order has completed{}", usdkOrderDO);
-            throw new RuntimeException("order has completed");
+            log.error("order has completed, {}", usdkOrderDO.getId());
+            return null;
         }else {
-            log.error("order status illegal{}", usdkOrderDO);
-            throw new RuntimeException("order status illegal");
+            log.error("order status illegal, {}", usdkOrderDO.getId());
+            return null;
         }
 
         Long transferTime = System.currentTimeMillis();
@@ -315,7 +321,7 @@ public class UsdkOrderManager {
                 Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(usdkOrderDO.getUserId(),AssetTypeEnum.USDT.getCode(),unlockAmount.negate().toString(), 0L);
                 if (!updateLockedAmountRet){
                     log.error("getCapitalService().updateLockedAmount failed{}", usdkOrderDO);
-                    throw new RuntimeException("getCapitalService().updateLockedAmount failed");
+                    throw new BusinessException(ResultCodeEnum.BIZ_ERROR.getCode(), "getCapitalService().updateLockedAmount failed");
                 }
             }else if (orderDirection == OrderDirectionEnum.ASK.getCode()){
                 assetId = usdkOrderDO.getAssetId();
@@ -324,14 +330,14 @@ public class UsdkOrderManager {
                 Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(usdkOrderDO.getUserId(),assetId,unlockAmount.negate().toString(), 0L);
                 if (!updateLockedAmountRet){
                     log.error("getCapitalService().updateLockedAmount failed{}", usdkOrderDO);
-                    throw new RuntimeException("getCapitalService().updateLockedAmount failed");
+                    throw new BusinessException(ResultCodeEnum.BIZ_ERROR.getCode(),"getCapitalService().updateLockedAmount failed");
                 }
             }
             UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
             BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
             BigDecimal matchAmount = usdkOrderDTO.getTotalAmount().subtract(usdkOrderDTO.getUnfilledAmount());
             usdkOrderDTO.setCompleteAmount(matchAmount);
-            redisManager.usdkOrderSave(usdkOrderDTO);
+            //redisManager.usdkOrderSave(usdkOrderDTO);
             JSONObject jsonObject = JSONObject.parseObject(usdkOrderDO.getOrderContext());
             String username = "";
             if (jsonObject != null && !jsonObject.isEmpty()) {
@@ -357,8 +363,8 @@ public class UsdkOrderManager {
             }
             resultCode = ResultCode.success();
         }else {
-            log.error("usdkOrderMapper.updateByOpLock failed{}", usdkOrderDO);
-            throw new RuntimeException("usdkOrderMapper.updateByOpLock failed");
+            log.error("usdkOrderMapper.updateByOpLock failed{}", usdkOrderDO.getId());
+            return null;
         }
         return resultCode;
     }
@@ -393,7 +399,7 @@ public class UsdkOrderManager {
         return ResultCode.success();
     }
 
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional(rollbackFor = Throwable.class)
     public com.fota.trade.domain.ResultCode updateOrderByMatch(UsdkMatchedOrderDTO usdkMatchedOrderDTO) throws Exception {
         if (usdkMatchedOrderDTO == null) {
             log.error(ResultCodeEnum.ILLEGAL_PARAM.getMessage());
@@ -523,7 +529,7 @@ public class UsdkOrderManager {
         bidUsdkOrderDTO.setCompleteAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
         askUsdkOrderDTO.setStatus(usdkMatchedOrderDTO.getAskOrderStatus());
         bidUsdkOrderDTO.setStatus(usdkMatchedOrderDTO.getAskOrderStatus());
-        redisManager.usdkOrderSave(askUsdkOrderDTO);
+        //redisManager.usdkOrderSave(askUsdkOrderDTO);
         String askUsername = "";
         String bidUsername = "";
         if (askOrderContext != null){
@@ -535,7 +541,7 @@ public class UsdkOrderManager {
         // TODO add get username
         tradeLog.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                 1, askUsdkOrderDTO.getAssetName(), askUsername, askUsdkOrderDTO.getCompleteAmount(), System.currentTimeMillis(), 4, askUsdkOrderDTO.getOrderDirection(), askUsdkOrderDTO.getUserId(), 1);
-        redisManager.usdkOrderSave(bidUsdkOrderDTO);
+        //redisManager.usdkOrderSave(bidUsdkOrderDTO);
         tradeLog.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                 1, bidUsdkOrderDTO.getAssetName(), bidUsername, bidUsdkOrderDTO.getCompleteAmount(), System.currentTimeMillis(), 4,  bidUsdkOrderDTO.getOrderDirection(), bidUsdkOrderDTO.getUserId(), 1);
         // 向MQ推送消息
