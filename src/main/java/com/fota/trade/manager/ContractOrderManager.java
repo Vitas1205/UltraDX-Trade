@@ -255,7 +255,7 @@ public class ContractOrderManager {
         } else {
             tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                     2, contractOrderDTO.getContractName(), username, ipAddress, contractOrderDTO.getTotalAmount(),
-                    System.currentTimeMillis(), 1, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 1);
+                    System.currentTimeMillis(), 2, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 1);
         }
         Runnable runnable = () -> {
             sendPlaceOrderMessage(contractOrderDO, contractCategoryDO.getContractType(), contractCategoryDO.getAssetName());
@@ -371,7 +371,7 @@ public class ContractOrderManager {
         }
         tradeLog.info("cancelorder@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                 2, contractOrderDTO.getContractName(), username, ipAddress, contractOrderDTO.getUnfilledAmount(),
-                System.currentTimeMillis(), 2, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 1);
+                System.currentTimeMillis(), 1, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 1);
         OrderMessage orderMessage = new OrderMessage();
         orderMessage.setAmount(new BigDecimal(contractOrderDTO.getUnfilledAmount()));
         orderMessage.setPrice(contractOrderDTO.getPrice());
@@ -867,31 +867,27 @@ public class ContractOrderManager {
     }
 
 
-
-    private void saveToRedis(ContractOrderDO contractOrderDO,  long completeAmount,  Map<String, Object> orderContext, long matchId){
-
-        //TODO 并发考虑
-        // 状态为9
-        if (contractOrderDO.getStatus() == OrderStatusEnum.PART_MATCH.getCode()) {
-            redisManager.contractOrderSaveForMatch(com.fota.trade.common.BeanUtils.copy(contractOrderDO));
-        } else if (contractOrderDO.getStatus() == OrderStatusEnum.MATCH.getCode()) {
-            redisManager.hdel(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(contractOrderDO.getId()));
-        }
-
+    /**
+     * 打印后台交易撮合监控日志
+     * @param contractOrderDO
+     * @param completeAmount
+     * @param orderContext
+     * @param matchId
+     */
+    private void saveToLog(ContractOrderDO contractOrderDO,  long completeAmount,  Map<String, Object> orderContext, long matchId){
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO);
         contractOrderDTO.setCompleteAmount(completeAmount);
         contractOrderDTO.setOrderContext(orderContext);
-        redisManager.contractOrderSave(contractOrderDTO);
         String userName = "";
         if (orderContext != null){
             userName = orderContext.get("username") == null ? "": String.valueOf(orderContext.get("username"));
         }
         tradeLog.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                2, contractOrderDTO.getContractName(), userName, contractOrderDTO.getCompleteAmount(), System.currentTimeMillis(), 4, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(),matchId);
-
-
+                2, contractOrderDTO.getContractName(), userName, contractOrderDTO.getCompleteAmount(),
+                System.currentTimeMillis(), 4, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(),matchId);
     }
+
 
     public void postProcessAfterMatch(ContractOrderDO askContractOrder, ContractOrderDO bidContractOrder, ContractMatchedOrderDO contractMatchedOrderDO,
                                      long updateOrderTime, ContractMatchedOrderDTO contractMatchedOrderDTO){
@@ -907,9 +903,9 @@ public class ContractOrderManager {
         }
 
         long filledAmount = contractMatchedOrderDO.getFilledAmount().longValue();
-        //存入Redis缓存 有相关撮合
-        //saveToRedis(askContractOrder, filledAmount, askOrderContext, contractMatchedOrderDO.getId());
-        //saveToRedis(bidContractOrder, filledAmount, bidOrderContext, contractMatchedOrderDO.getId());
+        //后台交易监控日志打在里面 注释需谨慎
+        saveToLog(askContractOrder, filledAmount, askOrderContext, contractMatchedOrderDO.getId());
+        saveToLog(bidContractOrder, filledAmount, bidOrderContext, contractMatchedOrderDO.getId());
 
         // 向MQ推送消息
         // 通过contractId去trade_contract_category表里面获取asset_name和contract_type
