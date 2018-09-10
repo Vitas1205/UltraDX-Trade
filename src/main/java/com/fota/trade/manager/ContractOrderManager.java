@@ -249,6 +249,11 @@ public class ContractOrderManager {
         //redisManager.contractOrderSave(contractOrderDTO);
         if (contractOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()) {
             // 强平单
+            JSONObject jsonObject = JSONObject.parseObject(contractOrderDO.getOrderContext());
+            // 日志系统需要
+            if (jsonObject != null && !jsonObject.isEmpty()) {
+                username = jsonObject.get("username") == null ? "" : jsonObject.get("username").toString();
+            }
             tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                     2, contractOrderDTO.getContractName(), username, ipAddress, contractOrderDTO.getTotalAmount(),
                     System.currentTimeMillis(), 3, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 2);
