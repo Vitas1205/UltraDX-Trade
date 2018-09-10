@@ -287,10 +287,10 @@ public class UsdkOrderManager {
     public ResultCode cancelOrderImpl(UsdkOrderDO usdkOrderDO, Map<String, String> userInfoMap) throws Exception{
         ResultCode resultCode;
         Integer status = usdkOrderDO.getStatus();
-        if (OrderTypeEnum.ENFORCE.getCode() == usdkOrderDO.getOrderType()) {
-            log.error("enforce order can't be canceled, {}", usdkOrderDO.getId());
-            return null;
-        }
+//        if (OrderTypeEnum.ENFORCE.getCode() == usdkOrderDO.getOrderType()) {
+//            log.error("enforce order can't be canceled, {}", usdkOrderDO.getId());
+//            return null;
+//        }
         if (status == OrderStatusEnum.COMMIT.getCode()){
             usdkOrderDO.setStatus(OrderStatusEnum.CANCEL.getCode());
         }else if (status == OrderStatusEnum.PART_MATCH.getCode()){
