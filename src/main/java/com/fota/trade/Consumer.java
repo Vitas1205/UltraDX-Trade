@@ -60,7 +60,7 @@ public class Consumer {
         //声明并初始化一个consumer
         //需要一个consumer group名字作为构造方法的参数，这里为consumer1
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group + "-match");
-        consumer.setInstanceName(clientInstanceName);
+//        consumer.setInstanceName(clientInstanceName);
         //同样也要设置NameServer地址
         consumer.setNamesrvAddr(namesrvAddr);
         consumer.setMaxReconsumeTimes(32);
