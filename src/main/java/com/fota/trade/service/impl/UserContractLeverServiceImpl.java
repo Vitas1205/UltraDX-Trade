@@ -5,6 +5,7 @@ import com.fota.asset.service.AssetService;
 import com.fota.trade.domain.ContractCategoryDO;
 import com.fota.trade.domain.UserContractLeverDO;
 import com.fota.trade.domain.UserContractLeverDTO;
+import com.fota.trade.domain.enums.AssetTypeEnum;
 import com.fota.trade.mapper.ContractCategoryMapper;
 import com.fota.trade.mapper.UserContractLeverMapper;
 import com.fota.trade.service.UserContractLeverService;
@@ -57,6 +58,10 @@ public class UserContractLeverServiceImpl implements UserContractLeverService  {
             list = userContractLeverMapper.listUserContractLever(userId);
             if (list != null && list.size() > 0) {
                 for (UserContractLeverDO userContractLeverDO : list) {
+                    if (userContractLeverDO.getAssetId().equals(AssetTypeEnum.USDT.getCode())
+                            || userContractLeverDO.getAssetId().equals(AssetTypeEnum.FOTA.getCode())) {
+                        continue;
+                    }
                     UserContractLeverDTO newUserContractLeverDTO = new UserContractLeverDTO();
                     newUserContractLeverDTO.setAssetId(userContractLeverDO.getAssetId());
                     newUserContractLeverDTO.setAssetName(userContractLeverDO.getAssetName());

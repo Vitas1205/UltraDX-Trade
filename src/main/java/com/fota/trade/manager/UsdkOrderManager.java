@@ -196,7 +196,7 @@ public class UsdkOrderManager {
                 }
             }
             tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                    1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getTotalAmount(), transferTime, 1, usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 1);
+                    1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getTotalAmount(), transferTime, 2, usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 1);
         } else if (usdkOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()){
             //强平单处理
             int ret = insertUsdkOrder(usdkOrderDO);
@@ -207,7 +207,7 @@ public class UsdkOrderManager {
             orderId = usdkOrderDO.getId();
             BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
             tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                    1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getTotalAmount(), transferTime, 1, usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 2);
+                    1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getTotalAmount(), transferTime, 3, usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 2);
         }
         usdkOrderDTO.setCompleteAmount(BigDecimal.ZERO);
         //redisManager.usdkOrderSave(usdkOrderDTO);
@@ -345,7 +345,7 @@ public class UsdkOrderManager {
             }
             String ipAddress = StringUtils.isEmpty(userInfoMap.get("ipAddress")) ? "" : userInfoMap.get("ipAddress");
             tradeLog.info("cancelorder@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                    1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getUnfilledAmount(), System.currentTimeMillis(), 2,  usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 1);
+                    1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getUnfilledAmount(), System.currentTimeMillis(), 1,  usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 1);
             OrderMessage orderMessage = new OrderMessage();
             orderMessage.setOrderId(usdkOrderDTO.getId());
             orderMessage.setEvent(OrderOperateTypeEnum.CANCLE_ORDER.getCode());

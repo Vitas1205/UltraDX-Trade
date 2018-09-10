@@ -23,9 +23,7 @@ import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static com.fota.trade.common.ResultCodeEnum.CONTRACT_IS_ROLLING_BACK;
@@ -53,12 +51,17 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
     @Override
     public List<ContractCategoryDTO> listActiveContract() {
         List<ContractCategoryDO> result = null;
-        ContractCategoryDO contractCategoryDO = new ContractCategoryDO();
-        contractCategoryDO.setStatus(ContractStatusEnum.PROCESSING.getCode());
+        //ContractCategoryDO contractCategoryDO = new ContractCategoryDO();
+        //contractCategoryDO.setStatus(ContractStatusEnum.PROCESSING.getCode());
+        List<Integer> list = new ArrayList<>();
+        list.add(ContractStatusEnum.PROCESSING.getCode());
+        list.add(ContractStatusEnum.DELIVERYING.getCode());
+        Map<String, Object> map = new HashMap<>();
+        map.put("contractStatus", list);
         try {
-            result = contractCategoryMapper.listByQuery(contractCategoryDO);
+            result = contractCategoryMapper.listByStatus(map);
         } catch (Exception e) {
-            log.error("contractCategoryMapper.listByQuery({})", contractCategoryDO, e);
+            log.error("contractCategoryMapper.listByQuery({})", list, e);
         }
         if (result == null) {
             result = new ArrayList<>();
@@ -76,13 +79,16 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
         if (assetId <= 0) {
             return null;
         }
-        ContractCategoryDO contractCategoryDO = new ContractCategoryDO();
-        contractCategoryDO.setStatus(ContractStatusEnum.PROCESSING.getCode());
-        contractCategoryDO.setAssetId(assetId);
+        List<Integer> list = new ArrayList<>();
+        list.add(ContractStatusEnum.PROCESSING.getCode());
+        list.add(ContractStatusEnum.DELIVERYING.getCode());
+        Map<String, Object> map = new HashMap<>();
+        map.put("contractStatus", list);
+        map.put("assetId", assetId);
         try {
-            result = contractCategoryMapper.listByQuery(contractCategoryDO);
+            result = contractCategoryMapper.listByStatus(map);
         } catch (Exception e) {
-            log.error("contractCategoryMapper.listByQuery({})", contractCategoryDO, e);
+            log.error("contractCategoryMapper.listByQuery({})", map, e);
         }
         if (result == null) {
             result = new ArrayList<>();
