@@ -161,7 +161,7 @@ public class ContractOrderManager {
     }
 
 
-    @Transactional(rollbackFor = Throwable.class)
+//    @Transactional(rollbackFor = Throwable.class)
     public Result<Long> placeOrder(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) throws Exception{
 
         Profiler profiler = null == ThreadContextUtil.getPrifiler() ?
@@ -222,8 +222,7 @@ public class ContractOrderManager {
         if (contractOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()) {
             insertOrderRecord(contractOrderDO);
         } else {
-            insertOrderRecord(contractOrderDO);
-            profiler.complelete("insert record");
+
             orderId = contractOrderDO.getId();
             Map<String,BigDecimal> msg  = getAccountMsg(contractOrderDO.getUserId());
             log.info("AccountDetailMsg:"+msg.toString());
@@ -242,6 +241,10 @@ public class ContractOrderManager {
             if (useableAmount.compareTo(entrustLock) < 0) {
                 throw new BizException(ResultCodeEnum.CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(), ResultCodeEnum.CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
             }
+
+            insertOrderRecord(contractOrderDO);
+            profiler.complelete("insert record");
+
         }
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO );
         contractOrderDTO.setCompleteAmount(0L);
