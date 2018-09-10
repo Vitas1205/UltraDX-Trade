@@ -56,6 +56,23 @@
     order by asset_id, contract_type
   </select>
 
+  <select id="listByStatus"  resultMap="BaseResultMap">
+    SELECT
+    <include refid="Base_Column_List" />
+    FROM trade_contract_category
+    where delivery_date > now()
+    <if test="assetId != null" >
+      and asset_id=#{assetId,jdbcType=INTEGER}
+    </if>
+    <if test="contractStatus != null and contractStatus.size != 0" >
+      and status in
+      <foreach item="item" index="index" collection="contractStatus" open="(" separator="," close=")">
+        #{item,jdbcType=INTEGER}
+      </foreach>
+    </if>
+    order by asset_id, contract_type
+  </select>
+
   <insert id="insertSelective" parameterType="com.fota.trade.domain.ContractCategoryDO">
 
     insert into trade_contract_category
