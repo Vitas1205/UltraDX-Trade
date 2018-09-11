@@ -842,7 +842,7 @@ public class ContractOrderManager {
                     throw new RuntimeException("update balance failed, params="+ dealers);
                 }
             }
-            postProcessAfterMatch(askContractOrder, bidContractOrder, contractMatchedOrderDO, transferTime, contractMatchedOrderDTO);
+            postProcessAfterMatch(askContractOrder, bidContractOrder, contractMatchedOrderDO, transferTime, contractMatchedOrderDTO, resultMap);
             profiler.complelete("saveAndNotify");
         };
         ThreadContextUtil.setPostTask(postTask);
@@ -907,7 +907,7 @@ public class ContractOrderManager {
 
 
     public void postProcessAfterMatch(ContractOrderDO askContractOrder, ContractOrderDO bidContractOrder, ContractMatchedOrderDO contractMatchedOrderDO,
-                                     long updateOrderTime, ContractMatchedOrderDTO contractMatchedOrderDTO){
+                                     long updateOrderTime, ContractMatchedOrderDTO contractMatchedOrderDTO, Map<ContractOrderDO, UpdatePositionResult> resultMap){
 
 
         Map<String, Object> askOrderContext = new HashMap<>();
@@ -981,7 +981,7 @@ public class ContractOrderManager {
             e.printStackTrace();
             log.error("向Redis存储USDK撮合订单信息失败，订单id为 {}", contractMatchedOrderDO.getId());
         }
-        updateTotalPosition(contractMatchedOrderDO);
+        updateTotalPosition(contractMatchedOrderDO, resultMap);
     }
 
     public UpdatePositionResult updatePosition(ContractOrderDO contractOrderDO, BigDecimal contractSize, long filledAmount, BigDecimal filledPrice){
@@ -1238,25 +1238,26 @@ public class ContractOrderManager {
         }
     }
 
-    public void updateTotalPosition(ContractMatchedOrderDO contractMatchedOrderDO){
+    public void updateTotalPosition(ContractMatchedOrderDO contractMatchedOrderDO, Map<ContractOrderDO, UpdatePositionResult> resultMap){
         Long increase = 0L;
         Long bidUserId = contractMatchedOrderDO.getBidUserId();
         Long askUserId = contractMatchedOrderDO.getAskUserId();
-        if (askUserId.equals(bidUserId)) {
+        if (askUserId.equals(bidUserId) || resultMap == null || resultMap.keySet().isEmpty()) {
             return;
         }
         BigDecimal filledAmount = contractMatchedOrderDO.getFilledAmount();
-        UserPositionDO bidUserPosition = userPositionMapper.selectByUserIdAndId(bidUserId, contractMatchedOrderDO.getContractId());
-        UserPositionDO askUserPosition = userPositionMapper.selectByUserIdAndId(askUserId, contractMatchedOrderDO.getContractId());
-        Long bidPositionAmount = 0L, askPositionAmount = 0L;
-        if (bidUserPosition != null) {
-            bidPositionAmount = bidUserPosition.getUnfilledAmount() * (bidUserPosition.getPositionType() == 1 ? -1 : 1);
+        long bidPositionAmount = 0L, askPositionAmount = 0L;
+        for (ContractOrderDO key : resultMap.keySet()) {
+            if (key.getUserId().equals(bidUserId)){
+                UpdatePositionResult bidPosition = resultMap.get(key);
+                bidPositionAmount = bidPosition.getNewTotalAmount() * (bidPosition.getNewPositionType() == 1 ? -1 : 1);
+            } else if (key.getUserId().equals(askUserId)) {
+                UpdatePositionResult askPosition = resultMap.get(key);
+                askPositionAmount = askPosition.getNewTotalAmount() * (askPosition.getNewPositionType() == 1 ? -1 : 1);
+            }
         }
-        if (askUserPosition != null) {
-            askPositionAmount = askUserPosition.getUnfilledAmount() * (askUserPosition.getPositionType() == 1 ? -1 : 1);
-        }
-        Long formerBidPositionAmount = bidPositionAmount - filledAmount.longValue();
-        Long formerAskPositionAmount = askPositionAmount + filledAmount.longValue();
+        long formerBidPositionAmount = bidPositionAmount - filledAmount.longValue();
+        long formerAskPositionAmount = askPositionAmount + filledAmount.longValue();
         increase = Math.abs(bidPositionAmount) - Math.abs(formerBidPositionAmount) + Math.abs(askPositionAmount) - Math.abs(formerAskPositionAmount);
         Long currentPosition = redisManager.counter(Constant.CONTRACT_TOTAL_POSITION + contractMatchedOrderDO.getContractId(), increase);
         if (currentPosition.equals(increase)) {
