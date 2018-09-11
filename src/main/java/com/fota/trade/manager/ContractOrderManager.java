@@ -1238,6 +1238,9 @@ public class ContractOrderManager {
         Long increase = 0L;
         Long bidUserId = contractMatchedOrderDO.getBidUserId();
         Long askUserId = contractMatchedOrderDO.getAskUserId();
+        if (askUserId.equals(bidUserId)) {
+            return;
+        }
         BigDecimal filledAmount = contractMatchedOrderDO.getFilledAmount();
         UserPositionDO bidUserPosition = userPositionMapper.selectByUserIdAndId(bidUserId, contractMatchedOrderDO.getContractId());
         UserPositionDO askUserPosition = userPositionMapper.selectByUserIdAndId(askUserId, contractMatchedOrderDO.getContractId());
