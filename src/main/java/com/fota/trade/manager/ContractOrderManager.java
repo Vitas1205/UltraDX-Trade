@@ -58,7 +58,7 @@ public class ContractOrderManager {
     private static final Logger tradeLog = LoggerFactory.getLogger("trade");
 
 
-    private static BigDecimal contractFee = BigDecimal.valueOf(0.001);
+    private static BigDecimal contractFee = BigDecimal.valueOf(0.0005);
 
     @Autowired
     private ContractOrderMapper contractOrderMapper;
