@@ -222,8 +222,6 @@ public class ContractOrderManager {
         if (contractOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()) {
             insertOrderRecord(contractOrderDO);
         } else {
-
-            orderId = contractOrderDO.getId();
             Map<String,BigDecimal> msg  = getAccountMsg(contractOrderDO.getUserId());
             log.info("AccountDetailMsg:"+msg.toString());
             BigDecimal entrustLock = getEntrustMargin(contractOrderDO.getUserId());
@@ -241,8 +239,8 @@ public class ContractOrderManager {
             if (useableAmount.compareTo(entrustLock) < 0) {
                 throw new BizException(ResultCodeEnum.CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(), ResultCodeEnum.CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
             }
-
             insertOrderRecord(contractOrderDO);
+            orderId = contractOrderDO.getId();
             profiler.complelete("insert record");
 
         }
