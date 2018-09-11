@@ -345,5 +345,23 @@ public class ContractOrderServiceTest {
 //        log.info(resultCode.toString());
     }
 
+    @Test
+    public void testOrderReturnId(){
+        ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
+        Map<String, String> userInfoMap = new HashMap<>();
+        userInfoMap.put("username", "harry");
+        contractOrderDTO.setContractId(1001L);
+        contractOrderDTO.setContractName("BTC0201");
+        contractOrderDTO.setTotalAmount(10L);
+        contractOrderDTO.setOrderType(OrderTypeEnum.LIMIT.getCode());
+        contractOrderDTO.setOrderDirection(OrderDirectionEnum.BID.getCode());
+        contractOrderDTO.setUserId(282L);
+        contractOrderDTO.setPrice(new BigDecimal(6000));
+        contractOrderDTO.setCloseType(OrderCloseTypeEnum.SYSTEM.getCode());
+        contractOrderDTO.setFee(new BigDecimal(0.01));
+        contractOrderDTO.setUnfilledAmount(10L);
+        //contractOrderService.orderReturnId(contractOrderDTO, userInfoMap);
+    }
+
 
 }
