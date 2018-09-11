@@ -125,11 +125,7 @@ public class ContractOrderManager {
         ResultCode resultCode = ResultCode.success();
         List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByContractId(contractId);
         if (!CollectionUtils.isEmpty(list)) {
-            //Predicate<ContractOrderDO> isNotEnforce = contractOrderDO -> contractOrderDO.getOrderType() != OrderTypeEnum.ENFORCE.getCode();
-            Predicate<ContractOrderDO> isCommit = contractOrderDO -> contractOrderDO.getStatus() == OrderStatusEnum.COMMIT.getCode();
-            Predicate<ContractOrderDO> isPartMatch = contractOrderDO -> contractOrderDO.getStatus() == OrderStatusEnum.PART_MATCH.getCode();
             Map<Long, List<Long>> orderMap = list.stream()
-                    .filter(isCommit.or(isPartMatch))
                     .collect(groupingBy(ContractOrderDO::getUserId, mapping(ContractOrderDO::getId, toList())));
 
             for (Map.Entry<Long, List<Long>> entry : orderMap.entrySet()) {
