@@ -58,7 +58,7 @@ public class ContractOrderManager {
     private static final Logger tradeLog = LoggerFactory.getLogger("trade");
 
 
-    private static BigDecimal contractFee = BigDecimal.valueOf(0.001);
+    private static BigDecimal contractFee = BigDecimal.valueOf(0.0005);
 
     @Autowired
     private ContractOrderMapper contractOrderMapper;
@@ -125,11 +125,7 @@ public class ContractOrderManager {
         ResultCode resultCode = ResultCode.success();
         List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByContractId(contractId);
         if (!CollectionUtils.isEmpty(list)) {
-            //Predicate<ContractOrderDO> isNotEnforce = contractOrderDO -> contractOrderDO.getOrderType() != OrderTypeEnum.ENFORCE.getCode();
-            Predicate<ContractOrderDO> isCommit = contractOrderDO -> contractOrderDO.getStatus() == OrderStatusEnum.COMMIT.getCode();
-            Predicate<ContractOrderDO> isPartMatch = contractOrderDO -> contractOrderDO.getStatus() == OrderStatusEnum.PART_MATCH.getCode();
             Map<Long, List<Long>> orderMap = list.stream()
-                    .filter(isCommit.or(isPartMatch))
                     .collect(groupingBy(ContractOrderDO::getUserId, mapping(ContractOrderDO::getId, toList())));
 
             for (Map.Entry<Long, List<Long>> entry : orderMap.entrySet()) {
@@ -309,6 +305,14 @@ public class ContractOrderManager {
             return ResultCode.error(ResultCodeEnum.ENFORCE_ORDER_CANNOT_BE_CANCELED.getCode(),
                     ResultCodeEnum.ENFORCE_ORDER_CANNOT_BE_CANCELED.getMessage());
         }
+        ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractOrderDO.getContractId());
+        if (contractCategoryDO == null){
+            return ResultCode.error(BIZ_ERROR.getCode(),"contract is null, id="+contractOrderDO.getContractId());
+        }
+        if (contractCategoryDO.getStatus() != PROCESSING.getCode()){
+            log.error("contract status illegal,can not cancel{}", contractCategoryDO);
+            return ResultCode.error(BIZ_ERROR.getCode(),"illegal status, id="+contractCategoryDO.getId() + ", status="+ contractCategoryDO.getStatus());
+        }
         ResultCode resultCode = ResultCode.success();
         List<Long> orderIdList = Collections.singletonList(orderId);
         sendCancelMessage(orderIdList, userId);
@@ -341,10 +345,6 @@ public class ContractOrderManager {
         ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractOrderDO.getContractId());
         if (contractCategoryDO == null){
             return ResultCode.error(BIZ_ERROR.getCode(),"contract is null, id="+contractOrderDO.getContractId());
-        }
-        if (contractCategoryDO.getStatus() != PROCESSING.getCode()){
-            log.error("contract status illegal,can not cancel{}", contractCategoryDO);
-            return ResultCode.error(BIZ_ERROR.getCode(),"illegal status, id="+contractCategoryDO.getId() + ", status="+ contractCategoryDO.getStatus());
         }
         if (status == OrderStatusEnum.COMMIT.getCode()){
             contractOrderDO.setStatus(OrderStatusEnum.CANCEL.getCode());
@@ -396,12 +396,16 @@ public class ContractOrderManager {
     }
 
     public void sendCancelMessage(List<Long> orderIdList, Long userId) {
+        if (CollectionUtils.isEmpty(orderIdList)) {
+            log.error("empty orderList");
+            return;
+        }
         //发送MQ消息到match
         Map<String, Object> map = new HashMap<>();
         map.putIfAbsent("userId", userId);
         map.putIfAbsent("idList", orderIdList);
         Boolean sendRet = rocketMqManager.sendMessage("order", "ContractCancel",
-                userId + String.valueOf(System.currentTimeMillis()), map);
+                Joiner.on(",").join(orderIdList), map);
         if (BooleanUtils.isNotTrue(sendRet)){
             log.error("failed to send cancel contract mq, {}", userId);
         }
@@ -412,6 +416,11 @@ public class ContractOrderManager {
         List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByUserId(userId);
         List<ContractOrderDO> listFilter = new ArrayList<>();
         for (ContractOrderDO temp : list){
+            ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(temp.getContractId());
+            if (contractCategoryDO.getStatus() != PROCESSING.getCode()){
+                log.error("contract status illegal,can not cancel{}", contractCategoryDO);
+                continue;
+            }
             if (temp.getOrderType() != OrderTypeEnum.ENFORCE.getCode()){
                 listFilter.add(temp);
             }
