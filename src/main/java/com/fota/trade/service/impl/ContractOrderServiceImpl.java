@@ -347,19 +347,22 @@ public class ContractOrderServiceImpl implements
             return a.getId().compareTo(b.getId());
         });
 
-        Profiler profiler = new Profiler("ContractOrderManager.updateOrderByMatch");
+        String messageKey = Joiner.on("-").join(contractMatchedOrderDTO.getAskOrderId().toString(),
+                contractMatchedOrderDTO.getAskOrderStatus(), contractMatchedOrderDTO.getBidOrderId(),
+                contractMatchedOrderDTO.getBidOrderStatus());
+        Profiler profiler = new Profiler("ContractOrderManager.updateOrderByMatch(" + messageKey+ ")");
         ThreadContextUtil.setPrifiler(profiler);
-        //获取锁
+
         //获取锁
         List<String> locks = contractOrderDOS.stream()
                 .map(x -> "POSITION_LOCK_"+ x.getUserId()+"_"+ x.getContractId())
                 .distinct()
                 .collect(Collectors.toList());
 
-        log.info("locks={}", locks);
-        boolean suc = redisManager.multiConcurrentLock(locks, Duration.ofSeconds(120), MAX_RETRIES);
-        profiler.complelete("lock");
+        boolean suc = redisManager.multiConcurrentLock(locks, Duration.ofSeconds(60), MAX_RETRIES);
+        profiler.complelete("locks:"+Joiner.on(",").join(locks));
         if (!suc) {
+            profiler.log();
             return ResultCode.error(LOCK_FAILED.getCode(), LOCK_FAILED.getMessage());
         }
         try {

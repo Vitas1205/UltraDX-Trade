@@ -396,12 +396,16 @@ public class ContractOrderManager {
     }
 
     public void sendCancelMessage(List<Long> orderIdList, Long userId) {
+        if (CollectionUtils.isEmpty(orderIdList)) {
+            log.error("empty orderList");
+            return;
+        }
         //发送MQ消息到match
         Map<String, Object> map = new HashMap<>();
         map.putIfAbsent("userId", userId);
         map.putIfAbsent("idList", orderIdList);
         Boolean sendRet = rocketMqManager.sendMessage("order", "ContractCancel",
-                userId + String.valueOf(System.currentTimeMillis()), map);
+                Joiner.on(",").join(orderIdList), map);
         if (BooleanUtils.isNotTrue(sendRet)){
             log.error("failed to send cancel contract mq, {}", userId);
         }
