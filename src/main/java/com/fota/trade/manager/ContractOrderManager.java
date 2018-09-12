@@ -726,6 +726,10 @@ public class ContractOrderManager {
     //获取多空仓额外保证金
     public BigDecimal getExtraEntrustAmount(List<ContractOrderDO> bidList, List<ContractOrderDO> askList, Integer positionType,
                                             BigDecimal positionUnfilledAmount, BigDecimal positionEntrustAmount, BigDecimal lever, BigDecimal contractSize) {
+        if (null == positionUnfilledAmount) {
+            log.error("null positionUnfilledAmount");
+            positionUnfilledAmount = BigDecimal.ZERO;
+        }
         BigDecimal max1 = BigDecimal.ZERO;
         BigDecimal max2 = BigDecimal.ZERO;
         BigDecimal totalAskEntrustAmount = BigDecimal.ZERO;
