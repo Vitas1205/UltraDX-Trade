@@ -99,7 +99,7 @@ public class OrderConsumer {
                     if ("UsdkCancelResult".equals(tag)) {
                         usdkOrderManager.cancelOrderByMessage(orderId, status);
                     } else if ("ContractCancelResult".equals(tag)) {
-                        ResultCode resultCode = contractOrderManager.cancelOrderByMessage(orderId, status);
+                        ResultCode resultCode = contractOrderManager.cancelOrderByMessage(Long.parseLong(orderId), status);
                         if (!resultCode.isSuccess()) {
                             log.error("cancel message failed, messageKey={}, resultCode={}", mqKey, resultCode);
                         }
@@ -125,7 +125,7 @@ public class OrderConsumer {
         } catch (UnsupportedEncodingException e) {
             log.error("get mq message failed", e);
         }
-        log.error("consume message exception, msgId={}, msgKey={}, tag={},  body={}, reconsumeTimes={}", messageExt.getMsgId(), messageExt.getKeys(), messageExt.getTags(),
+        log.error("consume cancel message exception, msgId={}, msgKey={}, tag={},  body={}, reconsumeTimes={}", messageExt.getMsgId(), messageExt.getKeys(), messageExt.getTags(),
                 body, messageExt.getReconsumeTimes(), t);
     }
 
@@ -136,7 +136,7 @@ public class OrderConsumer {
         } catch (UnsupportedEncodingException e) {
             log.error("get mq message failed", e);
         }
-        log.error("consume message failed, cause={}, msgId={}, msgKey={}, tag={},  body={}, reconsumeTimes={}",
+        log.error("consume cancel message failed, cause={}, msgId={}, msgKey={}, tag={},  body={}, reconsumeTimes={}",
                 cause, messageExt.getMsgId(), messageExt.getKeys(), messageExt.getTags(),
                 body, messageExt.getReconsumeTimes());
     }

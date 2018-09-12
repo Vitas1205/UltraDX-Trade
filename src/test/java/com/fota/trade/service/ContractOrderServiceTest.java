@@ -5,12 +5,14 @@ import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
 import com.fota.common.Page;
 import com.fota.common.Result;
+import com.fota.trade.client.RollbackTask;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.OrderCloseTypeEnum;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.domain.enums.OrderTypeEnum;
 import com.fota.trade.manager.ContractOrderManager;
+import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.service.impl.ContractAccountServiceImpl;
@@ -18,11 +20,16 @@ import com.fota.trade.service.impl.ContractOrderServiceImpl;
 import com.fota.trade.util.CommonUtils;
 import com.fota.trade.util.PriceUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.joda.time.LocalDate;
+import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.BeanUtils;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
@@ -30,13 +37,16 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+import static com.fota.trade.domain.enums.OrderStatusEnum.COMMIT;
+import static com.fota.trade.domain.enums.OrderStatusEnum.PART_MATCH;
+
 /**
  * @author Gavin Shen
  * @Date 2018/7/8
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
-//@Transactional
+@Transactional
 @Slf4j
 public class ContractOrderServiceTest {
 
@@ -75,7 +85,7 @@ public class ContractOrderServiceTest {
     Date checkPoint;
 
 
-    //@Before
+    @Before
     public void init() {
         // 准备数据
         askContractOrder.setId(CommonUtils.generateId());
@@ -100,8 +110,8 @@ public class ContractOrderServiceTest {
         bidContractOrder.setFee(new BigDecimal("0.01"));
         bidContractOrder.setOrderDirection(OrderDirectionEnum.BID.getCode());
         bidContractOrder.setPrice(new BigDecimal("6000"));
-        bidContractOrder.setTotalAmount(BigDecimal.valueOf(100));
-        bidContractOrder.setUnfilledAmount(BigDecimal.valueOf(100));
+        bidContractOrder.setTotalAmount(100L);
+        bidContractOrder.setUnfilledAmount(100L);
         bidContractOrder.setOrderType(OrderTypeEnum.LIMIT.getCode());
         bidContractOrder.setUserId(bidUserId);
         bidContractOrder.setStatus(OrderStatusEnum.COMMIT.getCode());
@@ -221,7 +231,7 @@ public class ContractOrderServiceTest {
         log.info("oldBalance={}, curBalance={}", origin, cur);
         BigDecimal originAmount = new BigDecimal(origin.getAmount());
         BigDecimal curAmount = new BigDecimal(cur.getAmount());
-        assert CommonUtils.equal(originAmount, curAmount);
+        assert com.fota.common.utils.CommonUtils.equal(originAmount, curAmount);
     }
 
     private void checkContractOrder(ContractOrderDO contractOrderDO) {
@@ -245,8 +255,15 @@ public class ContractOrderServiceTest {
         assert cur.getUnfilledAmount().compareTo(userPositionDO.getUnfilledAmount()) == 0
                 && cur.getPositionType() == userPositionDO.getPositionType().intValue()
                 && cur.getStatus() == userPositionDO.getStatus().intValue()
-                && CommonUtils.equal(cur.getAveragePrice(), userPositionDO.getAveragePrice());
+                && com.fota.common.utils.CommonUtils.equal(cur.getAveragePrice(), userPositionDO.getAveragePrice());
 
+    }
+
+    @Test
+    public void testCancel(){
+        contractOrderManager.cancelOrderByMessage(askContractOrder.getId(), 1);
+        ContractOrderDO orderDO = contractOrderMapper.selectByPrimaryKey(askContractOrder.getId());
+        assert orderDO.getStatus() == CANCEL.getCode();
     }
 
     @Test

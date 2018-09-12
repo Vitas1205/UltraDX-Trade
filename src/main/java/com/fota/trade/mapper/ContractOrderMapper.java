@@ -215,7 +215,13 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
 
     List<ContractOrderDO> listByQuery(Map<String, Object> param);
 
-    int updateStatus(ContractOrderDO record);
+    @Update({
+            " update trade_contract_order" +
+            " set gmt_modified = now()," +
+            " status = #{toStatus}" +
+            " where id = #{id} and status = #{status} and unfilled_amount=#{unfilledAmount}"
+    })
+    int cancelByOpLock(@Param("id") long id, @Param("status") int status, @Param("unfilledAmount") long unfilledAmount, @Param("toStatus") int toStatus);
 
     List<ContractOrderDO> listByUserIdAndOrderType(@Param("userId") Long userId, @Param("orderTypes") List<Integer> orderTypes);
 }

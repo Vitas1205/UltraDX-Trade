@@ -43,6 +43,8 @@ import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
 import static com.fota.trade.common.Constant.DEFAULT_LEVER;
 import static com.fota.trade.common.ResultCodeEnum.*;
 import static com.fota.trade.domain.enums.ContractStatusEnum.PROCESSING;
+import static com.fota.trade.domain.enums.OrderStatusEnum.CANCEL;
+import static com.fota.trade.domain.enums.OrderStatusEnum.PART_CANCEL;
 import static com.fota.trade.util.ContractUtils.computeAveragePrice;
 import static java.util.stream.Collectors.*;
 import static org.springframework.transaction.annotation.Propagation.REQUIRED;
@@ -98,7 +100,7 @@ public class ContractOrderManager {
     @Autowired
     private ContractAccountService contractAccountService;
 
-
+    Random random = new Random();
 
     private AssetService getAssetService() {
         return assetService;
@@ -319,41 +321,52 @@ public class ContractOrderManager {
      * @param status 撮合队列撤单结果 1-成功 0-失败
      */
 //    @Transactional(rollbackFor = Throwable.class)
-    public ResultCode cancelOrderByMessage(String orderId, int status) {
+    public ResultCode cancelOrderByMessage(long orderId, int status) {
         if (status == 1) {
-            ContractOrderDO contractOrderDO = contractOrderMapper.selectByPrimaryKey(Long.parseLong(orderId));
-            if (Objects.isNull(contractOrderDO)) {
-                return ResultCode.error(ILLEGAL_PARAM.getCode(), "contract order does not exist, id="+orderId);
+            for (int i = 0;i<3;i++) {
+                ResultCode resultCode = doCancelOrder(orderId);
+                if (resultCode.getCode().equals(CONCURRENT_PROBLEM.getCode())) {
+                    randomSleep();
+                    continue;
+                }
+                return resultCode;
             }
-            return cancelOrderImpl(contractOrderDO, Collections.emptyMap());
+            return ResultCode.error(CONCURRENT_PROBLEM.getCode(), "update db failed, likely concurrent problem");
         } else {
-            log.warn("failed to cancel order {}", orderId);
+            log.warn("match failed to cancel order {}", orderId);
         }
         return ResultCode.success();
     }
 
-    public ResultCode cancelOrderImpl(ContractOrderDO contractOrderDO, Map<String, String> userInfoMap) {
-        String ipAddress = StringUtils.isEmpty(userInfoMap.get("ip")) ? "" : userInfoMap.get("ip");
+    private void randomSleep(){
+        try {
+            Thread.sleep(com.fota.trade.util.CommonUtils.randomInt(5));
+        } catch (InterruptedException e) {
+            log.error("sleep exception", e);
+        }
+    }
+    public ResultCode doCancelOrder(long orderId) {
+        ContractOrderDO contractOrderDO = contractOrderMapper.selectByPrimaryKey(orderId);
+        if (Objects.isNull(contractOrderDO)) {
+            return ResultCode.error(ILLEGAL_PARAM.getCode(), "contract order does not exist, id="+orderId);
+        }
+
         ResultCode resultCode = new ResultCode();
         Integer status = contractOrderDO.getStatus();
-        ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractOrderDO.getContractId());
-        if (contractCategoryDO == null){
-            return ResultCode.error(BIZ_ERROR.getCode(),"contract is null, id="+contractOrderDO.getContractId());
-        }
+        Integer toStatus;
+
         if (status == OrderStatusEnum.COMMIT.getCode()){
-            contractOrderDO.setStatus(OrderStatusEnum.CANCEL.getCode());
+           toStatus = CANCEL.getCode();
         } else if (status == OrderStatusEnum.PART_MATCH.getCode()) {
-            contractOrderDO.setStatus(OrderStatusEnum.PART_CANCEL.getCode());
+            toStatus = PART_CANCEL.getCode();
         } else {
             return ResultCode.error(BIZ_ERROR.getCode(),"illegal order status, id="+contractOrderDO.getId() + ", status="+ contractOrderDO.getStatus());
         }
         Long transferTime = System.currentTimeMillis();
-        log.info("------------contractCancelStartTimeStamp"+System.currentTimeMillis());
-        int ret = contractOrderMapper.updateStatus(contractOrderDO);
-        log.info("------------contractCancelEndTimeStamp"+System.currentTimeMillis());
+        int ret = contractOrderMapper.cancelByOpLock(orderId, status, contractOrderDO.getUnfilledAmount(), toStatus);
         if (ret > 0) {
         } else {
-            return ResultCode.error(BIZ_ERROR.getCode(),"cancel failed, id="+ contractOrderDO.getId());
+            return ResultCode.error(CONCURRENT_PROBLEM.getCode(),"cancel failed, id="+ contractOrderDO.getId());
         }
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO);
@@ -365,8 +378,12 @@ public class ContractOrderManager {
         if (jsonObject != null && !jsonObject.isEmpty()) {
             username = jsonObject.get("username") == null ? "" : jsonObject.get("username").toString();
         }
+        ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractOrderDO.getContractId());
+        if (contractCategoryDO == null){
+            return ResultCode.error(BIZ_ERROR.getCode(),"contract is null, id="+contractOrderDO.getContractId());
+        }
         tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                2, contractOrderDTO.getContractName(), username, ipAddress, contractOrderDTO.getUnfilledAmount(),
+                2, contractOrderDTO.getContractName(), username, "", contractOrderDTO.getUnfilledAmount(),
                 System.currentTimeMillis(), 1, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 1);
         OrderMessage orderMessage = new OrderMessage();
         orderMessage.setAmount(contractOrderDTO.getUnfilledAmount());
@@ -380,9 +397,9 @@ public class ContractOrderManager {
         orderMessage.setOrderDirection(contractOrderDO.getOrderDirection());
         orderMessage.setContractType(contractCategoryDO.getContractType());
         orderMessage.setContractMatchAssetName(contractCategoryDO.getAssetName());
-        Boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder", String.valueOf(contractOrderDTO.getId())+contractOrderDTO.getStatus(), orderMessage);
+        Boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder", "contract_doCanceled_"+ orderId, orderMessage);
         if (!sendRet) {
-            log.error("Send RocketMQ Message Failed ");
+            log.error("send canceled message failed, message={}", orderMessage);
         }
         resultCode.setCode(0);
         resultCode.setMessage("success");
