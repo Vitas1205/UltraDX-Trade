@@ -3,7 +3,6 @@ package com.fota.trade.util;
 import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.domain.UserPositionDO;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -39,7 +38,7 @@ public class ContractUtilsTest {
 
         BigDecimal expected = new BigDecimal("500.005").setScale(8, RoundingMode.DOWN);
 
-        BigDecimal averagePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount, contractSize);
+        BigDecimal averagePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount);
 
         //Assert.assertNotNull(averagePrice);
         //Assert.assertEquals(expected, averagePrice);
@@ -66,7 +65,7 @@ public class ContractUtilsTest {
 
         BigDecimal expected = new BigDecimal("499.995").setScale(8, RoundingMode.DOWN);
 
-        BigDecimal averagePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount, contractSize);
+        BigDecimal averagePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount);
 
         //Assert.assertNotNull(averagePrice);
         //Assert.assertEquals(expected, averagePrice);
@@ -93,7 +92,7 @@ public class ContractUtilsTest {
 
         BigDecimal expected = new BigDecimal("500.005").setScale(8, RoundingMode.DOWN);
 
-        BigDecimal averagePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount, contractSize);
+        BigDecimal averagePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount);
 
         //Assert.assertNotNull(averagePrice);
         //Assert.assertEquals(expected, averagePrice);
@@ -115,7 +114,7 @@ public class ContractUtilsTest {
 
         BigDecimal expected = new BigDecimal("499.995").setScale(8, RoundingMode.DOWN);
 
-        BigDecimal averagePrice = computeAveragePrice(contractOrderDO, null, filledPrice, filledAmount, contractSize);
+        BigDecimal averagePrice = computeAveragePrice(contractOrderDO, null, filledPrice, filledAmount);
 
         //Assert.assertNotNull(averagePrice);
         //Assert.assertEquals(expected, averagePrice);

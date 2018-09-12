@@ -2,11 +2,9 @@ package com.fota.trade.util;
 
 import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.domain.UserPositionDO;
-import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.PositionTypeEnum;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.Objects;
 
 import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
@@ -19,16 +17,15 @@ public class ContractUtils {
     private static int scale = 16;
     private static int roundingMode = BigDecimal.ROUND_HALF_UP;
 
-    public static UserPositionDO buildPosition(ContractOrderDO contractOrderDO, BigDecimal contractSize, int lever, long filledAmount, BigDecimal filledPrice) {
+    public static UserPositionDO buildPosition(ContractOrderDO contractOrderDO, int lever, long filledAmount, BigDecimal filledPrice) {
         UserPositionDO userPositionDO = new UserPositionDO();
         userPositionDO.setPositionType(contractOrderDO.getOrderDirection());
-        userPositionDO.setAveragePrice(computeAveragePrice(contractOrderDO, null, filledPrice, filledAmount, contractSize));
+        userPositionDO.setAveragePrice(computeAveragePrice(contractOrderDO, null, filledPrice, filledAmount));
         userPositionDO.setUnfilledAmount(filledAmount);
         userPositionDO.setStatus(1);
         userPositionDO.setUserId(contractOrderDO.getUserId());
         userPositionDO.setContractName(contractOrderDO.getContractName());
         userPositionDO.setContractId(contractOrderDO.getContractId());
-        userPositionDO.setContractSize(contractSize);
         userPositionDO.setLever(lever);
         return userPositionDO;
     }
@@ -40,19 +37,17 @@ public class ContractUtils {
      * @param userPositionDO   现有持仓
      * @param filledAmountLong 成交价格
      * @param filledPrice      成交数量
-     * @param contractSize     合约大小
      * @return 开仓均价
      */
     public static BigDecimal computeAveragePrice(ContractOrderDO contractOrderDO, UserPositionDO userPositionDO,
-                                                 BigDecimal filledPrice, long filledAmountLong, BigDecimal contractSize) {
+                                                 BigDecimal filledPrice, long filledAmountLong) {
         BigDecimal x = contractOrderDO.getOrderDirection() == ASK.getCode() ? BigDecimal.valueOf(-1) : BigDecimal.ONE;
         BigDecimal averagePrice = BigDecimal.ZERO;
         BigDecimal filledAmount = BigDecimal.valueOf(filledAmountLong);
         if (Objects.isNull(userPositionDO)) {
             BigDecimal temp = filledPrice.multiply(filledAmount);
             averagePrice = temp.add(
-                    temp.multiply(contractSize)
-                            .multiply(contractOrderDO.getFee())
+                    temp.multiply(contractOrderDO.getFee())
                             .multiply(x))
                     .divide(filledAmount, scale, roundingMode);
         } else {
@@ -62,8 +57,7 @@ public class ContractUtils {
                 BigDecimal oldTotalPrice = userPositionDO.getAveragePrice().multiply(new BigDecimal(userPositionDO.getUnfilledAmount()));
                 BigDecimal addedTotalPrice = filledPrice.multiply(filledAmount);
                 averagePrice = oldTotalPrice.add(addedTotalPrice)
-                        .add(addedTotalPrice.multiply(contractSize)
-                                .multiply(contractOrderDO.getFee())
+                        .add(addedTotalPrice.multiply(contractOrderDO.getFee())
                                 .multiply(x))
                         .divide(BigDecimal.valueOf(newTotalAmount), scale, roundingMode);
             } else {
@@ -81,8 +75,7 @@ public class ContractUtils {
 
                     BigDecimal temp = filledPrice.multiply(BigDecimal.valueOf(newTotalAmount));
                     averagePrice = temp.add(
-                            temp.multiply(contractSize)
-                                    .multiply(contractOrderDO.getFee())
+                            temp.multiply(contractOrderDO.getFee())
                                     .multiply(x))
                             .divide(BigDecimal.valueOf(newTotalAmount), scale, roundingMode);
                 }

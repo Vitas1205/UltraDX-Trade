@@ -50,7 +50,6 @@ public class BeanUtils {
         contractCategoryDTO.setDeliveryDate(contractCategoryDO.getDeliveryDate().getTime());
         contractCategoryDTO.setStatus(contractCategoryDO.getStatus());
         contractCategoryDTO.setContractType(contractCategoryDO.getContractType());
-        contractCategoryDTO.setContractSize(contractCategoryDO.getContractSize());
         return contractCategoryDTO;
     }
 
@@ -68,7 +67,6 @@ public class BeanUtils {
         contractCategoryDO.setStatus(contractCategoryDTO.getStatus());
         contractCategoryDO.setContractType(contractCategoryDTO.getContractType());
         contractCategoryDO.setPrice(new BigDecimal("0.01"));
-        contractCategoryDO.setContractSize(contractCategoryDTO.getContractSize());
         return contractCategoryDO;
     }
 
@@ -206,7 +204,6 @@ public class BeanUtils {
         userPositionDTO.setPositionType(userPositionDO.getPositionType());
         userPositionDTO.setAveragePrice(userPositionDO.getAveragePrice().toString());
         userPositionDTO.setAmount(userPositionDO.getUnfilledAmount());
-        userPositionDTO.setContractSize(userPositionDO.getContractSize());
         return userPositionDTO;
     }
 

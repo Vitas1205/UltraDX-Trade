@@ -1,6 +1,5 @@
 package com.fota.trade.service.impl;
 
-import com.alibaba.fastjson.JSON;
 import com.fota.common.Page;
 import com.fota.common.Result;
 import com.fota.ticker.entrust.RealTimeEntrust;
@@ -27,8 +26,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
-
-import static java.util.stream.Collectors.toList;
 
 /**
  * @author Gavin Shen
@@ -236,10 +233,9 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
             log.error("contractCategoryMapper.selectByPrimaryKey() failed {}{}", contractId,e);
             return result.error(-1,"getPositionMargin failed");
         }
-        BigDecimal contractSize = contractCategoryDO.getContractSize();
         //获取买一卖一价
-        BigDecimal askCurrentPrice = BigDecimal.ZERO;
-        BigDecimal bidCurrentPrice = BigDecimal.ZERO;
+        BigDecimal askCurrentPrice;
+        BigDecimal bidCurrentPrice;
         try{
             List<CompetitorsPriceDTO> competitorsPriceList = realTimeEntrust.getContractCompetitorsPrice();
             bidCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
@@ -252,8 +248,10 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
             log.error("get competiorsPrice failed {}{}", contractId,e);
             return result.error(-1,"getPositionMargin failed");
         }
-        BigDecimal askPositionMargin = askCurrentPrice.multiply(oneWayPosition).multiply(contractSize).divide(lever).setScale(8,BigDecimal.ROUND_DOWN);
-        BigDecimal bidPositionMargin = bidCurrentPrice.multiply(oneWayPosition).multiply(contractSize).divide(lever).setScale(8,BigDecimal.ROUND_DOWN);
+        BigDecimal askPositionMargin = askCurrentPrice.multiply(oneWayPosition)
+                .divide(lever, 8, BigDecimal.ROUND_DOWN);
+        BigDecimal bidPositionMargin = bidCurrentPrice.multiply(oneWayPosition)
+                .divide(lever, 8,BigDecimal.ROUND_DOWN);
         BigDecimal totalPositionMargin = askPositionMargin.add(bidPositionMargin);
         result.success(totalPositionMargin);
         return result;

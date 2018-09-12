@@ -5,7 +5,10 @@ import com.fota.asset.domain.ContractDealer;
 import com.fota.asset.service.ContractService;
 import com.fota.trade.client.RollbackTask;
 import com.fota.trade.common.UpdatePositionResult;
-import com.fota.trade.domain.*;
+import com.fota.trade.domain.BaseQuery;
+import com.fota.trade.domain.ContractMatchedOrderDO;
+import com.fota.trade.domain.ContractOrderDO;
+import com.fota.trade.domain.ResultCode;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
@@ -20,7 +23,6 @@ import java.util.Date;
 import java.util.List;
 
 import static com.fota.trade.client.constants.MatchedOrderStatus.DELETE;
-import static com.fota.trade.domain.enums.OrderTypeEnum.ENFORCE;
 
 /**
  * Created by Swifree on 2018/8/20.
@@ -120,15 +122,14 @@ public class RollbackManager {
         askContractOrder.setOrderDirection(bidContractOrder.getOrderDirection());
         bidContractOrder.setOrderDirection(tmp);
 
-        BigDecimal contractSize = contractOrderManager.getContractSize(askContractOrder.getContractId());
         //更新持仓
-        UpdatePositionResult askResult = contractOrderManager.updatePosition(askContractOrder, contractSize, filledAmount, filledPrice);
-        UpdatePositionResult bidResult = contractOrderManager.updatePosition(bidContractOrder, contractSize, filledAmount, filledPrice);
+        UpdatePositionResult askResult = contractOrderManager.updatePosition(askContractOrder, filledAmount, filledPrice);
+        UpdatePositionResult bidResult = contractOrderManager.updatePosition(bidContractOrder, filledAmount, filledPrice);
 
         contractMatchedOrderMapper.updateStatus(matchedOrderDO.getId(), DELETE);
 
-        ContractDealer dealer1 = calRollbackBalance(askContractOrder, filledAmount, filledPrice, contractSize, askResult);
-        ContractDealer dealer2 = calRollbackBalance(bidContractOrder, filledAmount, filledPrice, contractSize, bidResult);
+        ContractDealer dealer1 = calRollbackBalance(askContractOrder, filledAmount, filledPrice, askResult);
+        ContractDealer dealer2 = calRollbackBalance(bidContractOrder, filledAmount, filledPrice, bidResult);
         com.fota.common.Result result = contractService.updateBalances(dealer1, dealer2);
         if (!result.isSuccess()) {
             throw new RuntimeException("update balance failed");
@@ -136,19 +137,19 @@ public class RollbackManager {
 
 
     }
-    private ContractDealer calRollbackBalance(ContractOrderDO contractOrderDO, long filledAmount, BigDecimal filledPrice,
-                                              BigDecimal contractSize, UpdatePositionResult positionResult){
+    private ContractDealer calRollbackBalance(ContractOrderDO contractOrderDO, long filledAmount,
+                                              BigDecimal filledPrice, UpdatePositionResult positionResult){
         long userId = contractOrderDO.getUserId();
         BigDecimal rate = contractOrderDO.getFee();
         if (null == positionResult.getCloseAmount()) {
             return null;
         }
         //手续费
-        BigDecimal actualFee = filledPrice.multiply(new BigDecimal(filledAmount)).multiply(rate).multiply(contractSize);
+        BigDecimal actualFee = filledPrice.multiply(BigDecimal.valueOf(filledAmount))
+                .multiply(rate);
         // (filledPrice-openAveragePrice)*closeAmount*contractSize*openPositionDirection - actualFee
         BigDecimal addAmount = filledPrice.subtract(positionResult.getOpenAveragePrice())
                 .multiply(new BigDecimal(positionResult.getCloseAmount()))
-                .multiply(contractSize)
                 .multiply(new BigDecimal(positionResult.getOpenPositionDirection()))
                 .add(actualFee);
         ContractDealer dealer = new ContractDealer()
