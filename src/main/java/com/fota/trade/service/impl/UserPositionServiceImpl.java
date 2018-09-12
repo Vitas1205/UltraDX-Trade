@@ -108,16 +108,16 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
 
 
     @Override
-    public long getTotalPositionByContractId(long contractId) {
+    public BigDecimal getTotalPositionByContractId(long contractId) {
         Object result = redisManager.get(Constant.CONTRACT_TOTAL_POSITION + contractId);
         if (result != null) {
-            return Long.valueOf(result.toString());
+            return new BigDecimal(result.toString());
         }
-        Long totalPosition = userPositionMapper.countTotalPosition(contractId);
+        BigDecimal totalPosition = userPositionMapper.countTotalPosition(contractId);
         if (totalPosition == null) {
-            return 0;
+            return BigDecimal.ZERO;
         }
-        return totalPosition * 2;
+        return totalPosition.multiply(BigDecimal.valueOf(2));
     }
 
     /**
@@ -220,11 +220,11 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
     public Result<BigDecimal> getPositionMarginByContractId(Long contractId) {
         Result<BigDecimal> result = new Result<>();
         result.setData(BigDecimal.ZERO);
-        long totalPosition  = getTotalPositionByContractId(contractId);
-        if (totalPosition == 0){
+        BigDecimal totalPosition  = getTotalPositionByContractId(contractId);
+        if (totalPosition.stripTrailingZeros().compareTo(BigDecimal.ZERO) == 0){
             return  result.success(BigDecimal.ZERO);
         }
-        BigDecimal oneWayPosition = new BigDecimal(totalPosition/2);
+        BigDecimal oneWayPosition = totalPosition.divide(BigDecimal.valueOf(2));
         BigDecimal lever = new BigDecimal("10");
         ContractCategoryDO contractCategoryDO = new ContractCategoryDO();
         try {

@@ -80,14 +80,14 @@ public class ContractTest {
             contractOrderDTO.setOrderDirection(1);
             contractOrderDTO.setOperateType(0);
             contractOrderDTO.setOrderType(1);
-            contractOrderDTO.setTotalAmount(1L);
+            contractOrderDTO.setTotalAmount(BigDecimal.ONE);
             contractOrderDTO.setPrice(new BigDecimal("8500"));
             Map<String, String> map = new HashMap<>();
             map.put("usernmae", "123");
             map.put("ip", "192.169.1.1");
-            //contractOrderService.order(contractOrderDTO,map);
+            contractOrderService.order(contractOrderDTO,map);
         }
-        //int insertContractOrderRet = contractOrderMapper.insertSelective(BeanUtils.copy(contractOrderDTO));
+//        int insertContractOrderRet = contractOrderMapper.insertSelective(BeanUtils.copy(contractOrderDTO));
     }
 
     @Test

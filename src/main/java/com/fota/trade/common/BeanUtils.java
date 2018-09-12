@@ -45,8 +45,8 @@ public class BeanUtils {
         contractCategoryDTO.setContractName(contractCategoryDO.getContractName());
         contractCategoryDTO.setAssetId(contractCategoryDO.getAssetId());
         contractCategoryDTO.setAssetName(contractCategoryDO.getAssetName());
-        contractCategoryDTO.setTotalAmount(contractCategoryDO.getTotalAmount());
-        contractCategoryDTO.setUnfilledAmount(contractCategoryDO.getUnfilledAmount());
+//        contractCategoryDTO.setTotalAmount(contractCategoryDO.getTotalAmount());
+//        contractCategoryDTO.setUnfilledAmount(contractCategoryDO.getUnfilledAmount());
         contractCategoryDTO.setDeliveryDate(contractCategoryDO.getDeliveryDate().getTime());
         contractCategoryDTO.setStatus(contractCategoryDO.getStatus());
         contractCategoryDTO.setContractType(contractCategoryDO.getContractType());
@@ -219,7 +219,7 @@ public class BeanUtils {
         contractMatchedOrderDO.setBidOrderId(contractMatchedOrderDTO.getBidOrderId());
         contractMatchedOrderDO.setMatchType(contractMatchedOrderDTO.getMatchType().byteValue());
         contractMatchedOrderDO.setFilledPrice(new BigDecimal(contractMatchedOrderDTO.getFilledPrice()));
-        contractMatchedOrderDO.setFilledAmount(new BigDecimal(contractMatchedOrderDTO.getFilledAmount()));
+        contractMatchedOrderDO.setFilledAmount(contractMatchedOrderDTO.getFilledAmount());
         contractMatchedOrderDO.setContractName(contractMatchedOrderDTO.getContractName());
         contractMatchedOrderDO.setContractId(contractMatchedOrderDTO.getContractId());
         return contractMatchedOrderDO;

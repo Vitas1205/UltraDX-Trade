@@ -1,12 +1,10 @@
 package com.fota.trade.service.impl;
 
-import com.alibaba.fastjson.JSON;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
 import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.ResultCode;
-import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.manager.ContractLeverManager;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.RedisManager;
@@ -30,7 +28,6 @@ import java.util.stream.Collectors;
 
 import static com.fota.trade.common.ResultCodeEnum.LOCK_FAILED;
 import static com.fota.trade.common.ResultCodeEnum.SYSTEM_ERROR;
-import static java.util.stream.Collectors.toSet;
 
 /**
  * @Author: JianLi.Gao
@@ -564,7 +561,7 @@ public class ContractOrderServiceImpl implements
         int ret = -1;
         try {
             BigDecimal averagePrice = PriceUtil.getAveragePrice(contractOrderDO.getAveragePrice(),
-                    new BigDecimal(contractOrderDO.getTotalAmount()).subtract(new BigDecimal(contractOrderDO.getUnfilledAmount())),
+                    contractOrderDO.getTotalAmount().subtract(contractOrderDO.getUnfilledAmount()),
                     new BigDecimal(filledAmount),
                     new BigDecimal(filledPrice));
             ret = contractOrderMapper.updateByFilledAmount(contractOrderDO.getId(), contractOrderDO.getStatus(), filledAmount, averagePrice);

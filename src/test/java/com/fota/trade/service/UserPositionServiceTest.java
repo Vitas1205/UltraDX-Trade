@@ -86,7 +86,7 @@ public class UserPositionServiceTest {
 
     @Test
     public void test_getTotalPositionByContractId() {
-        Long total = userPositionService.getTotalPositionByContractId(1006L);
+        BigDecimal total = userPositionService.getTotalPositionByContractId(1006L);
         System.out.println("totalPosition" + total);
     }
 

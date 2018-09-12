@@ -18,8 +18,8 @@
             <arg column="order_type" jdbcType="TINYINT" javaType="java.lang.Integer"/>
             <arg column="operate_direction" jdbcType="TINYINT" javaType="java.lang.Integer"/>
             <arg column="lever" jdbcType="TINYINT" javaType="java.lang.Integer"/>
-            <arg column="total_amount" jdbcType="BIGINT" javaType="java.lang.Long"/>
-            <arg column="unfilled_amount" jdbcType="BIGINT" javaType="java.lang.Long"/>
+            <arg column="total_amount" jdbcType="DECIMAL" javaType="java.math.BigDecimal"/>
+            <arg column="unfilled_amount" jdbcType="DECIMAL" javaType="java.math.BigDecimal"/>
             <arg column="close_type" jdbcType="TINYINT" javaType="java.lang.Integer"/>
             <arg column="price" jdbcType="DECIMAL" javaType="java.math.BigDecimal"/>
             <arg column="fee" jdbcType="DECIMAL" javaType="java.math.BigDecimal"/>

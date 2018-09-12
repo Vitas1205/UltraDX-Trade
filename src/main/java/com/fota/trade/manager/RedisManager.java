@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -122,6 +123,16 @@ public class RedisManager {
     public Long counter(final String redisKey, Long sum) {
         try {
             long count = redisTemplate.opsForValue().increment(redisKey, sum);
+            return count;
+        } catch (Exception e) {
+            log.error("redis getCount", e);
+        }
+        return null;
+    }
+
+    public Double counter(final String redisKey, BigDecimal sum) {
+        try {
+            Double count = redisTemplate.opsForValue().increment(redisKey, sum.doubleValue());
             return count;
         } catch (Exception e) {
             log.error("redis getCount", e);

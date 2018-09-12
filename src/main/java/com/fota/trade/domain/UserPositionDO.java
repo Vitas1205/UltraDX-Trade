@@ -18,7 +18,7 @@ public class UserPositionDO {
     private Long contractId;
     private String contractName;
     private BigDecimal lockedAmount;
-    private Long unfilledAmount;
+    private BigDecimal unfilledAmount;
     private Integer positionType;
     private BigDecimal averagePrice;
     /**

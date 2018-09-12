@@ -96,7 +96,7 @@ public class RollbackManager {
         query.setEndRow(rollbackTask.getPageSize());
 
         List<ContractMatchedOrderDO> matchedOrderDOS = contractMatchedOrderMapper.queryMatchedOrder(query);
-        matchedOrderDOS.stream().forEach(x -> rollbackMatchedOrder(x));
+        matchedOrderDOS.forEach(this::rollbackMatchedOrder);
 
     }
 
@@ -111,9 +111,9 @@ public class RollbackManager {
         ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(matchedOrderDO.getBidOrderId());
 
         //更新委托状态
-        long oppositeFilledAmount = matchedOrderDO.getFilledAmount().negate().longValue();
+        BigDecimal oppositeFilledAmount = matchedOrderDO.getFilledAmount().negate();
         BigDecimal filledPrice = matchedOrderDO.getFilledPrice();
-        long filledAmount = matchedOrderDO.getFilledAmount().longValue();
+        BigDecimal filledAmount = matchedOrderDO.getFilledAmount();
 
         contractOrderManager.updateContractOrder(askContractOrder.getId(), oppositeFilledAmount, matchedOrderDO.getFilledPrice(), new Date());
         contractOrderManager.updateContractOrder(bidContractOrder.getId(), oppositeFilledAmount, matchedOrderDO.getFilledPrice(), new Date());
@@ -137,7 +137,7 @@ public class RollbackManager {
 
 
     }
-    private ContractDealer calRollbackBalance(ContractOrderDO contractOrderDO, long filledAmount,
+    private ContractDealer calRollbackBalance(ContractOrderDO contractOrderDO, BigDecimal filledAmount,
                                               BigDecimal filledPrice, UpdatePositionResult positionResult){
         long userId = contractOrderDO.getUserId();
         BigDecimal rate = contractOrderDO.getFee();
@@ -145,11 +145,11 @@ public class RollbackManager {
             return null;
         }
         //手续费
-        BigDecimal actualFee = filledPrice.multiply(BigDecimal.valueOf(filledAmount))
+        BigDecimal actualFee = filledPrice.multiply(filledAmount)
                 .multiply(rate);
         // (filledPrice-openAveragePrice)*closeAmount*contractSize*openPositionDirection - actualFee
         BigDecimal addAmount = filledPrice.subtract(positionResult.getOpenAveragePrice())
-                .multiply(new BigDecimal(positionResult.getCloseAmount()))
+                .multiply(positionResult.getCloseAmount())
                 .multiply(new BigDecimal(positionResult.getOpenPositionDirection()))
                 .add(actualFee);
         ContractDealer dealer = new ContractDealer()

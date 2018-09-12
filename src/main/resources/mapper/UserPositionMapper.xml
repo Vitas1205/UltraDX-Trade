@@ -10,18 +10,17 @@
       <arg column="contract_id" jdbcType="BIGINT" javaType="java.lang.Long" />
       <arg column="contract_name" jdbcType="VARCHAR" javaType="java.lang.String" />
       <arg column="locked_amount" jdbcType="DECIMAL" javaType="java.math.BigDecimal" />
-      <arg column="unfilled_amount" jdbcType="BIGINT" javaType="java.lang.Long" />
+      <arg column="unfilled_amount" jdbcType="DECIMAL" javaType="java.math.BigDecimal" />
       <arg column="position_type" jdbcType="INTEGER" javaType="java.lang.Integer" />
       <arg column="average_price" jdbcType="DECIMAL" javaType="java.math.BigDecimal" />
       <arg column="status" jdbcType="INTEGER" javaType="java.lang.Integer" />
       <arg column="lever" jdbcType="INTEGER" javaType="java.lang.Integer" />
-      <arg column="contract_size" jdbcType="DECIMAL" javaType="java.math.BigDecimal" />
     </constructor>
   </resultMap>
 
   <sql id="Base_Column_List" >
     id, gmt_create as gmtCreate, gmt_modified as gmtModified, user_id as userId, contract_id as contractId, contract_name as contractName, locked_amount as lockedAmount,
-    unfilled_amount as unfilledAmount, position_type as positionType, average_price as averagePrice, status, lever, contract_size as contractSize
+    unfilled_amount as unfilledAmount, position_type as positionType, average_price as averagePrice, `status`, lever
   </sql>
 
   <insert id="insertSelective" parameterType="com.fota.trade.domain.UserPositionDO" >
@@ -63,9 +62,6 @@
       <if test="lever != null" >
         lever,
       </if>
-      <if test="contractSize != null" >
-        contract_size,
-      </if>
     </trim>
     <trim prefix="values (" suffix=")" suffixOverrides="," >
       <if test="id != null" >
@@ -103,9 +99,6 @@
       </if>
       <if test="lever != null" >
         #{lever,jdbcType=INTEGER},
-      </if>
-      <if test="contractSize != null" >
-        #{contract_size,jdbcType=DECIMAL},
       </if>
     </trim>
   </insert>
@@ -149,9 +142,6 @@
       <if test="lever != null" >
         status = #{lever,jdbcType=INTEGER},
       </if>
-      <if test="contractSize != null" >
-        contract_size = #{contractSize,jdbcType=DECIMAL},
-      </if>
     </set>
     where id = #{id,jdbcType=BIGINT}
   </update>
@@ -189,7 +179,7 @@
     limit #{startRow,jdbcType=INTEGER}, #{endRow,jdbcType=INTEGER}
   </select>
 
-  <select id="countTotalPosition" resultType="java.lang.Long">
+  <select id="countTotalPosition" resultType="java.math.BigDecimal">
     select sum(unfilled_amount)
     from trade_user_position
     where status = 1

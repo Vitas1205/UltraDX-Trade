@@ -16,8 +16,8 @@ public class ContractCategoryDO {
     private String contractName;
     private Integer assetId;
     private String assetName;
-    private Long totalAmount;
-    private Long unfilledAmount;
+    private BigDecimal totalAmount;
+    private BigDecimal unfilledAmount;
     private Date deliveryDate;
     private Integer status;
     private Integer contractType;
