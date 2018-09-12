@@ -296,13 +296,12 @@ public class ContractOrderServiceTest {
         contractOrderDTO.setContractId(1000L);
         contractOrderDTO.setContractName("BTC0102");
         contractOrderDTO.setTotalAmount(10L);
-        contractOrderDTO.setOrderType(OrderTypeEnum.LIMIT.getCode());
+        contractOrderDTO.setOrderType(OrderTypeEnum.ENFORCE.getCode());
         contractOrderDTO.setOrderDirection(OrderDirectionEnum.BID.getCode());
         contractOrderDTO.setUserId(274L);
         contractOrderDTO.setPrice(new BigDecimal(1));
         contractOrderDTO.setCloseType(OrderCloseTypeEnum.MANUAL.getCode());
         contractOrderDTO.setFee(new BigDecimal(0.01));
-        contractOrderDTO.setUnfilledAmount(10L);
         Result result = contractOrderService.orderReturnId(contractOrderDTO, userInfoMap);
         log.info(result.toString());
 

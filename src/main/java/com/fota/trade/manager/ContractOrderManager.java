@@ -178,13 +178,13 @@ public class ContractOrderManager {
         profiler.complelete("before json serialization");
         contractOrderDO.setOrderContext(JSONObject.toJSONString(contractOrderDTO.getOrderContext()));
         profiler.complelete("json serialization");
-        Long orderId = 0L;
+        Long orderId = com.fota.trade.util.CommonUtils.generateId();
         long transferTime = System.currentTimeMillis();
         contractOrderDO.setGmtCreate(new Date(transferTime));
         contractOrderDO.setGmtModified(new Date(transferTime));
         contractOrderDO.setStatus(8);
         contractOrderDO.setFee(Constant.FEE_RATE);
-        contractOrderDO.setId(com.fota.trade.util.CommonUtils.generateId());
+        contractOrderDO.setId(orderId);
         contractOrderDO.setUnfilledAmount(contractOrderDO.getTotalAmount());
 
         ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractOrderDO.getContractId());
