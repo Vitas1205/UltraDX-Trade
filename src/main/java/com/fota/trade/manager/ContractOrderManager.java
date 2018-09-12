@@ -238,7 +238,6 @@ public class ContractOrderManager {
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO );
         contractOrderDTO.setCompleteAmount(0L);
         contractOrderDTO.setContractId(contractOrderDO.getContractId());
-        //redisManager.contractOrderSave(contractOrderDTO);
         if (contractOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()) {
             // 强平单
             JSONObject jsonObject = JSONObject.parseObject(contractOrderDO.getOrderContext());
@@ -1082,30 +1081,6 @@ public class ContractOrderManager {
         Boolean sendRet = rocketMqManager.sendMessage("match", "contract", String.valueOf(contractMatchedOrderDO.getId()), orderMessage);
         if (!sendRet) {
             log.error("Send RocketMQ Message Failed ");
-        }
-
-        // 向Redis存储消息
-        ContractMatchedOrderTradeDTO contractMatchedOrderTradeDTO = new ContractMatchedOrderTradeDTO();
-        contractMatchedOrderTradeDTO.setContractMatchedOrderId(contractMatchedOrderDO.getId());
-        contractMatchedOrderTradeDTO.setAskOrderId(contractMatchedOrderDO.getAskOrderId());
-        contractMatchedOrderTradeDTO.setBidOrderId(contractMatchedOrderDO.getBidOrderId());
-        contractMatchedOrderTradeDTO.setFilledAmount(contractMatchedOrderDO.getFilledAmount());
-        contractMatchedOrderTradeDTO.setFilledPrice(contractMatchedOrderDO.getFilledPrice());
-        contractMatchedOrderTradeDTO.setFilledDate(contractMatchedOrderDO.getGmtCreate());
-        contractMatchedOrderTradeDTO.setMatchType((int) contractMatchedOrderDO.getMatchType());
-        contractMatchedOrderTradeDTO.setContractId(askContractOrder.getContractId());
-        contractMatchedOrderTradeDTO.setContractName(contractMatchedOrderDO.getContractName());
-        try {
-            String key = Constant.CACHE_KEY_MATCH_CONTRACT + contractMatchedOrderDO.getId();
-            Object value = JSONObject.toJSONString(contractMatchedOrderTradeDTO);
-            log.info("向Redis存储消息,key:{},value:{}", key, value);
-            boolean re = redisManager.set(key, value);
-            if (!re) {
-                log.error("向Redis存储消息失败");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            log.error("向Redis存储USDK撮合订单信息失败，订单id为 {}", contractMatchedOrderDO.getId());
         }
         updateTotalPosition(contractMatchedOrderDO, resultMap);
     }

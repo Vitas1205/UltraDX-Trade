@@ -62,5 +62,23 @@ public class BeanUtilsTest {
         BeanUtils.copy(contractCategoryDO);
     }
 
+    @Test
+    public void testCopyContractCategoryDTO() throws Exception {
+        ContractCategoryDTO contractCategoryDTO = new ContractCategoryDTO();
+        contractCategoryDTO.setId(2L);
+        contractCategoryDTO.setGmtCreate(new Date());
+        contractCategoryDTO.setGmtModified(new Date());
+        contractCategoryDTO.setContractName("BTC0203");
+        contractCategoryDTO.setAssetId(2);
+        contractCategoryDTO.setAssetName("BTC");
+        contractCategoryDTO.setTotalAmount(20L);
+        contractCategoryDTO.setUnfilledAmount(20L);
+        contractCategoryDTO.setDeliveryDate(new Date().getTime());
+        contractCategoryDTO.setStatus(2);
+        contractCategoryDTO.setContractType(2);
+        contractCategoryDTO.setContractSize(new BigDecimal(0.01));
+        BeanUtils.copy(contractCategoryDTO);
+    }
+
 
 }
