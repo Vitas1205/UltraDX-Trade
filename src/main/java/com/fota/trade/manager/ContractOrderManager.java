@@ -182,6 +182,11 @@ public class ContractOrderManager {
         long transferTime = System.currentTimeMillis();
         contractOrderDO.setGmtCreate(new Date(transferTime));
         contractOrderDO.setGmtModified(new Date(transferTime));
+        contractOrderDO.setStatus(8);
+        contractOrderDO.setFee(Constant.FEE_RATE);
+        contractOrderDO.setId(com.fota.trade.util.CommonUtils.generateId());
+        contractOrderDO.setUnfilledAmount(contractOrderDO.getTotalAmount());
+
         ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractOrderDO.getContractId());
         profiler.complelete("select contract category");
         if (contractCategoryDO == null) {
@@ -577,12 +582,7 @@ public class ContractOrderManager {
             if (!CollectionUtils.isEmpty(orderList)) {
                 List<ContractOrderDO> bidList = orderList.stream().filter(order -> order.getOrderDirection() == OrderDirectionEnum.BID.getCode()).collect(toList());
                 List<ContractOrderDO> askList = orderList.stream().filter(order -> order.getOrderDirection() == OrderDirectionEnum.ASK.getCode()).collect(toList());
-                try {
-                    entrustMargin = getExtraEntrustAmount(bidList, askList, positionType, positionUnfilledAmount, positionMargin, lever, contractSize);
-                }catch (Exception e) {
-                    log.error("bidList={}, askList={}, contractSize={}, lever={}, positionEntrustAmount={}", bidList, askList, contractSize, lever, positionMargin);
-                    return null;
-                }
+                entrustMargin = getExtraEntrustAmount(bidList, askList, positionType, positionUnfilledAmount, positionMargin, lever, contractSize);
             }
 
             contractAccount.setMarginCallRequirement(contractAccount.getMarginCallRequirement().add(positionMargin))
@@ -816,10 +816,7 @@ public class ContractOrderManager {
 
 
     public void insertOrderRecord(ContractOrderDO contractOrderDO){
-        contractOrderDO.setStatus(8);
-        contractOrderDO.setFee(Constant.FEE_RATE);
-        contractOrderDO.setId(com.fota.trade.util.CommonUtils.generateId());
-        contractOrderDO.setUnfilledAmount(contractOrderDO.getTotalAmount());
+
         int insertContractOrderRet = contractOrderMapper.insert(contractOrderDO);
         if (insertContractOrderRet <= 0) {
             log.error("insert contractOrder failed");
