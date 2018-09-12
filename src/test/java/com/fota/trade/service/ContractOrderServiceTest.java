@@ -37,6 +37,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+import static com.fota.ticker.entrust.entity.enums.OrderStatusEnum.CANCEL;
 import static com.fota.trade.domain.enums.OrderStatusEnum.COMMIT;
 import static com.fota.trade.domain.enums.OrderStatusEnum.PART_MATCH;
 
@@ -110,15 +111,15 @@ public class ContractOrderServiceTest {
         bidContractOrder.setFee(new BigDecimal("0.01"));
         bidContractOrder.setOrderDirection(OrderDirectionEnum.BID.getCode());
         bidContractOrder.setPrice(new BigDecimal("6000"));
-        bidContractOrder.setTotalAmount(100L);
-        bidContractOrder.setUnfilledAmount(100L);
+        bidContractOrder.setTotalAmount(new BigDecimal(100));
+        bidContractOrder.setUnfilledAmount(new BigDecimal(100));
         bidContractOrder.setOrderType(OrderTypeEnum.LIMIT.getCode());
         bidContractOrder.setUserId(bidUserId);
         bidContractOrder.setStatus(OrderStatusEnum.COMMIT.getCode());
 
 //        contractService.addTotaldAmount(askUserId, new BigDecimal(500000000));
 //        contractService.addTotaldAmount(bidUserId, new BigDecimal(500000000));
-//        int insertRet = contractOrderMapper.insert(askContractOrder);
+        int insertRet = contractOrderMapper.insert(askContractOrder);
 //        System.out.println();
         //int ret2 = contractOrderMapper.insertSelective(bidContractOrder);
         //Assert.assertTrue(insertRet > 0 && ret2 > 0);

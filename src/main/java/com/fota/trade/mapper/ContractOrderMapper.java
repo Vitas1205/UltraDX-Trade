@@ -221,7 +221,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
             " status = #{toStatus}" +
             " where id = #{id} and status = #{status} and unfilled_amount=#{unfilledAmount}"
     })
-    int cancelByOpLock(@Param("id") long id, @Param("status") int status, @Param("unfilledAmount") long unfilledAmount, @Param("toStatus") int toStatus);
+    int cancelByOpLock(@Param("id") long id, @Param("status") int status, @Param("unfilledAmount") BigDecimal unfilledAmount, @Param("toStatus") int toStatus);
 
     List<ContractOrderDO> listByUserIdAndOrderType(@Param("userId") Long userId, @Param("orderTypes") List<Integer> orderTypes);
 }
