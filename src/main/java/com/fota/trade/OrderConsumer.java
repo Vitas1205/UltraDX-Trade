@@ -27,6 +27,8 @@ import java.time.Duration;
 import java.util.Iterator;
 import java.util.Map;
 
+import static com.fota.trade.common.Constant.MQ_REPET_JUDGE_KEY_ORDER;
+
 @Slf4j
 @Component
 public class OrderConsumer {
@@ -75,7 +77,8 @@ public class OrderConsumer {
                     return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                 }
                 try {
-                    boolean isExist = redisManager.sHasKey(Constant.MQ_REPET_JUDGE_KEY_TRADE, mqKey);
+                    String existKey = MQ_REPET_JUDGE_KEY_ORDER + mqKey;
+                    boolean isExist = null != redisManager.get(existKey);
                     if (isExist) {
                         return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
                     }
@@ -101,7 +104,7 @@ public class OrderConsumer {
                             log.error("cancel message failed, messageKey={}, resultCode={}", mqKey, resultCode);
                         }
                     }
-                    redisManager.sSet(Constant.MQ_REPET_JUDGE_KEY_TRADE, mqKey);
+                    redisManager.set(existKey, "1", Duration.ofDays(1));
                 } catch (Exception e) {
                     logFailMsg(messageExt, e);
                 } finally {

@@ -178,6 +178,7 @@ public class ContractOrderServiceImpl implements
             result = contractOrderManager.placeOrder(contractOrderDTO, userInfoMap);
             if (result.isSuccess()) {
                 tradeLog.info("下单@@@" + contractOrderDTO);
+                profiler.setTraceId(result.getData()+"");
                 //redisManager.contractOrderSaveForMatch(contractOrderDTO);
                 Runnable postTask = ThreadContextUtil.getPostTask();
                 if (null == postTask) {
@@ -350,7 +351,7 @@ public class ContractOrderServiceImpl implements
         String messageKey = Joiner.on("-").join(contractMatchedOrderDTO.getAskOrderId().toString(),
                 contractMatchedOrderDTO.getAskOrderStatus(), contractMatchedOrderDTO.getBidOrderId(),
                 contractMatchedOrderDTO.getBidOrderStatus());
-        Profiler profiler = new Profiler("ContractOrderManager.updateOrderByMatch(" + messageKey+ ")");
+        Profiler profiler = new Profiler("ContractOrderManager.updateOrderByMatch", messageKey);
         ThreadContextUtil.setPrifiler(profiler);
 
         //获取锁

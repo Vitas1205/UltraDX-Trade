@@ -46,7 +46,7 @@ import static com.fota.trade.domain.enums.OrderStatusEnum.PART_MATCH;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
-@Transactional
+//@Transactional
 @Slf4j
 public class ContractOrderServiceTest {
 
@@ -288,13 +288,13 @@ public class ContractOrderServiceTest {
         log.info("--------------------------" + contractMatchedOrderTradeDTOPage);
     }
 
-//    @Test
+    @Test
     public void contractPlaceOrderTest(){
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
         Map<String, String> userInfoMap = new HashMap<>();
         userInfoMap.put("username", "harry");
         contractOrderDTO.setContractId(1001L);
-        contractOrderDTO.setContractName("BTC0201");
+        contractOrderDTO.setContractName("BTC0203");
         contractOrderDTO.setTotalAmount(10L);
         contractOrderDTO.setOrderType(OrderTypeEnum.LIMIT.getCode());
         contractOrderDTO.setOrderDirection(OrderDirectionEnum.BID.getCode());
@@ -303,7 +303,9 @@ public class ContractOrderServiceTest {
         contractOrderDTO.setCloseType(OrderCloseTypeEnum.SYSTEM.getCode());
         contractOrderDTO.setFee(new BigDecimal(0.01));
         contractOrderDTO.setUnfilledAmount(10L);
-        //contractOrderService.order(contractOrderDTO, userInfoMap);
+        Result result = contractOrderService.orderReturnId(contractOrderDTO, userInfoMap);
+        log.info(result.toString());
+
     }
 
     @Test
@@ -314,8 +316,8 @@ public class ContractOrderServiceTest {
 
     @Test
     public void getAccountMsgTest(){
-        Map<String, BigDecimal> result = contractOrderManager.getAccountMsg(282L);
-        log.info(result.toString());
+        ContractAccount contractAccount = contractOrderManager.computeContractAccount(274L);
+        log.info(contractAccount.toString());
     }
 
     @Test

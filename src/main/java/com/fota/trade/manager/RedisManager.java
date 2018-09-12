@@ -46,6 +46,15 @@ public class RedisManager {
         }
     }
 
+    public boolean set(final String key, final Object value, Duration expiration) {
+        try {
+            redisTemplate.opsForValue().set(key, value, expiration.toMillis(), TimeUnit.MILLISECONDS);
+            return true;
+        } catch (Exception e) {
+            log.error("redis set error", e);
+            return false;
+        }
+    }
 
     public Object get(final String key) {
         try {

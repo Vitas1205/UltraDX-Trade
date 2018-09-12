@@ -26,35 +26,20 @@ import java.util.Map;
 public class ContractAccountServiceImpl implements ContractAccountService {
     @Autowired
     private ContractOrderManager contractOrderManager;
-    @Autowired
-    private AssetService assetService;
+
     @Override
     public Result<ContractAccount> getContractAccount(long userId) {
-        ContractAccount account = new ContractAccount();
-        Map<String, BigDecimal> resultMap = new HashMap<>();
-        UserContractDTO userContractDTO = new UserContractDTO();
+        ContractAccount account;
+
         try {
-            resultMap = contractOrderManager.getAccountMsg(userId);
+            account = contractOrderManager.computeContractAccount(userId, null);
+            if (null == account) {
+                log.error("co");
+            }
         }catch (Exception e){
-            log.error("contractOrderManager.getAccountMsg failed{}", userId, e);
+            log.error("=ContractOrderManager.computeContractAccount({}) exception", userId, e);
             return Result.<ContractAccount>create().error(ResultCodeEnum.SERVICE_FAILED);
         }
-        try {
-            userContractDTO = assetService.getContractAccount(userId);
-        }catch (Exception e){
-            log.error("assetService.getContractAccount{}", userId, e);
-            return Result.<ContractAccount>create().error(ResultCodeEnum.SERVICE_FAILED);
-        }
-        BigDecimal marginCallRequirement = resultMap.get(Constant.POSITION_MARGIN);
-        BigDecimal floatingPL = resultMap.get(Constant.FLOATING_PL);
-        BigDecimal frozenAmount = contractOrderManager.getEntrustMargin(userId);
-        BigDecimal totalAmount = new BigDecimal(userContractDTO.getAmount());
-        account.setUserId(userId)
-                .setAccountEquity(totalAmount.add(floatingPL))
-                .setAvailableAmount(totalAmount.add(floatingPL).subtract(marginCallRequirement).subtract(frozenAmount))
-                .setFrozenAmount(frozenAmount)
-                .setFloatingPL(floatingPL)
-                .setMarginCallRequirement(marginCallRequirement);
         return Result.<ContractAccount>create().success(account);
     }
 }

@@ -6,10 +6,7 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
-
-import static java.util.stream.Collectors.toSet;
 
 /**
  * Created by Swifree on 2018/9/10.
@@ -45,4 +42,16 @@ public class BasicFunctionTest {
                 .collect(Collectors.toList());
         System.out.println(locks);
     }
+//    @Test
+//    public void testRedisson(){
+//        // 1. Create config object
+//        Config config  = new Config();
+//
+//// 2. Create Redisson instance
+//        RedissonClient redisson = Redisson.create(config);
+//
+//
+//        RLock lock = redisson.getLock("myLock");
+//
+//    }
 }
