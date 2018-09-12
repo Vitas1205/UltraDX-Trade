@@ -366,7 +366,12 @@ public class RedisManager {
         if (!a) {
             return false;
         }
-        redisTemplate.expire(lock, expiration.toMillis(), TimeUnit.MILLISECONDS);
+        boolean b = redisTemplate.expire(lock, expiration.toMillis(), TimeUnit.MILLISECONDS);
+        if (!b) {
+            log.error("set expire failed, lock={}", lock);
+            releaseLock(lock);
+            return false;
+        }
         return true;
     }
 

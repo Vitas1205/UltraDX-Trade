@@ -60,7 +60,7 @@
     SELECT
     <include refid="Base_Column_List" />
     FROM trade_contract_category
-    where delivery_date > now()
+    where 1=1
     <if test="assetId != null" >
       and asset_id=#{assetId,jdbcType=INTEGER}
     </if>
