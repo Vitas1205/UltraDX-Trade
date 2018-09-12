@@ -577,7 +577,12 @@ public class ContractOrderManager {
             if (!CollectionUtils.isEmpty(orderList)) {
                 List<ContractOrderDO> bidList = orderList.stream().filter(order -> order.getOrderDirection() == OrderDirectionEnum.BID.getCode()).collect(toList());
                 List<ContractOrderDO> askList = orderList.stream().filter(order -> order.getOrderDirection() == OrderDirectionEnum.ASK.getCode()).collect(toList());
-                entrustMargin = getExtraEntrustAmount(bidList, askList, positionType, positionUnfilledAmount, positionMargin, lever, contractSize);
+                try {
+                    entrustMargin = getExtraEntrustAmount(bidList, askList, positionType, positionUnfilledAmount, positionMargin, lever, contractSize);
+                }catch (Exception e) {
+                    log.error("bidList={}, askList={}, contractSize={}, lever={}, positionEntrustAmount={}", bidList, askList, contractSize, lever, positionMargin);
+                    return null;
+                }
             }
 
             contractAccount.setMarginCallRequirement(contractAccount.getMarginCallRequirement().add(positionMargin))
