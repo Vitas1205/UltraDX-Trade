@@ -78,6 +78,7 @@ public class Consumer {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context) {
 
+                log.info("consumeMessage jjj {}", msgs.size());
                 if (CollectionUtils.isEmpty(msgs)) {
                     log.error("message error!");
                     return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
@@ -85,6 +86,8 @@ public class Consumer {
                 MessageExt messageExt = msgs.get(0);
 
                 String mqKey = messageExt.getKeys();
+                log.info("consumeMessage jjj {}", mqKey);
+
 
                 ResultCode resultCode = null;
 
@@ -103,22 +106,20 @@ public class Consumer {
                         log.error("get mq message failed", e);
                         return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
                     }
-                    log.info("bodyStr()------------" + bodyStr);
+                    log.info("receive match message, ------------" + bodyStr);
                     if (TagsTypeEnum.USDK.getDesc().equals(tag)) {
                         UsdkMatchedOrderDTO usdkMatchedOrderDTO = JSON.parseObject(bodyStr, UsdkMatchedOrderDTO.class);
                         resultCode = usdkOrderService.updateOrderByMatch(usdkMatchedOrderDTO);
-                        log.info("resultCode u---------------" + resultCode);
 
                     } else if (TagsTypeEnum.CONTRACT.getDesc().equals(tag)) {
                         ContractMatchedOrderDTO contractMatchedOrderDTO = JSON.parseObject(bodyStr, ContractMatchedOrderDTO.class);
                         resultCode = contractOrderService.updateOrderByMatch(contractMatchedOrderDTO);
-                        log.info("resultCode c---------------" + resultCode);
 
                     }
 
                     if (resultCode != null && resultCode.getCode() != null && !resultCode.isSuccess()
                             && !(resultCode.getCode() == ILLEGAL_PARAM.getCode()) ) {
-                        logFailMsg(null, messageExt);
+                        logFailMsg("resultCode="+resultCode, messageExt);
                         return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                     }
                     redisManager.sSet(Constant.MQ_REPET_JUDGE_KEY_TRADE, mqKey);
@@ -126,7 +127,7 @@ public class Consumer {
                     logFailMsg(messageExt, e);
                 }
                 if (resultCode.getCode() == ILLEGAL_PARAM.getCode()) {
-                    logSuccessMsg(messageExt, "illegal param or balance is not enough");
+                    logSuccessMsg(messageExt, "illegal param");
                 }else {
                     logSuccessMsg(messageExt, null);
                 }

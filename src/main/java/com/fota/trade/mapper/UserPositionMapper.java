@@ -3,6 +3,7 @@ package com.fota.trade.mapper;
 import com.fota.trade.domain.UserPositionDO;
 import org.apache.ibatis.annotations.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -128,6 +129,16 @@ public interface UserPositionMapper {
     })
     int updateByOpLock(UserPositionDO record);
 
+
+    @Update({
+            "update trade_user_position",
+            "set gmt_modified = now(),",
+            "position_type = #{positionType,jdbcType=INTEGER},",
+            "status = #{status,jdbcType=INTEGER},",
+            "unfilled_amount = #{unfilledAmount},",
+            "average_price = #{averagePrice, jdbcType=DECIMAL}",
+            "where id = #{id,jdbcType=BIGINT}"})
+    int updatePositionById(UserPositionDO userPositionDO);
 
     int countByQuery(Map<String, Object> param);
 
