@@ -37,7 +37,7 @@ public class UserPositionMapperTest {
         userPositionDO.setContractId(1000L);
         userPositionDO.setContractName("BTC/0102");
         //userPositionDO.setLockedAmount(new BigDecimal(5L));
-        userPositionDO.setUnfilledAmount(3L);
+        userPositionDO.setUnfilledAmount(BigDecimal.valueOf(3));
         userPositionDO.setPositionType(1);
         userPositionDO.setAveragePrice(new BigDecimal("5000"));
         userPositionDO.setStatus(1);
@@ -89,7 +89,7 @@ public class UserPositionMapperTest {
 
     @Test
     public void test_countTotalPosition() {
-        Long result = userPositionMapper.countTotalPosition(1000L);
+        BigDecimal result = userPositionMapper.countTotalPosition(1000L);
         System.out.println("result : "+ result);
     }
 }

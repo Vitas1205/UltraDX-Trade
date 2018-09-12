@@ -37,6 +37,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+import static com.fota.ticker.entrust.entity.enums.OrderStatusEnum.CANCEL;
 import static com.fota.trade.domain.enums.OrderStatusEnum.COMMIT;
 import static com.fota.trade.domain.enums.OrderStatusEnum.PART_MATCH;
 
@@ -85,7 +86,7 @@ public class ContractOrderServiceTest {
     Date checkPoint;
 
 
-    //@Before
+    @Before
     public void init() {
         // 准备数据
         askContractOrder.setId(CommonUtils.generateId());
@@ -95,8 +96,8 @@ public class ContractOrderServiceTest {
         askContractOrder.setFee(new BigDecimal("0.01"));
         askContractOrder.setOrderDirection(OrderDirectionEnum.ASK.getCode());
         askContractOrder.setPrice(new BigDecimal("6000"));
-        askContractOrder.setTotalAmount(100L);
-        askContractOrder.setUnfilledAmount(100L);
+        askContractOrder.setTotalAmount(BigDecimal.valueOf(100));
+        askContractOrder.setUnfilledAmount(BigDecimal.valueOf(100));
         askContractOrder.setOrderType(OrderTypeEnum.LIMIT.getCode());
         askContractOrder.setUserId(askUserId);
         askContractOrder.setStatus(OrderStatusEnum.COMMIT.getCode());
@@ -110,15 +111,15 @@ public class ContractOrderServiceTest {
         bidContractOrder.setFee(new BigDecimal("0.01"));
         bidContractOrder.setOrderDirection(OrderDirectionEnum.BID.getCode());
         bidContractOrder.setPrice(new BigDecimal("6000"));
-        bidContractOrder.setTotalAmount(100L);
-        bidContractOrder.setUnfilledAmount(100L);
+        bidContractOrder.setTotalAmount(new BigDecimal(100));
+        bidContractOrder.setUnfilledAmount(new BigDecimal(100));
         bidContractOrder.setOrderType(OrderTypeEnum.LIMIT.getCode());
         bidContractOrder.setUserId(bidUserId);
         bidContractOrder.setStatus(OrderStatusEnum.COMMIT.getCode());
 
 //        contractService.addTotaldAmount(askUserId, new BigDecimal(500000000));
 //        contractService.addTotaldAmount(bidUserId, new BigDecimal(500000000));
-//        int insertRet = contractOrderMapper.insert(askContractOrder);
+        int insertRet = contractOrderMapper.insert(askContractOrder);
 //        System.out.println();
         //int ret2 = contractOrderMapper.insertSelective(bidContractOrder);
         //Assert.assertTrue(insertRet > 0 && ret2 > 0);
@@ -178,7 +179,7 @@ public class ContractOrderServiceTest {
         contractMatchedOrderDTO.setContractName(askContractOrder.getContractName());
         contractMatchedOrderDTO.setAssetName("BTC");
         contractMatchedOrderDTO.setFilledPrice(askContractOrder.getPrice().toString());
-        contractMatchedOrderDTO.setFilledAmount(1L);
+        contractMatchedOrderDTO.setFilledAmount(BigDecimal.ONE);
 
         contractMatchedOrderDTO.setAskOrderPrice(askContractOrder.getPrice().toString());
         contractMatchedOrderDTO.setAskOrderStatus(askContractOrder.getStatus());
@@ -231,7 +232,7 @@ public class ContractOrderServiceTest {
         log.info("oldBalance={}, curBalance={}", origin, cur);
         BigDecimal originAmount = new BigDecimal(origin.getAmount());
         BigDecimal curAmount = new BigDecimal(cur.getAmount());
-        assert CommonUtils.equal(originAmount, curAmount);
+        assert com.fota.common.utils.CommonUtils.equal(originAmount, curAmount);
     }
 
     private void checkContractOrder(ContractOrderDO contractOrderDO) {
@@ -248,15 +249,22 @@ public class ContractOrderServiceTest {
         UserPositionDO cur = userPositionMapper.selectByUserIdAndId(userId,
                 contractId);
         if (null == userPositionDO) {
-            assert cur.getUnfilledAmount() == 0;
+            assert cur.getUnfilledAmount().compareTo(BigDecimal.ZERO) == 0;
             return;
         }
         log.info("oldPostion={}, curPosition={}", userPositionDO, cur);
-        assert cur.getUnfilledAmount() == userPositionDO.getUnfilledAmount().longValue()
+        assert cur.getUnfilledAmount().compareTo(userPositionDO.getUnfilledAmount()) == 0
                 && cur.getPositionType() == userPositionDO.getPositionType().intValue()
                 && cur.getStatus() == userPositionDO.getStatus().intValue()
-                && CommonUtils.equal(cur.getAveragePrice(), userPositionDO.getAveragePrice());
+                && com.fota.common.utils.CommonUtils.equal(cur.getAveragePrice(), userPositionDO.getAveragePrice());
 
+    }
+
+    @Test
+    public void testCancel(){
+        contractOrderManager.cancelOrderByMessage(askContractOrder.getId(), 1);
+        ContractOrderDO orderDO = contractOrderMapper.selectByPrimaryKey(askContractOrder.getId());
+        assert orderDO.getStatus() == CANCEL.getCode();
     }
 
     @Test
@@ -288,22 +296,23 @@ public class ContractOrderServiceTest {
         log.info("--------------------------" + contractMatchedOrderTradeDTOPage);
     }
 
-//    @Test
+    @Test
     public void contractPlaceOrderTest(){
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
         Map<String, String> userInfoMap = new HashMap<>();
         userInfoMap.put("username", "harry");
-        contractOrderDTO.setContractId(1001L);
-        contractOrderDTO.setContractName("BTC0201");
-        contractOrderDTO.setTotalAmount(10L);
-        contractOrderDTO.setOrderType(OrderTypeEnum.LIMIT.getCode());
+        contractOrderDTO.setContractId(1000L);
+        contractOrderDTO.setContractName("BTC0102");
+        contractOrderDTO.setTotalAmount(BigDecimal.TEN);
+        contractOrderDTO.setOrderType(OrderTypeEnum.ENFORCE.getCode());
         contractOrderDTO.setOrderDirection(OrderDirectionEnum.BID.getCode());
-        contractOrderDTO.setUserId(282L);
-        contractOrderDTO.setPrice(new BigDecimal(6000));
-        contractOrderDTO.setCloseType(OrderCloseTypeEnum.SYSTEM.getCode());
+        contractOrderDTO.setUserId(274L);
+        contractOrderDTO.setPrice(new BigDecimal(1));
+        contractOrderDTO.setCloseType(OrderCloseTypeEnum.MANUAL.getCode());
         contractOrderDTO.setFee(new BigDecimal(0.01));
-        contractOrderDTO.setUnfilledAmount(10L);
-        //contractOrderService.order(contractOrderDTO, userInfoMap);
+        Result result = contractOrderService.orderReturnId(contractOrderDTO, userInfoMap);
+        log.info(result.toString());
+
     }
 
     @Test
@@ -314,8 +323,8 @@ public class ContractOrderServiceTest {
 
     @Test
     public void getAccountMsgTest(){
-        Map<String, BigDecimal> result = contractOrderManager.getAccountMsg(282L);
-        log.info(result.toString());
+        ContractAccount contractAccount = contractOrderManager.computeContractAccount(274L);
+        log.info(contractAccount.toString());
     }
 
     @Test
@@ -352,14 +361,14 @@ public class ContractOrderServiceTest {
         userInfoMap.put("username", "harry");
         contractOrderDTO.setContractId(1001L);
         contractOrderDTO.setContractName("BTC0201");
-        contractOrderDTO.setTotalAmount(10L);
+        contractOrderDTO.setTotalAmount(BigDecimal.TEN);
         contractOrderDTO.setOrderType(OrderTypeEnum.LIMIT.getCode());
         contractOrderDTO.setOrderDirection(OrderDirectionEnum.BID.getCode());
         contractOrderDTO.setUserId(282L);
         contractOrderDTO.setPrice(new BigDecimal(6000));
         contractOrderDTO.setCloseType(OrderCloseTypeEnum.SYSTEM.getCode());
         contractOrderDTO.setFee(new BigDecimal(0.01));
-        contractOrderDTO.setUnfilledAmount(10L);
+        contractOrderDTO.setUnfilledAmount(BigDecimal.TEN);
         //contractOrderService.orderReturnId(contractOrderDTO, userInfoMap);
     }
 

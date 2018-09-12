@@ -1,14 +1,13 @@
 package com.fota.trade.common;
 
-import com.alibaba.fastjson.JSON;
-import com.fota.match.domain.MatchedOrderMarketDTO;
-import com.fota.trade.domain.*;
+import com.fota.trade.domain.ContractCategoryDO;
+import com.fota.trade.domain.ContractCategoryDTO;
+import com.fota.trade.domain.UsdkOrderDO;
+import com.fota.trade.domain.UsdkOrderDTO;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.transaction.annotation.Transactional;
+import org.junit.runners.JUnit4;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -19,9 +18,9 @@ import java.util.List;
  * @author Gavin Shen
  * @Date 2018/7/7
  */
-@RunWith(SpringRunner.class)
-@SpringBootTest
-@Transactional
+@RunWith(JUnit4.class)
+//@SpringBootTest
+//@Transactional
 public class BeanUtilsTest {
 
     @Test
@@ -53,13 +52,29 @@ public class BeanUtilsTest {
         contractCategoryDO.setContractName("BTC0203");
         contractCategoryDO.setAssetId(2);
         contractCategoryDO.setAssetName("BTC");
-        contractCategoryDO.setTotalAmount(20L);
-        contractCategoryDO.setUnfilledAmount(20L);
+        contractCategoryDO.setTotalAmount(BigDecimal.valueOf(20));
+        contractCategoryDO.setUnfilledAmount(BigDecimal.valueOf(20));
         contractCategoryDO.setDeliveryDate(new Date());
         contractCategoryDO.setStatus(2);
         contractCategoryDO.setContractType(2);
-        contractCategoryDO.setContractSize(new BigDecimal(0.01));
         BeanUtils.copy(contractCategoryDO);
+    }
+
+    @Test
+    public void testCopyContractCategoryDTO() throws Exception {
+        ContractCategoryDTO contractCategoryDTO = new ContractCategoryDTO();
+        contractCategoryDTO.setId(2L);
+        contractCategoryDTO.setGmtCreate(new Date());
+        contractCategoryDTO.setGmtModified(new Date());
+        contractCategoryDTO.setContractName("BTC0203");
+        contractCategoryDTO.setAssetId(2);
+        contractCategoryDTO.setAssetName("BTC");
+        contractCategoryDTO.setTotalAmount(20L);
+        contractCategoryDTO.setUnfilledAmount(20L);
+        contractCategoryDTO.setDeliveryDate(new Date().getTime());
+        contractCategoryDTO.setStatus(2);
+        contractCategoryDTO.setContractType(2);
+        BeanUtils.copy(contractCategoryDTO);
     }
 
 

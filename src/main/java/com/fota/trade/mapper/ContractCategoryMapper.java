@@ -1,7 +1,6 @@
 package com.fota.trade.mapper;
 
 import com.fota.trade.domain.ContractCategoryDO;
-import com.fota.trade.mapper.common.BaseMapper;
 import org.apache.ibatis.annotations.*;
 
 import java.util.List;
@@ -16,13 +15,13 @@ public interface ContractCategoryMapper {
         "asset_id, asset_name, ",
         "total_amount, unfilled_amount, ",
         "delivery_date, status, ",
-        "contract_type, price, contract_size)",
+        "contract_type, price)",
         "values (#{gmtCreate,jdbcType=TIMESTAMP}, ",
         "#{gmtModified,jdbcType=TIMESTAMP}, #{contractName,jdbcType=VARCHAR}, ",
         "#{assetId,jdbcType=INTEGER}, #{assetName,jdbcType=VARCHAR}, ",
         "#{totalAmount,jdbcType=DECIMAL}, #{unfilledAmount,jdbcType=DECIMAL}, ",
         "#{deliveryDate,jdbcType=TIMESTAMP}, #{status,jdbcType=INTEGER}, ",
-        "#{contractType,jdbcType=TINYINT}, #{price,jdbcType=DECIMAL}, #{contractSize})"
+        "#{contractType,jdbcType=TINYINT}, #{price,jdbcType=DECIMAL})"
     })
     int insert(ContractCategoryDO record);
 
@@ -31,7 +30,7 @@ public interface ContractCategoryMapper {
     @Select({
         "select",
         "id, gmt_create, gmt_modified, contract_name, asset_id, asset_name, total_amount, ",
-        "unfilled_amount, delivery_date, status, contract_type, price, contract_size",
+        "unfilled_amount, delivery_date, status, contract_type, price",
         "from trade_contract_category",
         "where status = #{status,jdbcType=TINYINT}"
     })
@@ -41,7 +40,7 @@ public interface ContractCategoryMapper {
     @Select({
             "select",
             "id, gmt_create, gmt_modified, contract_name, asset_id, asset_name, total_amount, ",
-            "unfilled_amount, delivery_date, status, contract_type, price, contract_size",
+            "unfilled_amount, delivery_date, status, contract_type, price",
             "from trade_contract_category",
             "where id = #{id,jdbcType=BIGINT}"
     })
@@ -56,7 +55,7 @@ public interface ContractCategoryMapper {
     @Select({
             "select",
             "id, gmt_create, gmt_modified, contract_name, asset_id, asset_name, total_amount, ",
-            "unfilled_amount, delivery_date, status, contract_type, price, contract_size",
+            "unfilled_amount, delivery_date, status, contract_type, price",
             "from trade_contract_category"
     })
     @ResultMap("BaseResultMap")
@@ -65,7 +64,7 @@ public interface ContractCategoryMapper {
     @Select({
             "select",
             "id, gmt_create, gmt_modified, contract_name, asset_id, asset_name, total_amount, ",
-            "unfilled_amount, delivery_date, status, contract_type, price, contract_size",
+            "unfilled_amount, delivery_date, status, contract_type, price",
             "from trade_contract_category where id = #{contractId}"
     })
     @ResultMap("BaseResultMap")

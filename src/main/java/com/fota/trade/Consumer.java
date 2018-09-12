@@ -1,10 +1,6 @@
 package com.fota.trade;
 
-import com.alibaba.druid.support.json.JSONUtils;
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
-import com.fota.trade.common.Constant;
-import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.domain.ContractMatchedOrderDTO;
 import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.UsdkMatchedOrderDTO;
@@ -12,7 +8,6 @@ import com.fota.trade.domain.enums.TagsTypeEnum;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
 import com.fota.trade.service.impl.UsdkOrderServiceImpl;
-import com.fota.trade.util.CommonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.*;
@@ -25,11 +20,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import java.io.UnsupportedEncodingException;
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-import static com.fota.trade.common.ResultCodeEnum.BALANCE_NOT_ENOUGH;
+import static com.fota.trade.common.Constant.MQ_REPET_JUDGE_KEY_MATCH;
 import static com.fota.trade.common.ResultCodeEnum.ILLEGAL_PARAM;
 
 /**
@@ -92,8 +85,8 @@ public class Consumer {
                 ResultCode resultCode = null;
 
                 try {
-
-                    boolean isExist = redisManager.sHasKey(Constant.MQ_REPET_JUDGE_KEY_TRADE, mqKey);
+                    String existKey = MQ_REPET_JUDGE_KEY_MATCH  + mqKey;
+                    boolean isExist = null != redisManager.get(existKey);
                     if (isExist) {
                         return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
                     }
@@ -122,7 +115,7 @@ public class Consumer {
                         logFailMsg("resultCode="+resultCode, messageExt);
                         return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                     }
-                    redisManager.sSet(Constant.MQ_REPET_JUDGE_KEY_TRADE, mqKey);
+                    redisManager.set(existKey, "1", Duration.ofDays(1));
                 } catch (Exception e) {
                     logFailMsg(messageExt, e);
                 }

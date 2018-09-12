@@ -1,6 +1,5 @@
 package com.fota.trade.service.impl;
 
-import com.alibaba.fastjson.JSON;
 import com.fota.common.Page;
 import com.fota.common.Result;
 import com.fota.ticker.entrust.RealTimeEntrust;
@@ -27,8 +26,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
-
-import static java.util.stream.Collectors.toList;
 
 /**
  * @author Gavin Shen
@@ -111,16 +108,16 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
 
 
     @Override
-    public long getTotalPositionByContractId(long contractId) {
+    public BigDecimal getTotalPositionByContractId(long contractId) {
         Object result = redisManager.get(Constant.CONTRACT_TOTAL_POSITION + contractId);
         if (result != null) {
-            return Long.valueOf(result.toString());
+            return new BigDecimal(result.toString());
         }
-        Long totalPosition = userPositionMapper.countTotalPosition(contractId);
+        BigDecimal totalPosition = userPositionMapper.countTotalPosition(contractId);
         if (totalPosition == null) {
-            return 0;
+            return BigDecimal.ZERO;
         }
-        return totalPosition * 2;
+        return totalPosition.multiply(BigDecimal.valueOf(2));
     }
 
     /**
@@ -223,11 +220,11 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
     public Result<BigDecimal> getPositionMarginByContractId(Long contractId) {
         Result<BigDecimal> result = new Result<>();
         result.setData(BigDecimal.ZERO);
-        long totalPosition  = getTotalPositionByContractId(contractId);
-        if (totalPosition == 0){
+        BigDecimal totalPosition  = getTotalPositionByContractId(contractId);
+        if (totalPosition.stripTrailingZeros().compareTo(BigDecimal.ZERO) == 0){
             return  result.success(BigDecimal.ZERO);
         }
-        BigDecimal oneWayPosition = new BigDecimal(totalPosition/2);
+        BigDecimal oneWayPosition = totalPosition.divide(BigDecimal.valueOf(2));
         BigDecimal lever = new BigDecimal("10");
         ContractCategoryDO contractCategoryDO = new ContractCategoryDO();
         try {
@@ -236,10 +233,9 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
             log.error("contractCategoryMapper.selectByPrimaryKey() failed {}{}", contractId,e);
             return result.error(-1,"getPositionMargin failed");
         }
-        BigDecimal contractSize = contractCategoryDO.getContractSize();
         //获取买一卖一价
-        BigDecimal askCurrentPrice = BigDecimal.ZERO;
-        BigDecimal bidCurrentPrice = BigDecimal.ZERO;
+        BigDecimal askCurrentPrice;
+        BigDecimal bidCurrentPrice;
         try{
             List<CompetitorsPriceDTO> competitorsPriceList = realTimeEntrust.getContractCompetitorsPrice();
             bidCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
@@ -252,8 +248,10 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
             log.error("get competiorsPrice failed {}{}", contractId,e);
             return result.error(-1,"getPositionMargin failed");
         }
-        BigDecimal askPositionMargin = askCurrentPrice.multiply(oneWayPosition).multiply(contractSize).divide(lever).setScale(8,BigDecimal.ROUND_DOWN);
-        BigDecimal bidPositionMargin = bidCurrentPrice.multiply(oneWayPosition).multiply(contractSize).divide(lever).setScale(8,BigDecimal.ROUND_DOWN);
+        BigDecimal askPositionMargin = askCurrentPrice.multiply(oneWayPosition)
+                .divide(lever, 8, BigDecimal.ROUND_DOWN);
+        BigDecimal bidPositionMargin = bidCurrentPrice.multiply(oneWayPosition)
+                .divide(lever, 8,BigDecimal.ROUND_DOWN);
         BigDecimal totalPositionMargin = askPositionMargin.add(bidPositionMargin);
         result.success(totalPositionMargin);
         return result;

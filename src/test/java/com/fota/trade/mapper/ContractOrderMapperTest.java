@@ -21,10 +21,8 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static com.fota.trade.domain.enums.OrderStatusEnum.MATCH;
-import static com.fota.trade.domain.enums.OrderStatusEnum.PART_MATCH;
 
 /**
  * @author Gavin Shen
@@ -55,8 +53,8 @@ public class ContractOrderMapperTest {
         contractOrderDO.setLever(10);
         contractOrderDO.setOrderDirection(OrderDirectionEnum.BID.getCode());
         contractOrderDO.setPrice(new BigDecimal("6000.1"));
-        contractOrderDO.setTotalAmount(100L);
-        contractOrderDO.setUnfilledAmount(100L);
+        contractOrderDO.setTotalAmount(BigDecimal.valueOf(100L));
+        contractOrderDO.setUnfilledAmount(BigDecimal.valueOf(100L));
         contractOrderDO.setUserId(userId);
         contractOrderDO.setStatus(OrderStatusEnum.COMMIT.getCode());
         contractOrderDO.setGmtCreate(new Date());
@@ -101,16 +99,16 @@ public class ContractOrderMapperTest {
     @Test
     public void testUpdateAmountAndStatus() throws Exception {
 
-        long filledAmount = 100;
+        BigDecimal filledAmount = BigDecimal.valueOf(100L);
         BigDecimal filledPrice = new BigDecimal(0.3);
         int aff = contractOrderMapper.updateAmountAndStatus(contractOrderDO.getId(),filledAmount, filledPrice, new Date());
         ContractOrderDO contractOrderDO2 = contractOrderMapper.selectByPrimaryKey(contractOrderDO.getId());
 
         BigDecimal expectAvgPrice = PriceUtil.getAveragePrice(contractOrderDO.getAveragePrice(),
-                new BigDecimal(contractOrderDO.getTotalAmount() - contractOrderDO.getUnfilledAmount()), new BigDecimal(filledAmount), filledPrice);
+                contractOrderDO.getTotalAmount().subtract(contractOrderDO.getUnfilledAmount()), filledAmount, filledPrice);
 
         BigDecimal wucha = new BigDecimal(1e-6);
-        Assert.assertTrue(contractOrderDO2.getUnfilledAmount() == contractOrderDO.getUnfilledAmount() - filledAmount
+        Assert.assertTrue(contractOrderDO2.getUnfilledAmount().compareTo(contractOrderDO.getUnfilledAmount().subtract(filledAmount)) == 0
                 && contractOrderDO2.getAveragePrice().subtract(expectAvgPrice).compareTo(wucha)<0
                 && contractOrderDO2.getStatus() == MATCH.getCode()
         );

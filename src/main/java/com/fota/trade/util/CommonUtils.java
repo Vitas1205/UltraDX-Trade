@@ -3,6 +3,7 @@ package com.fota.trade.util;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
+import java.util.Random;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -12,14 +13,9 @@ import java.util.function.Supplier;
  */
 @Slf4j
 public class CommonUtils {
-    public static final BigDecimal wucha = new BigDecimal(1e-6);
 
-    public static boolean equal(BigDecimal a, BigDecimal b) {
-        if (null == a || null == b) {
-            return a == b;
-        }
-        return a.subtract(b).abs().compareTo(wucha) < 0;
-    }
+    public static final Random random =new Random();
+
     public static long generateId(){
         UUID uuid = UUID.randomUUID();
         long m = uuid.getMostSignificantBits() ^ uuid.getLeastSignificantBits();
@@ -34,6 +30,10 @@ public class CommonUtils {
             log.error("exe function error");
         }
         return null;
+    }
+
+    public static int randomInt(int bound){
+        return random.nextInt(bound);
     }
 
 }
