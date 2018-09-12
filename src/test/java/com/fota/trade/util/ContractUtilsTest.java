@@ -7,7 +7,6 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -15,7 +14,6 @@ import java.math.RoundingMode;
 import static com.fota.trade.util.ContractUtils.computeAveragePrice;
 
 @RunWith(JUnit4.class)
-@Transactional
 public class ContractUtilsTest {
 
     /**
@@ -27,22 +25,20 @@ public class ContractUtilsTest {
         contractOrderDO.setOrderDirection(OrderDirectionEnum.BID.getCode());
         contractOrderDO.setFee(new BigDecimal("0.001"));
 
-        long filledAmount = 10L;
+        BigDecimal filledAmount = BigDecimal.valueOf(10);
         BigDecimal filledPrice = new BigDecimal("500.0");
 
-        BigDecimal contractSize = new BigDecimal("0.01");
-
         UserPositionDO userPositionDO = new UserPositionDO();
-        userPositionDO.setUnfilledAmount(5L);
+        userPositionDO.setUnfilledAmount(BigDecimal.valueOf(5));
         userPositionDO.setAveragePrice(new BigDecimal("500.005"));
         userPositionDO.setPositionType(OrderDirectionEnum.BID.getCode());
 
         BigDecimal expected = new BigDecimal("500.005").setScale(8, RoundingMode.DOWN);
 
-        BigDecimal averagePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount, contractSize);
+        BigDecimal averagePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount);
 
-        //Assert.assertNotNull(averagePrice);
-        //Assert.assertEquals(expected, averagePrice);
+        Assert.assertNotNull(averagePrice);
+        Assert.assertEquals(expected, averagePrice);
     }
 
     /**
@@ -54,22 +50,20 @@ public class ContractUtilsTest {
         contractOrderDO.setOrderDirection(OrderDirectionEnum.ASK.getCode());
         contractOrderDO.setFee(new BigDecimal("0.001"));
 
-        long filledAmount = 10L;
+        BigDecimal filledAmount = BigDecimal.valueOf(10);
         BigDecimal filledPrice = new BigDecimal("500.0");
 
-        BigDecimal contractSize = new BigDecimal("0.01");
-
         UserPositionDO userPositionDO = new UserPositionDO();
-        userPositionDO.setUnfilledAmount(5L);
+        userPositionDO.setUnfilledAmount(BigDecimal.valueOf(5));
         userPositionDO.setAveragePrice(new BigDecimal("500.005"));
         userPositionDO.setPositionType(OrderDirectionEnum.BID.getCode());
 
         BigDecimal expected = new BigDecimal("499.995").setScale(8, RoundingMode.DOWN);
 
-        BigDecimal averagePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount, contractSize);
+        BigDecimal averagePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount);
 
-        //Assert.assertNotNull(averagePrice);
-        //Assert.assertEquals(expected, averagePrice);
+        Assert.assertNotNull(averagePrice);
+        Assert.assertEquals(expected, averagePrice);
     }
 
     /**
@@ -81,22 +75,20 @@ public class ContractUtilsTest {
         contractOrderDO.setOrderDirection(OrderDirectionEnum.ASK.getCode());
         contractOrderDO.setFee(new BigDecimal("0.001"));
 
-        long filledAmount = 1L;
+        BigDecimal filledAmount = BigDecimal.ONE;
         BigDecimal filledPrice = new BigDecimal("500.0");
 
-        BigDecimal contractSize = new BigDecimal("0.01");
-
         UserPositionDO userPositionDO = new UserPositionDO();
-        userPositionDO.setUnfilledAmount(5L);
+        userPositionDO.setUnfilledAmount(BigDecimal.valueOf(5));
         userPositionDO.setAveragePrice(new BigDecimal("500.005"));
         userPositionDO.setPositionType(OrderDirectionEnum.BID.getCode());
 
         BigDecimal expected = new BigDecimal("500.005").setScale(8, RoundingMode.DOWN);
 
-        BigDecimal averagePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount, contractSize);
+        BigDecimal averagePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount);
 
-        //Assert.assertNotNull(averagePrice);
-        //Assert.assertEquals(expected, averagePrice);
+        Assert.assertNotNull(averagePrice);
+        Assert.assertEquals(expected, averagePrice);
     }
 
     /**
@@ -108,17 +100,14 @@ public class ContractUtilsTest {
         contractOrderDO.setOrderDirection(OrderDirectionEnum.ASK.getCode());
         contractOrderDO.setFee(new BigDecimal("0.001"));
 
-        long filledAmount = 10L;
+        BigDecimal filledAmount = BigDecimal.TEN;
         BigDecimal filledPrice = new BigDecimal("500.0");
-
-        BigDecimal contractSize = new BigDecimal("0.01");
 
         BigDecimal expected = new BigDecimal("499.995").setScale(8, RoundingMode.DOWN);
 
-        BigDecimal averagePrice = computeAveragePrice(contractOrderDO, null, filledPrice, filledAmount, contractSize);
+        BigDecimal averagePrice = computeAveragePrice(contractOrderDO, null, filledPrice, filledAmount);
 
-        //Assert.assertNotNull(averagePrice);
-        //Assert.assertEquals(expected, averagePrice);
+        Assert.assertNotNull(averagePrice);
+        Assert.assertEquals(expected, averagePrice);
     }
-
 }

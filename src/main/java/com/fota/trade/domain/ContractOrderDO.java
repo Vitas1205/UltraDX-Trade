@@ -23,8 +23,8 @@ public class ContractOrderDO {
     private Integer orderType;
     private Integer operateDirection;
     private Integer lever;
-    private Long totalAmount;
-    private Long unfilledAmount;
+    private BigDecimal totalAmount;
+    private BigDecimal unfilledAmount;
     private Integer closeType;
     private BigDecimal price;
     private BigDecimal fee;
@@ -34,12 +34,9 @@ public class ContractOrderDO {
     private BigDecimal averagePrice;
     private String orderContext;
 
-    public boolean fillAmount(long filledAmount) {
-        if (filledAmount - filledAmount < 0) {
-            return false;
-        }
-        unfilledAmount -= filledAmount;
-        if (unfilledAmount == 0) {
+    public boolean fillAmount(BigDecimal filledAmount) {
+        unfilledAmount = unfilledAmount.subtract(filledAmount);
+        if (BigDecimal.ZERO.equals(unfilledAmount)) {
             setStatus(OrderStatusEnum.MATCH.getCode());
         } else {
             setStatus(OrderStatusEnum.PART_MATCH.getCode());

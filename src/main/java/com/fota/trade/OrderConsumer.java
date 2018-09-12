@@ -27,6 +27,8 @@ import java.time.Duration;
 import java.util.Iterator;
 import java.util.Map;
 
+import static com.fota.trade.common.Constant.MQ_REPET_JUDGE_KEY_ORDER;
+
 @Slf4j
 @Component
 public class OrderConsumer {
@@ -75,7 +77,8 @@ public class OrderConsumer {
                     return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                 }
                 try {
-                    boolean isExist = redisManager.sHasKey(Constant.MQ_REPET_JUDGE_KEY_TRADE, mqKey);
+                    String existKey = MQ_REPET_JUDGE_KEY_ORDER + mqKey;
+                    boolean isExist = null != redisManager.get(existKey);
                     if (isExist) {
                         return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
                     }
@@ -96,12 +99,12 @@ public class OrderConsumer {
                     if ("UsdkCancelResult".equals(tag)) {
                         usdkOrderManager.cancelOrderByMessage(orderId, status);
                     } else if ("ContractCancelResult".equals(tag)) {
-                        ResultCode resultCode = contractOrderManager.cancelOrderByMessage(orderId, status);
+                        ResultCode resultCode = contractOrderManager.cancelOrderByMessage(Long.parseLong(orderId), status);
                         if (!resultCode.isSuccess()) {
                             log.error("cancel message failed, messageKey={}, resultCode={}", mqKey, resultCode);
                         }
                     }
-                    redisManager.sSet(Constant.MQ_REPET_JUDGE_KEY_TRADE, mqKey);
+                    redisManager.set(existKey, "1", Duration.ofDays(1));
                 } catch (Exception e) {
                     logFailMsg(messageExt, e);
                 } finally {
@@ -122,7 +125,7 @@ public class OrderConsumer {
         } catch (UnsupportedEncodingException e) {
             log.error("get mq message failed", e);
         }
-        log.error("consume message exception, msgId={}, msgKey={}, tag={},  body={}, reconsumeTimes={}", messageExt.getMsgId(), messageExt.getKeys(), messageExt.getTags(),
+        log.error("consume cancel message exception, msgId={}, msgKey={}, tag={},  body={}, reconsumeTimes={}", messageExt.getMsgId(), messageExt.getKeys(), messageExt.getTags(),
                 body, messageExt.getReconsumeTimes(), t);
     }
 
@@ -133,7 +136,7 @@ public class OrderConsumer {
         } catch (UnsupportedEncodingException e) {
             log.error("get mq message failed", e);
         }
-        log.error("consume message failed, cause={}, msgId={}, msgKey={}, tag={},  body={}, reconsumeTimes={}",
+        log.error("consume cancel message failed, cause={}, msgId={}, msgKey={}, tag={},  body={}, reconsumeTimes={}",
                 cause, messageExt.getMsgId(), messageExt.getKeys(), messageExt.getTags(),
                 body, messageExt.getReconsumeTimes());
     }

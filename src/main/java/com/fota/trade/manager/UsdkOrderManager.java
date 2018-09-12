@@ -210,7 +210,6 @@ public class UsdkOrderManager {
                     1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getTotalAmount(), transferTime, 3, usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 2);
         }
         usdkOrderDTO.setCompleteAmount(BigDecimal.ZERO);
-        //redisManager.usdkOrderSave(usdkOrderDTO);
         //todo 发送RocketMQ
         OrderMessage orderMessage = new OrderMessage();
         orderMessage.setOrderId(usdkOrderDO.getId());
@@ -337,7 +336,6 @@ public class UsdkOrderManager {
             BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
             BigDecimal matchAmount = usdkOrderDTO.getTotalAmount().subtract(usdkOrderDTO.getUnfilledAmount());
             usdkOrderDTO.setCompleteAmount(matchAmount);
-            //redisManager.usdkOrderSave(usdkOrderDTO);
             JSONObject jsonObject = JSONObject.parseObject(usdkOrderDO.getOrderContext());
             String username = "";
             if (jsonObject != null && !jsonObject.isEmpty()) {
@@ -508,17 +506,6 @@ public class UsdkOrderManager {
 
         askUsdkOrder = usdkOrderMapper.selectByPrimaryKey(askUsdkOrder.getId());
         bidUsdkOrder = usdkOrderMapper.selectByPrimaryKey(bidUsdkOrder.getId());
-        // 状态为9
-        if (askUsdkOrder.getStatus() == OrderStatusEnum.PART_MATCH.getCode()) {
-            redisManager.usdtOrderSaveForMatch(com.fota.trade.common.BeanUtils.copy(askUsdkOrder));
-        } else if (askUsdkOrder.getStatus() == OrderStatusEnum.MATCH.getCode()) {
-            redisManager.hdel(Constant.REDIS_USDT_ORDER_FOR_MATCH_HASH, String.valueOf(askUsdkOrder.getId()));
-        }
-        if (bidUsdkOrder.getStatus() == OrderStatusEnum.PART_MATCH.getCode()) {
-            redisManager.usdtOrderSaveForMatch(com.fota.trade.common.BeanUtils.copy(bidUsdkOrder));
-        } else if (bidUsdkOrder.getStatus() == OrderStatusEnum.MATCH.getCode()) {
-            redisManager.hdel(Constant.REDIS_USDT_ORDER_FOR_MATCH_HASH, String.valueOf(bidUsdkOrder.getId()));
-        }
 
         //存Redis
         org.springframework.beans.BeanUtils.copyProperties(askUsdkOrder, askUsdkOrderDTO);
@@ -529,7 +516,6 @@ public class UsdkOrderManager {
         bidUsdkOrderDTO.setCompleteAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
         askUsdkOrderDTO.setStatus(usdkMatchedOrderDTO.getAskOrderStatus());
         bidUsdkOrderDTO.setStatus(usdkMatchedOrderDTO.getAskOrderStatus());
-        //redisManager.usdkOrderSave(askUsdkOrderDTO);
         String askUsername = "";
         String bidUsername = "";
         if (askOrderContext != null){
@@ -541,7 +527,6 @@ public class UsdkOrderManager {
         // TODO add get username
         tradeLog.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                 1, askUsdkOrderDTO.getAssetName(), askUsername, askUsdkOrderDTO.getCompleteAmount(), System.currentTimeMillis(), 4, askUsdkOrderDTO.getOrderDirection(), askUsdkOrderDTO.getUserId(), 1);
-        //redisManager.usdkOrderSave(bidUsdkOrderDTO);
         tradeLog.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                 1, bidUsdkOrderDTO.getAssetName(), bidUsername, bidUsdkOrderDTO.getCompleteAmount(), System.currentTimeMillis(), 4,  bidUsdkOrderDTO.getOrderDirection(), bidUsdkOrderDTO.getUserId(), 1);
         // 向MQ推送消息
@@ -573,30 +558,6 @@ public class UsdkOrderManager {
         Boolean sendRet = rocketMqManager.sendMessage("match", "usdk", String.valueOf(usdkMatchedOrderDO.getId()), orderMessage);
         if (!sendRet){
             log.error("Send RocketMQ Message Failed ");
-        }
-
-        // 向Redis存储消息
-        UsdkMatchedOrderTradeDTO usdkMatchedOrderTradeDTO = new UsdkMatchedOrderTradeDTO();
-        usdkMatchedOrderTradeDTO.setUsdkMatchedOrderId(usdkMatchedOrderDO.getId());
-        usdkMatchedOrderTradeDTO.setAskOrderId(usdkMatchedOrderDO.getAskOrderId());
-        usdkMatchedOrderTradeDTO.setBidOrderId(usdkMatchedOrderDO.getBidOrderId());
-        usdkMatchedOrderTradeDTO.setFilledPrice(usdkMatchedOrderDO.getFilledPrice());
-        usdkMatchedOrderTradeDTO.setFilledAmount(usdkMatchedOrderDO.getFilledAmount());
-        usdkMatchedOrderTradeDTO.setFilledDate(usdkMatchedOrderDO.getGmtCreate());
-        usdkMatchedOrderTradeDTO.setMatchType(usdkMatchedOrderDO.getMatchType().intValue());
-        usdkMatchedOrderTradeDTO.setAssetId(bidUsdkOrder.getAssetId().longValue());
-        usdkMatchedOrderTradeDTO.setAssetName(usdkMatchedOrderDO.getAssetName());
-        try {
-            String key = Constant.CACHE_KEY_MATCH_USDK + usdkMatchedOrderDO.getId();
-            Object value = JSONObject.toJSONString(usdkMatchedOrderTradeDTO);
-            log.info("向Redis存储消息,key:{},value:{}", key, value);
-            boolean re = redisManager.set(key,value);
-            if (!re){
-                log.error("向Redis存储消息失败");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            log.error("向Redis存储USDK撮合订单信息失败，订单id为 {}", usdkMatchedOrderDO.getId());
         }
         return ResultCode.success();
     }

@@ -15,15 +15,26 @@ import java.util.List;
 @Slf4j
 public class Profiler {
 
-    private static String format = "profile of %s: { total:%s, detail:%s }";
+    private static String format = "profile of %s, traceId=%s: { total:%s, detail:%s }";
 
     private long start;
     private String method;
+    private String traceId;
     private List<ProfilePhase> profilePhases = new ArrayList<>();
 
     public Profiler(String method) {
         this.method = method;
         start();
+    }
+
+    public Profiler(String method, String traceId) {
+        this.method = method;
+        this.traceId = traceId;
+        start();
+    }
+
+    public void setTraceId(String traceId) {
+        this.traceId = traceId;
     }
 
     private void start() {
@@ -68,7 +79,7 @@ public class Profiler {
             pre = cur;
         }
         detail.append(" } ");
-        return String.format(format, method, total, detail);
+        return String.format(format, method, traceId, total, detail);
     }
 
     public void log() {

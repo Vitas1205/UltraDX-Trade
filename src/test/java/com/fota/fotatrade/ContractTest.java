@@ -1,9 +1,10 @@
 package com.fota.fotatrade;
 
-import com.alibaba.fastjson.JSON;
 import com.fota.trade.common.Constant;
-import com.fota.trade.domain.*;
-import com.fota.trade.domain.dto.CompetitorsPriceDTO;
+import com.fota.trade.domain.ContractCategoryDO;
+import com.fota.trade.domain.ContractOrderDO;
+import com.fota.trade.domain.ContractOrderDTO;
+import com.fota.trade.domain.UserPositionDO;
 import com.fota.trade.domain.enums.PositionStatusEnum;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.RedisManager;
@@ -79,14 +80,14 @@ public class ContractTest {
             contractOrderDTO.setOrderDirection(1);
             contractOrderDTO.setOperateType(0);
             contractOrderDTO.setOrderType(1);
-            contractOrderDTO.setTotalAmount(1L);
+            contractOrderDTO.setTotalAmount(BigDecimal.ONE);
             contractOrderDTO.setPrice(new BigDecimal("8500"));
             Map<String, String> map = new HashMap<>();
             map.put("usernmae", "123");
             map.put("ip", "192.169.1.1");
-            //contractOrderService.order(contractOrderDTO,map);
+            contractOrderService.order(contractOrderDTO,map);
         }
-        //int insertContractOrderRet = contractOrderMapper.insertSelective(BeanUtils.copy(contractOrderDTO));
+//        int insertContractOrderRet = contractOrderMapper.insertSelective(BeanUtils.copy(contractOrderDTO));
     }
 
     @Test
@@ -160,7 +161,6 @@ public class ContractTest {
     public void getContractSize(){
         long contractId = 1000L;
         ContractCategoryDO contractCategoryDO = contractCategoryMapper.getContractCategoryById(contractId);
-        log.info("--------"+contractCategoryDO.getContractSize());
     }
 
 }

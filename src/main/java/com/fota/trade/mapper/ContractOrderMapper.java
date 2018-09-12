@@ -1,11 +1,9 @@
 package com.fota.trade.mapper;
 
 import com.fota.trade.domain.ContractOrderDO;
-import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.trade.mapper.common.BaseMapper;
 import org.apache.ibatis.annotations.*;
 
-import javax.management.Query;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
@@ -205,7 +203,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
                              @Param("averagePrice") BigDecimal averagePrice);
 
     int updateAmountAndStatus(@Param("orderId") Long orderId,
-                              @Param("lFilledAmount") long filledAmount,
+                              @Param("lFilledAmount") BigDecimal filledAmount,
                               @Param("filledPrice") BigDecimal filledPrice,
                               @Param("gmtModified") Date gmtModified);
 
@@ -217,7 +215,13 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
 
     List<ContractOrderDO> listByQuery(Map<String, Object> param);
 
-    int updateStatus(ContractOrderDO record);
+    @Update({
+            " update trade_contract_order" +
+            " set gmt_modified = now()," +
+            " status = #{toStatus}" +
+            " where id = #{id} and status = #{status} and unfilled_amount=#{unfilledAmount}"
+    })
+    int cancelByOpLock(@Param("id") long id, @Param("status") int status, @Param("unfilledAmount") BigDecimal unfilledAmount, @Param("toStatus") int toStatus);
 
     List<ContractOrderDO> listByUserIdAndOrderType(@Param("userId") Long userId, @Param("orderTypes") List<Integer> orderTypes);
 }

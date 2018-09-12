@@ -9,18 +9,17 @@
       <arg column="contract_name" jdbcType="VARCHAR" javaType="java.lang.String" />
       <arg column="asset_id" jdbcType="INTEGER" javaType="java.lang.Integer" />
       <arg column="asset_name" jdbcType="VARCHAR" javaType="java.lang.String" />
-      <arg column="total_amount" jdbcType="BIGINT" javaType="java.lang.Long" />
-      <arg column="unfilled_amount" jdbcType="BIGINT" javaType="java.lang.Long" />
+      <arg column="total_amount" jdbcType="DECIMAL" javaType="java.math.BigDecimal" />
+      <arg column="unfilled_amount" jdbcType="DECIMAL" javaType="java.math.BigDecimal" />
       <arg column="delivery_date" jdbcType="TIMESTAMP" javaType="java.util.Date" />
       <arg column="status" jdbcType="INTEGER" javaType="java.lang.Integer" />
       <arg column="contract_type" jdbcType="TINYINT" javaType="java.lang.Integer" />
       <arg column="price" jdbcType="DECIMAL" javaType="java.math.BigDecimal" />
-      <arg column="contract_size" jdbcType="DECIMAL" javaType="java.math.BigDecimal" />
     </constructor>
   </resultMap>
   <sql id="Base_Column_List" >
     id, gmt_create, gmt_modified, contract_name, asset_id, asset_name, total_amount, 
-    unfilled_amount, delivery_date, status, contract_type, price, contract_size
+    unfilled_amount, delivery_date, status, contract_type, price
   </sql>
 
 
@@ -109,9 +108,6 @@
       <if test="price != null" >
         price,
       </if>
-      <if test="contractSize != null" >
-        contract_size,
-      </if>
     </trim>
     <trim prefix="values (" suffix=")" suffixOverrides="," >
       <if test="id != null" >
@@ -145,9 +141,6 @@
       </if>
       <if test="price != null" >
         #{price,jdbcType=DECIMAL},
-      </if>
-      <if test="contractSize != null" >
-        #{contractSize,jdbcType=DECIMAL},
       </if>
     </trim>
   </insert>
@@ -186,9 +179,6 @@
       </if>
       <if test="price != null" >
         price = #{price,jdbcType=DECIMAL},
-      </if>
-      <if test="contractSize != null" >
-        contract_size = #{contractSize,jdbcType=DECIMAL},
       </if>
     </set>
     where id = #{id,jdbcType=BIGINT}

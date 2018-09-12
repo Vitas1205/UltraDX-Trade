@@ -1,6 +1,5 @@
 package com.fota.trade.common;
 
-import com.fota.trade.domain.enums.PositionTypeEnum;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -16,7 +15,7 @@ public class UpdatePositionResult {
     /**
      * 平仓数量,如果不是平仓，则为null
      */
-    private Long closeAmount;
+    private BigDecimal closeAmount;
     /**
      * 开仓方向
      */
@@ -33,5 +32,5 @@ public class UpdatePositionResult {
     /**
      * 新持仓数量
      */
-    private long newTotalAmount;
+    private BigDecimal newTotalAmount;
 }
