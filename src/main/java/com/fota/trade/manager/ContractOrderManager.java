@@ -979,6 +979,16 @@ public class ContractOrderManager {
         return resultCode;
     }
 
+    public ResultCode checkMatchOrderDTO(ContractMatchedOrderDTO contractMatchedOrderDTO) {
+        if (contractMatchedOrderDTO == null || null == contractMatchedOrderDTO.getAskUserId() || null == contractMatchedOrderDTO.getBidUserId()
+                || null == contractMatchedOrderDTO.getAskOrderId() || null == contractMatchedOrderDTO.getBidOrderId() || null == contractMatchedOrderDTO.getFilledAmount()
+                || null == contractMatchedOrderDTO.getFilledPrice()) {
+            log.error(ResultCodeEnum.ILLEGAL_PARAM.getMessage());
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
+        }
+        return ResultCode.success();
+    }
+
     public   ResultCode checkParam(ContractOrderDO askContractOrder, ContractOrderDO bidContractOrder, ContractMatchedOrderDTO contractMatchedOrderDTO) {
         if (askContractOrder == null){
             log.error("askContractOrder not exist, matchOrder={}",  contractMatchedOrderDTO);
@@ -1086,7 +1096,11 @@ public class ContractOrderManager {
         if (!sendRet) {
             log.error("Send RocketMQ Message Failed ");
         }
-        updateTotalPosition(contractMatchedOrderDO, resultMap);
+        try {
+            updateTotalPosition(contractMatchedOrderDO, resultMap);
+        }catch (Throwable t) {
+            log.error("update total position failed,resultMap={}", JSON.toJSONString(resultMap), t);
+        }
     }
 
     public UpdatePositionResult updatePosition(ContractOrderDO contractOrderDO, BigDecimal filledAmount, BigDecimal filledPrice){
