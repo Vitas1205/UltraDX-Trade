@@ -614,7 +614,7 @@ public class ContractOrderManager {
         if(CollectionUtils.isEmpty(contractLeverDOS)) {
             return DEFAULT_LEVER;
         }
-        Optional<UserContractLeverDO> leverDO = contractLeverDOS.stream().filter(x -> x.getUserId().equals(userId) && x.getAssetId().equals(assetId)).findFirst();
+        Optional<UserContractLeverDO> leverDO = contractLeverDOS.stream().filter(x -> x.getUserId().equals(userId) && Long.valueOf(x.getAssetId()).equals(assetId)).findFirst();
         if (leverDO.isPresent()) {
             return new BigDecimal(leverDO.get().getLever());
         }
