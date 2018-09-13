@@ -1355,10 +1355,18 @@ public class ContractOrderManager {
         for (ContractOrderDO key : resultMap.keySet()) {
             if (key.getUserId().equals(bidUserId)){
                 UpdatePositionResult bidPosition = resultMap.get(key);
-                bidPositionAmount = bidPosition.getNewTotalAmount().multiply(bidPosition.getNewPositionType() == 1 ? BigDecimal.valueOf(-1) : BigDecimal.ONE);
+                if(bidPosition != null) {
+                    bidPositionAmount = bidPosition.getNewTotalAmount().multiply(bidPosition.getNewPositionType() == 1 ? BigDecimal.valueOf(-1) : BigDecimal.ONE);
+                } else{
+                    log.info("update position find null position userId :{}, order:{}", bidUserId, key.toString());
+                }
             } else if (key.getUserId().equals(askUserId)) {
                 UpdatePositionResult askPosition = resultMap.get(key);
-                askPositionAmount = askPosition.getNewTotalAmount().multiply(askPosition.getNewPositionType() == 1 ? BigDecimal.valueOf(-1) : BigDecimal.ONE);
+                if(askPosition != null) {
+                    askPositionAmount = askPosition.getNewTotalAmount().multiply(askPosition.getNewPositionType() == 1 ? BigDecimal.valueOf(-1) : BigDecimal.ONE);
+                } else {
+                    log.info("update position find null position userId :{}, order :{}", askUserId, key.toString());
+                }
             }
         }
         BigDecimal formerBidPositionAmount = bidPositionAmount.subtract(filledAmount);
