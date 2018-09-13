@@ -326,18 +326,20 @@ public class ContractOrderServiceImpl implements
             return checkRes;
         }
 
-        //排序，防止死锁
         String messageKey = Joiner.on("-").join(contractMatchedOrderDTO.getAskOrderId().toString(),
                 contractMatchedOrderDTO.getAskOrderStatus(), contractMatchedOrderDTO.getBidOrderId(),
                 contractMatchedOrderDTO.getBidOrderStatus());
         Profiler profiler = new Profiler("ContractOrderManager.updateOrderByMatch", messageKey);
         ThreadContextUtil.setPrifiler(profiler);
 
+        //安装userId排序，防止死锁
         //获取锁
         List<String> locks = Arrays.asList(contractMatchedOrderDTO.getAskUserId(), contractMatchedOrderDTO.getBidUserId()).stream()
+                .sorted(Long::compareTo)
                 .map(x -> "POSITION_LOCK_"+ x+"_"+ contractMatchedOrderDTO.getContractId())
                 .distinct()
                 .collect(Collectors.toList());
+
 
         boolean suc = redisManager.multiConcurrentLock(locks, Duration.ofSeconds(60), MAX_RETRIES);
         profiler.complelete("locks:"+Joiner.on(",").join(locks));
