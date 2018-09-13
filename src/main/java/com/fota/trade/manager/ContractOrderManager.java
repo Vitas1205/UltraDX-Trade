@@ -1358,6 +1358,12 @@ public class ContractOrderManager {
                 bidPositionAmount = bidPosition.getNewTotalAmount().multiply(bidPosition.getNewPositionType() == 1 ? BigDecimal.valueOf(-1) : BigDecimal.ONE);
             } else if (key.getUserId().equals(askUserId)) {
                 UpdatePositionResult askPosition = resultMap.get(key);
+                if (askPosition == null) {
+                    log.error("ask postion is null");
+                }
+                if (askPosition.getNewTotalAmount() == null) {
+                    log.error("getNewTotalAmount {}", askPosition);
+                }
                 askPositionAmount = askPosition.getNewTotalAmount().multiply(askPosition.getNewPositionType() == 1 ? BigDecimal.valueOf(-1) : BigDecimal.ONE);
             }
         }
