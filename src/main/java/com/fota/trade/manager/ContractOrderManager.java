@@ -1019,6 +1019,16 @@ public class ContractOrderManager {
         return resultCode;
     }
 
+    public ResultCode checkMatchOrderDTO(ContractMatchedOrderDTO contractMatchedOrderDTO) {
+        if (contractMatchedOrderDTO == null || null == contractMatchedOrderDTO.getAskUserId() || null == contractMatchedOrderDTO.getBidUserId()
+                || null == contractMatchedOrderDTO.getAskOrderId() || null == contractMatchedOrderDTO.getBidOrderId() || null == contractMatchedOrderDTO.getFilledAmount()
+                || null == contractMatchedOrderDTO.getFilledPrice()) {
+            log.error(ResultCodeEnum.ILLEGAL_PARAM.getMessage());
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
+        }
+        return ResultCode.success();
+    }
+
     public   ResultCode checkParam(ContractOrderDO askContractOrder, ContractOrderDO bidContractOrder, ContractMatchedOrderDTO contractMatchedOrderDTO) {
         if (askContractOrder == null){
             log.error("askContractOrder not exist, matchOrder={}",  contractMatchedOrderDTO);
@@ -1126,7 +1136,11 @@ public class ContractOrderManager {
         if (!sendRet) {
             log.error("Send RocketMQ Message Failed ");
         }
-        updateTotalPosition(contractMatchedOrderDO, resultMap);
+        try {
+            updateTotalPosition(contractMatchedOrderDO, resultMap);
+        }catch (Throwable t) {
+            log.error("update total position failed,resultMap={}", JSON.toJSONString(resultMap), t);
+        }
     }
 
     public UpdatePositionResult updatePosition(ContractOrderDO contractOrderDO, BigDecimal filledAmount, BigDecimal filledPrice){
@@ -1395,10 +1409,18 @@ public class ContractOrderManager {
         for (ContractOrderDO key : resultMap.keySet()) {
             if (key.getUserId().equals(bidUserId)){
                 UpdatePositionResult bidPosition = resultMap.get(key);
-                bidPositionAmount = bidPosition.getNewTotalAmount().multiply(bidPosition.getNewPositionType() == 1 ? BigDecimal.valueOf(-1) : BigDecimal.ONE);
+                if(bidPosition != null) {
+                    bidPositionAmount = bidPosition.getNewTotalAmount().multiply(bidPosition.getNewPositionType() == 1 ? BigDecimal.valueOf(-1) : BigDecimal.ONE);
+                } else{
+                    log.info("update position find null position userId :{}, order:{}", bidUserId, key.toString());
+                }
             } else if (key.getUserId().equals(askUserId)) {
                 UpdatePositionResult askPosition = resultMap.get(key);
-                askPositionAmount = askPosition.getNewTotalAmount().multiply(askPosition.getNewPositionType() == 1 ? BigDecimal.valueOf(-1) : BigDecimal.ONE);
+                if(askPosition != null) {
+                    askPositionAmount = askPosition.getNewTotalAmount().multiply(askPosition.getNewPositionType() == 1 ? BigDecimal.valueOf(-1) : BigDecimal.ONE);
+                } else {
+                    log.info("update position find null position userId :{}, order :{}", askUserId, key.toString());
+                }
             }
         }
         BigDecimal formerBidPositionAmount = bidPositionAmount.subtract(filledAmount);
