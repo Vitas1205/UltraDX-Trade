@@ -139,7 +139,7 @@ public class Consumer {
         } catch (UnsupportedEncodingException e) {
             log.error("get mq message failed", e);
         }
-        log.error("consume message success, extInfo={}, msgId={}, msgKey={}, tag={},  body={}, reconsumeTimes={}",extInfo,  messageExt.getMsgId(), messageExt.getKeys(), messageExt.getTags(),
+        log.info("consume message success, extInfo={}, msgId={}, msgKey={}, tag={},  body={}, reconsumeTimes={}",extInfo,  messageExt.getMsgId(), messageExt.getKeys(), messageExt.getTags(),
                 body, messageExt.getReconsumeTimes());
     }
     private void logFailMsg(MessageExt messageExt, Throwable t) {

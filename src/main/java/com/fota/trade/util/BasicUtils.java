@@ -32,6 +32,13 @@ public class BasicUtils {
         }
         return null;
     }
+    public static void exeWhitoutError(Runnable runnable) {
+        try {
+            runnable.run();
+        }catch (Throwable t){
+            log.error("exe function exception", t);
+        }
+    }
 
     public static int randomInt(int bound){
         return random.nextInt(bound);

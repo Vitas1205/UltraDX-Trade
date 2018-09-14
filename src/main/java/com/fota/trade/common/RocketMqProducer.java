@@ -41,20 +41,20 @@ public class RocketMqProducer {
             result = producer.send(msg, 1000); // 消息在1S内没有发送成功，就会重试
 
             if (SendStatus.SEND_OK == result.getSendStatus()){
-                log.info("向Topic：{}，发送消息：{}，消息发送成功", topic, new String(pushMsg));
+                log.info("向Topic：{}，发送消息：{}，key: {}, tag: {}, 消息发送成功 ", topic, new String(pushMsg), key, tag);
             }else if (SendStatus.FLUSH_DISK_TIMEOUT == result.getSendStatus()){
-                log.error("向Topic：{}，发送消息：{}，消息发送成功，但是服务器刷盘超时，消息已经进入服务器队列，只有此时服务器宕机，消息才会丢失", topic, pushMsg);
+                log.error("向Topic：{}，发送消息：{}，key: {}, tag: {},消息发送成功，但是服务器刷盘超时，消息已经进入服务器队列，只有此时服务器宕机，消息才会丢失",topic, new String(pushMsg), key, tag);
             }else if (SendStatus.FLUSH_SLAVE_TIMEOUT == result.getSendStatus()){
-                log.error("向Topic：{}，发送消息：{}，消息发送成功，但是服务器同步到Slave时超时，消息已经进入服务器队列，只有此时服务器宕机，消息才会丢失", topic, pushMsg);
+                log.error("向Topic：{}，发送消息：{}，key: {}, tag: {}, 消息发送成功，但是服务器同步到Slave时超时，消息已经进入服务器队列，只有此时服务器宕机，消息才会丢失", topic, new String(pushMsg), key, tag);
             }else if (SendStatus.SLAVE_NOT_AVAILABLE == result.getSendStatus()){
-                log.error("向Topic：{}，发送消息：{}，消息发送成功，但是此时slave不可用，消息已经进入服务器队列，只有此时服务器宕机，消息才会丢失", topic, pushMsg);
+                log.error("向Topic：{}，发送消息：{}，key: {}, tag: {}, 消息发送成功，但是此时slave不可用，消息已经进入服务器队列，只有此时服务器宕机，消息才会丢失", topic, new String(pushMsg), key, tag);
             }else {
-                log.error("向Topic：{}，发送消息：{}，消息发送失败", topic, pushMsg);
+                log.error("向Topic：{}，发送消息：{}，key: {}, tag: {}, 消息发送失败", topic, new String(pushMsg), key, tag);
                 return false;
             }
         } catch (Exception e) {
-            log.error("向Topic：{}，发送消息：{}，消息发送失败", topic, pushMsg);
-            e.printStackTrace();
+            log.error("向Topic：{}，发送消息：{}，key: {}, tag: {}, 消息发送失败", topic, new String(pushMsg), key, tag);
+
         }
         return true;
     }
