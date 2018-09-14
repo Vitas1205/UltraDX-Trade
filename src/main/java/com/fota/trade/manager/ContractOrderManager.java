@@ -227,7 +227,6 @@ public class ContractOrderManager {
         if (contractOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()) {
             insertOrderRecord(contractOrderDO);
         } else {
-            ContractAccount contractAccount = computeContractAccount(contractOrderDO.getUserId(), contractOrderDO);
             Boolean judegRet = judegOrderAvailable(contractOrderDO.getUserId(), contractOrderDO);
             profiler.complelete("judeg order available");
             if (!judegRet) {

@@ -310,9 +310,26 @@ public class ContractOrderServiceTest {
         contractOrderDTO.setPrice(new BigDecimal(1));
         contractOrderDTO.setCloseType(OrderCloseTypeEnum.MANUAL.getCode());
         contractOrderDTO.setFee(new BigDecimal(0.01));
-        Result result = contractOrderService.orderReturnId(contractOrderDTO, userInfoMap);
-        log.info(result.toString());
+        //Result result = contractOrderService.orderReturnId(contractOrderDTO, userInfoMap);
+        //log.info(result.toString());
 
+    }
+
+    @Test
+    public void judegOrderAvailableTest(){
+        ContractOrderDO contractOrderDO = new ContractOrderDO();
+        contractOrderDO.setContractId(1000L);
+        contractOrderDO.setContractName("BTC0102");
+        contractOrderDO.setTotalAmount(new BigDecimal("0.05"));
+        contractOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
+        contractOrderDO.setOrderDirection(OrderDirectionEnum.ASK.getCode());
+        contractOrderDO.setUserId(282L);
+        contractOrderDO.setPrice(new BigDecimal(100));
+        contractOrderDO.setCloseType(OrderCloseTypeEnum.MANUAL.getCode());
+        contractOrderDO.setFee(new BigDecimal(0.0005));
+        contractOrderDO.setUnfilledAmount(new BigDecimal("0.05"));
+        Boolean ret = contractOrderManager.judegOrderAvailable(282L, contractOrderDO);
+        log.info(ret+"");
     }
 
     @Test
