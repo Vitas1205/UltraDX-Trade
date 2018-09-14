@@ -1,5 +1,6 @@
 package com.fota.trade.domain;
 
+import com.fota.common.utils.CommonUtils;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -7,6 +8,9 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.Date;
+
+import static com.fota.trade.domain.enums.OrderStatusEnum.*;
+import static com.fota.trade.domain.enums.OrderStatusEnum.CANCEL;
 
 @Data
 @AllArgsConstructor
@@ -35,12 +39,24 @@ public class ContractOrderDO {
     private String orderContext;
 
     public boolean fillAmount(BigDecimal filledAmount) {
-        unfilledAmount = unfilledAmount.subtract(filledAmount);
-        if (BigDecimal.ZERO.equals(unfilledAmount)) {
-            setStatus(OrderStatusEnum.MATCH.getCode());
-        } else {
-            setStatus(OrderStatusEnum.PART_MATCH.getCode());
+        if (unfilledAmount.compareTo(filledAmount) < 0) {
+            return false;
         }
+        unfilledAmount = unfilledAmount.subtract(filledAmount);
+        calStatus();
         return true;
+    }
+    private void calStatus(){
+        //如果全成，更新为全成
+        if (BigDecimal.ZERO.equals(unfilledAmount)) {
+            status = MATCH.getCode();
+            return;
+        }
+        //部成
+        if (status == COMMIT.getCode() || status == PART_MATCH.getCode()) {
+            status = PART_MATCH.getCode();
+        }else {
+            status = PART_CANCEL.getCode();
+        }
     }
 }

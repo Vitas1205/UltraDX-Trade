@@ -12,9 +12,10 @@ import java.util.function.Supplier;
  * Code is the law
  */
 @Slf4j
-public class CommonUtils {
+public class BasicUtils {
 
     public static final Random random =new Random();
+    public static final BigDecimal error = new BigDecimal(1e-10);
 
     public static long generateId(){
         UUID uuid = UUID.randomUUID();
@@ -31,9 +32,31 @@ public class CommonUtils {
         }
         return null;
     }
+    public static void exeWhitoutError(Runnable runnable) {
+        try {
+            runnable.run();
+        }catch (Throwable t){
+            log.error("exe function exception", t);
+        }
+    }
 
     public static int randomInt(int bound){
         return random.nextInt(bound);
+    }
+
+    public static boolean equal(BigDecimal a, BigDecimal b) {
+        if (null == a || null == b) {
+            return a == b;
+        }
+        return a.subtract(b).abs().compareTo(error) < 0;
+    }
+
+    public static boolean gt(BigDecimal a, BigDecimal b) {
+        return a.subtract(b).compareTo(error) > 0;
+    }
+
+    public static boolean gtOrEq(BigDecimal a, BigDecimal b) {
+        return a.subtract(b).compareTo(error) > 0;
     }
 
 }
