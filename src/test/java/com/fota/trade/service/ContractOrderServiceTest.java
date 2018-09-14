@@ -139,10 +139,10 @@ public class ContractOrderServiceTest {
 //        Assert.assertTrue(result != null && result.getData() != null);
         BaseQuery baseQuery = new BaseQuery();
         baseQuery.setPageNo(1);
-        baseQuery.setPageSize(50);
+        baseQuery.setPageSize(1000);
         //baseQuery.setUserId(17764594443L);
         List<Integer> orderStatus = new ArrayList<>();
-        baseQuery.setSourceId(1000);
+        //baseQuery.setSourceId(1000);
         //orderStatus.add(OrderStatusEnum.COMMIT.getCode());
         //orderStatus.add(OrderStatusEnum.PART_MATCH.getCode());
         //baseQuery.setOrderStatus(orderStatus);

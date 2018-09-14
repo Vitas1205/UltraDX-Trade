@@ -747,6 +747,7 @@ public class ContractOrderManager {
         }
         BigDecimal totalEntrustAmount = BigDecimal.ZERO;
         BigDecimal entrustAmount = BigDecimal.ZERO;
+        BigDecimal listFee = BigDecimal.ZERO;
         if (filterOrderList != null && filterOrderList.size() != 0) {
             List<ContractOrderDO> sortedList = new ArrayList<>();
             if (positionType == PositionTypeEnum.OVER.getCode()){
@@ -754,21 +755,22 @@ public class ContractOrderManager {
             }else {
                 sortedList = sortListDesc(filterOrderList);
             }
+            Integer flag = 0;
             for (int i = 0; i < sortedList.size(); i++) {
+                listFee = listFee.add(sortedList.get(i).getPrice().multiply(sortedList.get(i).getUnfilledAmount()).multiply(Constant.FEE_RATE));
                 positionUnfilledAmount = positionUnfilledAmount.subtract(sortedList.get(i).getUnfilledAmount());
-                if (positionUnfilledAmount.compareTo(BigDecimal.ZERO) < 0) {
+                if (positionUnfilledAmount.compareTo(BigDecimal.ZERO) < 0 && flag.equals(0)) {
+                    flag = 1;
                     BigDecimal restAmount = positionUnfilledAmount.negate().multiply(sortedList.get(i).getPrice()).divide(lever, 8, BigDecimal.ROUND_DOWN);
-                    BigDecimal restFee = restAmount.multiply(lever).multiply(Constant.FEE_RATE);
-                    BigDecimal totalRest = restAmount.add(restFee);
                     for (int j = i + 1; j < sortedList.size(); j++) {
                         BigDecimal orderAmount = sortedList.get(j).getPrice().multiply(sortedList.get(j).getUnfilledAmount()).divide(lever, 8, BigDecimal.ROUND_DOWN);
                         BigDecimal orderFee = orderAmount.multiply(lever).multiply(Constant.FEE_RATE);
                         entrustAmount = entrustAmount.add(orderAmount.add(orderFee));
                     }
-                    totalEntrustAmount = totalRest.add(entrustAmount);
-                    break;
+                    totalEntrustAmount = restAmount.add(entrustAmount);
                 }
             }
+            totalEntrustAmount = totalEntrustAmount.add(listFee);
             if (totalEntrustAmount.compareTo(positionEntrustAmount) <= 0){
                 return true;
             }
@@ -790,24 +792,26 @@ public class ContractOrderManager {
         BigDecimal totalBidEntrustAmount = BigDecimal.ZERO;
         BigDecimal askEntrustAmount = BigDecimal.ZERO;
         BigDecimal bidEntrustAmount = BigDecimal.ZERO;
+        BigDecimal askListFee = BigDecimal.ZERO;
+        BigDecimal bidListFee = BigDecimal.ZERO;
         if (positionType == PositionTypeEnum.OVER.getCode()) {
             if (askList != null && askList.size() != 0) {
                 List<ContractOrderDO> sortedAskList = sortListEsc(askList);
+                Integer askFlag = 0;
                 for (int i = 0; i < sortedAskList.size(); i++) {
+                    askListFee = askListFee.add(sortedAskList.get(i).getPrice().multiply(sortedAskList.get(i).getUnfilledAmount()).multiply(Constant.FEE_RATE));
                     positionUnfilledAmount = positionUnfilledAmount.subtract(sortedAskList.get(i).getUnfilledAmount());
-                    if (positionUnfilledAmount.compareTo(BigDecimal.ZERO) < 0) {
+                    if (positionUnfilledAmount.compareTo(BigDecimal.ZERO) < 0 && askFlag.equals(0)) {
+                        askFlag = 1;
                         BigDecimal restAmount = positionUnfilledAmount.negate().multiply(sortedAskList.get(i).getPrice()).divide(lever, 8, BigDecimal.ROUND_DOWN);
-                        BigDecimal restFee = restAmount.multiply(lever).multiply(Constant.FEE_RATE);
-                        BigDecimal totalRest = restAmount.add(restFee);
                         for (int j = i + 1; j < sortedAskList.size(); j++) {
                             BigDecimal orderAmount = sortedAskList.get(j).getPrice().multiply(sortedAskList.get(j).getUnfilledAmount()).divide(lever, 8, BigDecimal.ROUND_DOWN);
-                            BigDecimal orderFee = orderAmount.multiply(lever).multiply(Constant.FEE_RATE);
-                            askEntrustAmount = askEntrustAmount.add(orderAmount.add(orderFee));
+                            askEntrustAmount = askEntrustAmount.add(orderAmount);
                         }
-                        totalAskEntrustAmount = totalRest.add(askEntrustAmount);
-                        break;
+                        totalAskEntrustAmount = restAmount.add(askEntrustAmount);
                     }
                 }
+                totalAskEntrustAmount = totalAskEntrustAmount.add(askListFee);
                 if (totalAskEntrustAmount.compareTo(positionEntrustAmount) > 0) {
                     max1 = totalAskEntrustAmount.subtract(positionEntrustAmount);
                 }
@@ -827,21 +831,21 @@ public class ContractOrderManager {
         } else if (positionType == PositionTypeEnum.EMPTY.getCode()) {
             if (bidList != null && bidList.size() != 0) {
                 List<ContractOrderDO> sortedBidList = sortListDesc(bidList);
+                Integer bidFlag = 0;
                 for (int i = 0; i < sortedBidList.size(); i++) {
+                    bidListFee = bidListFee.add(sortedBidList.get(i).getPrice().multiply(sortedBidList.get(i).getUnfilledAmount()).multiply(Constant.FEE_RATE));
                     positionUnfilledAmount = positionUnfilledAmount.subtract(sortedBidList.get(i).getUnfilledAmount());
-                    if (positionUnfilledAmount.compareTo(BigDecimal.ZERO) < 0) {
+                    if (positionUnfilledAmount.compareTo(BigDecimal.ZERO) < 0 && bidFlag.equals(0)) {
+                        bidFlag = 1;
                         BigDecimal restAmount = positionUnfilledAmount.negate().multiply(sortedBidList.get(i).getPrice()).divide(lever, 8, BigDecimal.ROUND_DOWN);
-                        BigDecimal restFee = restAmount.multiply(lever).multiply(Constant.FEE_RATE);
-                        BigDecimal totalRest = restAmount.add(restFee);
                         for (int j = i + 1; j < sortedBidList.size(); j++) {
                             BigDecimal orderAmount = sortedBidList.get(j).getPrice().multiply(sortedBidList.get(j).getUnfilledAmount()).divide(lever, 8, BigDecimal.ROUND_DOWN);
-                            BigDecimal orderFee = orderAmount.multiply(lever).multiply(Constant.FEE_RATE);
-                            bidEntrustAmount = bidEntrustAmount.add(orderAmount.add(orderFee));
+                            bidEntrustAmount = bidEntrustAmount.add(orderAmount);
                         }
-                        totalBidEntrustAmount = totalRest.add(bidEntrustAmount);
-                        break;
+                        totalBidEntrustAmount = restAmount.add(bidEntrustAmount);
                     }
                 }
+                totalBidEntrustAmount = totalBidEntrustAmount.add(bidListFee);
                 if (totalBidEntrustAmount.compareTo(positionEntrustAmount) > 0) {
                     max1 = totalBidEntrustAmount.subtract(positionEntrustAmount);
                 }
