@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Created by Swifree on 2018/9/10.
@@ -17,7 +18,7 @@ public class BasicFunctionTest {
     public void testSort(){
 
         ContractOrderDO contractOrderDO = new ContractOrderDO();
-        contractOrderDO.setUserId(314L);
+        contractOrderDO.setUserId(315L);
         contractOrderDO.setId(1L);
 
         ContractOrderDO  contractOrderDO1= new ContractOrderDO();
@@ -35,6 +36,8 @@ public class BasicFunctionTest {
 //            }
 //            return a.getId().compareTo(b.getId());
         });
+        Stream.of(2,1).sorted(Integer::compareTo)
+                .forEach(x -> System.out.println(x));
         //获取锁
         List<String> locks = contractOrderDOS.stream()
         .map(x -> "POSITION_LOCK_"+ x.getUserId()+"_"+ x.getContractId())

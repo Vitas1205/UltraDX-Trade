@@ -12,10 +12,7 @@ import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.service.ContractOrderService;
-import com.fota.trade.util.DateUtil;
-import com.fota.trade.util.PriceUtil;
-import com.fota.trade.util.Profiler;
-import com.fota.trade.util.ThreadContextUtil;
+import com.fota.trade.util.*;
 import com.google.common.base.Joiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +21,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import static com.fota.trade.common.ResultCodeEnum.LOCK_FAILED;
@@ -70,6 +69,8 @@ public class ContractOrderServiceImpl implements
     }
 
     private static final int MAX_RETRIES = 3000;
+
+    ExecutorService executorService = Executors.newWorkStealingPool();
 
 
     @Override
@@ -320,30 +321,10 @@ public class ContractOrderServiceImpl implements
 
     @Override
     public ResultCode updateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO) {
-        if (contractMatchedOrderDTO == null) {
-            log.error(ResultCodeEnum.ILLEGAL_PARAM.getMessage());
-            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
+        ResultCode checkRes = contractOrderManager.checkMatchOrderDTO(contractMatchedOrderDTO);
+        if (!checkRes.isSuccess()) {
+            return checkRes;
         }
-
-        ContractOrderDO askContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getAskOrderId());
-        ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
-
-        ResultCode checkResult = contractOrderManager.checkParam(askContractOrder, bidContractOrder, contractMatchedOrderDTO);
-        if (!checkResult.isSuccess()) {
-            return checkResult;
-        }
-
-        //排序，防止死锁
-        List<ContractOrderDO> contractOrderDOS = new ArrayList<>();
-        contractOrderDOS.add(askContractOrder);
-        contractOrderDOS.add(bidContractOrder);
-        Collections.sort(contractOrderDOS, (a, b) -> {
-            int c = a.getUserId().compareTo(b.getUserId());
-            if (c!=0) {
-                return c;
-            }
-            return a.getId().compareTo(b.getId());
-        });
 
         String messageKey = Joiner.on("-").join(contractMatchedOrderDTO.getAskOrderId().toString(),
                 contractMatchedOrderDTO.getAskOrderStatus(), contractMatchedOrderDTO.getBidOrderId(),
@@ -351,11 +332,14 @@ public class ContractOrderServiceImpl implements
         Profiler profiler = new Profiler("ContractOrderManager.updateOrderByMatch", messageKey);
         ThreadContextUtil.setPrifiler(profiler);
 
+        //安装userId排序，防止死锁
         //获取锁
-        List<String> locks = contractOrderDOS.stream()
-                .map(x -> "POSITION_LOCK_"+ x.getUserId()+"_"+ x.getContractId())
+        List<String> locks = Arrays.asList(contractMatchedOrderDTO.getAskUserId(), contractMatchedOrderDTO.getBidUserId()).stream()
+                .sorted(Long::compareTo)
+                .map(x -> "POSITION_LOCK_"+ x+"_"+ contractMatchedOrderDTO.getContractId())
                 .distinct()
                 .collect(Collectors.toList());
+
 
         boolean suc = redisManager.multiConcurrentLock(locks, Duration.ofSeconds(60), MAX_RETRIES);
         profiler.complelete("locks:"+Joiner.on(",").join(locks));
@@ -372,7 +356,7 @@ public class ContractOrderServiceImpl implements
                 if (null == postTask) {
                     log.error("null postTask");
                 }
-                else postTask.run();
+                else executorService.submit(postTask);
             }
             return code;
 
