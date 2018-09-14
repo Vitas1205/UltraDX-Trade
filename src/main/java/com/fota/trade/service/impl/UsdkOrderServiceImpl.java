@@ -25,6 +25,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import static com.fota.trade.common.ResultCodeEnum.SYSTEM_ERROR;
+
 
 /**
  * @Author: JianLi.Gao
@@ -224,15 +226,14 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
             resultCode = usdkOrderManager.updateOrderByMatch(usdkMatchedOrderDTO);
             return resultCode;
         }catch (Exception e){
-            log.error("USDK updateOrderByMatch() failed", e);
-            if (e instanceof BusinessException){
-                BusinessException businessException = (BusinessException) e;
-                resultCode.setCode(businessException.getCode());
-                resultCode.setMessage(businessException.getMessage());
-                return resultCode;
+            if (e instanceof BizException) {
+                BizException bE = (BizException) e;
+                return ResultCode.error(bE.getCode(), bE.getMessage());
+            }else {
+                log.error("usdk match exception, match_order={}", usdkMatchedOrderDTO, e);
+                return ResultCode.error(SYSTEM_ERROR.getCode(), SYSTEM_ERROR.getMessage());
             }
         }
-        return resultCode;
     }
 
     @Override
