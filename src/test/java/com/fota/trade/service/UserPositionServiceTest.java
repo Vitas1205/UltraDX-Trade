@@ -61,7 +61,7 @@ public class UserPositionServiceTest {
 
     @Test
     public void listPositionByUserIdTest(){
-        List<UserPositionDTO> list = userPositionService.listPositionByUserId(285L);
+        List<UserPositionDTO> list = userPositionService.listPositionByUserId(282L);
         log.info("----"+list.size());
     }
 

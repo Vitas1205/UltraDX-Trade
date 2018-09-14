@@ -150,12 +150,12 @@ public interface UsdkOrderMapper {
 
 //    int updateByFilledAmount(@Param("orderId") Long orderId, @Param("status") Integer status, @Param("filledAmount") BigDecimal filledAmount);
 
-    int updateByFilledAmount(@Param("orderId") Long orderId,
-                             @Param("status") Integer status,
+    int updateByFilledAmount(@Param("id") Long orderId,
                              @Param("filledAmount") BigDecimal filledAmount,
-                             @Param("averagePrice") BigDecimal averagePrice,
+                             @Param("filledPrice") BigDecimal filledPrice,
                              @Param("gmtModified") Date gmtModified
                              );
+
 
     @Update({
             "update trade_usdk_order",
