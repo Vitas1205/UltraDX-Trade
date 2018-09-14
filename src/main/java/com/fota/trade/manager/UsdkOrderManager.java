@@ -17,6 +17,7 @@ import com.fota.trade.mapper.UsdkMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkOrderMapper;
 import com.fota.trade.util.CommonUtils;
 import com.fota.trade.util.ContractUtils;
+import com.fota.trade.util.ThreadContextUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -420,8 +421,7 @@ public class UsdkOrderManager {
             throw new BizException(ResultCodeEnum.BIZ_ERROR.getCode(), "update bidOrder failed, order=" + bidUsdkOrder);
         }
 
-        postProcessOrder(askUsdkOrder, filledAmount);
-        postProcessOrder(bidUsdkOrder, filledAmount);
+
 
         // 买币 bid +totalAsset = filledAmount - filledAmount * feeRate
         // 买币 bid -totalUsdk = filledAmount * filledPrice
@@ -487,52 +487,58 @@ public class UsdkOrderManager {
 //        askUsdkOrder = usdkOrderMapper.selectByPrimaryKey(askUsdkOrder.getId());
 //        bidUsdkOrder = usdkOrderMapper.selectByPrimaryKey(bidUsdkOrder.getId());
 
-        Map<String, Object> askOrderContext = new HashMap<>();
-        Map<String, Object> bidOrderContext = new HashMap<>();
-        if (askUsdkOrder.getOrderContext() != null){
-            askOrderContext  = JSON.parseObject(askUsdkOrder.getOrderContext());
-        }
-        if (bidUsdkOrder.getOrderContext() != null){
-            bidOrderContext  = JSON.parseObject(bidUsdkOrder.getOrderContext());
-        }
+        Runnable runnable = () -> {
+            Map<String, Object> askOrderContext = new HashMap<>();
+            Map<String, Object> bidOrderContext = new HashMap<>();
+            if (askUsdkOrder.getOrderContext() != null){
+                askOrderContext  = JSON.parseObject(askUsdkOrder.getOrderContext());
+            }
+            if (bidUsdkOrder.getOrderContext() != null){
+                bidOrderContext  = JSON.parseObject(bidUsdkOrder.getOrderContext());
+            }
 
 
-          // 向MQ推送消息
-        OrderMessage orderMessage = new OrderMessage();
-        orderMessage.setSubjectId(usdkMatchedOrderDTO.getAssetId().longValue());
-        orderMessage.setSubjectName(usdkMatchedOrderDTO.getAssetName());
-        orderMessage.setTransferTime(transferTime);
-        orderMessage.setPrice(new BigDecimal(usdkMatchedOrderDTO.getFilledPrice()));
-        orderMessage.setAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
-        orderMessage.setEvent(OrderOperateTypeEnum.DEAL_ORDER.getCode());
-        orderMessage.setAskOrderId(usdkMatchedOrderDTO.getAskOrderId());
-        orderMessage.setBidOrderId(usdkMatchedOrderDTO.getBidOrderId());
-        orderMessage.setAskOrderContext(askOrderContext);
-        orderMessage.setBidOrderContext(bidOrderContext);
-        orderMessage.setAskOrderType(askUsdkOrder.getOrderType());
-        orderMessage.setBidOrderType(bidUsdkOrder.getOrderType());
-        orderMessage.setBidOrderUnfilledAmount(askUsdkOrder.getUnfilledAmount());
-        orderMessage.setAskOrderUnfilledAmount(bidUsdkOrder.getUnfilledAmount());
-        orderMessage.setMatchType(usdkMatchedOrderDTO.getMatchType());
-        if (askUsdkOrder.getPrice() != null){
-            orderMessage.setAskOrderEntrustPrice(askUsdkOrder.getPrice());
-        }
-        if (bidUsdkOrder.getPrice() != null){
-            orderMessage.setBidOrderEntrustPrice(bidUsdkOrder.getPrice());
-        }
-        orderMessage.setAskUserId(askUsdkOrder.getUserId());
-        orderMessage.setBidUserId(bidUsdkOrder.getUserId());
-        orderMessage.setMatchOrderId(usdkMatchedOrderDO.getId());
-        Boolean sendRet = rocketMqManager.sendMessage("match", "usdk", String.valueOf(usdkMatchedOrderDO.getId()), orderMessage);
-        if (!sendRet){
-            log.error("Send RocketMQ Message Failed ");
-        }
+            // 向MQ推送消息
+            OrderMessage orderMessage = new OrderMessage();
+            orderMessage.setSubjectId(usdkMatchedOrderDTO.getAssetId().longValue());
+            orderMessage.setSubjectName(usdkMatchedOrderDTO.getAssetName());
+            orderMessage.setTransferTime(transferTime);
+            orderMessage.setPrice(new BigDecimal(usdkMatchedOrderDTO.getFilledPrice()));
+            orderMessage.setAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
+            orderMessage.setEvent(OrderOperateTypeEnum.DEAL_ORDER.getCode());
+            orderMessage.setAskOrderId(usdkMatchedOrderDTO.getAskOrderId());
+            orderMessage.setBidOrderId(usdkMatchedOrderDTO.getBidOrderId());
+            orderMessage.setAskOrderContext(askOrderContext);
+            orderMessage.setBidOrderContext(bidOrderContext);
+            orderMessage.setAskOrderType(askUsdkOrder.getOrderType());
+            orderMessage.setBidOrderType(bidUsdkOrder.getOrderType());
+            orderMessage.setBidOrderUnfilledAmount(askUsdkOrder.getUnfilledAmount());
+            orderMessage.setAskOrderUnfilledAmount(bidUsdkOrder.getUnfilledAmount());
+            orderMessage.setMatchType(usdkMatchedOrderDTO.getMatchType());
+            if (askUsdkOrder.getPrice() != null){
+                orderMessage.setAskOrderEntrustPrice(askUsdkOrder.getPrice());
+            }
+            if (bidUsdkOrder.getPrice() != null){
+                orderMessage.setBidOrderEntrustPrice(bidUsdkOrder.getPrice());
+            }
+            orderMessage.setAskUserId(askUsdkOrder.getUserId());
+            orderMessage.setBidUserId(bidUsdkOrder.getUserId());
+            orderMessage.setMatchOrderId(usdkMatchedOrderDO.getId());
+            Boolean sendRet = rocketMqManager.sendMessage("match", "usdk", String.valueOf(usdkMatchedOrderDO.getId()), orderMessage);
+            if (!sendRet){
+                log.error("Send RocketMQ Message Failed ");
+            }
+            postProcessOrder(askUsdkOrder, filledAmount);
+            postProcessOrder(bidUsdkOrder, filledAmount);
+        };
+        ThreadContextUtil.setPostTask(runnable);
+
         return ResultCode.success();
     }
 
     private void postProcessOrder(UsdkOrderDO usdkOrderDO, BigDecimal filledAmount) {
         Map<String, Object> context = CommonUtils.exeWhitoutError(() -> JSON.parseObject(usdkOrderDO.getOrderContext()));
-        String userName = context.get("username") == null ? "": String.valueOf(context.get("username"));
+        String userName = null == context || null == context.get("username") ? "": String.valueOf(context.get("username"));
         int dir = ContractUtils.toDirection(usdkOrderDO.getOrderDirection());
         usdkOrderDO.fillAmount(filledAmount);
         tradeLog.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",

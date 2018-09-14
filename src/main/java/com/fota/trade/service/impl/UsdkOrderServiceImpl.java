@@ -14,6 +14,7 @@ import com.fota.trade.mapper.UsdkMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkOrderMapper;
 import com.fota.trade.service.UsdkOrderService;
 import com.fota.trade.util.DateUtil;
+import com.fota.trade.util.ThreadContextUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static com.fota.trade.common.ResultCodeEnum.SYSTEM_ERROR;
 
@@ -60,6 +63,8 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     private CapitalService getService() {
         return capitalService;
     }
+
+    ExecutorService executorService = Executors.newWorkStealingPool();
 
 
     @Override
@@ -223,7 +228,14 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     public ResultCode updateOrderByMatch(UsdkMatchedOrderDTO usdkMatchedOrderDTO) {
         ResultCode resultCode = new ResultCode();
         try {
+
             resultCode = usdkOrderManager.updateOrderByMatch(usdkMatchedOrderDTO);
+            if (resultCode.isSuccess()) {
+                Runnable postTask = ThreadContextUtil.getPostTask();
+                if (null != postTask) {
+                    executorService.submit(postTask);
+                }
+            }
             return resultCode;
         }catch (Exception e){
             if (e instanceof BizException) {
@@ -233,6 +245,8 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
                 log.error("usdk match exception, match_order={}", usdkMatchedOrderDTO, e);
                 return ResultCode.error(SYSTEM_ERROR.getCode(), SYSTEM_ERROR.getMessage());
             }
+        }finally {
+            ThreadContextUtil.clear();
         }
     }
 
