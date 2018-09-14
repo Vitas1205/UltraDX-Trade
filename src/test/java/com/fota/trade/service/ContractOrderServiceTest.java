@@ -47,7 +47,7 @@ import static com.fota.trade.domain.enums.OrderStatusEnum.PART_MATCH;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
-@Transactional
+//@Transactional
 @Slf4j
 public class ContractOrderServiceTest {
 
@@ -100,7 +100,7 @@ public class ContractOrderServiceTest {
         askContractOrder.setUnfilledAmount(BigDecimal.valueOf(100));
         askContractOrder.setOrderType(OrderTypeEnum.LIMIT.getCode());
         askContractOrder.setUserId(askUserId);
-        askContractOrder.setStatus(OrderStatusEnum.COMMIT.getCode());
+        askContractOrder.setStatus(OrderStatusEnum.CANCEL.getCode());
         askContractOrder.setGmtCreate(new Date(System.currentTimeMillis()));
 
 
@@ -115,14 +115,14 @@ public class ContractOrderServiceTest {
         bidContractOrder.setUnfilledAmount(new BigDecimal(100));
         bidContractOrder.setOrderType(OrderTypeEnum.LIMIT.getCode());
         bidContractOrder.setUserId(bidUserId);
-        bidContractOrder.setStatus(OrderStatusEnum.COMMIT.getCode());
+        bidContractOrder.setStatus(OrderStatusEnum.CANCEL.getCode());
 
 //        contractService.addTotaldAmount(askUserId, new BigDecimal(500000000));
 //        contractService.addTotaldAmount(bidUserId, new BigDecimal(500000000));
         int insertRet = contractOrderMapper.insert(askContractOrder);
 //        System.out.println();
-        //int ret2 = contractOrderMapper.insertSelective(bidContractOrder);
-        //Assert.assertTrue(insertRet > 0 && ret2 > 0);
+        int ret2 = contractOrderMapper.insertSelective(bidContractOrder);
+        Assert.assertTrue(insertRet > 0 && ret2 > 0);
     }
 
     @Test
@@ -152,7 +152,7 @@ public class ContractOrderServiceTest {
         log.info(String.valueOf(contractOrderDTOPage));
     }
 
-//    @Test
+    @Test
     public void testUpdateOrderByMatch() {
 
 
@@ -179,15 +179,15 @@ public class ContractOrderServiceTest {
         contractMatchedOrderDTO.setContractName(askContractOrder.getContractName());
         contractMatchedOrderDTO.setAssetName("BTC");
         contractMatchedOrderDTO.setFilledPrice(askContractOrder.getPrice().toString());
-        contractMatchedOrderDTO.setFilledAmount(BigDecimal.ONE);
+        contractMatchedOrderDTO.setFilledAmount(askContractOrder.getUnfilledAmount());
 
         contractMatchedOrderDTO.setAskOrderPrice(askContractOrder.getPrice().toString());
         contractMatchedOrderDTO.setAskOrderStatus(askContractOrder.getStatus());
         contractMatchedOrderDTO.setBidOrderPrice(bidContractOrder.getPrice().toString());
         contractMatchedOrderDTO.setBidOrderStatus(bidContractOrder.getStatus());
         contractMatchedOrderDTO.setMatchType(1);
-        //ResultCode resultCode = contractOrderService.updateOrderByMatch(contractMatchedOrderDTO);
-        //Assert.assertTrue(resultCode.isSuccess());
+        ResultCode resultCode = contractOrderService.updateOrderByMatch(contractMatchedOrderDTO);
+        Assert.assertTrue(resultCode.isSuccess());
     }
 
     private UserPositionDO cloneObject(UserPositionDO userPositionDO){

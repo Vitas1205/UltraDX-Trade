@@ -1,5 +1,6 @@
 package com.fota.trade.domain;
 
+import com.fota.common.utils.CommonUtils;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -46,14 +47,16 @@ public class ContractOrderDO {
         return true;
     }
     private void calStatus(){
-        if (status == COMMIT.getCode() || status == PART_MATCH.getCode() || status == MATCH.getCode()) {
-            if (unfilledAmount.compareTo(BigDecimal.ZERO) > 0) {
-                status = PART_MATCH.getCode();
-            }else status = MATCH.getCode();
+        //如果全成，更新为全成
+        if (BigDecimal.ZERO.equals(unfilledAmount)) {
+            status = MATCH.getCode();
+            return;
+        }
+        //部成
+        if (status == COMMIT.getCode() || status == PART_MATCH.getCode()) {
+            status = PART_MATCH.getCode();
         }else {
-            if (unfilledAmount.compareTo(BigDecimal.ZERO) > 0) {
-                status = PART_CANCEL.getCode();
-            } else status = CANCEL.getCode();
+            status = PART_CANCEL.getCode();
         }
     }
 }
