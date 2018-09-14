@@ -19,6 +19,7 @@ import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.*;
 import com.fota.trade.mapper.*;
 import com.fota.trade.service.ContractAccountService;
+import com.fota.trade.util.BasicUtils;
 import com.fota.trade.util.ContractUtils;
 import com.fota.trade.util.Profiler;
 import com.fota.trade.util.ThreadContextUtil;
@@ -180,7 +181,7 @@ public class ContractOrderManager {
         profiler.complelete("before json serialization");
         contractOrderDO.setOrderContext(JSONObject.toJSONString(contractOrderDTO.getOrderContext()));
         profiler.complelete("json serialization");
-        Long orderId = com.fota.trade.util.CommonUtils.generateId();
+        Long orderId = BasicUtils.generateId();
         long transferTime = System.currentTimeMillis();
         contractOrderDO.setGmtCreate(new Date(transferTime));
         contractOrderDO.setGmtModified(new Date(transferTime));
@@ -340,7 +341,7 @@ public class ContractOrderManager {
 
     private void randomSleep(){
         try {
-            Thread.sleep(com.fota.trade.util.CommonUtils.randomInt(5));
+            Thread.sleep(BasicUtils.randomInt(5));
         } catch (InterruptedException e) {
             log.error("sleep exception", e);
         }
@@ -957,7 +958,7 @@ public class ContractOrderManager {
             List<ContractDealer> dealers = new LinkedList<>();
             contractOrderDOS.forEach(x -> {
                 ContractDealer dealer = calBalanceChange(x, filledAmount, filledPrice, resultMap.get(x));
-                if (null != dealer && !CommonUtils.equal(dealer.getAddedTotalAmount(), BigDecimal.ZERO)) {
+                if (null != dealer && !BasicUtils.equal(dealer.getAddedTotalAmount(), BigDecimal.ZERO)) {
                     dealers.add(dealer);
                 }
             });
@@ -993,11 +994,12 @@ public class ContractOrderManager {
                 contractMatchedOrderDTO.getAskOrderStatus(), contractMatchedOrderDTO.getBidOrderId(),
                 contractMatchedOrderDTO.getBidOrderStatus());
 
-        if (askContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0) {
+        BigDecimal filledAmount = contractMatchedOrderDTO.getFilledAmount();
+        if (BasicUtils.gt(filledAmount, askContractOrder.getUnfilledAmount())) {
             log.error("ask unfilledAmount not enough.order={}, messageKey={}", askContractOrder, messageKey);
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
         }
-        if (bidContractOrder.getUnfilledAmount().compareTo(contractMatchedOrderDTO.getFilledAmount()) < 0) {
+        if (BasicUtils.gt(filledAmount, bidContractOrder.getUnfilledAmount())) {
             log.error("bid unfilledAmount not enough.order={}, messageKey={}",bidContractOrder, messageKey);
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
         }
@@ -1340,7 +1342,7 @@ public class ContractOrderManager {
                     id, filledAmount, filledPrice, gmtModified),t);
         }
         if (0 == aff) {
-            throw new RuntimeException(String.format("update contract order failed, orderId={}, filledAmount={}, filledPrice={}, gmtModified={}",
+            throw new RuntimeException(String.format("update contract order failed, orderId=%d, filledAmount=%s, filledPrice=%s, gmtModified=%s",
                     id, filledAmount, filledPrice, gmtModified));
         }
     }

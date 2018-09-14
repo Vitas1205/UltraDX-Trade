@@ -1,7 +1,5 @@
 package com.fota.trade.service;
 
-import com.fota.trade.common.Result;
-import com.fota.trade.common.ResultCode;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderPriceTypeEnum;
@@ -9,14 +7,12 @@ import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.domain.enums.OrderTypeEnum;
 import com.fota.trade.mapper.UsdkOrderMapper;
 import com.fota.trade.service.impl.UsdkOrderServiceImpl;
-import com.fota.trade.util.CommonUtils;
+import com.fota.trade.util.BasicUtils;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.core.annotation.Order;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
@@ -116,7 +112,7 @@ public class UsdkOrderServiceTest {
 
 
         UsdkOrderDO askOrderDO = new UsdkOrderDO();
-        askOrderDO.setId(CommonUtils.generateId());
+        askOrderDO.setId(BasicUtils.generateId());
         askOrderDO.setAssetId(2);
         askOrderDO.setAssetName("BTC");
         askOrderDO.setOrderDirection(OrderDirectionEnum.ASK.getCode());
@@ -133,7 +129,7 @@ public class UsdkOrderServiceTest {
 
 
         UsdkOrderDO bidOrder = new UsdkOrderDO();
-        bidOrder.setId(CommonUtils.generateId());
+        bidOrder.setId(BasicUtils.generateId());
         bidOrder.setAssetId(2);
         bidOrder.setAssetName("BTC");
         bidOrder.setOrderDirection(OrderDirectionEnum.BID.getCode());
@@ -158,6 +154,8 @@ public class UsdkOrderServiceTest {
         usdkMatchedOrderDTO.setAssetId(askOrderDO.getAssetId());
         usdkMatchedOrderDTO.setAskOrderPrice(askOrderDO.getPrice().toString());
         usdkMatchedOrderDTO.setBidOrderPrice(bidOrder.getPrice().toString());
+        usdkMatchedOrderDTO.setMatchType(1);
+        usdkMatchedOrderDTO.setAssetName("BTC");
 
         com.fota.trade.domain.ResultCode resultCode = usdkOrderService.updateOrderByMatch(usdkMatchedOrderDTO);
 

@@ -15,7 +15,7 @@ import com.fota.trade.domain.enums.*;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkOrderMapper;
-import com.fota.trade.util.CommonUtils;
+import com.fota.trade.util.BasicUtils;
 import com.fota.trade.util.ContractUtils;
 import com.fota.trade.util.ThreadContextUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -230,7 +230,7 @@ public class UsdkOrderManager {
     }
 
     private int insertUsdkOrder(UsdkOrderDO usdkOrderDO) {
-        usdkOrderDO.setId(CommonUtils.generateId());
+        usdkOrderDO.setId(BasicUtils.generateId());
         return usdkOrderMapper.insert(usdkOrderDO);
     }
 
@@ -402,14 +402,14 @@ public class UsdkOrderManager {
         UsdkOrderDO askUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getAskOrderId());
         UsdkOrderDO bidUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getBidOrderId());
 
-        if (askUsdkOrder.getUnfilledAmount().compareTo(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount())) < 0){
+        BigDecimal filledAmount = new BigDecimal(usdkMatchedOrderDTO.getFilledAmount());
+        if (BasicUtils.gt(filledAmount, askUsdkOrder.getUnfilledAmount())){
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), "askOrder unfilledAmount not enough. order="+askUsdkOrder);
         }
-        if (bidUsdkOrder.getUnfilledAmount().compareTo(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount())) < 0){
+        if (BasicUtils.gt(filledAmount, bidUsdkOrder.getUnfilledAmount())){
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), "bidOrder unfilledAmount not enough. order="+bidUsdkOrder);
         }
 
-        BigDecimal filledAmount = new BigDecimal(usdkMatchedOrderDTO.getFilledAmount());
         BigDecimal filledPrice = new BigDecimal(usdkMatchedOrderDTO.getFilledPrice());
 
         int updateAskOrderRet = doUpdateUsdkOrder(askUsdkOrder.getId(),  filledAmount, filledPrice, new Date(transferTime));
@@ -537,7 +537,7 @@ public class UsdkOrderManager {
     }
 
     private void postProcessOrder(UsdkOrderDO usdkOrderDO, BigDecimal filledAmount) {
-        Map<String, Object> context = CommonUtils.exeWhitoutError(() -> JSON.parseObject(usdkOrderDO.getOrderContext()));
+        Map<String, Object> context = BasicUtils.exeWhitoutError(() -> JSON.parseObject(usdkOrderDO.getOrderContext()));
         String userName = null == context || null == context.get("username") ? "": String.valueOf(context.get("username"));
         int dir = ContractUtils.toDirection(usdkOrderDO.getOrderDirection());
         usdkOrderDO.fillAmount(filledAmount);
