@@ -1187,6 +1187,10 @@ public class ContractOrderManager {
             newTotalAmount = filledAmount.subtract(userPositionDO.getUnfilledAmount());
         }
         result.setNewPositionType(newPositionType);
+        if (newPositionType == 0) {
+            log.error("illegal newPositionType, userPositionDO={}, contractOrderDO={}", userPositionDO, contractOrderDO);
+        }
+        log.error("newPositionType:{}, newTotalAmount:{}", newPositionType, newTotalAmount);
         result.setNewTotalAmount(newTotalAmount);
         boolean suc =  doUpdatePosition(userPositionDO, newAveragePrice, newTotalAmount, newPositionType);
         if (!suc) {
@@ -1212,8 +1216,6 @@ public class ContractOrderManager {
         long userId = contractOrderDO.getUserId();
         BigDecimal rate = contractOrderDO.getFee();
 
-
-        UserContractDTO userContractDTO = assetService.getContractAccount(userId);
 
         //没有平仓，不用计算
         if (null == positionResult.getCloseAmount()) {
@@ -1409,6 +1411,9 @@ public class ContractOrderManager {
             if (key.getUserId().equals(bidUserId)){
                 UpdatePositionResult bidPosition = resultMap.get(key);
                 if(bidPosition != null) {
+                    if (null == bidPosition) {
+                        log.error("bidPosition={},", bidPosition);
+                    }
                     bidPositionAmount = bidPosition.getNewTotalAmount().multiply(bidPosition.getNewPositionType() == 1 ? BigDecimal.valueOf(-1) : BigDecimal.ONE);
                 } else{
                     log.info("update position find null position userId :{}, order:{}", bidUserId, key.toString());
