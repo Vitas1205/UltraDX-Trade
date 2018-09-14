@@ -26,5 +26,4 @@ public class UserPositionDO {
      */
     private Integer status;
     private Integer lever;
-    private BigDecimal contractSize = BigDecimal.ONE;
 }
