@@ -88,6 +88,7 @@ public class Consumer {
                     String existKey = MQ_REPET_JUDGE_KEY_MATCH  + mqKey;
                     boolean isExist = null != redisManager.get(existKey);
                     if (isExist) {
+                        logSuccessMsg(messageExt, "already consumed, not retry");
                         return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
                     }
                     String tag = messageExt.getTags();
