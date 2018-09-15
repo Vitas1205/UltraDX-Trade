@@ -497,6 +497,8 @@ public class UsdkOrderManager {
                 bidOrderContext  = JSON.parseObject(bidUsdkOrder.getOrderContext());
             }
 
+            postProcessOrder(askUsdkOrder, filledAmount);
+            postProcessOrder(bidUsdkOrder, filledAmount);
 
             // 向MQ推送消息
             OrderMessage orderMessage = new OrderMessage();
@@ -512,8 +514,8 @@ public class UsdkOrderManager {
             orderMessage.setBidOrderContext(bidOrderContext);
             orderMessage.setAskOrderType(askUsdkOrder.getOrderType());
             orderMessage.setBidOrderType(bidUsdkOrder.getOrderType());
-            orderMessage.setBidOrderUnfilledAmount(askUsdkOrder.getUnfilledAmount());
-            orderMessage.setAskOrderUnfilledAmount(bidUsdkOrder.getUnfilledAmount());
+            orderMessage.setAskOrderUnfilledAmount(usdkMatchedOrderDTO.getAskOrderUnfilledAmount());
+            orderMessage.setBidOrderUnfilledAmount(usdkMatchedOrderDTO.getBidOrderUnfilledAmount());
             orderMessage.setMatchType(usdkMatchedOrderDTO.getMatchType());
             if (askUsdkOrder.getPrice() != null){
                 orderMessage.setAskOrderEntrustPrice(askUsdkOrder.getPrice());
@@ -528,8 +530,7 @@ public class UsdkOrderManager {
             if (!sendRet){
                 log.error("Send RocketMQ Message Failed ");
             }
-            postProcessOrder(askUsdkOrder, filledAmount);
-            postProcessOrder(bidUsdkOrder, filledAmount);
+
         };
         ThreadContextUtil.setPostTask(runnable);
 
