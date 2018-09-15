@@ -59,7 +59,7 @@ public class OrderConsumer {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group + "-cancel");
         consumer.setInstanceName(clientInstanceName);
         consumer.setNamesrvAddr(namesrvAddr);
-        consumer.setMaxReconsumeTimes(16);
+        consumer.setMaxReconsumeTimes(3);
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.setVipChannelEnabled(false);
         consumer.subscribe("order", "UsdkCancelResult || ContractCancelResult");
@@ -80,6 +80,7 @@ public class OrderConsumer {
                     String existKey = MQ_REPET_JUDGE_KEY_ORDER + mqKey;
                     boolean isExist = null != redisManager.get(existKey);
                     if (isExist) {
+                        logSuccessMsg(messageExt, "already consumed, not retry");
                         return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
                     }
                     String tag = messageExt.getTags();
@@ -116,6 +117,17 @@ public class OrderConsumer {
         //调用start()方法启动consumer
         consumer.start();
         System.out.println("Consumer Started.");
+    }
+
+    private void logSuccessMsg(MessageExt messageExt, String extInfo) {
+        String body = null;
+        try {
+            body = new String(messageExt.getBody(), "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            log.error("get mq message failed", e);
+        }
+        log.info("consume cancel message success, extInfo={}, msgId={}, msgKey={}, tag={},  body={}, reconsumeTimes={}",extInfo,  messageExt.getMsgId(), messageExt.getKeys(), messageExt.getTags(),
+                body, messageExt.getReconsumeTimes());
     }
 
     private void logFailMsg(MessageExt messageExt, Throwable t) {

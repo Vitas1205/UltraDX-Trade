@@ -1195,10 +1195,6 @@ public class ContractOrderManager {
             newTotalAmount = filledAmount.subtract(userPositionDO.getUnfilledAmount());
         }
         result.setNewPositionType(newPositionType);
-        if (newPositionType == 0) {
-            log.error("illegal newPositionType, userPositionDO={}, contractOrderDO={}", userPositionDO, contractOrderDO);
-        }
-        log.error("newPositionType:{}, newTotalAmount:{}", newPositionType, newTotalAmount);
         result.setNewTotalAmount(newTotalAmount);
         boolean suc =  doUpdatePosition(userPositionDO, newAveragePrice, newTotalAmount, newPositionType);
         if (!suc) {
