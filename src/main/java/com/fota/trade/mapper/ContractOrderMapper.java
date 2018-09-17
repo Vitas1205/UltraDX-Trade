@@ -219,9 +219,9 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
             " update trade_contract_order" +
             " set gmt_modified = now()," +
             " status = #{toStatus}" +
-            " where id = #{id} and status = #{status} and unfilled_amount=#{unfilledAmount}"
+            " where id = #{id} and gmt_modified=#{gmtModified}"
     })
-    int cancelByOpLock(@Param("id") long id, @Param("status") int status, @Param("unfilledAmount") BigDecimal unfilledAmount, @Param("toStatus") int toStatus);
+    int cancelByOpLock(@Param("id") long id, @Param("toStatus") int toStatus, @Param("gmtModified") Date gmtModified);
 
     List<ContractOrderDO> listByUserIdAndOrderType(@Param("userId") Long userId, @Param("orderTypes") List<Integer> orderTypes);
 }
