@@ -92,5 +92,11 @@ public class UsdkOrderMapperTest {
         usdkOrderDO.setUserId(205L);
         usdkOrderMapper.updateStatus(usdkOrderDO);
     }
+    @Test
+    public void testCancel(){
+        long id = 990374559884835L;
+        UsdkOrderDO usdkOrderDO = usdkOrderMapper.selectByPrimaryKey(id);
+        assert  1 == usdkOrderMapper.cancelByOpLock(id, 4, usdkOrderDO.getGmtModified());
+    }
 
 }

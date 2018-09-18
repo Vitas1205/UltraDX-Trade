@@ -319,24 +319,18 @@ public class ContractOrderManager {
     /**
      * 根据撮合发出的MQ消息撤单
      * @param orderId 委托单ID
-     * @param status 撮合队列撤单结果 1-成功 0-失败
      */
 //    @Transactional(rollbackFor = Throwable.class)
-    public ResultCode cancelOrderByMessage(long orderId, int status) {
-        if (status == 1) {
-            for (int i = 0;i<3;i++) {
-                ResultCode resultCode = doCancelOrder(orderId);
-                if (resultCode.getCode().equals(CONCURRENT_PROBLEM.getCode())) {
-                    randomSleep();
-                    continue;
-                }
-                return resultCode;
+    public ResultCode cancelOrderByMessage(long orderId, BigDecimal unfilleAmount) {
+        for (int i = 0;i<3;i++) {
+            ResultCode resultCode = doCancelOrder(orderId, unfilleAmount);
+            if (resultCode.getCode().equals(CONCURRENT_PROBLEM.getCode())) {
+                randomSleep();
+                continue;
             }
-            return ResultCode.error(CONCURRENT_PROBLEM.getCode(), "update db failed, likely concurrent problem");
-        } else {
-            log.warn("match failed to cancel order {}", orderId);
+            return resultCode;
         }
-        return ResultCode.success();
+        return ResultCode.error(CONCURRENT_PROBLEM.getCode(), "update db failed, likely concurrent problem");
     }
 
     private void randomSleep(){
@@ -346,7 +340,7 @@ public class ContractOrderManager {
             log.error("sleep exception", e);
         }
     }
-    public ResultCode doCancelOrder(long orderId) {
+    public ResultCode doCancelOrder(long orderId, BigDecimal unfilleAmount) {
         ContractOrderDO contractOrderDO = contractOrderMapper.selectByPrimaryKey(orderId);
         if (Objects.isNull(contractOrderDO)) {
             return ResultCode.error(ILLEGAL_PARAM.getCode(), "contract order does not exist, id="+orderId);
@@ -364,14 +358,14 @@ public class ContractOrderManager {
             return ResultCode.error(BIZ_ERROR.getCode(),"illegal order status, id="+contractOrderDO.getId() + ", status="+ contractOrderDO.getStatus());
         }
         Long transferTime = System.currentTimeMillis();
-        int ret = contractOrderMapper.cancelByOpLock(orderId, status, contractOrderDO.getUnfilledAmount(), toStatus);
+        int ret = contractOrderMapper.cancelByOpLock(orderId, toStatus, contractOrderDO.getGmtModified());
         if (ret > 0) {
         } else {
             return ResultCode.error(CONCURRENT_PROBLEM.getCode(),"cancel failed, id="+ contractOrderDO.getId());
         }
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO);
-        contractOrderDTO.setCompleteAmount(contractOrderDTO.getTotalAmount().subtract(contractOrderDTO.getUnfilledAmount()));
+        contractOrderDTO.setCompleteAmount(contractOrderDTO.getTotalAmount().subtract(unfilleAmount));
         contractOrderDTO.setContractId(contractOrderDO.getContractId());
         JSONObject jsonObject = JSONObject.parseObject(contractOrderDO.getOrderContext());
         // 日志系统需要
@@ -387,7 +381,7 @@ public class ContractOrderManager {
                 2, contractOrderDTO.getContractName(), username, "", contractOrderDTO.getUnfilledAmount(),
                 System.currentTimeMillis(), 1, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 1);
         OrderMessage orderMessage = new OrderMessage();
-        orderMessage.setAmount(contractOrderDTO.getUnfilledAmount());
+        orderMessage.setAmount(unfilleAmount);
         orderMessage.setPrice(contractOrderDTO.getPrice());
         orderMessage.setTransferTime(transferTime);
         orderMessage.setOrderId(contractOrderDTO.getId());
@@ -417,7 +411,7 @@ public class ContractOrderManager {
         map.putIfAbsent("userId", userId);
         map.putIfAbsent("idList", orderIdList);
         Boolean sendRet = rocketMqManager.sendMessage("order", "ContractCancel",
-                Joiner.on(",").join(orderIdList), map);
+                "to_cancel_contract_"+Joiner.on(",").join(orderIdList), map);
         if (BooleanUtils.isNotTrue(sendRet)){
             log.error("failed to send cancel contract mq, {}", userId);
         }
