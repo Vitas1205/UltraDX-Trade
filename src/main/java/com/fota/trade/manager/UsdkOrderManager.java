@@ -337,7 +337,7 @@ public class UsdkOrderManager {
         map.putIfAbsent("userId", userId);
         map.putIfAbsent("idList", orderIdList);
         Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkCancel",
-                Joiner.on("_").join(orderIdList), map);
+                "to_cancel_usdt_"+Joiner.on("_").join(orderIdList), map);
         if (BooleanUtils.isNotTrue(sendRet)){
             log.error("failed to send cancel usdk mq, {}", userId);
         }

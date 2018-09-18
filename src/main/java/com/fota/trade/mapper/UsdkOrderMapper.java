@@ -177,7 +177,7 @@ public interface UsdkOrderMapper {
 
     @Update({
             "update trade_usdk_order",
-            "gmt_modified = now(),",
+            "set gmt_modified = now(),",
             "status = #{toStatus,jdbcType=INTEGER}",
             "where id = #{id,jdbcType=BIGINT} and gmt_modified = #{gmtModified,jdbcType=TIMESTAMP}"
     })

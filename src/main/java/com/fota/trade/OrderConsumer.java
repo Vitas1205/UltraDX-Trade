@@ -102,8 +102,8 @@ public class OrderConsumer {
                     logFailMsg("resolve message failed, not retry", messageExt);
                     return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
                 }
-                Integer removeResult = res.getInteger("cancelResult");
-                if (removeSucced != removeResult) {
+                Integer removeResult = res.getInteger("rst");
+                if (null == removeResult || removeSucced != removeResult) {
                     //如果订单簿移除失败，此消息消费成功，但是做去重，否则没法重试撤单
                     logSuccessMsg(messageExt, "remove from book orderList failed");
                     return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;

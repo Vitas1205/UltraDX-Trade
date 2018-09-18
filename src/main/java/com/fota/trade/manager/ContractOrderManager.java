@@ -411,7 +411,7 @@ public class ContractOrderManager {
         map.putIfAbsent("userId", userId);
         map.putIfAbsent("idList", orderIdList);
         Boolean sendRet = rocketMqManager.sendMessage("order", "ContractCancel",
-                Joiner.on(",").join(orderIdList), map);
+                "to_cancel_contract_"+Joiner.on(",").join(orderIdList), map);
         if (BooleanUtils.isNotTrue(sendRet)){
             log.error("failed to send cancel contract mq, {}", userId);
         }
