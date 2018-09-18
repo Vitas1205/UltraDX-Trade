@@ -86,6 +86,7 @@ public class Consumer {
 
                 try {
                     String existKey = MQ_REPET_JUDGE_KEY_MATCH  + mqKey;
+                    //判断是否已经成交
                     boolean isExist = null != redisManager.get(existKey);
                     if (isExist) {
                         logSuccessMsg(messageExt, "already consumed, not retry");
@@ -108,24 +109,23 @@ public class Consumer {
                     } else if (TagsTypeEnum.CONTRACT.getDesc().equals(tag)) {
                         ContractMatchedOrderDTO contractMatchedOrderDTO = JSON.parseObject(bodyStr, ContractMatchedOrderDTO.class);
                         resultCode = contractOrderService.updateOrderByMatch(contractMatchedOrderDTO);
-
                     }
 
-                    if (resultCode != null && resultCode.getCode() != null && !resultCode.isSuccess()
-                            && !(resultCode.getCode() == ILLEGAL_PARAM.getCode()) ) {
+                    if (!resultCode.isSuccess()) {
                         logFailMsg("resultCode="+resultCode, messageExt);
+                        if (resultCode.getCode() == ILLEGAL_PARAM.getCode()) {
+                            return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+                        }
                         return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                     }
+                    //一定要成交成功才能标记
                     redisManager.set(existKey, "1", Duration.ofDays(1));
+                    return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
                 } catch (Exception e) {
                     logFailMsg(messageExt, e);
+                    return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                 }
-                if (resultCode.getCode() == ILLEGAL_PARAM.getCode()) {
-                    logSuccessMsg(messageExt, "illegal param");
-                }else {
-                    logSuccessMsg(messageExt, null);
-                }
-                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+
             }
         });
         //调用start()方法启动consumer

@@ -175,6 +175,15 @@ public interface UsdkOrderMapper {
     })
     int updateByOpLock(UsdkOrderDO record);
 
+    @Update({
+            "update trade_usdk_order",
+            "set gmt_modified = now(),",
+            "status = #{toStatus,jdbcType=INTEGER}",
+            "where id = #{id,jdbcType=BIGINT} and gmt_modified = #{gmtModified,jdbcType=TIMESTAMP}"
+    })
+    int cancelByOpLock(@Param("id") long id, @Param("toStatus") int toStatus, @Param("gmtModified") Date gmtModified);
+
+
     int updateStatus(UsdkOrderDO record);
 
 

@@ -18,6 +18,7 @@ import com.fota.trade.mapper.UsdkOrderMapper;
 import com.fota.trade.util.BasicUtils;
 import com.fota.trade.util.ContractUtils;
 import com.fota.trade.util.ThreadContextUtil;
+import com.google.common.base.Joiner;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -33,7 +34,7 @@ import java.math.BigDecimal;
 import java.util.*;
 
 import static com.fota.trade.common.ResultCodeEnum.BIZ_ERROR;
-import static com.fota.trade.domain.enums.OrderStatusEnum.CANCEL;
+import static com.fota.trade.domain.enums.OrderStatusEnum.*;
 import static java.util.stream.Collectors.toList;
 
 
@@ -90,7 +91,7 @@ public class UsdkOrderManager {
         List<UsdkOrderDO> notMatchOrderList = null;
         try {
             notMatchOrderList = usdkOrderMapper.notMatchOrderList(
-                    OrderStatusEnum.COMMIT.getCode(), OrderStatusEnum.PART_MATCH.getCode(), contractOrderIndex, orderDirection);
+                    COMMIT.getCode(), PART_MATCH.getCode(), contractOrderIndex, orderDirection);
         } catch (Exception e) {
             log.error("usdkOrderMapper.notMatchOrderList error", e);
         }
@@ -120,7 +121,7 @@ public class UsdkOrderManager {
         Integer orderDirection = usdkOrderDO.getOrderDirection();
         List<UserCapitalDTO> list = getAssetService().getUserCapital(userId);
         usdkOrderDO.setFee(usdkFee);
-        usdkOrderDO.setStatus(OrderStatusEnum.COMMIT.getCode());
+        usdkOrderDO.setStatus(COMMIT.getCode());
         usdkOrderDO.setUnfilledAmount(usdkOrderDO.getTotalAmount());
         long transferTime = System.currentTimeMillis();
         usdkOrderDO.setGmtCreate(new Date(transferTime));
@@ -256,96 +257,65 @@ public class UsdkOrderManager {
     /**
      * 根据撮合发出的MQ消息撤单
      * @param orderId 委托单ID
-     * @param status 撮合队列撤单结果 1-成功 0-失败
      */
     @Transactional(rollbackFor = Exception.class)
-    public void cancelOrderByMessage(String orderId, int status) {
-        if (status == 1) {
-            UsdkOrderDO usdkOrderDO = usdkOrderMapper.selectByPrimaryKey(Long.parseLong(orderId));
-            if (Objects.isNull(usdkOrderDO)) {
-                log.error("usdk order does not exist, {}", orderId);
-                return;
-            }
-            try {
-                cancelOrderImpl(usdkOrderDO, Collections.emptyMap());
-            }catch (Exception e){
-                if (e instanceof BusinessException){
-                    log.error(e.getMessage());
-                }
-            }
-        } else {
-            log.warn("failed to cancel order {}", orderId);
-        }
-    }
-
-    public ResultCode cancelOrderImpl(UsdkOrderDO usdkOrderDO, Map<String, String> userInfoMap) throws Exception{
+    public ResultCode cancelOrderByMessage(Long orderId, BigDecimal unfilledAmount) {
         ResultCode resultCode;
-        Integer status = usdkOrderDO.getStatus();
-//        if (OrderTypeEnum.ENFORCE.getCode() == usdkOrderDO.getOrderType()) {
-//            log.error("enforce order can't be canceled, {}", usdkOrderDO.getId());
-//            return null;
-//        }
-        Integer toStatus;
-        if (status == OrderStatusEnum.COMMIT.getCode()){
-            usdkOrderDO.setStatus(CANCEL.getCode());
-        }else if (status == OrderStatusEnum.PART_MATCH.getCode()){
-            usdkOrderDO.setStatus(OrderStatusEnum.PART_CANCEL.getCode());
-        }else if (status == OrderStatusEnum.MATCH.getCode() || status == OrderStatusEnum.PART_CANCEL.getCode()  | status == CANCEL.getCode()){
-            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), "order has completed, id="+usdkOrderDO.getId());
-        }else {
-            log.error("order status illegal, {}", usdkOrderDO.getId());
-            return null;
-        }
 
-        Long transferTime = System.currentTimeMillis();
-        log.info("------------usdkCancelStartTimeStamp"+System.currentTimeMillis());
+        UsdkOrderDO usdkOrderDO = usdkOrderMapper.selectByPrimaryKey(orderId);
+        Integer status = usdkOrderDO.getStatus();
+
+        if (Objects.isNull(usdkOrderDO)) {
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), "usdk order does not exist, id={}"+orderId);
+        }
+        Integer toStatus;
+        if (status == COMMIT.getCode()){
+            toStatus = CANCEL.getCode();
+        }else if (status == PART_MATCH.getCode()){
+            toStatus = PART_CANCEL.getCode();
+        }else {
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), "order has completed, can't be cancel, id="+usdkOrderDO.getId() + "status="+status);
+        }
         //更新usdk委托表
-        int ret = usdkOrderMapper.updateByOpLock(usdkOrderDO);
-        log.info("------------usdkCancelEndTimeStamp"+System.currentTimeMillis());
+        int ret = usdkOrderMapper.cancelByOpLock(usdkOrderDO.getId(), toStatus, usdkOrderDO.getGmtModified());
+        Long transferTime = System.currentTimeMillis();
         if (ret > 0){
             Integer orderDirection = usdkOrderDO.getOrderDirection();
             Integer assetId = 0;
-            BigDecimal unlockAmount = BigDecimal.ZERO;
+            BigDecimal unlockAmount ;
             if (orderDirection == OrderDirectionEnum.BID.getCode()){
                 assetId = AssetTypeEnum.USDT.getCode();
-                BigDecimal unfilledAmount = usdkOrderDO.getUnfilledAmount();
                 BigDecimal price = usdkOrderDO.getPrice();
                 unlockAmount = unfilledAmount.multiply(price);
-                //解冻USDK钱包账户
-                Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(usdkOrderDO.getUserId(),AssetTypeEnum.USDT.getCode(),unlockAmount.negate().toString(), 0L);
-                if (!updateLockedAmountRet){
-                    log.error("getCapitalService().updateLockedAmount failed{}", usdkOrderDO);
-                    throw new BusinessException(BIZ_ERROR.getCode(), "getCapitalService().updateLockedAmount failed");
-                }
-            }else if (orderDirection == OrderDirectionEnum.ASK.getCode()){
+            }else {
                 assetId = usdkOrderDO.getAssetId();
-                unlockAmount = usdkOrderDO.getUnfilledAmount();
-                //解冻Coin钱包账户
-                Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(usdkOrderDO.getUserId(),assetId,unlockAmount.negate().toString(), 0L);
-                if (!updateLockedAmountRet){
-                    log.error("getCapitalService().updateLockedAmount failed{}", usdkOrderDO);
-                    throw new BusinessException(BIZ_ERROR.getCode(),"getCapitalService().updateLockedAmount failed");
-                }
+                unlockAmount = unfilledAmount;
             }
+            //解冻Coin钱包账户
+            Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(usdkOrderDO.getUserId(),assetId,unlockAmount.negate().toString(), 0L);
+            if (!updateLockedAmountRet){
+                throw new BizException(BIZ_ERROR.getCode(),"getCapitalService().updateLockedAmount failed, usdkOrderDO="+ usdkOrderDO);
+            }
+
             UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
             BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
-            BigDecimal matchAmount = usdkOrderDTO.getTotalAmount().subtract(usdkOrderDTO.getUnfilledAmount());
+            BigDecimal matchAmount = usdkOrderDTO.getTotalAmount().subtract(unfilledAmount);
             usdkOrderDTO.setCompleteAmount(matchAmount);
             JSONObject jsonObject = JSONObject.parseObject(usdkOrderDO.getOrderContext());
             String username = "";
             if (jsonObject != null && !jsonObject.isEmpty()) {
                 username = jsonObject.get("username") == null ? "" : jsonObject.get("username").toString();
             }
-            String ipAddress = StringUtils.isEmpty(userInfoMap.get("ipAddress")) ? "" : userInfoMap.get("ipAddress");
+            String ipAddress = "";
             tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                    1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getUnfilledAmount(), System.currentTimeMillis(), 1,  usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 1);
+                    1, usdkOrderDTO.getAssetName(), username, ipAddress, unfilledAmount, System.currentTimeMillis(), 1,  usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 1);
             OrderMessage orderMessage = new OrderMessage();
             orderMessage.setOrderId(usdkOrderDTO.getId());
             orderMessage.setEvent(OrderOperateTypeEnum.CANCLE_ORDER.getCode());
             orderMessage.setUserId(usdkOrderDTO.getUserId());
             orderMessage.setSubjectId(usdkOrderDTO.getAssetId().longValue());
             orderMessage.setSubjectName(usdkOrderDTO.getAssetName());
-            orderMessage.setAmount(usdkOrderDO.getUnfilledAmount());
+            orderMessage.setAmount(unfilledAmount);
             orderMessage.setPrice(usdkOrderDO.getPrice());
             orderMessage.setOrderType(usdkOrderDO.getOrderType());
             orderMessage.setTransferTime(transferTime);
@@ -367,7 +337,7 @@ public class UsdkOrderManager {
         map.putIfAbsent("userId", userId);
         map.putIfAbsent("idList", orderIdList);
         Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkCancel",
-                userId + String.valueOf(System.currentTimeMillis()), map);
+                "to_cancel_usdt_"+Joiner.on("_").join(orderIdList), map);
         if (BooleanUtils.isNotTrue(sendRet)){
             log.error("failed to send cancel usdk mq, {}", userId);
         }
