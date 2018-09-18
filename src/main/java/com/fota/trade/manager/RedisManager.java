@@ -227,6 +227,28 @@ public class RedisManager {
         }
     }
 
+    public Boolean hSetWithOutTime(String key, String hKey, Object value, Long time) {
+        try {
+            HashOperations<String, String, Object> hOps = redisTemplate.opsForHash();
+            hOps.put(key, hKey, value);
+            redisTemplate.expire(key, time, TimeUnit.DAYS);
+            return true;
+        } catch (Exception e) {
+            log.error("redis hsetUser error", e);
+            return false;
+        }
+    }
+
+    public Object hGet(String key, String hKey) {
+        try {
+            HashOperations<String, String, Object> hOps = redisTemplate.opsForHash();
+            return hOps.get(key, hKey);
+        } catch (Exception e) {
+            log.error("redis hGet error", e);
+            return null;
+        }
+    }
+
     /**
      * 删除hash表中的值
      *
@@ -262,10 +284,10 @@ public class RedisManager {
         }
     }
 
-    public Boolean exists(String key, Integer u) {
+    public Boolean exists(String key, String u) {
         try {
             HashOperations<String, String, Object> hOps = redisTemplate.opsForHash();
-            return hOps.hasKey(key, String.valueOf(u));
+            return hOps.hasKey(key, u);
         } catch (Exception e) {
             log.error("redis exists error", e);
             return false;

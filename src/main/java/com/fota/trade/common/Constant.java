@@ -32,6 +32,8 @@ public class Constant {
     public static final String REDIS_CONTRACT_CANCEL_ORDER_RESULT = "cancel_contract_order_result";
     public static final String CONTRACT_TOTAL_POSITION = "FOTA_CONTRACT_TOTAL_POSITION_";
     public static final BigDecimal DEFAULT_LEVER = new BigDecimal(10);
+    public static final String TRADE_USER_FEE_RATE = "TRADE_USER_FEE_RATE";
+
 
     //-------------------Redis-------------------//
     public static final String REDIS_USDT_ORDER_FOR_MATCH_HASH = "usdt_order_for_match_hash";

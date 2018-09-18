@@ -467,7 +467,8 @@ public class ContractOrderServiceImpl implements
                     //tempTarget.setContractId(temp.getC)
                     tempTarget.setContractName(temp.getContractName());
                     tempTarget.setContractMatchedOrderId(temp.getId());
-                    tempTarget.setFee(temp.getFee().toString());
+                    tempTarget.setAskFee(String.valueOf(temp.getAskFee()));
+                    tempTarget.setBidFee(String.valueOf(temp.getBidFee()));
                     tempTarget.setFilledAmount(temp.getFilledAmount());
                     tempTarget.setFilledDate(temp.getGmtCreate());
                     tempTarget.setFilledPrice(temp.getFilledPrice());
