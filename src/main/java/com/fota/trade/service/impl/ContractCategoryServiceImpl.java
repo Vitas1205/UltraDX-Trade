@@ -25,9 +25,12 @@ import javax.annotation.Resource;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.fota.trade.common.ResultCodeEnum.CONTRACT_IS_ROLLING_BACK;
 import static com.fota.trade.common.ResultCodeEnum.SYSTEM_ERROR;
+import static com.fota.trade.domain.enums.ContractStatusEnum.DELIVERYING;
+import static com.fota.trade.domain.enums.ContractStatusEnum.PROCESSING;
 
 /**
  * @author Gavin Shen
@@ -48,56 +51,56 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
     @Autowired
     private RollbackManager rollbackManager;
 
+    private static final String CONTRACT_LIST_KEY="ALL_VALID_CONTRACT_LIST";
+    private static final List<Integer> activeStatusList= Arrays.asList(PROCESSING.getCode(), DELIVERYING.getCode());
+
     @Override
     public List<ContractCategoryDTO> listActiveContract() {
-        List<ContractCategoryDO> result = null;
-        //ContractCategoryDO contractCategoryDO = new ContractCategoryDO();
-        //contractCategoryDO.setStatus(ContractStatusEnum.PROCESSING.getCode());
+        List<ContractCategoryDTO> res = getAllValidContract();
+        if (null == res) {
+            return new ArrayList<>();
+        }
+        return res.stream().filter(x -> activeStatusList.contains(x.getStatus()))
+                .collect(Collectors.toList());
+    }
+
+    private List<ContractCategoryDTO> getAllValidContract(){
+        List<ContractCategoryDTO> contractCategoryDTOList = redisManager.get(CONTRACT_LIST_KEY);
+        if (!CollectionUtils.isEmpty(contractCategoryDTOList)) {
+            return contractCategoryDTOList;
+        }
         List<Integer> list = new ArrayList<>();
-        list.add(ContractStatusEnum.PROCESSING.getCode());
+        list.add(PROCESSING.getCode());
         list.add(ContractStatusEnum.DELIVERYING.getCode());
+        list.add(ContractStatusEnum.DELIVERED.getCode());
+        list.add(ContractStatusEnum.UNOPENED.getCode());
+        list.add(ContractStatusEnum.ROOLING_BACK.getCode());
         Map<String, Object> map = new HashMap<>();
         map.put("contractStatus", list);
         try {
-            result = contractCategoryMapper.listByStatus(map);
+            List<ContractCategoryDO> contractCategoryDOS = contractCategoryMapper.listByStatus(map);
+            if (CollectionUtils.isEmpty(contractCategoryDOS)) {
+                return new ArrayList<>();
+            }
+            contractCategoryDTOList = contractCategoryDOS.stream().map(x -> BeanUtils.copy(x)).collect(Collectors.toList());
+            redisManager.set(CONTRACT_LIST_KEY, contractCategoryDTOList);
+            return contractCategoryDTOList;
         } catch (Exception e) {
             log.error("contractCategoryMapper.listByQuery({})", list, e);
+            return new ArrayList<>();
         }
-        if (result == null) {
-            result = new ArrayList<>();
-        }
-        List<ContractCategoryDTO> contractCategoryDTOList = new ArrayList<>();
-        for (ContractCategoryDO temp : result) {
-            contractCategoryDTOList.add(BeanUtils.copy(temp));
-        }
-        return contractCategoryDTOList;
     }
 
     @Override
     public List<ContractCategoryDTO> listActiveContractByAssetId(int assetId) {
-        List<ContractCategoryDO> result = null;
-        if (assetId <= 0) {
-            return null;
+
+        List<ContractCategoryDTO> contractCategoryDTOList = listActiveContract();
+        if (null == contractCategoryDTOList) {
+            return new ArrayList<>();
         }
-        List<Integer> list = new ArrayList<>();
-        list.add(ContractStatusEnum.PROCESSING.getCode());
-        list.add(ContractStatusEnum.DELIVERYING.getCode());
-        Map<String, Object> map = new HashMap<>();
-        map.put("contractStatus", list);
-        map.put("assetId", assetId);
-        try {
-            result = contractCategoryMapper.listByStatus(map);
-        } catch (Exception e) {
-            log.error("contractCategoryMapper.listByQuery({})", map, e);
-        }
-        if (result == null) {
-            result = new ArrayList<>();
-        }
-        List<ContractCategoryDTO> contractCategoryDTOList = new ArrayList<>();
-        for (ContractCategoryDO temp : result) {
-            contractCategoryDTOList.add(BeanUtils.copy(temp));
-        }
-        return contractCategoryDTOList;
+        return contractCategoryDTOList.stream()
+                .filter(x -> x.getAssetId().equals(assetId))
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -105,15 +108,17 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
         if (id <= 0) {
             return null;
         }
-        try {
-            ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(id);
-            if (contractCategoryDO != null) {
-                return BeanUtils.copy(contractCategoryDO);
-            }
-        } catch (Exception e) {
-            log.error("contractCategoryMapper.selectByPrimaryKey({})", id, e);
+        List<ContractCategoryDTO> contractCategoryDTOS = getAllValidContract();
+        if (null == contractCategoryDTOS) {
+            return null;
         }
-        return new ContractCategoryDTO();
+        Optional<ContractCategoryDTO> optional = contractCategoryDTOS.stream()
+                .filter(x -> x.getId().equals(id))
+                .findFirst();
+        if (optional.isPresent()) {
+            return optional.get();
+        }
+        return null;
     }
 
     /**
@@ -152,10 +157,16 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
         int ret = 0;
         try {
             ret = contractCategoryMapper.insert(BeanUtils.copy(contractCategoryDO));
+            if (1== ret) {
+                invalidCache();
+            }
         } catch (Exception e) {
             log.error("contractCategoryMapper.insert({})", contractCategoryDO, e);
         }
         return ret;
+    }
+    private boolean invalidCache() {
+        return redisManager.del(CONTRACT_LIST_KEY);
     }
 
     @Override
@@ -167,6 +178,9 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
         }
         try {
             ret = contractCategoryMapper.updateByPrimaryKeySelective(BeanUtils.copy(contractCategoryDTO));
+            if (1 == ret) {
+                invalidCache();
+            }
         } catch (Exception e) {
             log.error("contractCategoryMapper.updateByPrimaryKey({})", contractCategoryDTO, e);
         }
@@ -181,6 +195,9 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
         int ret = 0;
         try {
             ret = contractCategoryMapper.deleteByPrimaryKey(id);
+            if (1 == ret) {
+                invalidCache();
+            }
         } catch (Exception e) {
             log.error("contractCategoryMapper.deleteByPrimaryKey({})", id, e);
         }
@@ -199,6 +216,9 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
     public int updateContractStatus(long id, ContractStatus contractStatus) {
         try {
             int ret = contractCategoryMapper.updataStatusById(id, contractStatus.getCode());
+            if (1 == ret) {
+                invalidCache();
+            }
             return ret;
         } catch (Exception e) {
             log.error("updateContractStatus failed ({})", id, e);
