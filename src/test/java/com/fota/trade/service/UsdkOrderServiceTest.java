@@ -40,7 +40,7 @@ public class UsdkOrderServiceTest {
         usdkOrderQuery.setPageNo(1);
         usdkOrderQuery.setUserId(userId);
         com.fota.common.Page<com.fota.trade.domain.UsdkOrderDTO> result = usdkOrderService.listUsdkOrderByQuery(usdkOrderQuery);
-//        Assert.assertTrue(result != null && result.getData() != null && result.getData() != null);
+        Assert.assertTrue(result != null);
     }
 
     @Test
