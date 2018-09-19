@@ -66,7 +66,7 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
 
     private List<ContractCategoryDTO> getAllValidContract(){
         List<ContractCategoryDTO> contractCategoryDTOList = redisManager.get(CONTRACT_LIST_KEY);
-        if (null != contractCategoryDTOList) {
+        if (!CollectionUtils.isEmpty(contractCategoryDTOList)) {
             return contractCategoryDTOList;
         }
         List<Integer> list = new ArrayList<>();
@@ -79,7 +79,9 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
         map.put("contractStatus", list);
         try {
             List<ContractCategoryDO> contractCategoryDOS = contractCategoryMapper.listByStatus(map);
-            contractCategoryDOS = new ArrayList<>();
+            if (CollectionUtils.isEmpty(contractCategoryDOS)) {
+                return new ArrayList<>();
+            }
             contractCategoryDTOList = contractCategoryDOS.stream().map(x -> BeanUtils.copy(x)).collect(Collectors.toList());
             redisManager.set(CONTRACT_LIST_KEY, contractCategoryDTOList);
             return contractCategoryDTOList;
