@@ -19,6 +19,7 @@ import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.*;
 import com.fota.trade.mapper.*;
 import com.fota.trade.service.ContractAccountService;
+import com.fota.trade.service.ContractCategoryService;
 import com.fota.trade.util.BasicUtils;
 import com.fota.trade.util.ContractUtils;
 import com.fota.trade.util.Profiler;
@@ -78,7 +79,7 @@ public class ContractOrderManager {
     private RedisManager redisManager;
 
     @Autowired
-    private ContractCategoryMapper contractCategoryMapper;
+    private ContractCategoryService contractCategoryService;
 
     @Autowired
     private RocketMqManager rocketMqManager;
@@ -190,7 +191,7 @@ public class ContractOrderManager {
         contractOrderDO.setId(orderId);
         contractOrderDO.setUnfilledAmount(contractOrderDO.getTotalAmount());
 
-        ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractOrderDO.getContractId());
+        ContractCategoryDTO contractCategoryDO = contractCategoryService.getContractById(contractOrderDO.getContractId());
         profiler.complelete("select contract category");
         if (contractCategoryDO == null) {
             log.error("Contract Is Null");
@@ -302,7 +303,7 @@ public class ContractOrderManager {
             return ResultCode.error(ResultCodeEnum.ENFORCE_ORDER_CANNOT_BE_CANCELED.getCode(),
                     ResultCodeEnum.ENFORCE_ORDER_CANNOT_BE_CANCELED.getMessage());
         }
-        ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractOrderDO.getContractId());
+        ContractCategoryDTO contractCategoryDO = contractCategoryService.getContractById(contractOrderDO.getContractId());
         if (contractCategoryDO == null){
             return ResultCode.error(BIZ_ERROR.getCode(),"contract is null, id="+contractOrderDO.getContractId());
         }
@@ -373,7 +374,7 @@ public class ContractOrderManager {
         if (jsonObject != null && !jsonObject.isEmpty()) {
             username = jsonObject.get("username") == null ? "" : jsonObject.get("username").toString();
         }
-        ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractOrderDO.getContractId());
+        ContractCategoryDTO contractCategoryDO = contractCategoryService.getContractById(contractOrderDO.getContractId());
         if (contractCategoryDO == null){
             return ResultCode.error(BIZ_ERROR.getCode(),"contract is null, id="+contractOrderDO.getContractId());
         }
@@ -422,7 +423,7 @@ public class ContractOrderManager {
         List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByUserId(userId);
         List<ContractOrderDO> listFilter = new ArrayList<>();
         for (ContractOrderDO temp : list){
-            ContractCategoryDO contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(temp.getContractId());
+            ContractCategoryDTO contractCategoryDO = contractCategoryService.getContractById(temp.getContractId());
             if (contractCategoryDO.getStatus() != PROCESSING.getCode()){
                 log.error("contract status illegal,can not cancel{}", contractCategoryDO);
                 continue;
@@ -449,12 +450,12 @@ public class ContractOrderManager {
         //获取所有合约类型列表
         BigDecimal positionMargin = BigDecimal.ZERO;
         BigDecimal floatingPL = BigDecimal.ZERO;
-        List<ContractCategoryDO> queryList = contractCategoryMapper.getAllContractCategory();
+        List<ContractCategoryDTO> queryList = contractCategoryService.listActiveContract();
         List<UserPositionDO> positionlist = userPositionMapper.selectByUserId(userId, PositionStatusEnum.UNDELIVERED.getCode());
         List<CompetitorsPriceDTO> competitorsPriceList = realTimeEntrust.getContractCompetitorsPrice();
 
         if (queryList != null && queryList.size() != 0 && positionlist != null && positionlist.size() != 0) {
-            for (ContractCategoryDO contractCategoryDO : queryList) {
+            for (ContractCategoryDTO contractCategoryDO : queryList) {
                 long contractId = contractCategoryDO.getId();
                 List<UserPositionDO> userPositionDOlist = new ArrayList<>();
                 if (positionlist != null && positionlist.size() != 0) {
@@ -528,7 +529,7 @@ public class ContractOrderManager {
             return null;
         }
 
-        List<ContractCategoryDO> categoryList = contractCategoryMapper.getAllContractCategory();
+        List<ContractCategoryDTO> categoryList = contractCategoryService.listActiveContract();
         if (CollectionUtils.isEmpty(categoryList)) {
             log.error("empty categoryList");
              return contractAccount.setAccountEquity(new BigDecimal(userContractDTO.getAmount()));
@@ -545,7 +546,7 @@ public class ContractOrderManager {
             allContractOrders.add(newContractOrderDO);
         }
 
-        for (ContractCategoryDO contractCategoryDO : categoryList) {
+        for (ContractCategoryDTO contractCategoryDO : categoryList) {
 
             long contractId = contractCategoryDO.getId();
             BigDecimal lever = findLever(contractLeverDOS, userId, contractCategoryDO.getAssetId());
@@ -636,14 +637,14 @@ public class ContractOrderManager {
         Map<String, BigDecimal> resultMap = new HashMap<String, BigDecimal>();
         //获取所有合约类型列表
         BigDecimal entrustMargin = BigDecimal.ZERO;
-        List<ContractCategoryDO> queryList = contractCategoryMapper.getAllContractCategory();
+        List<ContractCategoryDTO> queryList =contractCategoryService.listActiveContract();
         List<UserPositionDO> positionlist = userPositionMapper.selectByUserId(userId, PositionStatusEnum.UNDELIVERED.getCode());
         List<ContractOrderDO> contractOrderlist = contractOrderMapper.selectNotEnforceOrderByUserId(userId);
 
         if (queryList != null && queryList.size() != 0 && contractOrderlist != null && contractOrderlist.size() != 0) {
             log.info("selectUnfinishedOrderByUserId {} contractOrderlist size {}, contractOrderlist {}", userId, contractOrderlist.size(), contractOrderlist.get(0).toString());
 
-            for (ContractCategoryDO contractCategoryDO : queryList) {
+            for (ContractCategoryDTO contractCategoryDO : queryList) {
                 BigDecimal entrustLockAmount = BigDecimal.ZERO;
                 long contractId = contractCategoryDO.getId();
                 List<ContractOrderDO> orderList = contractOrderlist.stream().filter(contractOrder -> contractOrder.getContractId().equals(contractCategoryDO.getId()))
@@ -909,7 +910,7 @@ public class ContractOrderManager {
     public ResultCode updateOrderByMatch(ContractMatchedOrderDTO contractMatchedOrderDTO) {
 
         long contractId = contractMatchedOrderDTO.getContractId();
-        ContractCategoryDO contractCategoryDO = contractCategoryMapper.getContractCategoryById(contractId);
+        ContractCategoryDTO contractCategoryDO = contractCategoryService.getContractById(contractId);
         if (null == contractCategoryDO){
             return ResultCode.error(BIZ_ERROR.getCode(), "null contractCategoryDO, id="+contractId);
         }
@@ -1104,7 +1105,7 @@ public class ContractOrderManager {
 
         // 向MQ推送消息
         // 通过contractId去trade_contract_category表里面获取asset_name和contract_type
-        ContractCategoryDO contractCategoryDO = contractCategoryMapper.getContractCategoryById(askContractOrder.getContractId());
+        ContractCategoryDTO contractCategoryDO = contractCategoryService.getContractById(askContractOrder.getContractId());
         OrderMessage orderMessage = new OrderMessage();
         orderMessage.setSubjectId(contractMatchedOrderDO.getContractId());
         orderMessage.setSubjectName(contractMatchedOrderDO.getContractName());
@@ -1459,7 +1460,7 @@ public class ContractOrderManager {
             return false;
         }
 
-        List<ContractCategoryDO> categoryList = contractCategoryMapper.getAllContractCategory();
+        List<ContractCategoryDTO> categoryList = contractCategoryService.listActiveContract();
         if (CollectionUtils.isEmpty(categoryList)) {
             log.error("empty categoryList");
             return false;
@@ -1476,7 +1477,7 @@ public class ContractOrderManager {
             allContractOrders.add(newContractOrderDO);
         }
 
-        for (ContractCategoryDO contractCategoryDO : categoryList) {
+        for (ContractCategoryDTO contractCategoryDO : categoryList) {
 
             long contractId = contractCategoryDO.getId();
             BigDecimal lever = findLever(contractLeverDOS, userId, contractCategoryDO.getAssetId());

@@ -57,14 +57,22 @@ public class RedisManager {
         }
     }
 
-    public Object get(final String key) {
+    public <T> T get(final String key) {
         try {
             ValueOperations<String, Object> vOps = redisTemplate.opsForValue();
-            return vOps.get(key);
+            return (T)vOps.get(key);
         } catch (Exception e) {
             log.error("redis get error", e);
             return null;
         }
+    }
+
+    public boolean del(String key) {
+        boolean suc = redisTemplate.delete(key);
+        if (!suc) {
+            log.error("delete redis key{} failed", key);
+        }
+        return suc;
     }
 
     public void usdkOrderSave(UsdkOrderDTO usdkOrderDTO){

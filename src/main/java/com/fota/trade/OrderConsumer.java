@@ -83,7 +83,7 @@ public class OrderConsumer {
             boolean locked = redisManager.tryLock(lockKey, Duration.ofMinutes(1));
             if (!locked) {
                 logFailMsg("get lock failed!", messageExt);
-                return ConsumeConcurrentlyStatus.RECONSUME_LATER;
+                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
             String tag = messageExt.getTags();
             //去重,如果已经撤销，不再处理
@@ -123,6 +123,7 @@ public class OrderConsumer {
                     }
                     return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                 }
+                logSuccessMsg(messageExt, null);
                 //撤销成功，标记
                 redisManager.set(existKey, "1", Duration.ofDays(1));
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
