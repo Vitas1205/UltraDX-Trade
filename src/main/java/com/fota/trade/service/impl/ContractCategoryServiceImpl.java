@@ -60,7 +60,7 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
         if (null == res) {
             return new ArrayList<>();
         }
-        return res.stream().filter(x -> activeStatusList.contains(x))
+        return res.stream().filter(x -> activeStatusList.contains(x.getStatus()))
                 .collect(Collectors.toList());
     }
 

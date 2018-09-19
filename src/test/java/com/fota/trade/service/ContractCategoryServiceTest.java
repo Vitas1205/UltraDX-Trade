@@ -3,6 +3,7 @@ package com.fota.trade.service;
 import com.fota.trade.domain.ContractCategoryDO;
 import com.fota.trade.domain.ContractCategoryDTO;
 import com.fota.trade.domain.enums.ContractStatus;
+import com.fota.trade.domain.enums.ContractStatusEnum;
 import com.fota.trade.domain.enums.ContractTypeEnum;
 import com.fota.trade.service.impl.ContractCategoryServiceImpl;
 import org.junit.Assert;
@@ -60,10 +61,8 @@ public class ContractCategoryServiceTest {
         //Assert.assertTrue(ret>0);
     }
 
-    @Test
-    public void testSaveContract() throws Exception {
+    public ContractCategoryDTO testSaveContract() throws Exception {
         ContractCategoryDTO newContract = new ContractCategoryDTO();
-        newContract.setId(null);
         newContract.setContractName("test_btc0909");
         newContract.setAssetId(2);
         newContract.setAssetName("btc");
@@ -77,20 +76,26 @@ public class ContractCategoryServiceTest {
         newContract.setContractSize(new BigDecimal(0.01));
         Integer saveRet = contractCategoryService.saveContract(newContract);
         Assert.assertTrue(saveRet != null && saveRet > 0);
+        return newContract;
     }
 
-    @Test
+
+//    @Test
     public void testUpdateContract() throws Exception {
-//        ContractCategoryDO contractCategoryDO = new ContractCategoryDO();
-//        contractCategoryDO.setId(2L);
-//        contractCategoryDO.setStatus(ContractStatusEnum.PROCESSING.getCode());
-//        Integer updateRet = contractCategoryService.updateContract(contractCategoryDO);
+        ContractCategoryDTO contractCategoryDTO = new ContractCategoryDTO();
+        contractCategoryDTO.setId(2L);
+        contractCategoryDTO.setStatus(ContractStatusEnum.UNOPENED.getCode());
+//        Integer updateRet = contractCategoryService.removeContract(contractCategoryDTO);
 //        Assert.assertTrue(updateRet != null && updateRet > 0);
     }
 
     @Test
-    public void testRemoveContract() throws Exception { //need insert before
-        Integer deleteRet = contractCategoryService.removeContract(2L);
+    public void testRemoveContract() throws Exception {
+        long id = 1000L;
+        assert null != contractCategoryService.getContractById(id);
+        Integer deleteRet = contractCategoryService.removeContract(id);
+        ContractCategoryDTO contractCategoryDTO = contractCategoryService.getContractById(id);
+        assert deleteRet == 1 && null == contractCategoryDTO;
 //        Assert.assertTrue(deleteRet != null && deleteRet > 0);
     }
 
