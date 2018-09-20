@@ -132,7 +132,8 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
             record.setContractId(deliveryCompletedDTO.getContractId());
             record.setContractName(deliveryCompletedDTO.getContractName());
             // todo 交割时传买卖手续费
-            record.setAskFee(deliveryCompletedDTO.getFee());
+            record.setAskFee(deliveryCompletedDTO.getAskFee());
+            record.setBidFee(deliveryCompletedDTO.getBidFee());
             record.setFilledPrice(deliveryCompletedDTO.getPrice());
             record.setFilledAmount(deliveryCompletedDTO.getAmount());
             record.setStatus(MatchedOrderStatus.VALID);
