@@ -288,6 +288,38 @@
         limit #{startRow,jdbcType=INTEGER}, #{endRow,jdbcType=INTEGER}
     </select>
 
+
+    <select id="listByQuery4Recovery" resultType="com.fota.trade.domain.ContractOrderDO">
+        select
+        <include refid="Base_Column_List"/>
+        from trade_contract_order
+        where 1=1
+        <if test="contractId > 0">
+            and contract_id=#{contractId,jdbcType=INTEGER}
+        </if>
+        <if test="userId > 0">
+            and user_id=#{userId,jdbcType=BIGINT}
+        </if>
+        <if test="startTime != null">
+            and gmt_create &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            and gmt_create &lt; #{endTime}
+        </if>
+        <if test="orderStatus != null and orderStatus.size != 0">
+            and status in
+            <foreach item="item" index="index" collection="orderStatus" open="(" separator="," close=")">
+                #{item,jdbcType=INTEGER}
+            </foreach>
+        </if>
+        <if test="orderType != null">
+            and order_type = #{orderType}
+        </if>
+        order by gmt_create ASC
+        limit #{startRow,jdbcType=INTEGER}, #{endRow,jdbcType=INTEGER}
+    </select>
+
+
     <update id="updateByFilledAmount">
     update trade_contract_order
     set gmt_modified = now(),
