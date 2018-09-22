@@ -473,15 +473,17 @@ public class ContractOrderManager {
                         BigDecimal positionAveragePrice = userPositionDO.getAveragePrice();
                         try {
                             if (positionType == PositionTypeEnum.OVER.getCode()) {
-                                bidCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
-                                        competitorsPrice.getId() == contractId).findFirst().get().getPrice();
+//                                bidCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
+//                                        competitorsPrice.getId() == contractId).findFirst().get().getPrice();
+                                bidCurrentPrice = computePrice(competitorsPriceList, OrderDirectionEnum.BID.getCode(), contractId);
                                 log.info("bidCurrentPrice:"+bidCurrentPrice);
                                 BigDecimal bidPositionEntrustAmount = positionUnfilledAmount.multiply(bidCurrentPrice).divide(lever, 8, BigDecimal.ROUND_DOWN);
                                 positionMargin = positionMargin.add(bidPositionEntrustAmount);
                                 floatingPL = floatingPL.add((bidCurrentPrice.subtract(positionAveragePrice)).multiply(positionUnfilledAmount)).setScale(8, BigDecimal.ROUND_DOWN);
                             } else if (positionType == PositionTypeEnum.EMPTY.getCode()) {
-                                askCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
-                                        competitorsPrice.getId() == contractId).findFirst().get().getPrice();
+//                                askCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
+//                                        competitorsPrice.getId() == contractId).findFirst().get().getPrice();
+                                askCurrentPrice = computePrice(competitorsPriceList, OrderDirectionEnum.ASK.getCode(), contractId);
                                 log.info("askCurrentPrice:"+askCurrentPrice);
                                 BigDecimal askPositionEntrustAmount = positionUnfilledAmount.multiply(askCurrentPrice).divide(lever, 8, BigDecimal.ROUND_DOWN);
                                 positionMargin = positionMargin.add(askPositionEntrustAmount);
@@ -629,6 +631,11 @@ public class ContractOrderManager {
             return competitorsPriceDTOOptional.get().getPrice();
         }
         log.error("there is no competitorsPrice, contractId={}, type={}", contractId, type);
+        String latestPrice = redisManager.get(Constant.LAST_CONTRACT_MATCH_PRICE + String.valueOf(contractId));
+        if (latestPrice != null) {
+            return new BigDecimal(latestPrice);
+        }
+        log.error("there is no latestMatchedPrice, contractId={}, type={}", contractId, type);
         return null;
     }
 
@@ -669,8 +676,9 @@ public class ContractOrderManager {
                             BigDecimal positionUnfilledAmount = userPositionDO.getUnfilledAmount();
                             if (positionType == PositionTypeEnum.OVER.getCode()) {
                                 try{
-                                    bidCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
-                                            competitorsPrice.getId() == contractId).findFirst().get().getPrice();
+//                                    bidCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
+//                                            competitorsPrice.getId() == contractId).findFirst().get().getPrice();
+                                    bidCurrentPrice = computePrice(competitorsPriceList, OrderDirectionEnum.BID.getCode(), contractId);
                                     log.info("bidCurrentPrice:{}",bidCurrentPrice);
                                     if (bidCurrentPrice.compareTo(BigDecimal.ZERO) == 0){
                                         log.error("bidCurrentPrice not exist");
@@ -684,8 +692,9 @@ public class ContractOrderManager {
                                 totalAskExtraEntrustAmount = totalAskExtraEntrustAmount.add(getExtraEntrustAmount(bidList, askList, positionType, positionUnfilledAmount, bidPositionEntrustAmount, lever));
                             } else if (positionType == PositionTypeEnum.EMPTY.getCode()) {
                                 try{
-                                    askCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
-                                            competitorsPrice.getId() == contractId).findFirst().get().getPrice();
+//                                    askCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
+//                                            competitorsPrice.getId() == contractId).findFirst().get().getPrice();
+                                    askCurrentPrice = computePrice(competitorsPriceList, OrderDirectionEnum.ASK.getCode(), contractId);
                                     log.info("askCurrentPrice:{}",askCurrentPrice);
                                     if (askCurrentPrice.compareTo(BigDecimal.ZERO) == 0){
                                         log.error("askCurrentPrice not exist");

@@ -14,6 +14,7 @@ import com.fota.trade.domain.enums.OrderCloseTypeEnum;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.PositionStatusEnum;
 import com.fota.trade.domain.query.UserPositionQuery;
+import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.mapper.ContractCategoryMapper;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
@@ -21,6 +22,7 @@ import com.fota.trade.mapper.UserPositionMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
@@ -49,6 +51,9 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
 
     @Autowired
     private RealTimeEntrust realTimeEntrust;
+
+    @Resource
+    private ContractOrderManager contractOrderManager;
 
     @Override
     public Page<UserPositionDTO> listPositionByQuery(long userId, long contractId, int pageNo, int pageSize) {
@@ -238,10 +243,12 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
         BigDecimal bidCurrentPrice;
         try{
             List<CompetitorsPriceDTO> competitorsPriceList = realTimeEntrust.getContractCompetitorsPrice();
-            bidCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
-                    competitorsPrice.getId() == contractId.longValue()).findFirst().get().getPrice();
-            askCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
-                    competitorsPrice.getId() == contractId.longValue()).findFirst().get().getPrice();
+//            bidCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
+//                    competitorsPrice.getId() == contractId.longValue()).findFirst().get().getPrice();
+//            askCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
+//                    competitorsPrice.getId() == contractId.longValue()).findFirst().get().getPrice();
+            bidCurrentPrice = contractOrderManager.computePrice(competitorsPriceList, OrderDirectionEnum.BID.getCode(), contractId);
+            askCurrentPrice = contractOrderManager.computePrice(competitorsPriceList, OrderDirectionEnum.ASK.getCode(), contractId);
             log.info("askCurrentPriceList-----"+askCurrentPrice);
             log.info("bidCurrentPrice-----"+bidCurrentPrice);
         }catch (Exception e){
