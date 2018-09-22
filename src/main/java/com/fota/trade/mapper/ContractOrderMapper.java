@@ -215,6 +215,8 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
 
     List<ContractOrderDO> listByQuery(Map<String, Object> param);
 
+    List<ContractOrderDO> listByQuery4Recovery(Map<String, Object> param);
+
     @Update({
             " update trade_contract_order" +
             " set gmt_modified = now()," +

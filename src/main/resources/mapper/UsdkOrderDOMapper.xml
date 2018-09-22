@@ -227,6 +227,33 @@
     limit #{startRow,jdbcType=INTEGER}, #{endRow,jdbcType=INTEGER}
   </select>
 
+  <select id="listByQuery4Recovery" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List"/>
+    from trade_usdk_order
+    where 1=1
+    <if test="assetId > 0" >
+      and asset_id=#{assetId}
+    </if>
+    <if test="userId > 0" >
+      and user_id=#{userId}
+    </if>
+    <if test="startTime != null">
+      and gmt_create &gt;= #{startTime}
+    </if>
+    <if test="endTime != null">
+      and gmt_create &lt;= #{endTime}
+    </if>
+    <if test="orderStatus != null and orderStatus.size != 0" >
+      and status in
+      <foreach item="item" index="index" collection="orderStatus" open="(" separator="," close=")">
+        #{item,jdbcType=INTEGER}
+      </foreach>
+    </if>
+    order by gmt_create ASC
+    limit #{startRow,jdbcType=INTEGER}, #{endRow,jdbcType=INTEGER}
+  </select>
+
   <select id="selectByUserId" resultMap="BaseResultMap">
     SELECT
     <include refid="Base_Column_List" />

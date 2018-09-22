@@ -387,5 +387,33 @@ public class ContractOrderServiceTest {
         //contractOrderService.orderReturnId(contractOrderDTO, userInfoMap);
     }
 
+    @Test
+    public void testCountByQuery() {
+        BaseQuery usdkOrderQuery = new BaseQuery();
+        usdkOrderQuery.setPageSize(1000);
+        usdkOrderQuery.setPageNo(1);
+        List<Integer> orderStatus = new ArrayList<>();
+        orderStatus.add(OrderStatusEnum.COMMIT.getCode());
+        orderStatus.add(OrderStatusEnum.PART_MATCH.getCode());
+        usdkOrderQuery.setOrderStatus(orderStatus);
+        Integer total = contractOrderService.countContractOrderByQuery4Recovery(usdkOrderQuery);
+        Assert.assertTrue(total > 0);
+    }
+
+    @Test
+    public void testListUsdkOrderByQuery4Recovery() {
+        BaseQuery usdkOrderQuery = new BaseQuery();
+        usdkOrderQuery.setPageSize(1000);
+        usdkOrderQuery.setPageNo(1);
+        List<Integer> orderStatus = new ArrayList<>();
+        orderStatus.add(OrderStatusEnum.COMMIT.getCode());
+        orderStatus.add(OrderStatusEnum.PART_MATCH.getCode());
+
+        usdkOrderQuery.setOrderStatus(orderStatus);
+        Page<ContractOrderDTO> page = contractOrderService.listContractOrderByQuery4Recovery(usdkOrderQuery);
+
+        Assert.assertTrue(page != null && page.getData() != null);
+    }
+
 
 }
