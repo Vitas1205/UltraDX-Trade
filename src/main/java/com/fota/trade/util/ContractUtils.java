@@ -90,5 +90,9 @@ public class ContractUtils {
         }
         return 1;
     }
+    public static BigDecimal toDir(int positionType) {
+       return new BigDecimal(toDirection(positionType));
+    }
+
 
 }
