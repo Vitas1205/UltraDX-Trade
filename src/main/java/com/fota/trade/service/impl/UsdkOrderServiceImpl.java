@@ -117,6 +117,58 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     }
 
     @Override
+    public Integer countUsdkOrderByQuery4Recovery(BaseQuery usdkOrderQuery) {
+        Map<String, Object> paramMap = null;
+        Integer total = 0;
+        try {
+            paramMap = ParamUtil.objectToMap(usdkOrderQuery);
+            paramMap.put("assetId", usdkOrderQuery.getSourceId());
+            total = usdkOrderMapper.countByQuery(paramMap);
+        } catch (Exception e) {
+            log.error("usdkOrderMapper.countByQuery4Recovery({})", usdkOrderQuery, e);
+        }
+        return total;
+    }
+
+    @Override
+    public Page<UsdkOrderDTO> listUsdkOrderByQuery4Recovery(BaseQuery usdkOrderQuery) {
+        Page<UsdkOrderDTO> usdkOrderDTOPage = new Page<UsdkOrderDTO>();
+        if (usdkOrderQuery == null) {
+            return usdkOrderDTOPage;
+        }
+        if (usdkOrderQuery.getPageNo() <= 0) {
+            usdkOrderQuery.setPageNo(Constant.DEFAULT_PAGE_NO);
+        }
+        usdkOrderDTOPage.setPageNo(usdkOrderQuery.getPageNo());
+        if (usdkOrderQuery.getPageSize() <= 0
+                || usdkOrderQuery.getPageSize() > 1000) {
+            usdkOrderQuery.setPageSize(1000);
+        }
+        usdkOrderDTOPage.setPageNo(usdkOrderQuery.getPageNo());
+        usdkOrderDTOPage.setPageSize(usdkOrderQuery.getPageSize());
+        usdkOrderQuery.setStartRow((usdkOrderQuery.getPageNo() - 1) * usdkOrderQuery.getPageSize());
+        usdkOrderQuery.setEndRow(usdkOrderQuery.getPageSize());
+        Map<String, Object> paramMap = null;
+        List<UsdkOrderDO> usdkOrderDOList = null;
+        try {
+            paramMap = ParamUtil.objectToMap(usdkOrderQuery);
+            paramMap.put("assetId", usdkOrderQuery.getSourceId());
+            usdkOrderDOList = usdkOrderMapper.listByQuery4Recovery(paramMap);
+        } catch (Exception e) {
+            log.error("usdkOrderMapper.listByQuery({})", usdkOrderQuery, e);
+            return usdkOrderDTOPage;
+        }
+        List<UsdkOrderDTO> list = new ArrayList<>();
+        if (usdkOrderDOList != null && usdkOrderDOList.size() > 0) {
+            for (UsdkOrderDO usdkOrderDO : usdkOrderDOList) {
+                list.add(BeanUtils.copy(usdkOrderDO));
+            }
+        }
+        usdkOrderDTOPage.setData(list);
+        return usdkOrderDTOPage;
+    }
+
+    @Override
     public ResultCode order(UsdkOrderDTO usdkOrderDTO, Map<String, String> userInfoMap) {
         ResultCode resultCode = new ResultCode();
         com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
