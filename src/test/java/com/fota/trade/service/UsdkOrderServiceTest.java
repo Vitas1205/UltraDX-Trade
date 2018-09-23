@@ -1,5 +1,6 @@
 package com.fota.trade.service;
 
+import com.fota.common.Page;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderPriceTypeEnum;
@@ -176,5 +177,35 @@ public class UsdkOrderServiceTest {
         UsdkMatchedOrderTradeDTOPage usdkMatchedOrderTradeDTOPage =
                 usdkOrderService.getUsdkMatchRecord(null, assetIds, pageNo, pageSize, startTime, endTime);
     }
+
+    @Test
+    public void testCountByQuery() {
+        BaseQuery usdkOrderQuery = new BaseQuery();
+        usdkOrderQuery.setPageSize(50);
+        usdkOrderQuery.setPageNo(1);
+        List<Integer> orderStatus = new ArrayList<>();
+        orderStatus.add(OrderStatusEnum.COMMIT.getCode());
+        orderStatus.add(OrderStatusEnum.PART_MATCH.getCode());
+        usdkOrderQuery.setOrderStatus(orderStatus);
+        Integer total = usdkOrderService.countUsdkOrderByQuery4Recovery(usdkOrderQuery);
+        Assert.assertTrue(total > 0);
+    }
+
+    @Test
+    public void testListUsdkOrderByQuery4Recovery() {
+        BaseQuery usdkOrderQuery = new BaseQuery();
+        usdkOrderQuery.setPageSize(1000);
+        usdkOrderQuery.setPageNo(1);
+        List<Integer> orderStatus = new ArrayList<>();
+        orderStatus.add(OrderStatusEnum.COMMIT.getCode());
+        orderStatus.add(OrderStatusEnum.PART_MATCH.getCode());
+
+        usdkOrderQuery.setOrderStatus(orderStatus);
+        Page<UsdkOrderDTO> page = usdkOrderService.listUsdkOrderByQuery4Recovery(usdkOrderQuery);
+
+        Assert.assertTrue(page != null && page.getData() != null);
+    }
+
+
 
 }

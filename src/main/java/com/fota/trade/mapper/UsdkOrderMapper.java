@@ -93,6 +93,8 @@ public interface UsdkOrderMapper {
 
     List<UsdkOrderDO> listByQuery(Map<String, Object> param);
 
+    List<UsdkOrderDO> listByQuery4Recovery(Map<String, Object> param);
+
     List<UsdkOrderDO> selectByUserId(Long userId);
 
     /**
