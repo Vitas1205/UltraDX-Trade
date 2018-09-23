@@ -86,8 +86,8 @@ public class Consumer {
 
                 String existKey = MQ_REPET_JUDGE_KEY_MATCH  + mqKey;
                 //判断是否已经成交
-                boolean isExist = redisManager.tryLock(existKey, Duration.ofDays(1));
-                if (isExist) {
+                boolean locked = redisManager.tryLock(existKey, Duration.ofDays(1));
+                if (locked) {
                     logSuccessMsg(messageExt, "already consumed, not retry");
                     return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
                 }
