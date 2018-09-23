@@ -79,7 +79,7 @@
         </if>
 
 
-        order by gmt_create DESC
+        order by gmt_create DESC, id
         limit #{startRow}, #{endRow}
     </select>
 
@@ -87,7 +87,7 @@
         select
         <include refid="Base_Column_List"/>
         from usdk_matched_order
-        order by gmt_create desc
+        order by gmt_create desc, id
         limit 1
     </select>
 
@@ -96,7 +96,7 @@
         <include refid="Base_Column_List"/>
         from usdk_matched_order
         where asset_id = #{assetId,jdbcType=BIGINT}  and  id  &lt; #{id,jdbcType=BIGINT}
-        order by gmt_create desc
+        order by gmt_create desc, id
         limit 50
     </select>
 </mapper>
