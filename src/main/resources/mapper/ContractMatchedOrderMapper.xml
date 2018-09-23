@@ -84,7 +84,7 @@
         <if test="endTime != null">
             and gmt_create &lt; #{endTime}
         </if>
-        order by gmt_create desc
+        order by gmt_create desc, id
         limit #{startRow}, #{endRow}
     </select>
 
@@ -123,7 +123,7 @@
         <if test="startTime != null">
             and gmt_create &gt;= #{startTime}
         </if>
-        order by gmt_create DESC
+        order by gmt_create DESC, id
         limit #{startRow}, #{endRow}
     </select>
 
@@ -131,7 +131,7 @@
         select
         <include refid="Base_Column_List"/>
         from contract_matched_order where status = 1
-        order by gmt_create desc
+        order by gmt_create desc, id
         limit 1
     </select>
 
@@ -140,7 +140,7 @@
         <include refid="Base_Column_List" />
         from contract_matched_order
         where id &lt; #{id} and contract_id = #{contractId} and status = 1
-        order by gmt_create desc
+        order by gmt_create desc, id
         limit 50
     </select>
 </mapper>
