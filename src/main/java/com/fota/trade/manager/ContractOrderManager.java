@@ -407,14 +407,19 @@ public class ContractOrderManager {
             log.error("empty orderList");
             return;
         }
-        //发送MQ消息到match
-        Map<String, Object> map = new HashMap<>();
-        map.putIfAbsent("userId", userId);
-        map.putIfAbsent("idList", orderIdList);
-        Boolean sendRet = rocketMqManager.sendMessage("order", "ContractCancel",
-                "to_cancel_contract_"+Joiner.on(",").join(orderIdList), map);
-        if (BooleanUtils.isNotTrue(sendRet)){
-            log.error("failed to send cancel contract mq, {}", userId);
+        //批量发送MQ消息到match
+        int i = 0;
+        int batchSize = 10;
+        while (i < orderIdList.size()) {
+            int temp =  i + batchSize;
+            temp = temp < orderIdList.size() ? temp : orderIdList.size();
+            List<Long> subList = orderIdList.subList(i, temp);
+            Map<String, Object> map = new HashMap<>();
+            map.putIfAbsent("userId", userId);
+            map.putIfAbsent("idList", subList);
+            String msgKey = "to_cancel_contract_"+Joiner.on(",").join(subList);
+            rocketMqManager.sendMessage("order", "ContractCancel", msgKey , map);
+            i = temp;
         }
     }
 
