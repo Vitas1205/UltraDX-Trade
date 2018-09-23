@@ -26,6 +26,7 @@ import org.springframework.util.CollectionUtils;
 import javax.annotation.Resource;
 import java.io.UnsupportedEncodingException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -49,7 +50,7 @@ public class PostDealConsumer {
     private DealManager dealManager;
 
     @Resource
-    private RedisTemplate<String, Object> redisTemplate;
+    private RedisTemplate<String, String> redisTemplate;
 
     @Value("${spring.rocketmq.namesrv_addr}")
     private String namesrvAddr;
@@ -86,24 +87,34 @@ public class PostDealConsumer {
         consumer.registerMessageListener(new MessageListenerOrderly() {
             @Override
             public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, ConsumeOrderlyContext context) {
-                log.info("consumeMessage jjj {}", msgs.size());
                 if (CollectionUtils.isEmpty(msgs)) {
                     log.error("message error!");
                     return ConsumeOrderlyStatus.SUCCESS;
                 }
-//                List<PostDealMessage> postDealMessages =
-                Map<String, List<PostDealMessage>> postDealMessageMap = msgs.stream().map(x -> {
-                    PostDealMessage message = JSON.parseObject(x.getBody(), PostDealMessage.class);
-                    message.setMsgKey(x.getKeys());
-                    return message;
-                })
+                log.info("consume postDeal message,size={}, keys={}", msgs.size(), msgs.stream().map(MessageExt::getKeys).collect(Collectors.toList()));
+
+                List<PostDealMessage> postDealMessages = msgs
+                        .stream()
+                        .map(x -> {
+                            PostDealMessage message = JSON.parseObject(x.getBody(), PostDealMessage.class);
+                            message.setMsgKey(x.getKeys());
+                            return message;
+                        })
                         .distinct()
-                        .filter(x -> noExist(x.getMsgKey()))
+                        .collect(Collectors.toList());
+
+                postDealMessages = removeDuplicta(postDealMessages);
+                if (CollectionUtils.isEmpty(postDealMessages)) {
+                    log.error("empty postDealMessages");
+                    return ConsumeOrderlyStatus.SUCCESS;
+                }
+
+                Map<String, List<PostDealMessage>> postDealMessageMap = postDealMessages
+                        .stream()
                         .collect(Collectors.groupingBy(PostDealMessage::getGroup));
+
                 postDealMessageMap.entrySet().stream().parallel().forEach(entry -> {
                     dealManager.postDeal(entry.getValue());
-                    List<String> keys = entry.getValue().stream().map(PostDealMessage::getMsgKey).collect(Collectors.toList());
-                    redisTemplate.delete(keys);
                 });
                 return ConsumeOrderlyStatus.SUCCESS;
             }
@@ -112,9 +123,28 @@ public class PostDealConsumer {
         consumer.start();
     }
 
-    private boolean noExist(String key) {
-        return null == redisTemplate.opsForValue().get(EXIST_POST_DEAL + key);
+    private List<PostDealMessage> removeDuplicta(List<PostDealMessage> postDealMessages) {
+        List<String> keys = postDealMessages.stream().map(PostDealMessage::getMsgKey).collect(Collectors.toList());
+        List<String> existList = redisTemplate.opsForValue().multiGet(keys);
+        List<PostDealMessage> ret = new ArrayList<>();
+        for (int i = 0; i < postDealMessages.size(); i++) {
+            PostDealMessage postDealMessage = postDealMessages.get(i);
+            if (null == existList.get(i)) {
+                ret.add(postDealMessage);
+            }
+            log.error("duplicate post deal message, message={}", postDealMessage);
+        }
+        return ret;
     }
+    private void markExist(Map.Entry<String, List<PostDealMessage>> entry){
+        Map<String, String> existMap = entry.getValue().stream().collect(Collectors.toMap(PostDealMessage::getMsgKey, x -> "EXIST"));
+        try {
+            redisTemplate.opsForValue().multiSet(existMap);
+        }catch (Throwable t) {
+            log.error("markExist failed, existMap={}",existMap);
+        }
+    }
+
 
     private void logSuccessMsg(MessageExt messageExt, String extInfo) {
         String body = null;

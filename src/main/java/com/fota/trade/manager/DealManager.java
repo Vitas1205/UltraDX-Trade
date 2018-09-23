@@ -29,11 +29,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 
 import static com.fota.trade.client.constants.Constants.DEFAULT_TAG;
 import static com.fota.trade.client.constants.Constants.POST_DEAL_TOPIC;
@@ -190,6 +192,11 @@ public class DealManager {
     }
 
     public void postDeal(List<PostDealMessage> postDealMessages){
+        if (CollectionUtils.isEmpty(postDealMessages)) {
+            log.error("empty postDealMessages in postDeal");
+            return;
+        }
+        log.info("postDeal, size={}, keys={}", postDealMessages.size(), postDealMessages.stream().map(PostDealMessage::getMsgKey).collect(Collectors.toList()));
         PostDealMessage postDealMessage = postDealMessages.get(0);
         ContractOrderDO x = postDealMessage.getContractOrderDO();
         BigDecimal filledAmount = postDealMessage.getFilledAmount(), filledPrice = postDealMessage.getFilledPrice();

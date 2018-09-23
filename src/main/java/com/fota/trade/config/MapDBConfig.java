@@ -16,9 +16,11 @@ import java.util.concurrent.ConcurrentMap;
  */
 @Configuration
 public class MapDBConfig {
+
+
     @Bean
     public DB mapDB(){
-        DB db = DBMaker.fileDB("~/mapdb")
+        DB db = DBMaker.fileDB("./mapdb")
                 //.checksumHeaderBypass()
                 .fileMmapEnableIfSupported()//使用mmap
                 .fileMmapPreclearDisable()//对mmap的优化
@@ -30,7 +32,7 @@ public class MapDBConfig {
         return db;
     }
     @Bean
-    public ConcurrentMap<String, String> getFailedMQMap(@Autowired DB db) {
+    public ConcurrentMap<String, String> failedMQMap(@Autowired DB db) {
 
         ConcurrentMap<String, String> map = db.treeMap("failedMQ")
                 .keySerializer(Serializer.STRING)
@@ -40,7 +42,7 @@ public class MapDBConfig {
         return map;
     }
     @Bean
-    public ConcurrentMap<String, String> getFailedBalanceMap(@Autowired DB db) {
+    public ConcurrentMap<String, String> failedBalanceMap(@Autowired DB db) {
         ConcurrentMap<String, String> map = db.treeMap("failedBalance")
                 .keySerializer(Serializer.STRING)
                 .valueSerializer(Serializer.STRING)

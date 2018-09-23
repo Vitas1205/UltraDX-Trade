@@ -31,9 +31,12 @@ public class UpdatePositionResult {
     private BigDecimal newOpenAveragePrice;
 
     /**
-     * 计算平仓数量,如果不是平仓，则为null
+     * @return 计算平仓数量,如果不是平仓，则为null
      */
     public BigDecimal getCloseAmount() {
+        if (oldAmount.compareTo(BigDecimal.ZERO) == 0) {
+            return null;
+        }
         if (newAmount.compareTo(BigDecimal.ZERO) == 0){
             return oldAmount.abs();
         }
