@@ -84,14 +84,15 @@ public class Consumer {
 
                 ResultCode resultCode = null;
 
+                String existKey = MQ_REPET_JUDGE_KEY_MATCH  + mqKey;
+                //判断是否已经成交
+                boolean isExist = redisManager.tryLock(existKey, Duration.ofDays(1));
+                if (isExist) {
+                    logSuccessMsg(messageExt, "already consumed, not retry");
+                    return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+                }
+
                 try {
-                    String existKey = MQ_REPET_JUDGE_KEY_MATCH  + mqKey;
-                    //判断是否已经成交
-                    boolean isExist = null != redisManager.get(existKey);
-                    if (isExist) {
-                        logSuccessMsg(messageExt, "already consumed, not retry");
-                        return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-                    }
                     String tag = messageExt.getTags();
                     byte[] bodyByte = messageExt.getBody();
                     String bodyStr = null;
@@ -116,6 +117,7 @@ public class Consumer {
                         if (resultCode.getCode() == ILLEGAL_PARAM.getCode()) {
                             return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
                         }
+                        redisManager.del(existKey);
                         return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                     }
                     //一定要成交成功才能标记
@@ -123,6 +125,7 @@ public class Consumer {
                     return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
                 } catch (Exception e) {
                     logFailMsg(messageExt, e);
+                    redisManager.del(existKey);
                     return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                 }
 

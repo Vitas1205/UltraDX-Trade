@@ -213,7 +213,8 @@ public class DealManager {
         }
         DealedMessage dealedMessage = new DealedMessage()
                 .setSubjectId(postDealMessage.getContractOrderDO().getContractId())
-                .setSubjectType(CONTRACT_TYPE);
+                .setSubjectType(CONTRACT_TYPE)
+                .setUserId(postDealMessage.getContractOrderDO().getUserId());
 
         rocketMqManager.sendMessage(DEALED_TOPIC, DEALED_CONTRACT_TAG, postDealMessage.getMsgKey() , dealedMessage);
 
@@ -269,7 +270,7 @@ public class DealManager {
                     preOpenAveragePrice, filledAmount, filledPrice);
 
             //加平仓盈亏
-            totalClosePL.add(ContractUtils.computeClosePL(rate, filledAmount, filledPrice, preAmount, newAmount, preOpenAveragePrice));
+            totalClosePL = totalClosePL.add(ContractUtils.computeClosePL(rate, filledAmount, filledPrice, preAmount, newAmount, preOpenAveragePrice));
 
             //更新以前持仓量和开仓均价
             preAmount = newAmount;
