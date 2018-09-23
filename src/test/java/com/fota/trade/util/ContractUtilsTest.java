@@ -11,34 +11,32 @@ import org.junit.runners.JUnit4;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
+import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
+import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
 import static com.fota.trade.util.ContractUtils.computeAveragePrice;
 
 @RunWith(JUnit4.class)
 public class ContractUtilsTest {
 
+    BigDecimal rate = new BigDecimal("0.001");
+
+    BigDecimal oldAveragePrice = new BigDecimal("500.005");
+    BigDecimal oldPosition = BigDecimal.valueOf(5);
+    int oldPositionType = ASK.getCode();
     /**
      * 方向相同
      */
     @Test
     public void testSameOrderDirection() {
-        ContractOrderDO contractOrderDO = new ContractOrderDO();
-        contractOrderDO.setOrderDirection(OrderDirectionEnum.BID.getCode());
-        contractOrderDO.setFee(new BigDecimal("0.001"));
 
         BigDecimal filledAmount = BigDecimal.valueOf(10);
-        BigDecimal filledPrice = new BigDecimal("500.0");
+        BigDecimal filledPrice = new BigDecimal("600");
 
-        UserPositionDO userPositionDO = new UserPositionDO();
-        userPositionDO.setUnfilledAmount(BigDecimal.valueOf(5));
-        userPositionDO.setAveragePrice(new BigDecimal("500.005"));
-        userPositionDO.setPositionType(OrderDirectionEnum.BID.getCode());
-
-        BigDecimal expected = new BigDecimal("500.005").setScale(8, RoundingMode.DOWN);
-
-        BigDecimal averagePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount);
+        BigDecimal expected = new BigDecimal("566.2683333333").setScale(8, BigDecimal.ROUND_DOWN);
+        BigDecimal averagePrice = computeAveragePrice(ASK.getCode(), oldPositionType, rate, oldPosition, oldAveragePrice, filledAmount, filledPrice);
 
         Assert.assertNotNull(averagePrice);
-        Assert.assertEquals(expected, averagePrice);
+        assert BasicUtils.equal(expected, averagePrice.setScale(8, BigDecimal.ROUND_DOWN));
     }
 
     /**
@@ -46,24 +44,19 @@ public class ContractUtilsTest {
      */
     @Test
     public void testOppositeOrderDirectionWithChangeDirection() {
-        ContractOrderDO contractOrderDO = new ContractOrderDO();
-        contractOrderDO.setOrderDirection(OrderDirectionEnum.ASK.getCode());
-        contractOrderDO.setFee(new BigDecimal("0.001"));
+
 
         BigDecimal filledAmount = BigDecimal.valueOf(10);
-        BigDecimal filledPrice = new BigDecimal("500.0");
+        BigDecimal filledPrice = new BigDecimal("600.0");
 
-        UserPositionDO userPositionDO = new UserPositionDO();
-        userPositionDO.setUnfilledAmount(BigDecimal.valueOf(5));
-        userPositionDO.setAveragePrice(new BigDecimal("500.005"));
-        userPositionDO.setPositionType(OrderDirectionEnum.BID.getCode());
+        //600 + 600*0.001
+        BigDecimal expected = new BigDecimal("600.6");
 
-        BigDecimal expected = new BigDecimal("499.995").setScale(8, RoundingMode.DOWN);
-
-        BigDecimal averagePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount);
+        BigDecimal averagePrice = computeAveragePrice(BID.getCode(), oldPositionType, rate, oldPosition, oldAveragePrice, filledAmount, filledPrice);
 
         Assert.assertNotNull(averagePrice);
-        Assert.assertEquals(expected, averagePrice);
+        assert BasicUtils.equal(expected, averagePrice.setScale(8, BigDecimal.ROUND_DOWN));
+
     }
 
     /**
@@ -71,24 +64,18 @@ public class ContractUtilsTest {
      */
     @Test
     public void testOppositeOrderDirection() {
-        ContractOrderDO contractOrderDO = new ContractOrderDO();
-        contractOrderDO.setOrderDirection(OrderDirectionEnum.ASK.getCode());
-        contractOrderDO.setFee(new BigDecimal("0.001"));
 
-        BigDecimal filledAmount = BigDecimal.ONE;
+        BigDecimal filledAmount = new BigDecimal("4.9");
         BigDecimal filledPrice = new BigDecimal("500.0");
 
-        UserPositionDO userPositionDO = new UserPositionDO();
-        userPositionDO.setUnfilledAmount(BigDecimal.valueOf(5));
-        userPositionDO.setAveragePrice(new BigDecimal("500.005"));
-        userPositionDO.setPositionType(OrderDirectionEnum.BID.getCode());
+        BigDecimal expected = oldAveragePrice;
 
-        BigDecimal expected = new BigDecimal("500.005").setScale(8, RoundingMode.DOWN);
+        BigDecimal averagePrice = computeAveragePrice(BID.getCode(), oldPositionType, rate, oldPosition, oldAveragePrice, filledAmount, filledPrice);
 
-        BigDecimal averagePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount);
 
         Assert.assertNotNull(averagePrice);
-        Assert.assertEquals(expected, averagePrice);
+        assert BasicUtils.equal(expected, averagePrice.setScale(8, BigDecimal.ROUND_DOWN));
+
     }
 
     /**
@@ -96,18 +83,16 @@ public class ContractUtilsTest {
      */
     @Test
     public void testBuildPosition() {
-        ContractOrderDO contractOrderDO = new ContractOrderDO();
-        contractOrderDO.setOrderDirection(OrderDirectionEnum.ASK.getCode());
-        contractOrderDO.setFee(new BigDecimal("0.001"));
 
         BigDecimal filledAmount = BigDecimal.TEN;
         BigDecimal filledPrice = new BigDecimal("500.0");
 
-        BigDecimal expected = new BigDecimal("499.995").setScale(8, RoundingMode.DOWN);
+        BigDecimal expected = new BigDecimal("499.5").setScale(8, RoundingMode.DOWN);
 
-        BigDecimal averagePrice = computeAveragePrice(contractOrderDO, null, filledPrice, filledAmount);
+        BigDecimal averagePrice = computeAveragePrice(ASK.getCode(), ASK.getCode(), rate, BigDecimal.ZERO, null, filledAmount, filledPrice);
 
         Assert.assertNotNull(averagePrice);
-        Assert.assertEquals(expected, averagePrice);
+        assert BasicUtils.equal(expected, averagePrice.setScale(8, BigDecimal.ROUND_DOWN));
+
     }
 }

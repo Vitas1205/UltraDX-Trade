@@ -48,16 +48,4 @@ public class BasicFunctionTest {
                 .collect(Collectors.toList());
         System.out.println(locks);
     }
-//    @Test
-//    public void testRedisson(){
-//        // 1. Create config object
-//        Config config  = new Config();
-//
-//// 2. Create Redisson instance
-//        RedissonClient redisson = Redisson.create(config);
-//
-//
-//        RLock lock = redisson.getLock("myLock");
-//
-//    }
 }

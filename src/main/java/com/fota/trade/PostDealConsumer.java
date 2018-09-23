@@ -23,6 +23,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.io.UnsupportedEncodingException;
 import java.time.Duration;
@@ -66,6 +67,7 @@ public class PostDealConsumer {
     @Autowired
     private ContractOrderServiceImpl contractOrderService;
 
+    @PostConstruct
     public void init() throws InterruptedException, MQClientException {
         //声明并初始化一个consumer
         //需要一个consumer group名字作为构造方法的参数，这里为consumer1
@@ -114,7 +116,11 @@ public class PostDealConsumer {
                         .collect(Collectors.groupingBy(PostDealMessage::getGroup));
 
                 postDealMessageMap.entrySet().stream().parallel().forEach(entry -> {
-                    dealManager.postDeal(entry.getValue());
+                    try {
+                        dealManager.postDeal(entry.getValue());
+                    }catch (Throwable t) {
+                        log.error("post deal message exception", t);
+                    }
                 });
                 return ConsumeOrderlyStatus.SUCCESS;
             }

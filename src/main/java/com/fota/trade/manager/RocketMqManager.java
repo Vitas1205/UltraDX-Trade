@@ -20,7 +20,6 @@ import javax.annotation.Resource;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 
-import static com.fota.trade.client.constants.Constants.DEAL_TOPIC;
 import static com.fota.trade.client.constants.Constants.DEFAULT_TAG;
 import static org.apache.rocketmq.client.producer.SendStatus.SEND_OK;
 
