@@ -83,6 +83,9 @@ public class ContractOrderManager {
     @Autowired
     private AssetService assetService;
 
+    @Resource
+    private RedisManager redisManager;
+
 
     @Autowired
     private RealTimeEntrust realTimeEntrust;
