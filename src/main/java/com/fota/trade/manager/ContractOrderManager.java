@@ -25,7 +25,6 @@ import com.fota.trade.util.ContractUtils;
 import com.fota.trade.util.Profiler;
 import com.fota.trade.util.ThreadContextUtil;
 import com.google.common.base.Joiner;
-import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1461,6 +1460,9 @@ public class ContractOrderManager {
      * @return
      */
     public Boolean judegOrderAvailable(long userId, ContractOrderDO newContractOrderDO) {
+        if (Constant.MARKET_USER_ID_LIST.contains(userId)) {
+            return null;
+        }
         ContractAccount contractAccount = new ContractAccount();
         contractAccount.setMarginCallRequirement(BigDecimal.ZERO)
                 .setFrozenAmount(BigDecimal.ZERO)

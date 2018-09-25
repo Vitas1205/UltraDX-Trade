@@ -1,6 +1,8 @@
 package com.fota.trade.common;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * @author Gavin Shen
@@ -36,4 +38,6 @@ public class Constant {
     //-------------------Redis-------------------//
     public static final String REDIS_USDT_ORDER_FOR_MATCH_HASH = "usdt_order_for_match_hash";
     public static final String REDIS_CONTRACT_ORDER_FOR_MATCH_HASH = "contract_order_for_match_hash";
+
+    public static final ArrayList<Long> MARKET_USER_ID_LIST = new ArrayList<>(Arrays.asList(442L,443L,444L,445L,111L,120L));
 }
