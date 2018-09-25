@@ -543,8 +543,13 @@ public class ContractOrderManager {
         List<UserPositionDO> allPositions = userPositionMapper.selectByUserId(userId, PositionStatusEnum.UNDELIVERED.getCode());
         List<CompetitorsPriceDTO> competitorsPrices = realTimeEntrust.getContractCompetitorsPrice();
         List<UserContractLeverDO> contractLeverDOS = userContractLeverMapper.listUserContractLever(userId);
+        List<ContractOrderDO> allContractOrders = null;
+        if (Constant.MARKET_USER_ID_LIST.contains(userId)) {
+            allContractOrders = new ArrayList<>();
+        } else {
+            allContractOrders = contractOrderMapper.selectNotEnforceOrderByUserId(userId);
+        }
 
-        List<ContractOrderDO> allContractOrders = contractOrderMapper.selectNotEnforceOrderByUserId(userId);
         if (null == allContractOrders) {
             allContractOrders = new ArrayList<>();
         }
@@ -648,6 +653,9 @@ public class ContractOrderManager {
         Map<String, BigDecimal> resultMap = new HashMap<String, BigDecimal>();
         //获取所有合约类型列表
         BigDecimal entrustMargin = BigDecimal.ZERO;
+        if (Constant.MARKET_USER_ID_LIST.contains(userId)) {
+            return entrustMargin;
+        }
         List<ContractCategoryDTO> queryList =contractCategoryService.listActiveContract();
         List<UserPositionDO> positionlist = userPositionMapper.selectByUserId(userId, PositionStatusEnum.UNDELIVERED.getCode());
         List<ContractOrderDO> contractOrderlist = contractOrderMapper.selectNotEnforceOrderByUserId(userId);
