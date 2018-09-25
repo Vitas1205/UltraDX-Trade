@@ -1469,7 +1469,7 @@ public class ContractOrderManager {
      */
     public Boolean judegOrderAvailable(long userId, ContractOrderDO newContractOrderDO) {
         if (Constant.MARKET_USER_ID_LIST.contains(userId)) {
-            return null;
+            return Boolean.TRUE;
         }
         ContractAccount contractAccount = new ContractAccount();
         contractAccount.setMarginCallRequirement(BigDecimal.ZERO)
