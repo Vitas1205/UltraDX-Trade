@@ -9,6 +9,7 @@ import com.fota.trade.client.constants.DealedMessage;
 import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.ResultCode;
+import com.fota.trade.domain.enums.OrderOperateTypeEnum;
 import com.fota.trade.domain.enums.PositionTypeEnum;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
@@ -173,6 +174,7 @@ public class DealManager {
         }
         profiler.complelete("persistMatch");
 
+        sendMatchMessage(contractMatchedOrderDO.getId(), contractMatchedOrderDTO, fee);
         contractOrderDOS.stream().forEach(x -> {
             sendDealMessage(contractMatchedOrderDO.getId(), x, filledAmount, filledPrice);
             //后台交易监控日志打在里面 注释需谨慎
@@ -184,6 +186,39 @@ public class DealManager {
     }
 
 
+    public void sendMatchMessage(long matchId, ContractMatchedOrderDTO contractMatchedOrderDTO, BigDecimal fee){
+        OrderMessage orderMessage = new OrderMessage();
+        orderMessage.setSubjectId(contractMatchedOrderDTO.getContractId());
+        orderMessage.setSubjectName(contractMatchedOrderDTO.getContractName());
+        orderMessage.setTransferTime(contractMatchedOrderDTO.getGmtCreate().getTime());
+        if (null != contractMatchedOrderDTO.getFilledPrice()) {
+            orderMessage.setPrice(new BigDecimal(contractMatchedOrderDTO.getFilledPrice()));
+        }
+        orderMessage.setAmount(contractMatchedOrderDTO.getFilledAmount());
+        orderMessage.setEvent(OrderOperateTypeEnum.DEAL_ORDER.getCode());
+        orderMessage.setAskOrderId(contractMatchedOrderDTO.getAskOrderId());
+        orderMessage.setBidOrderId(contractMatchedOrderDTO.getBidOrderId());
+        orderMessage.setAskUserId(contractMatchedOrderDTO.getAskUserId());
+        orderMessage.setBidUserId(contractMatchedOrderDTO.getBidUserId());
+        orderMessage.setFee(fee);
+        orderMessage.setMatchOrderId(contractMatchedOrderDTO.getId());
+
+        orderMessage.setAskOrderUnfilledAmount(contractMatchedOrderDTO.getAskOrderUnfilledAmount());
+        orderMessage.setBidOrderUnfilledAmount(contractMatchedOrderDTO.getBidOrderUnfilledAmount());
+        orderMessage.setMatchType(contractMatchedOrderDTO.getMatchType());
+
+        orderMessage.setContractMatchAssetName(contractMatchedOrderDTO.getAssetName());
+        orderMessage.setContractType(contractMatchedOrderDTO.getContractType());
+        if (contractMatchedOrderDTO.getAskOrderPrice() != null){
+            orderMessage.setAskOrderEntrustPrice(new BigDecimal(contractMatchedOrderDTO.getAskOrderPrice()));
+        }
+        if (contractMatchedOrderDTO.getBidOrderPrice() != null){
+            orderMessage.setBidOrderEntrustPrice(new BigDecimal(contractMatchedOrderDTO.getBidOrderPrice()));
+        }
+        //TODO 临时兼容方案
+        Boolean sendRet = rocketMqManager.sendMessage("match", "contract", matchId+"", orderMessage);
+
+    }
     public void updateContractOrder(long id, BigDecimal filledAmount, BigDecimal filledPrice, Date gmtModified) {
         int aff;
         try {
