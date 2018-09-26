@@ -36,7 +36,7 @@ public interface UserPositionMapper {
     @Select({
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, locked_amount, ",
-            "unfilled_amount, position_type, average_price, status, lever, feeRate",
+            "unfilled_amount, position_type, average_price, status, lever, fee_rate",
             "from trade_user_position",
             "where id = #{id,jdbcType=BIGINT}"
     })
@@ -46,7 +46,7 @@ public interface UserPositionMapper {
     @Select({
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, locked_amount, ",
-            "unfilled_amount, position_type, average_price, status, lever, feeRateRate",
+            "unfilled_amount, position_type, average_price, status, lever, fee_rate",
             "from trade_user_position",
             "where contract_id = #{contractId,jdbcType=BIGINT} and user_id = #{userId,jdbcType=BIGINT} and unfilled_amount > 0"
     })
@@ -56,7 +56,7 @@ public interface UserPositionMapper {
     @Select({
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, locked_amount, ",
-            "unfilled_amount, position_type, average_price, status, lever, feeRate",
+            "unfilled_amount, position_type, average_price, status, lever, fee_rate",
             "from trade_user_position",
             "where contract_id = #{contractId,jdbcType=BIGINT} and user_id = #{userId,jdbcType=BIGINT}"
     })
@@ -66,7 +66,7 @@ public interface UserPositionMapper {
     @Select({
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, locked_amount, ",
-            "unfilled_amount, position_type, average_price, status, lever, feeRate",
+            "unfilled_amount, position_type, average_price, status, lever, fee_rate",
             "from trade_user_position",
             "where contract_id = #{contractId,jdbcType=BIGINT} and user_id = #{userId,jdbcType=BIGINT} for update"
     })
@@ -76,7 +76,7 @@ public interface UserPositionMapper {
     @Select({
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, locked_amount, ",
-            "unfilled_amount, position_type, average_price, status, lever, feeRate",
+            "unfilled_amount, position_type, average_price, status, lever, fee_rate",
             "from trade_user_position",
             "where  user_id = #{userId,jdbcType=BIGINT} and status = #{status} and unfilled_amount > 0"
     })
@@ -86,7 +86,7 @@ public interface UserPositionMapper {
     @Select({
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, locked_amount, ",
-            "unfilled_amount, position_type, average_price,status,lever, feeRate",
+            "unfilled_amount, position_type, average_price,status,lever, fee_rate",
             "from trade_user_position",
             "where  contract_id = #{contractId,jdbcType=BIGINT} and status = #{status} and unfilled_amount > 0"
     })
