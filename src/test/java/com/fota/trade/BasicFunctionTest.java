@@ -1,6 +1,7 @@
 package com.fota.trade;
 
 import com.fota.trade.domain.ContractOrderDO;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -13,7 +14,9 @@ import java.util.stream.Stream;
  * Created by Swifree on 2018/9/10.
  * Code is the law
  */
+@Slf4j
 public class BasicFunctionTest {
+
     @Test
     public void testSort(){
 
@@ -45,16 +48,4 @@ public class BasicFunctionTest {
                 .collect(Collectors.toList());
         System.out.println(locks);
     }
-//    @Test
-//    public void testRedisson(){
-//        // 1. Create config object
-//        Config config  = new Config();
-//
-//// 2. Create Redisson instance
-//        RedissonClient redisson = Redisson.create(config);
-//
-//
-//        RLock lock = redisson.getLock("myLock");
-//
-//    }
 }

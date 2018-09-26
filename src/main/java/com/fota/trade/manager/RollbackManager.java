@@ -22,8 +22,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import static com.fota.trade.client.constants.MatchedOrderStatus.DELETE;
-
 /**
  * Created by Swifree on 2018/8/20.
  * Code is the law
@@ -103,62 +101,62 @@ public class RollbackManager {
 
 
     private void rollbackMatchedOrder(ContractMatchedOrderDO matchedOrderDO) {
-        if (DELETE == matchedOrderDO.getStatus()) {
-            return;
-        }
-
-        ContractOrderDO askContractOrder = contractOrderMapper.selectByPrimaryKey(matchedOrderDO.getAskOrderId());
-        ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(matchedOrderDO.getBidOrderId());
-
-        //更新委托状态
-        BigDecimal oppositeFilledAmount = matchedOrderDO.getFilledAmount().negate();
-        BigDecimal filledPrice = matchedOrderDO.getFilledPrice();
-        BigDecimal filledAmount = matchedOrderDO.getFilledAmount();
-
-        contractOrderManager.updateContractOrder(askContractOrder.getId(), oppositeFilledAmount, matchedOrderDO.getFilledPrice(), new Date());
-        contractOrderManager.updateContractOrder(bidContractOrder.getId(), oppositeFilledAmount, matchedOrderDO.getFilledPrice(), new Date());
-
-        int tmp = askContractOrder.getOrderDirection();
-        askContractOrder.setOrderDirection(bidContractOrder.getOrderDirection());
-        bidContractOrder.setOrderDirection(tmp);
-
-        //更新持仓
-        UpdatePositionResult askResult = contractOrderManager.updatePosition(askContractOrder, filledAmount, filledPrice);
-        UpdatePositionResult bidResult = contractOrderManager.updatePosition(bidContractOrder, filledAmount, filledPrice);
-
-        contractMatchedOrderMapper.updateStatus(matchedOrderDO.getId(), DELETE);
-
-        ContractDealer dealer1 = calRollbackBalance(askContractOrder, filledAmount, filledPrice, askResult);
-        ContractDealer dealer2 = calRollbackBalance(bidContractOrder, filledAmount, filledPrice, bidResult);
-        com.fota.common.Result result = contractService.updateBalances(dealer1, dealer2);
-        if (!result.isSuccess()) {
-            throw new RuntimeException("update balance failed");
-        }
+//        if (DELETE == matchedOrderDO.getStatus()) {
+//            return;
+//        }
+//
+//        ContractOrderDO askContractOrder = contractOrderMapper.selectByPrimaryKey(matchedOrderDO.getAskOrderId());
+//        ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(matchedOrderDO.getBidOrderId());
+//
+//        //更新委托状态
+//        BigDecimal oppositeFilledAmount = matchedOrderDO.getFilledAmount().negate();
+//        BigDecimal filledPrice = matchedOrderDO.getFilledPrice();
+//        BigDecimal filledAmount = matchedOrderDO.getFilledAmount();
+//
+//        contractOrderManager.updateContractOrder(askContractOrder.getId(), oppositeFilledAmount, matchedOrderDO.getFilledPrice(), new Date());
+//        contractOrderManager.updateContractOrder(bidContractOrder.getId(), oppositeFilledAmount, matchedOrderDO.getFilledPrice(), new Date());
+//
+//        int tmp = askContractOrder.getOrderDirection();
+//        askContractOrder.setOrderDirection(bidContractOrder.getOrderDirection());
+//        bidContractOrder.setOrderDirection(tmp);
+//
+//        //更新持仓
+//        UpdatePositionResult askResult = contractOrderManager.updatePosition(askContractOrder, filledAmount, filledPrice);
+//        UpdatePositionResult bidResult = contractOrderManager.updatePosition(bidContractOrder, filledAmount, filledPrice);
+//
+//        contractMatchedOrderMapper.updateStatus(matchedOrderDO.getId(), DELETE);
+//
+//        ContractDealer dealer1 = calRollbackBalance(askContractOrder, filledAmount, filledPrice, askResult);
+//        ContractDealer dealer2 = calRollbackBalance(bidContractOrder, filledAmount, filledPrice, bidResult);
+//        com.fota.common.Result result = contractService.updateBalances(dealer1, dealer2);
+//        if (!result.isSuccess()) {
+//            throw new RuntimeException("update balance failed");
+//        }
 
 
     }
-    private ContractDealer calRollbackBalance(ContractOrderDO contractOrderDO, BigDecimal filledAmount,
-                                              BigDecimal filledPrice, UpdatePositionResult positionResult){
-        long userId = contractOrderDO.getUserId();
-        BigDecimal rate = contractOrderDO.getFee();
-        if (null == positionResult.getCloseAmount()) {
-            return null;
-        }
-        //手续费
-        BigDecimal actualFee = filledPrice.multiply(filledAmount)
-                .multiply(rate);
-        // (filledPrice-openAveragePrice)*closeAmount*contractSize*openPositionDirection - actualFee
-        BigDecimal addAmount = filledPrice.subtract(positionResult.getOpenAveragePrice())
-                .multiply(positionResult.getCloseAmount())
-                .multiply(new BigDecimal(positionResult.getOpenPositionDirection()))
-                .add(actualFee);
-        ContractDealer dealer = new ContractDealer()
-                .setUserId(userId)
-                .setAddedTotalAmount(addAmount)
-                .setTotalLockAmount(BigDecimal.ZERO);
-        dealer.setDealType( ContractDealer.DealType.FORCE);
-        return dealer;
-    }
+//    private ContractDealer calRollbackBalance(ContractOrderDO contractOrderDO, BigDecimal filledAmount,
+//                                              BigDecimal filledPrice, UpdatePositionResult positionResult){
+//        long userId = contractOrderDO.getUserId();
+//        BigDecimal rate = contractOrderDO.getFee();
+//        if (null == positionResult.getCloseAmount()) {
+//            return null;
+//        }
+//        //手续费
+//        BigDecimal actualFee = filledPrice.multiply(filledAmount)
+//                .multiply(rate);
+//        // (filledPrice-oldOpenAveragePrice)*closeAmount*contractSize*oldOpenPositionDirection - actualFee
+//        BigDecimal addAmount = filledPrice.subtract(positionResult.getOldOpenAveragePrice())
+//                .multiply(positionResult.getCloseAmount())
+//                .multiply(new BigDecimal(positionResult.getOldOpenPositionDirection()))
+//                .add(actualFee);
+//        ContractDealer dealer = new ContractDealer()
+//                .setUserId(userId)
+//                .setAddedTotalAmount(addAmount)
+//                .setTotalLockAmount(BigDecimal.ZERO);
+//        dealer.setDealType( ContractDealer.DealType.FORCE);
+//        return dealer;
+//    }
 
 
 }
