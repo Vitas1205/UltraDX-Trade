@@ -101,9 +101,6 @@ public class ContractOrderManager {
     @Autowired
     private ContractAccountService contractAccountService;
 
-    @Autowired
-    private UserFeeRateMapper userFeeRateMapper;
-
     Random random = new Random();
 
     private AssetService getAssetService() {
@@ -191,12 +188,10 @@ public class ContractOrderManager {
         contractOrderDO.setStatus(8);
         //todo 根据用户等级获取费率
 
-        String userLevel = StringUtils.isEmpty(userInfoMap.get("userLevel")) ? "0" : userInfoMap.get("userLevel");
+        String userType = StringUtils.isEmpty(userInfoMap.get("userType")) ? "0" : userInfoMap.get("userType");
         BigDecimal feeRate = Constant.FEE_RATE;
-        try{
-            feeRate = getUserFeeRate(Integer.valueOf(userLevel));
-        }catch (Exception e){
-            log.error("getUserFeeRate failed,{}", userLevel);
+        if (userType.equals(Constant.MARKET_MAKER_ACCOUNT_TAG)){
+            feeRate = BigDecimal.ZERO;
         }
         contractOrderDO.setFee(feeRate);
         contractOrderDO.setId(orderId);
@@ -279,26 +274,6 @@ public class ContractOrderManager {
         return result;
     }
 
-    public BigDecimal getUserFeeRate(Integer userLevel){
-        BigDecimal userRate = Constant.FEE_RATE;
-        Boolean ret = redisManager.exists(Constant.TRADE_USER_FEE_RATE, String.valueOf(userLevel));
-        if (ret){
-            userRate = (BigDecimal) redisManager.hGet(Constant.TRADE_USER_FEE_RATE, String.valueOf(userLevel));
-            return userRate;
-        }
-        UserFeeRateDO userFeeRateDO = new UserFeeRateDO();
-        try {
-            userFeeRateDO = userFeeRateMapper.getByLevel(userLevel);
-            if (userFeeRateDO.getFeeRate() != null){
-                //redisManager.hSetWithOutTime(Constant.TRADE_USER_FEE_RATE, String.valueOf(userLevel), userFeeRateDO.getFeeRate(), 3L);
-                return userFeeRateDO.getFeeRate();
-            }
-            return userRate;
-        }catch (Exception e){
-            log.error("userFeeRateMapper.getByLevel failed, {}", userLevel);
-            return userRate;
-        }
-    }
 
     private void sendPlaceOrderMessage(ContractOrderDO contractOrderDO, Integer contractType, String assetName){
         //推送MQ消息

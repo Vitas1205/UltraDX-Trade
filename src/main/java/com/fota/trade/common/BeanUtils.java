@@ -205,7 +205,11 @@ public class BeanUtils {
         userPositionDTO.setAveragePrice(userPositionDO.getAveragePrice().toString());
         userPositionDTO.setAmount(userPositionDO.getUnfilledAmount());
         userPositionDTO.setContractSize(BigDecimal.ONE);
-        userPositionDTO.setFee(userPositionDO.getFee());
+        if (userPositionDO.getFee() != null){
+            userPositionDTO.setFee(userPositionDO.getFee());
+        }else {
+            userPositionDTO.setFee(Constant.FEE_RATE);
+        }
         return userPositionDTO;
     }
 

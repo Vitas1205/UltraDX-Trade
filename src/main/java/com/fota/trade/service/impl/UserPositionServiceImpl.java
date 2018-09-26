@@ -137,8 +137,6 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
             record.setContractId(deliveryCompletedDTO.getContractId());
             record.setContractName(deliveryCompletedDTO.getContractName());
             // todo 交割时传买卖手续费
-            record.setAskFee(deliveryCompletedDTO.getAskFee());
-            record.setBidFee(deliveryCompletedDTO.getBidFee());
             record.setFilledPrice(deliveryCompletedDTO.getPrice());
             record.setFilledAmount(deliveryCompletedDTO.getAmount());
             record.setStatus(MatchedOrderStatus.VALID);
@@ -156,11 +154,15 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
                     record.setAskCloseType((byte) OrderCloseTypeEnum.EXPIRED.getCode());
                     record.setBidUserId(-1L);
                     record.setBidCloseType((byte) -1);
+                    record.setAskFee(deliveryCompletedDTO.getFee());
+                    record.setBidFee(BigDecimal.ZERO);
                 } else if (deliveryCompletedDTO.getOrderDirection() == OrderDirectionEnum.BID.getCode()) {
                     record.setBidUserId(deliveryCompletedDTO.getUserId());
                     record.setBidCloseType((byte) OrderCloseTypeEnum.EXPIRED.getCode());
                     record.setAskUserId(-1L);
                     record.setAskCloseType((byte) -1);
+                    record.setBidFee(deliveryCompletedDTO.getFee());
+                    record.setAskFee(BigDecimal.ZERO);
                 }
             }
             int insertRet = contractMatchedOrderMapper.insert(record);
