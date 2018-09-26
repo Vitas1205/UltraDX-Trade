@@ -10,7 +10,6 @@ import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.enums.OrderOperateTypeEnum;
-import com.fota.trade.domain.enums.PositionTypeEnum;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserContractLeverMapper;
@@ -44,12 +43,10 @@ import static com.fota.trade.client.constants.Constants.*;
 import static com.fota.trade.client.constants.DealedMessage.CONTRACT_TYPE;
 import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
 import static com.fota.trade.common.ResultCodeEnum.BIZ_ERROR;
-import static com.fota.trade.common.ResultCodeEnum.CONCURRENT_PROBLEM;
 import static com.fota.trade.common.ResultCodeEnum.ILLEGAL_PARAM;
 import static com.fota.trade.domain.enums.ContractStatusEnum.PROCESSING;
 import static com.fota.trade.domain.enums.PositionTypeEnum.EMPTY;
 import static com.fota.trade.domain.enums.PositionTypeEnum.OVER;
-import static com.fota.trade.util.ContractUtils.computeAveragePrice;
 import static java.math.BigDecimal.ZERO;
 import static org.springframework.transaction.annotation.Propagation.REQUIRED;
 
@@ -466,7 +463,7 @@ public class DealManager {
             int key = arg.hashCode();
             return mqs.get(key % mqs.size());
         };
-        rocketMqManager.sendMessage(POST_DEAL_TOPIC, DEFAULT_TAG, matchId + "_" + contractOrderDO.getId(), postMatchMessage, queueSelector,
+        rocketMqManager.sendMessage(CONTRACT_POSITION_UPDATE_TOPIC, DEFAULT_TAG, matchId + "_" + contractOrderDO.getId(), postMatchMessage, queueSelector,
                 contractOrderDO.getUserId() + contractOrderDO.getContractId());
     }
 
