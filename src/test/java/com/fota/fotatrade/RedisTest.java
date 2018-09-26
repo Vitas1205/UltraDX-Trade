@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -93,5 +94,10 @@ public class RedisTest {
         long t = redisTemplate.getExpire(lock, TimeUnit.MILLISECONDS);
         System.out.println(t);
         assert t < expire.toMillis();
+    }
+    @Test
+    public void mgetTest(){
+        List<Object> result = redisTemplate.opsForValue().multiGet(Arrays.asList("57547_716254555967251", "57547_716254555967252"));
+        log.info("result={}", result);
     }
 }

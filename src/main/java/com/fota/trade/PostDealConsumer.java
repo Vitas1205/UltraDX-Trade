@@ -118,6 +118,7 @@ public class PostDealConsumer {
                 postDealMessageMap.entrySet().stream().parallel().forEach(entry -> {
                     try {
                         dealManager.postDeal(entry.getValue());
+                        markExist(entry.getValue());
                     }catch (Throwable t) {
                         log.error("post deal message exception", t);
                     }
@@ -130,20 +131,21 @@ public class PostDealConsumer {
     }
 
     private List<PostDealMessage> removeDuplicta(List<PostDealMessage> postDealMessages) {
-        List<String> keys = postDealMessages.stream().map(PostDealMessage::getMsgKey).collect(Collectors.toList());
+        List<String> keys = postDealMessages.stream().map(x -> EXIST_POST_DEAL + x.getMsgKey()).collect(Collectors.toList());
         List<String> existList = redisTemplate.opsForValue().multiGet(keys);
         List<PostDealMessage> ret = new ArrayList<>();
         for (int i = 0; i < postDealMessages.size(); i++) {
             PostDealMessage postDealMessage = postDealMessages.get(i);
             if (null == existList.get(i)) {
                 ret.add(postDealMessage);
+            }else {
+                log.error("duplicate post deal message, message={}", postDealMessage);
             }
-            log.error("duplicate post deal message, message={}", postDealMessage);
         }
         return ret;
     }
-    private void markExist(Map.Entry<String, List<PostDealMessage>> entry){
-        Map<String, String> existMap = entry.getValue().stream().collect(Collectors.toMap(PostDealMessage::getMsgKey, x -> "EXIST"));
+    private void markExist(List<PostDealMessage> postDealMessages){
+        Map<String, String> existMap = postDealMessages.stream().collect(Collectors.toMap(x -> EXIST_POST_DEAL + x.getMsgKey(), x -> "EXIST"));
         try {
             redisTemplate.opsForValue().multiSet(existMap);
         }catch (Throwable t) {
