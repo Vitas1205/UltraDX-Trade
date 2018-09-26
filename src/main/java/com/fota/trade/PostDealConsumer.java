@@ -13,9 +13,6 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.dao.DataAccessException;
-import org.springframework.data.redis.connection.RedisConnection;
-import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
@@ -23,15 +20,13 @@ import org.springframework.util.CollectionUtils;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.io.UnsupportedEncodingException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.fota.trade.client.constants.Constants.DEFAULT_TAG;
-import static com.fota.trade.client.constants.Constants.POST_DEAL_TOPIC;
-import static com.fota.trade.client.constants.Constants.UTF8;
+import static com.fota.trade.client.constants.Constants.CONTRACT_POSITION_UPDATE_TOPIC;
 
 /**
  * @Author: Harry Wang
@@ -82,7 +77,7 @@ public class PostDealConsumer {
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.setVipChannelEnabled(false);
         //设置consumer所订阅的Topic和Tag，*代表全部的Tag
-        consumer.subscribe(POST_DEAL_TOPIC, DEFAULT_TAG);
+        consumer.subscribe(CONTRACT_POSITION_UPDATE_TOPIC, DEFAULT_TAG);
         consumer.setConsumeMessageBatchMaxSize(100);
         //设置一个Listener，主要进行消息的逻辑处理
         consumer.registerMessageListener(new MessageListenerOrderly() {
