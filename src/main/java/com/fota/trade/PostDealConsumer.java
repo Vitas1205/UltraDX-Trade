@@ -2,15 +2,9 @@ package com.fota.trade;
 
 import com.alibaba.fastjson.JSON;
 import com.fota.trade.client.PostDealMessage;
-import com.fota.trade.domain.ContractMatchedOrderDTO;
-import com.fota.trade.domain.ResultCode;
-import com.fota.trade.domain.UsdkMatchedOrderDTO;
-import com.fota.trade.domain.enums.TagsTypeEnum;
 import com.fota.trade.manager.DealManager;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
-import com.fota.trade.service.impl.UsdkOrderServiceImpl;
-import com.fota.trade.util.BasicUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.*;
@@ -19,6 +13,9 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataAccessException;
+import org.springframework.data.redis.connection.RedisConnection;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
@@ -26,7 +23,7 @@ import org.springframework.util.CollectionUtils;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.io.UnsupportedEncodingException;
-import java.time.Duration;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -34,8 +31,7 @@ import java.util.stream.Collectors;
 
 import static com.fota.trade.client.constants.Constants.DEFAULT_TAG;
 import static com.fota.trade.client.constants.Constants.POST_DEAL_TOPIC;
-import static com.fota.trade.common.Constant.MQ_REPET_JUDGE_KEY_MATCH;
-import static com.fota.trade.common.ResultCodeEnum.ILLEGAL_PARAM;
+import static com.fota.trade.client.constants.Constants.UTF8;
 
 /**
  * @Author: Harry Wang
@@ -52,6 +48,8 @@ public class PostDealConsumer {
 
     @Resource
     private RedisTemplate<String, String> redisTemplate;
+    @Autowired
+    private RedisManager redisManager;
 
     @Value("${spring.rocketmq.namesrv_addr}")
     private String namesrvAddr;
@@ -63,6 +61,7 @@ public class PostDealConsumer {
 
 
     String EXIST_POST_DEAL = "EXIST_POST_DEAL_";
+    long seconds = 24 * 3600;
 
     @Autowired
     private ContractOrderServiceImpl contractOrderService;
@@ -119,7 +118,7 @@ public class PostDealConsumer {
                     try {
                         dealManager.postDeal(entry.getValue());
                         markExist(entry.getValue());
-                    }catch (Throwable t) {
+                    } catch (Throwable t) {
                         log.error("post deal message exception", t);
                     }
                 });
@@ -138,19 +137,18 @@ public class PostDealConsumer {
             PostDealMessage postDealMessage = postDealMessages.get(i);
             if (null == existList.get(i)) {
                 ret.add(postDealMessage);
-            }else {
+            } else {
                 log.error("duplicate post deal message, message={}", postDealMessage);
             }
         }
         return ret;
     }
-    private void markExist(List<PostDealMessage> postDealMessages){
-        Map<String, String> existMap = postDealMessages.stream().collect(Collectors.toMap(x -> EXIST_POST_DEAL + x.getMsgKey(), x -> "EXIST"));
-        try {
-            redisTemplate.opsForValue().multiSet(existMap);
-        }catch (Throwable t) {
-            log.error("markExist failed, existMap={}",existMap);
-        }
+
+    public void markExist(List<PostDealMessage> postDealMessages) {
+        List<String> keyList = postDealMessages.stream()
+                .map(x -> EXIST_POST_DEAL + x.getMsgKey())
+                .collect(Collectors.toList());
+        redisManager.setExPipelined(keyList, "EXIST", seconds);
     }
 
 

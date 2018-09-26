@@ -12,11 +12,18 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataAccessException;
+import org.springframework.data.redis.connection.RedisConnection;
+import org.springframework.data.redis.connection.StringRedisConnection;
+import org.springframework.data.redis.core.RedisCallback;
+import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.SessionCallback;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.Arrays;
@@ -42,7 +49,7 @@ public class RedisTest {
     private RealTimeEntrust realTimeEntrust;
 
     @Resource
-    private RedisTemplate<String, Object> redisTemplate;
+    private RedisTemplate<String, String> redisTemplate;
 
     String testKey = "testKey";
     @Before
@@ -97,7 +104,15 @@ public class RedisTest {
     }
     @Test
     public void mgetTest(){
-        List<Object> result = redisTemplate.opsForValue().multiGet(Arrays.asList("57547_716254555967251", "57547_716254555967252"));
+        List<String> result = redisTemplate.opsForValue().multiGet(Arrays.asList("57547_716254555967251", "57547_716254555967252"));
         log.info("result={}", result);
     }
+    @Test
+    public void mset(){
+        long start = System.currentTimeMillis();
+        redisManager.setExPipelined(Arrays.asList("test_a", "test_b"),  "exist", 300);
+        long end = System.currentTimeMillis();
+        System.out.println("millis:" + (end - start));
+    }
+
 }

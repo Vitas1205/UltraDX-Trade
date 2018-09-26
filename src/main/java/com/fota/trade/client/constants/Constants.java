@@ -12,4 +12,5 @@ public class Constants {
 
     public static final String POST_DEAL_TOPIC = "postDeal";
     public static final String DEFAULT_TAG = "default";
+    public static final String UTF8 = "UTF-8";
 }

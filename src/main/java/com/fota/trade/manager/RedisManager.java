@@ -6,18 +6,21 @@ import com.fota.trade.domain.ContractOrderDTO;
 import com.fota.trade.domain.UsdkOrderDTO;
 import com.fota.trade.util.JsonUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.HashOperations;
-import org.springframework.data.redis.core.ListOperations;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.dao.DataAccessException;
+import org.springframework.data.redis.connection.RedisConnection;
+import org.springframework.data.redis.core.*;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.nio.charset.Charset;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import static com.fota.trade.client.constants.Constants.UTF8;
 
 /**
  * @Author: Harry Wang
@@ -363,6 +366,34 @@ public class RedisManager {
         } catch (Exception e) {
             e.printStackTrace();
             return null;
+        }
+    }
+
+    public void setExPipelined(List<String> keyList, String valStr, long seconds){
+        if (CollectionUtils.isEmpty(keyList)) {
+            log.error("empty keys");
+            return;
+        }
+
+        byte[] val = valStr.getBytes(Charset.forName(UTF8));
+        try {
+            List<Object> result = redisTemplate.executePipelined(new RedisCallback<Object>() {
+                @Override
+                public Object doInRedis(RedisConnection connection) throws DataAccessException {
+                    keyList.stream().forEach(x -> {
+                        byte[] key = x.getBytes(Charset.forName(UTF8));
+                        connection.setEx(key, seconds, val);
+                    });
+                    return null;
+                }
+            });
+            for (int i = 0; i < keyList.size(); i++) {
+                if ((Boolean) result.get(i) == false) {
+                    log.error("setEx failed, key={}", keyList.get(i));
+                }
+            }
+        } catch (Throwable t) {
+            log.error("setExPipelined failed, keyList={}", keyList);
         }
     }
 
