@@ -2,7 +2,6 @@ package com.fota.trade.service.impl;
 
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
-import com.fota.common.*;
 import com.fota.common.Page;
 import com.fota.trade.common.*;
 import com.fota.trade.common.ResultCodeEnum;
@@ -82,7 +81,11 @@ public class ContractOrderServiceImpl implements
     @Override
     public com.fota.common.Page<ContractOrderDTO> listContractOrderByQuery(BaseQuery contractOrderQueryDTO) {
         com.fota.common.Page<ContractOrderDTO> contractOrderDTOPageRet = new com.fota.common.Page<>();
-        if (null == contractOrderQueryDTO){
+        if (null == contractOrderQueryDTO || contractOrderQueryDTO.getUserId() == null){
+            return null;
+        }
+
+        if (Constant.MARKET_USER_ID_LIST.contains(contractOrderQueryDTO.getUserId())) {
             return null;
         }
         com.fota.common.Page<ContractOrderDTO> contractOrderDTOPage = new com.fota.common.Page<>();
