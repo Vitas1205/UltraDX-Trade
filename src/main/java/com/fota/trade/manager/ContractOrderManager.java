@@ -101,6 +101,9 @@ public class ContractOrderManager {
     @Autowired
     private ContractAccountService contractAccountService;
 
+    @Autowired
+    private UserFeeRateMapper userFeeRateMapper;
+
     Random random = new Random();
 
     private AssetService getAssetService() {
@@ -186,7 +189,16 @@ public class ContractOrderManager {
         contractOrderDO.setGmtCreate(new Date(transferTime));
         contractOrderDO.setGmtModified(new Date(transferTime));
         contractOrderDO.setStatus(8);
-        contractOrderDO.setFee(Constant.FEE_RATE);
+        //todo 根据用户等级获取费率
+
+        String userLevel = StringUtils.isEmpty(userInfoMap.get("userLevel")) ? "0" : userInfoMap.get("userLevel");
+        BigDecimal feeRate = Constant.FEE_RATE;
+        try{
+            feeRate = getUserFeeRate(Integer.valueOf(userLevel));
+        }catch (Exception e){
+            log.error("getUserFeeRate failed,{}", userLevel);
+        }
+        contractOrderDO.setFee(feeRate);
         contractOrderDO.setId(orderId);
         contractOrderDO.setUnfilledAmount(contractOrderDO.getTotalAmount());
 
@@ -265,6 +277,27 @@ public class ContractOrderManager {
         result.setMessage("success");
         result.setData(orderId);
         return result;
+    }
+
+    public BigDecimal getUserFeeRate(Integer userLevel){
+        BigDecimal userRate = Constant.FEE_RATE;
+        Boolean ret = redisManager.exists(Constant.TRADE_USER_FEE_RATE, String.valueOf(userLevel));
+        if (ret){
+            userRate = (BigDecimal) redisManager.hGet(Constant.TRADE_USER_FEE_RATE, String.valueOf(userLevel));
+            return userRate;
+        }
+        UserFeeRateDO userFeeRateDO = new UserFeeRateDO();
+        try {
+            userFeeRateDO = userFeeRateMapper.getByLevel(userLevel);
+            if (userFeeRateDO.getFeeRate() != null){
+                //redisManager.hSetWithOutTime(Constant.TRADE_USER_FEE_RATE, String.valueOf(userLevel), userFeeRateDO.getFeeRate(), 3L);
+                return userFeeRateDO.getFeeRate();
+            }
+            return userRate;
+        }catch (Exception e){
+            log.error("userFeeRateMapper.getByLevel failed, {}", userLevel);
+            return userRate;
+        }
     }
 
     private void sendPlaceOrderMessage(ContractOrderDO contractOrderDO, Integer contractType, String assetName){
@@ -988,11 +1021,16 @@ public class ContractOrderManager {
 
 
         ContractMatchedOrderDO contractMatchedOrderDO = com.fota.trade.common.BeanUtils.copy(contractMatchedOrderDTO);
-        BigDecimal fee = contractMatchedOrderDO.getFilledAmount().
+        BigDecimal askFee = contractMatchedOrderDO.getFilledAmount().
                 multiply(contractMatchedOrderDO.getFilledPrice()).
-                multiply(Constant.FEE_RATE).
+                multiply(askContractOrder.getFee()).
                 setScale(CommonUtils.scale, BigDecimal.ROUND_UP);
-        contractMatchedOrderDO.setFee(fee);
+        BigDecimal bidFee = contractMatchedOrderDO.getFilledAmount().
+                multiply(contractMatchedOrderDO.getFilledPrice()).
+                multiply(bidContractOrder.getFee()).
+                setScale(CommonUtils.scale, BigDecimal.ROUND_UP);
+        contractMatchedOrderDO.setAskFee(askFee);
+        contractMatchedOrderDO.setBidFee(bidFee);
         contractMatchedOrderDO.setAskUserId(askContractOrder.getUserId());
         contractMatchedOrderDO.setBidUserId(bidContractOrder.getUserId());
         contractMatchedOrderDO.setAskCloseType(askContractOrder.getCloseType().byteValue());
@@ -1138,7 +1176,7 @@ public class ContractOrderManager {
         orderMessage.setBidOrderId(bidContractOrder.getId());
         orderMessage.setAskUserId(askContractOrder.getUserId());
         orderMessage.setBidUserId(bidContractOrder.getUserId());
-        orderMessage.setFee(contractMatchedOrderDO.getFee());
+        orderMessage.setFee(contractMatchedOrderDO.getAskFee().add(contractMatchedOrderDO.getBidFee()));
         orderMessage.setMatchOrderId(contractMatchedOrderDO.getId());
         orderMessage.setContractMatchAssetName(contractCategoryDO.getAssetName());
         orderMessage.setContractType(contractCategoryDO.getContractType());
@@ -1179,12 +1217,13 @@ public class ContractOrderManager {
         if (userPositionDO == null) {
             // 建仓
             userPositionDO = ContractUtils.buildPosition(contractOrderDO, contractOrderDO.getLever(), filledAmount, filledPrice);
+            userPositionDO.setFee(contractOrderDO.getFee());
             userPositionMapper.insert(userPositionDO);
             result.setNewPositionType(userPositionDO.getPositionType());
             result.setNewTotalAmount(userPositionDO.getUnfilledAmount());
             return result;
         }
-
+        userPositionDO.setFee(contractOrderDO.getFee());
         BigDecimal newTotalAmount;
         int newPositionType=userPositionDO.getPositionType();
         BigDecimal newAveragePrice = null;
@@ -1533,7 +1572,7 @@ public class ContractOrderManager {
 
                 BigDecimal price = computePrice(competitorsPrices, userPositionDO.getPositionType(), contractId);
                 if (null == price) {
-                    return null;
+                    return false;
                 }
                 floatingPL = price.subtract(positionAveragePrice).multiply(positionUnfilledAmount).multiply(new BigDecimal(dire));
 

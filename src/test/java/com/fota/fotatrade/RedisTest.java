@@ -94,4 +94,19 @@ public class RedisTest {
         System.out.println(t);
         assert t < expire.toMillis();
     }
+
+    @Test
+    public void hSetTest(){
+        String redisKey = "test20180917";
+        //redisManager.hSetWithOutTime(redisKey,"index2", new BigDecimal("50.23"),1L);
+        boolean ret = redisManager.exists(redisKey, "index3");
+        log.info(""+ret);
+    }
+
+    @Test
+    public void hGetTest(){
+        String redisKey = "test20180917";
+        BigDecimal ret = (BigDecimal) redisManager.hGet(redisKey,"index3");
+        log.info(""+ret);
+    }
 }

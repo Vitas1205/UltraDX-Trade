@@ -37,7 +37,9 @@ public class ContractMatchedOrderDO {
 
     private Byte matchType;
 
-    private BigDecimal fee;
+    private BigDecimal askFee;
+
+    private BigDecimal bidFee;
 
     private BigDecimal filledPrice;
 

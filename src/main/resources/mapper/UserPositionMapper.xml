@@ -15,6 +15,7 @@
       <arg column="average_price" jdbcType="DECIMAL" javaType="java.math.BigDecimal" />
       <arg column="status" jdbcType="INTEGER" javaType="java.lang.Integer" />
       <arg column="lever" jdbcType="INTEGER" javaType="java.lang.Integer" />
+      <arg column="fee" jdbcType="DECIMAL" javaType="java.math.BigDecimal" />
     </constructor>
   </resultMap>
 
