@@ -1192,13 +1192,13 @@ public class ContractOrderManager {
         if (userPositionDO == null) {
             // 建仓
             userPositionDO = ContractUtils.buildPosition(contractOrderDO, contractOrderDO.getLever(), filledAmount, filledPrice);
-            userPositionDO.setFee(contractOrderDO.getFee());
+            userPositionDO.setFeeRate(contractOrderDO.getFee());
             userPositionMapper.insert(userPositionDO);
             result.setNewPositionType(userPositionDO.getPositionType());
             result.setNewTotalAmount(userPositionDO.getUnfilledAmount());
             return result;
         }
-        userPositionDO.setFee(contractOrderDO.getFee());
+        userPositionDO.setFeeRate(contractOrderDO.getFee());
         BigDecimal newTotalAmount;
         int newPositionType=userPositionDO.getPositionType();
         BigDecimal newAveragePrice = null;

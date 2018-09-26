@@ -26,5 +26,5 @@ public class UserPositionDO {
      */
     private Integer status;
     private Integer lever;
-    private BigDecimal fee;
+    private BigDecimal feeRate;
 }
