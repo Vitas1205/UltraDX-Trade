@@ -1,13 +1,10 @@
 package com.fota.trade;
 
 import com.alibaba.fastjson.JSON;
-import com.fota.trade.domain.ContractMatchedOrderDTO;
-import com.fota.trade.domain.ResultCode;
-import com.fota.trade.domain.UsdkMatchedOrderDTO;
-import com.fota.trade.domain.enums.TagsTypeEnum;
+import com.fota.trade.client.PostDealMessage;
+import com.fota.trade.manager.DealManager;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
-import com.fota.trade.service.impl.UsdkOrderServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.*;
@@ -16,14 +13,20 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
-import java.io.UnsupportedEncodingException;
-import java.time.Duration;
-import java.util.List;
 
-import static com.fota.trade.common.Constant.MQ_REPET_JUDGE_KEY_MATCH;
-import static com.fota.trade.common.ResultCodeEnum.ILLEGAL_PARAM;
+import javax.annotation.PostConstruct;
+import javax.annotation.Resource;
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import static com.fota.trade.client.constants.Constants.DEFAULT_TAG;
+import static com.fota.trade.client.constants.Constants.CONTRACT_POSITION_UPDATE_TOPIC;
 
 /**
  * @Author: Harry Wang
@@ -33,12 +36,16 @@ import static com.fota.trade.common.ResultCodeEnum.ILLEGAL_PARAM;
  */
 @Slf4j
 @Component
-public class Consumer {
+public class PostDealConsumer {
 
     @Autowired
-    private UsdkOrderServiceImpl usdkOrderService;
+    private DealManager dealManager;
+
+    @Resource
+    private RedisTemplate<String, String> redisTemplate;
     @Autowired
     private RedisManager redisManager;
+
     @Value("${spring.rocketmq.namesrv_addr}")
     private String namesrvAddr;
     @Value("${spring.rocketmq.group}")
@@ -47,12 +54,18 @@ public class Consumer {
     @Value("${spring.rocketmq.instanceName}")
     private String clientInstanceName;
 
+
+    String EXIST_POST_DEAL = "EXIST_POST_DEAL_";
+    long seconds = 24 * 3600;
+
     @Autowired
     private ContractOrderServiceImpl contractOrderService;
+
+    @PostConstruct
     public void init() throws InterruptedException, MQClientException {
         //声明并初始化一个consumer
         //需要一个consumer group名字作为构造方法的参数，这里为consumer1
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group + "-match");
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group + "-postDeal");
         consumer.setInstanceName(clientInstanceName);
         //同样也要设置NameServer地址
         consumer.setNamesrvAddr(namesrvAddr);
@@ -64,77 +77,75 @@ public class Consumer {
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.setVipChannelEnabled(false);
         //设置consumer所订阅的Topic和Tag，*代表全部的Tag
-        consumer.subscribe("match_order", "usdk || contract");
-        consumer.setConsumeMessageBatchMaxSize(1);
+        consumer.subscribe(CONTRACT_POSITION_UPDATE_TOPIC, DEFAULT_TAG);
+        consumer.setConsumeMessageBatchMaxSize(100);
         //设置一个Listener，主要进行消息的逻辑处理
-        consumer.registerMessageListener(new MessageListenerConcurrently() {
+        consumer.registerMessageListener(new MessageListenerOrderly() {
             @Override
-            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context) {
-
-                log.info("consumeMessage jjj {}", msgs.size());
+            public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, ConsumeOrderlyContext context) {
                 if (CollectionUtils.isEmpty(msgs)) {
                     log.error("message error!");
-                    return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+                    return ConsumeOrderlyStatus.SUCCESS;
                 }
-                MessageExt messageExt = msgs.get(0);
+                log.info("consume postDeal message,size={}, keys={}", msgs.size(), msgs.stream().map(MessageExt::getKeys).collect(Collectors.toList()));
 
-                String mqKey = messageExt.getKeys();
-                log.info("consumeMessage jjj {}", mqKey);
+                List<PostDealMessage> postDealMessages = msgs
+                        .stream()
+                        .map(x -> {
+                            PostDealMessage message = JSON.parseObject(x.getBody(), PostDealMessage.class);
+                            message.setMsgKey(x.getKeys());
+                            return message;
+                        })
+                        .distinct()
+                        .collect(Collectors.toList());
 
-
-                ResultCode resultCode = null;
-
-                String existKey = MQ_REPET_JUDGE_KEY_MATCH  + mqKey;
-                //判断是否已经成交
-                boolean locked = redisManager.tryLock(existKey, Duration.ofDays(1));
-                if (!locked) {
-                    logSuccessMsg(messageExt, "already consumed, not retry");
-                    return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+                postDealMessages = removeDuplicta(postDealMessages);
+                if (CollectionUtils.isEmpty(postDealMessages)) {
+                    log.error("empty postDealMessages");
+                    return ConsumeOrderlyStatus.SUCCESS;
                 }
 
-                try {
-                    String tag = messageExt.getTags();
-                    byte[] bodyByte = messageExt.getBody();
-                    String bodyStr = null;
+                Map<String, List<PostDealMessage>> postDealMessageMap = postDealMessages
+                        .stream()
+                        .collect(Collectors.groupingBy(PostDealMessage::getGroup));
+
+                postDealMessageMap.entrySet().stream().parallel().forEach(entry -> {
                     try {
-                        bodyStr = new String(bodyByte, "UTF-8");
-                    } catch (UnsupportedEncodingException e) {
-                        log.error("get mq message failed", e);
-                        return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+                        dealManager.postDeal(entry.getValue());
+                        markExist(entry.getValue());
+                    } catch (Throwable t) {
+                        log.error("post deal message exception", t);
                     }
-                    log.info("receive match message, ------------" + bodyStr);
-                    if (TagsTypeEnum.USDK.getDesc().equals(tag)) {
-                        UsdkMatchedOrderDTO usdkMatchedOrderDTO = JSON.parseObject(bodyStr, UsdkMatchedOrderDTO.class);
-                        resultCode = usdkOrderService.updateOrderByMatch(usdkMatchedOrderDTO);
-
-                    } else if (TagsTypeEnum.CONTRACT.getDesc().equals(tag)) {
-                        ContractMatchedOrderDTO contractMatchedOrderDTO = JSON.parseObject(bodyStr, ContractMatchedOrderDTO.class);
-                        resultCode = contractOrderService.updateOrderByMatch(contractMatchedOrderDTO);
-                    }
-
-                    if (!resultCode.isSuccess()) {
-                        logFailMsg("resultCode="+resultCode, messageExt);
-                        if (resultCode.getCode() == ILLEGAL_PARAM.getCode()) {
-                            return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-                        }
-                        redisManager.del(existKey);
-                        return ConsumeConcurrentlyStatus.RECONSUME_LATER;
-                    }
-                    //一定要成交成功才能标记
-                    redisManager.set(existKey, "1", Duration.ofDays(1));
-                    return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-                } catch (Exception e) {
-                    logFailMsg(messageExt, e);
-                    redisManager.del(existKey);
-                    return ConsumeConcurrentlyStatus.RECONSUME_LATER;
-                }
-
+                });
+                return ConsumeOrderlyStatus.SUCCESS;
             }
         });
         //调用start()方法启动consumer
         consumer.start();
-        System.out.println("Consumer Started.");
     }
+
+    private List<PostDealMessage> removeDuplicta(List<PostDealMessage> postDealMessages) {
+        List<String> keys = postDealMessages.stream().map(x -> EXIST_POST_DEAL + x.getMsgKey()).collect(Collectors.toList());
+        List<String> existList = redisTemplate.opsForValue().multiGet(keys);
+        List<PostDealMessage> ret = new ArrayList<>();
+        for (int i = 0; i < postDealMessages.size(); i++) {
+            PostDealMessage postDealMessage = postDealMessages.get(i);
+            if (null == existList.get(i)) {
+                ret.add(postDealMessage);
+            } else {
+                log.error("duplicate post deal message, message={}", postDealMessage);
+            }
+        }
+        return ret;
+    }
+
+    public void markExist(List<PostDealMessage> postDealMessages) {
+        List<String> keyList = postDealMessages.stream()
+                .map(x -> EXIST_POST_DEAL + x.getMsgKey())
+                .collect(Collectors.toList());
+        redisManager.setExPipelined(keyList, "EXIST", seconds);
+    }
+
 
     private void logSuccessMsg(MessageExt messageExt, String extInfo) {
         String body = null;
@@ -143,9 +154,10 @@ public class Consumer {
         } catch (UnsupportedEncodingException e) {
             log.error("get mq message failed", e);
         }
-        log.info("consume message success, extInfo={}, msgId={}, msgKey={}, tag={},  body={}, reconsumeTimes={}",extInfo,  messageExt.getMsgId(), messageExt.getKeys(), messageExt.getTags(),
+        log.info("consume message success, extInfo={}, msgId={}, msgKey={}, tag={},  body={}, reconsumeTimes={}", extInfo, messageExt.getMsgId(), messageExt.getKeys(), messageExt.getTags(),
                 body, messageExt.getReconsumeTimes());
     }
+
     private void logFailMsg(MessageExt messageExt, Throwable t) {
         String body = null;
         try {
@@ -156,6 +168,7 @@ public class Consumer {
         log.error("consume message exception, msgId={}, msgKey={}, tag={},  body={}, reconsumeTimes={}", messageExt.getMsgId(), messageExt.getKeys(), messageExt.getTags(),
                 body, messageExt.getReconsumeTimes(), t);
     }
+
     private void logFailMsg(String cause, MessageExt messageExt) {
         String body = null;
         try {

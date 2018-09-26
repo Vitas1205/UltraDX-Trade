@@ -138,7 +138,7 @@ public interface UserPositionMapper {
             "unfilled_amount = #{unfilledAmount},",
             "average_price = #{averagePrice, jdbcType=DECIMAL}",
             "fee_rate = #{feeRate, jdbcType=DECIMAL}",
-            "where id = #{id,jdbcType=BIGINT}"})
+            "where id = #{id,jdbcType=BIGINT} and gmt_modified = #{gmtModified}"})
     int updatePositionById(UserPositionDO userPositionDO);
 
     int countByQuery(Map<String, Object> param);

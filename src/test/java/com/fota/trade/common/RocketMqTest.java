@@ -25,7 +25,7 @@ import javax.annotation.Resource;
 @Transactional
 public class RocketMqTest {
 
-    @Resource
+    @Autowired
     private RocketMqManager rocketMqManager;
 
     @Test
