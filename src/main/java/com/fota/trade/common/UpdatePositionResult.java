@@ -12,25 +12,19 @@ import java.math.BigDecimal;
 @Data
 @Accessors(chain = true)
 public class UpdatePositionResult {
-    /**
-     * 平仓数量,如果不是平仓，则为null
-     */
-    private BigDecimal closeAmount;
-    /**
-     * 开仓方向
-     */
-    private int openPositionDirection;
-    /**
-     * 开仓均价
-     */
-    private BigDecimal openAveragePrice;
 
     /**
-     * 新持仓方向
+     * 旧数量，负表示空仓
      */
-    private int newPositionType;
+    private BigDecimal oldAmount;
     /**
-     * 新持仓数量
+     * 新数量，负表示空仓
      */
-    private BigDecimal newTotalAmount;
+    private BigDecimal newAmount;
+
+    /**
+     * 平仓盈亏
+     */
+    private BigDecimal closePL;
+
 }

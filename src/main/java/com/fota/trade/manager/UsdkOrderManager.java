@@ -7,6 +7,8 @@ import com.fota.asset.domain.UserCapitalDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.CapitalService;
 import com.fota.match.service.UsdkMatchedOrderService;
+import com.fota.trade.client.constants.Constants;
+import com.fota.trade.client.constants.DealedMessage;
 import com.fota.trade.common.BizException;
 import com.fota.trade.common.BusinessException;
 import com.fota.trade.common.ResultCodeEnum;
@@ -33,6 +35,8 @@ import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.*;
 
+import static com.fota.trade.client.constants.Constants.DEALED_TOPIC;
+import static com.fota.trade.client.constants.Constants.DEALED_USDT_TAG;
 import static com.fota.trade.common.ResultCodeEnum.BIZ_ERROR;
 import static com.fota.trade.domain.enums.OrderStatusEnum.*;
 import static java.util.stream.Collectors.toList;
@@ -454,8 +458,6 @@ public class UsdkOrderManager {
             throw new RuntimeException("usdkMatchedOrder.insert exception{}",e);
         }
 
-//        askUsdkOrder = usdkOrderMapper.selectByPrimaryKey(askUsdkOrder.getId());
-//        bidUsdkOrder = usdkOrderMapper.selectByPrimaryKey(bidUsdkOrder.getId());
 
         Runnable runnable = () -> {
             Map<String, Object> askOrderContext = new HashMap<>();
@@ -467,8 +469,8 @@ public class UsdkOrderManager {
                 bidOrderContext  = JSON.parseObject(bidUsdkOrder.getOrderContext());
             }
 
-            postProcessOrder(askUsdkOrder, filledAmount);
-            postProcessOrder(bidUsdkOrder, filledAmount);
+            postProcessOrder(askUsdkOrder, filledAmount, usdkMatchedOrderDO.getId());
+            postProcessOrder(bidUsdkOrder, filledAmount, usdkMatchedOrderDO.getId());
 
             // 向MQ推送消息
             OrderMessage orderMessage = new OrderMessage();
@@ -502,18 +504,24 @@ public class UsdkOrderManager {
             }
 
         };
-        ThreadContextUtil.setPostTask(runnable);
+        runnable.run();
 
         return ResultCode.success();
     }
 
-    private void postProcessOrder(UsdkOrderDO usdkOrderDO, BigDecimal filledAmount) {
+    private void postProcessOrder(UsdkOrderDO usdkOrderDO, BigDecimal filledAmount, long matchId) {
         Map<String, Object> context = BasicUtils.exeWhitoutError(() -> JSON.parseObject(usdkOrderDO.getOrderContext()));
         String userName = null == context || null == context.get("username") ? "": String.valueOf(context.get("username"));
         int dir = ContractUtils.toDirection(usdkOrderDO.getOrderDirection());
         usdkOrderDO.fillAmount(filledAmount);
         tradeLog.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                 1, usdkOrderDO.getAssetName(), userName,filledAmount, System.currentTimeMillis(), 4,  usdkOrderDO.getOrderDirection(), usdkOrderDO.getUserId(), 1);
+
+        DealedMessage dealedMessage = new DealedMessage();
+        dealedMessage.setSubjectId(usdkOrderDO.getAssetId())
+                .setSubjectType(DealedMessage.USDT_TYPE)
+                .setUserId(usdkOrderDO.getUserId());
+        rocketMqManager.sendMessage(DEALED_TOPIC, DEALED_USDT_TAG, matchId + "_" + usdkOrderDO.getId(), dealedMessage);
     }
 
 

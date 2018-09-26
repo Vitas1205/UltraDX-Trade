@@ -1,5 +1,6 @@
 package com.fota.trade.domain;
 
+import com.fota.trade.util.ContractUtils;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -26,4 +27,8 @@ public class UserPositionDO {
      */
     private Integer status;
     private Integer lever;
+
+    public BigDecimal computeSignAmount(){
+        return unfilledAmount.multiply(ContractUtils.toDir(positionType));
+    }
 }

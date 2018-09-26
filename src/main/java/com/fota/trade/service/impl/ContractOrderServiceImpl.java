@@ -9,6 +9,7 @@ import com.fota.trade.domain.*;
 import com.fota.trade.domain.ResultCode;
 import com.fota.trade.manager.ContractLeverManager;
 import com.fota.trade.manager.ContractOrderManager;
+import com.fota.trade.manager.DealManager;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
@@ -20,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.*;
@@ -60,6 +62,9 @@ public class ContractOrderServiceImpl implements
     @Autowired
     private ContractMatchedOrderMapper contractMatchedOrderMapper;
 
+    @Resource
+    private DealManager dealManager;
+
     @Autowired
     private AssetService assetService;
     private AssetService getAssetService() { return assetService; }
@@ -71,8 +76,6 @@ public class ContractOrderServiceImpl implements
     }
 
     private static final int MAX_RETRIES = 3000;
-
-    ExecutorService executorService = Executors.newWorkStealingPool();
 
 
     @Override
@@ -392,36 +395,11 @@ public class ContractOrderServiceImpl implements
         Profiler profiler = new Profiler("ContractOrderManager.updateOrderByMatch", messageKey);
         ThreadContextUtil.setPrifiler(profiler);
 
-        //安装userId排序，防止死锁
-        //获取锁
-        List<String> locks = Arrays.asList(contractMatchedOrderDTO.getAskUserId(), contractMatchedOrderDTO.getBidUserId()).stream()
-                .sorted(Long::compareTo)
-                .map(x -> "POSITION_LOCK_"+ x+"_"+ contractMatchedOrderDTO.getContractId())
-                .distinct()
-                .collect(Collectors.toList());
-
-
-        boolean suc = redisManager.multiConcurrentLock(locks, Duration.ofSeconds(60), MAX_RETRIES);
-        profiler.complelete("locks:"+Joiner.on(",").join(locks));
-        if (!suc) {
-            profiler.log();
-            return ResultCode.error(LOCK_FAILED.getCode(), LOCK_FAILED.getMessage());
-        }
         try {
-            ResultCode code = contractOrderManager.updateOrderByMatch(contractMatchedOrderDTO);
-            redisManager.multiUnLock(locks);
-            if (code.isSuccess()) {
-                //执行事务之外的任务
-                Runnable postTask = ThreadContextUtil.getPostTask();
-                if (null == postTask) {
-                    log.error("null postTask");
-                }
-                else executorService.submit(postTask);
-            }
+            ResultCode code = dealManager.deal(contractMatchedOrderDTO);
             return code;
 
         } catch (Exception e) {
-            redisManager.multiUnLock(locks);
             if (e instanceof BizException) {
                 BizException bE = (BizException) e;
                 return ResultCode.error(bE.getCode(), bE.getMessage());
