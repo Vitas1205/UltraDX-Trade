@@ -147,11 +147,16 @@ public class DealManager {
         profiler.complelete("update contract order");
 
         ContractMatchedOrderDO contractMatchedOrderDO = com.fota.trade.common.BeanUtils.copy(contractMatchedOrderDTO);
-        BigDecimal fee = contractMatchedOrderDO.getFilledAmount().
+        BigDecimal askFee = contractMatchedOrderDO.getFilledAmount().
                 multiply(contractMatchedOrderDO.getFilledPrice()).
-                multiply(Constant.FEE_RATE).
+                multiply(askContractOrder.getFee()).
                 setScale(CommonUtils.scale, BigDecimal.ROUND_UP);
-        contractMatchedOrderDO.setFee(fee);
+        BigDecimal bidFee = contractMatchedOrderDO.getFilledAmount().
+                multiply(contractMatchedOrderDO.getFilledPrice()).
+                multiply(bidContractOrder.getFee()).
+                setScale(CommonUtils.scale, BigDecimal.ROUND_UP);
+        contractMatchedOrderDO.setAskFee(askFee);
+        contractMatchedOrderDO.setBidFee(bidFee);
         contractMatchedOrderDO.setAskUserId(askContractOrder.getUserId());
         contractMatchedOrderDO.setBidUserId(bidContractOrder.getUserId());
         contractMatchedOrderDO.setAskCloseType(askContractOrder.getCloseType().byteValue());
@@ -171,7 +176,7 @@ public class DealManager {
         }
         profiler.complelete("persistMatch");
 
-        sendMatchMessage(contractMatchedOrderDO.getId(), contractMatchedOrderDTO, fee);
+        sendMatchMessage(contractMatchedOrderDO.getId(), contractMatchedOrderDTO, askFee.add(bidFee));
         contractOrderDOS.stream().forEach(x -> {
             sendDealMessage(contractMatchedOrderDO.getId(), x, filledAmount, filledPrice);
             //后台交易监控日志打在里面 注释需谨慎
@@ -288,6 +293,7 @@ public class DealManager {
         //记录开始持仓量
         result.setOldAmount(preAmount);
         for (PostDealMessage postDealMessage : postDealMessages) {
+            userPositionDO.setFeeRate(sample.getFee());
             ContractOrderDO contractOrderDO = postDealMessage.getContractOrderDO();
             BigDecimal rate = contractOrderDO.getFee();
             BigDecimal filledAmount = postDealMessage.getFilledAmount(), filledPrice = postDealMessage.getFilledPrice();

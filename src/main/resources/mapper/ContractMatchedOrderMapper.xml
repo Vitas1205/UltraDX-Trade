@@ -14,7 +14,8 @@
         <result column="bid_user_id" jdbcType="BIGINT" property="bidUserId" />
         <result column="bid_close_type" jdbcType="TINYINT" property="bidCloseType" />
         <result column="match_type" jdbcType="TINYINT" property="matchType" />
-        <result column="fee" jdbcType="DECIMAL" property="fee" />
+        <result column="ask_fee" jdbcType="DECIMAL" property="askFee" />
+        <result column="bid_fee" jdbcType="DECIMAL" property="bidFee" />
         <result column="filled_price" jdbcType="DECIMAL" property="filledPrice" />
         <result column="filled_amount" jdbcType="DECIMAL" property="filledAmount" />
         <result column="contract_id" property="contractId"/>
@@ -27,13 +28,13 @@
         insert into contract_matched_order (gmt_create, gmt_modified, ask_order_id,
         ask_order_price, ask_user_id, ask_close_type,
         bid_order_id, bid_order_price, bid_user_id,
-        bid_close_type, match_type, fee,
+        bid_close_type, match_type, ask_fee, bid_fee,
         filled_price, filled_amount, contract_name,contract_id,status
         )
         values (#{gmtCreate}, #{gmtModified}, #{askOrderId,jdbcType=BIGINT},
         #{askOrderPrice,jdbcType=DECIMAL}, #{askUserId,jdbcType=BIGINT}, #{askCloseType,jdbcType=TINYINT},
         #{bidOrderId,jdbcType=BIGINT}, #{bidOrderPrice,jdbcType=DECIMAL}, #{bidUserId,jdbcType=BIGINT},
-        #{bidCloseType,jdbcType=TINYINT}, #{matchType,jdbcType=TINYINT}, #{fee,jdbcType=DECIMAL},
+        #{bidCloseType,jdbcType=TINYINT}, #{matchType,jdbcType=TINYINT}, #{askFee,jdbcType=DECIMAL}, #{bidFee,jdbcType=DECIMAL},
         #{filledPrice,jdbcType=DECIMAL}, #{filledAmount,jdbcType=DECIMAL}, #{contractName,jdbcType=VARCHAR}
         ,#{contractId}, #{status}
         )
@@ -41,11 +42,11 @@
 
     <sql id="Base_Column_List">
         id, gmt_create, gmt_modified, ask_order_id, ask_order_price, ask_user_id, ask_close_type, bid_order_id, bid_order_price,
-        bid_user_id, bid_close_type, match_type, fee, filled_price, filled_amount, contract_id, contract_name
+        bid_user_id, bid_close_type, match_type, ask_fee, bid_fee, filled_price, filled_amount, contract_id, contract_name
     </sql>
 
     <select id="getAllFee" resultType="java.math.BigDecimal">
-        SELECT sum(fee)
+        SELECT sum(ask_fee + bid_fee)
         FROM contract_matched_order
         WHERE gmt_create > #{startDate} AND gmt_create &lt; #{endDate}
     </select>
