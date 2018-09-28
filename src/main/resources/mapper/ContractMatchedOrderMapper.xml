@@ -47,8 +47,10 @@
 
     <select id="getAllFee" resultType="java.math.BigDecimal">
         SELECT sum(ask_fee + bid_fee)
-        FROM contract_matched_order
+        FROM (
+        SELECT * from contract_matched_order
         WHERE gmt_create > #{startDate} AND gmt_create &lt; #{endDate}
+        LIMIT #{startRow},#{endRow}) AS a1
     </select>
 
     <select id="count" resultType="java.lang.Long">

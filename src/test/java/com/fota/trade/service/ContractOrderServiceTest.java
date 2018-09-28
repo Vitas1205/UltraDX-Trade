@@ -415,5 +415,13 @@ public class ContractOrderServiceTest {
         Assert.assertTrue(page != null && page.getData() != null);
     }
 
+    @Test
+    public void geteeByDateTest(){
+        Date end = new Date();
+        Date start = new Date(14000000000L);
+        BigDecimal fee = contractOrderService.getFeeByDate(start, end);
+        log.info("" + fee);
+    }
+
 
 }
