@@ -153,7 +153,14 @@ public class ContractOrderManager {
         contractOrderDO.setGmtCreate(new Date(transferTime));
         contractOrderDO.setGmtModified(new Date(transferTime));
         contractOrderDO.setStatus(8);
-        contractOrderDO.setFee(Constant.FEE_RATE);
+        //todo 根据用户等级获取费率
+
+        String userType = StringUtils.isEmpty(userInfoMap.get("userType")) ? "0" : userInfoMap.get("userType");
+        BigDecimal feeRate = Constant.FEE_RATE;
+        if (userType.equals(Constant.MARKET_MAKER_ACCOUNT_TAG)){
+            feeRate = BigDecimal.ZERO;
+        }
+        contractOrderDO.setFee(feeRate);
         contractOrderDO.setId(orderId);
         contractOrderDO.setUnfilledAmount(contractOrderDO.getTotalAmount());
 
@@ -233,6 +240,7 @@ public class ContractOrderManager {
         result.setData(orderId);
         return result;
     }
+
 
     private void sendPlaceOrderMessage(ContractOrderDO contractOrderDO, Integer contractType, String assetName){
         //推送MQ消息
@@ -903,8 +911,6 @@ public class ContractOrderManager {
 
 
 
-
-
     /**
      *判断新的合约委托能否下单
      * @param userId
@@ -977,7 +983,7 @@ public class ContractOrderManager {
 
                 BigDecimal price = computePrice(competitorsPrices, userPositionDO.getPositionType(), contractId);
                 if (null == price) {
-                    return null;
+                    return false;
                 }
                 floatingPL = price.subtract(positionAveragePrice).multiply(positionUnfilledAmount).multiply(new BigDecimal(dire));
 

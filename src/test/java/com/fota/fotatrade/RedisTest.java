@@ -102,6 +102,7 @@ public class RedisTest {
         System.out.println(t);
         assert t < expire.toMillis();
     }
+
     @Test
     public void mgetTest(){
         List<String> result = redisTemplate.opsForValue().multiGet(Arrays.asList("57547_716254555967251", "57547_716254555967252"));

@@ -27,7 +27,7 @@ public class UserPositionDO {
      */
     private Integer status;
     private Integer lever;
-
+    private BigDecimal feeRate;
     public BigDecimal computeSignAmount(){
         return unfilledAmount.multiply(ContractUtils.toDir(positionType));
     }
