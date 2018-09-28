@@ -416,7 +416,7 @@ public class ContractOrderServiceTest {
     }
 
     @Test
-    public void geteeByDateTest(){
+    public void getFeeByDateTest(){
         Date end = new Date();
         Date start = new Date(14000000000L);
         BigDecimal fee = contractOrderService.getFeeByDate(start, end);
