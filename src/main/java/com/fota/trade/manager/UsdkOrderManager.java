@@ -105,6 +105,7 @@ public class UsdkOrderManager {
         return notMatchOrderList;
     }
 
+    //TODO 优化: 先更新账户，再insert订单，而不是先insert订单再更新账户
     @Transactional(rollbackFor={RuntimeException.class, Exception.class, BusinessException.class})
     public com.fota.common.Result<Long> placeOrder(UsdkOrderDTO usdkOrderDTO, Map<String, String> userInfoMap)throws Exception {
         String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
@@ -210,24 +211,27 @@ public class UsdkOrderManager {
                     1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getTotalAmount(), transferTime, 3, usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 2);
         }
         usdkOrderDTO.setCompleteAmount(BigDecimal.ZERO);
-        //todo 发送RocketMQ
-        OrderMessage orderMessage = new OrderMessage();
-        orderMessage.setOrderId(usdkOrderDO.getId());
-        orderMessage.setEvent(OrderOperateTypeEnum.PLACE_ORDER.getCode());
-        orderMessage.setUserId(usdkOrderDTO.getUserId());
-        orderMessage.setSubjectId(usdkOrderDTO.getAssetId().longValue());
-        orderMessage.setSubjectName(usdkOrderDTO.getAssetName());
-        orderMessage.setAmount(usdkOrderDO.getTotalAmount());
-        orderMessage.setOrderDirection(usdkOrderDO.getOrderDirection());
-        orderMessage.setOrderType(usdkOrderDO.getOrderType());
-        if (!usdkOrderDO.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
-            orderMessage.setPrice(usdkOrderDO.getPrice());
-        }
-        orderMessage.setTransferTime(transferTime);
-        Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", String.valueOf(usdkOrderDO.getId()), orderMessage);
-        if (!sendRet){
-            log.error("Send RocketMQ Message Failed ");
-        }
+        //消息一定要在事务外发，不然会出现收到下单消息，db还没有这个订单
+       Runnable postTask = () -> {
+           OrderMessage orderMessage = new OrderMessage();
+           orderMessage.setOrderId(usdkOrderDO.getId());
+           orderMessage.setEvent(OrderOperateTypeEnum.PLACE_ORDER.getCode());
+           orderMessage.setUserId(usdkOrderDTO.getUserId());
+           orderMessage.setSubjectId(usdkOrderDTO.getAssetId().longValue());
+           orderMessage.setSubjectName(usdkOrderDTO.getAssetName());
+           orderMessage.setAmount(usdkOrderDO.getTotalAmount());
+           orderMessage.setOrderDirection(usdkOrderDO.getOrderDirection());
+           orderMessage.setOrderType(usdkOrderDO.getOrderType());
+           if (!usdkOrderDO.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
+               orderMessage.setPrice(usdkOrderDO.getPrice());
+           }
+           orderMessage.setTransferTime(transferTime);
+           Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", String.valueOf(usdkOrderDO.getId()), orderMessage);
+           if (!sendRet){
+               log.error("Send RocketMQ Message Failed ");
+           }
+       };
+       ThreadContextUtil.setPostTask(postTask);
         result.setCode(0);
         result.setMessage("success");
         result.setData(orderId);
@@ -504,7 +508,7 @@ public class UsdkOrderManager {
             }
 
         };
-        runnable.run();
+        ThreadContextUtil.setPostTask(runnable);
 
         return ResultCode.success();
     }
