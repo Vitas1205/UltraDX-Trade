@@ -267,8 +267,8 @@ public class DealManager {
                 failedBalanceMap.put(postDealMessage.getMsgKey(), JSON.toJSONString(dealer));
             }
         }
-
-        updateTotalPosition(postDealMessage.getContractOrderDO().getContractId(), positionResult);
+        //防止异常抛出
+        BasicUtils.exeWhitoutError(() -> updateTotalPosition(postDealMessage.getContractOrderDO().getContractId(), positionResult));
         return ResultCode.success();
     }
 
@@ -442,6 +442,10 @@ public class DealManager {
     }
 
     public void updateTotalPosition(long contractId, UpdatePositionResult positionResult) {
+        if (null == positionResult || null == positionResult.getNewAmount() || null == positionResult.getOldAmount()) {
+            log.error("illegal param, positionResult={}", positionResult);
+        }
+
         BigDecimal increase;
 
         BigDecimal positionAmount = ZERO;
@@ -451,11 +455,21 @@ public class DealManager {
         increase = positionAmount.abs().subtract(formerPositionAmount.abs());
 
         Double currentPosition = redisManager.counter(Constant.CONTRACT_TOTAL_POSITION + contractId, increase);
-        if (BigDecimal.valueOf(currentPosition).compareTo(increase) == 0) {
-            BigDecimal position = userPositionMapper.countTotalPosition(contractId).multiply(BigDecimal.valueOf(2));
-            currentPosition = redisManager.counter(Constant.CONTRACT_TOTAL_POSITION + contractId, position.subtract(increase));
+        //redis异常，直接返回
+        if (null == currentPosition) {
+            log.error("update total position amount failed, contractId={}", contractId);
+            return;
         }
-        log.info("update total position------contractId :{}   currentPosition :{}", contractId, currentPosition);
+        //初始值为0，从db读取
+        if (BasicUtils.equal(new BigDecimal(currentPosition), increase)) {
+            BigDecimal totalPosition = userPositionMapper.countTotalPosition(contractId);
+            if (null == totalPosition) {
+                redisManager.counter(Constant.CONTRACT_TOTAL_POSITION + contractId, new BigDecimal(currentPosition).negate());
+                return;
+            }
+            BigDecimal position = totalPosition.multiply(BigDecimal.valueOf(2));
+            redisManager.counter(Constant.CONTRACT_TOTAL_POSITION + contractId, position.subtract(increase));
+        }
 
     }
 

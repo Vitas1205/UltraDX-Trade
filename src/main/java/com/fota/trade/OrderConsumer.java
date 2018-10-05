@@ -79,19 +79,13 @@ public class OrderConsumer {
             }
             MessageExt messageExt = msgs.get(0);
             String mqKey = messageExt.getKeys();
-            String lockKey = "LOCK_MESSAGE_KEY_" + mqKey;
-            boolean locked = redisManager.tryLock(lockKey, Duration.ofMinutes(1));
+            String lockKey = "EXIST_CANCEL_MESSAGE_KEY_" + messageExt.getTags() + "_"+ mqKey;
+            boolean locked = redisManager.tryLock(lockKey, Duration.ofHours(24));
             if (!locked) {
-                logFailMsg("get lock failed!", messageExt);
+                logFailMsg("duplicate message!", messageExt);
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
             String tag = messageExt.getTags();
-            //去重,如果已经撤销，不再处理
-            String existKey = MQ_REPET_JUDGE_KEY_ORDER + mqKey;
-            boolean isExist = null != redisManager.get(existKey);
-            if (isExist) {
-                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-            }
 
             try {
 
@@ -104,7 +98,8 @@ public class OrderConsumer {
                 }
                 Integer removeResult = res.getInteger("rst");
                 if (null == removeResult || removeSucced != removeResult) {
-                    //如果订单簿移除失败，此消息消费成功，但是做去重，否则没法重试撤单
+                    //如果订单簿移除失败，此消息消费成功，但不做去重，否则没法重试撤单
+                    redisManager.releaseLock(lockKey);
                     logSuccessMsg(messageExt, "remove from book orderList failed");
                     return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
                 }
@@ -117,27 +112,26 @@ public class OrderConsumer {
                     resultCode = contractOrderManager.cancelOrderByMessage(orderId, unfilledAmount);
                 }
                 if (!resultCode.isSuccess()) {
-                    logFailMsg("resultCode="+resultCode, messageExt);
+
                     if (resultCode.getCode() == ILLEGAL_PARAM.getCode()) {
+                        logFailMsg("resultCode="+resultCode, messageExt);
                         return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
                     }
+                    redisManager.releaseLock(lockKey);
+                    logFailMsg("resultCode="+resultCode, messageExt);
                     return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                 }
                 logSuccessMsg(messageExt, null);
-                //撤销成功，标记
-                redisManager.set(existKey, "1", Duration.ofDays(1));
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             } catch (Exception e) {
+                redisManager.releaseLock(lockKey);
                 logFailMsg(messageExt, e);
                 return ConsumeConcurrentlyStatus.RECONSUME_LATER;
-            } finally {
-                redisManager.releaseLock(lockKey);
             }
 
         });
         //调用start()方法启动consumer
         consumer.start();
-        System.out.println("Consumer Started.");
     }
     private void logSuccessMsg(MessageExt messageExt, String extInfo) {
         String body = null;
