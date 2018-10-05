@@ -463,6 +463,7 @@ public class RedisManager {
             if (suc) {
                 return true;
             }
+            randomSleep();
         }
         if (!suc) {
             log.error("release lock failed, key={}", lock);

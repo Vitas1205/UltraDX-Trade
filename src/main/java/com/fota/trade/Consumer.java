@@ -84,7 +84,7 @@ public class Consumer {
 
                 ResultCode resultCode = null;
 
-                String existKey = MQ_REPET_JUDGE_KEY_MATCH  + mqKey;
+                String existKey = MQ_REPET_JUDGE_KEY_MATCH  + messageExt.getTags() + "_" + mqKey;
                 //判断是否已经成交
                 boolean locked = redisManager.tryLock(existKey, Duration.ofDays(1));
                 if (!locked) {
