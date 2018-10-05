@@ -79,6 +79,8 @@ public class PostDealConsumer {
         //设置consumer所订阅的Topic和Tag，*代表全部的Tag
         consumer.subscribe(CONTRACT_POSITION_UPDATE_TOPIC, DEFAULT_TAG);
         consumer.setConsumeMessageBatchMaxSize(100);
+        consumer.setPullInterval(30);
+        consumer.setPullBatchSize(100);
         //设置一个Listener，主要进行消息的逻辑处理
         consumer.registerMessageListener(new MessageListenerOrderly() {
             @Override
