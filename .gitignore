@@ -6,6 +6,9 @@ mvnw.cmd
 logs/
 trade-client/target
 
+mapdb.wal.0
+mapdb
+secure_file_priv=/Users/irisroyalty/dumps/
 bootstrap.yml
 application.yml
 manager.xml

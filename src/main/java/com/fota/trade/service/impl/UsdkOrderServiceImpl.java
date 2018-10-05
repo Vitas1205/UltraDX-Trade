@@ -203,6 +203,10 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         try {
             result = usdkOrderManager.placeOrder(usdkOrderDTO, userInfoMap);
             if (result.isSuccess()) {
+                Runnable postTask = ThreadContextUtil.getPostTask();
+                if (null != postTask) {
+                    executorService.submit(postTask);
+                }
                 tradeLog.info("下单@@@" + usdkOrderDTO);
                 //redisManager.usdtOrderSaveForMatch(usdkOrderDTO);
             }
