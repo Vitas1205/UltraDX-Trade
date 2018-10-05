@@ -109,8 +109,8 @@ public class DealManager {
             return ResultCode.error(BIZ_ERROR.getCode(), "illegal contract status, id=" + contractId + ", status=" + contractCategoryDO.getStatus());
         }
 
-        ContractOrderDO askContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getAskOrderId());
-        ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(contractMatchedOrderDTO.getBidOrderId());
+        ContractOrderDO askContractOrder = contractOrderMapper.selectByIdAndUserId(contractMatchedOrderDTO.getAskUserId(), contractMatchedOrderDTO.getAskOrderId());
+        ContractOrderDO bidContractOrder = contractOrderMapper.selectByIdAndUserId(contractMatchedOrderDTO.getBidUserId(), contractMatchedOrderDTO.getBidOrderId());
 
         ResultCode checkResult = checkParam(askContractOrder, bidContractOrder, contractMatchedOrderDTO);
         if (!checkResult.isSuccess()) {

@@ -14,6 +14,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Rollback;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,7 +33,8 @@ import static com.fota.trade.domain.enums.OrderStatusEnum.MATCH;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @Slf4j
-@Rollback(true)
+@ContextConfiguration(classes = MapperTestConfig.class)
+@Transactional
 public class ContractOrderMapperTest {
 
     @Resource
@@ -103,7 +105,7 @@ public class ContractOrderMapperTest {
         BigDecimal filledAmount = BigDecimal.valueOf(100L);
         BigDecimal filledPrice = new BigDecimal(0.3);
         int aff = contractOrderMapper.updateAmountAndStatus(contractOrderDO.getId(),filledAmount, filledPrice, new Date());
-        ContractOrderDO contractOrderDO2 = contractOrderMapper.selectByPrimaryKey(contractOrderDO.getId());
+        ContractOrderDO contractOrderDO2 = contractOrderMapper.selectByIdAndUserId(userId, contractOrderDO.getId());
 
         BigDecimal expectAvgPrice = PriceUtil.getAveragePrice(contractOrderDO.getAveragePrice(),
                 contractOrderDO.getTotalAmount().subtract(contractOrderDO.getUnfilledAmount()), filledAmount, filledPrice);
@@ -118,8 +120,13 @@ public class ContractOrderMapperTest {
 
     @Test
     public void selectTest() throws Exception {
-        List<ContractOrderDO> list = contractOrderMapper.selectByUserId(282L);
-        log.info("----------------------------"+list.size());
+        ContractOrderDO temp = contractOrderMapper.selectByIdAndUserId(userId, contractOrderDO.getId());
+        log.info("----------------------------"+temp);
+    }
+    @Test
+    public void testSelectByContractId(){
+        List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByContractId(contractOrderDO.getContractId());
+        log.info("selectUnfinishedOrderByContractId result={}", list);
     }
 
     @Test

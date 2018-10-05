@@ -1,24 +1,18 @@
 package com.fota.trade.manager;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.fota.asset.domain.ContractDealer;
 import com.fota.asset.domain.UserContractDTO;
 import com.fota.asset.service.AssetService;
-import com.fota.asset.service.ContractService;
 import com.fota.common.Result;
 import com.fota.common.utils.CommonUtils;
-import com.fota.match.service.ContractMatchedOrderService;
 import com.fota.ticker.entrust.RealTimeEntrust;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
 import com.fota.trade.common.BizException;
 import com.fota.trade.common.Constant;
 import com.fota.trade.common.ResultCodeEnum;
-import com.fota.trade.common.UpdatePositionResult;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.*;
 import com.fota.trade.mapper.*;
-import com.fota.trade.service.ContractAccountService;
 import com.fota.trade.service.ContractCategoryService;
 import com.fota.trade.util.BasicUtils;
 import com.fota.trade.util.ContractUtils;
@@ -31,8 +25,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Isolation;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
@@ -40,15 +32,12 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.function.Predicate;
 
-import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
 import static com.fota.trade.common.Constant.DEFAULT_LEVER;
 import static com.fota.trade.common.ResultCodeEnum.*;
 import static com.fota.trade.domain.enums.ContractStatusEnum.PROCESSING;
 import static com.fota.trade.domain.enums.OrderStatusEnum.CANCEL;
 import static com.fota.trade.domain.enums.OrderStatusEnum.PART_CANCEL;
-import static com.fota.trade.util.ContractUtils.computeAveragePrice;
 import static java.util.stream.Collectors.*;
-import static org.springframework.transaction.annotation.Propagation.REQUIRED;
 
 /**
  * @author Gavin Shen
@@ -269,7 +258,7 @@ public class ContractOrderManager {
         if (Objects.isNull(userId) || Objects.isNull(orderId)) {
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), ResultCodeEnum.ILLEGAL_PARAM.getMessage());
         }
-        ContractOrderDO contractOrderDO = contractOrderMapper.selectByPrimaryKey(orderId);
+        ContractOrderDO contractOrderDO = contractOrderMapper.selectByIdAndUserId(userId, orderId);
         if (Objects.isNull(contractOrderDO)) {
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), ResultCodeEnum.ILLEGAL_PARAM.getMessage());
         }
@@ -316,7 +305,8 @@ public class ContractOrderManager {
         }
     }
     public ResultCode doCancelOrder(long orderId, BigDecimal unfilleAmount) {
-        ContractOrderDO contractOrderDO = contractOrderMapper.selectByPrimaryKey(orderId);
+        //TODO
+        ContractOrderDO contractOrderDO = contractOrderMapper.selectByIdAndUserId(null, orderId);
         if (Objects.isNull(contractOrderDO)) {
             return ResultCode.error(ILLEGAL_PARAM.getCode(), "contract order does not exist, id="+orderId);
         }

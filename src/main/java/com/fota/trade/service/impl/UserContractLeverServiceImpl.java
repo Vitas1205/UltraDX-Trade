@@ -124,7 +124,7 @@ public class UserContractLeverServiceImpl implements UserContractLeverService  {
         try {
             contractCategoryDO = contractCategoryMapper.selectByPrimaryKey(contractId);
         } catch (Exception e) {
-            log.error("contractCategoryMapper.selectByPrimaryKey exception", e);
+            log.error("contractCategoryMapper.selectByIdAndUserId exception", e);
         }
         if (contractCategoryDO == null ||
                 contractCategoryDO.getAssetId() == null ||

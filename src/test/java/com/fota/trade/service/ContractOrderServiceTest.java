@@ -234,7 +234,7 @@ public class ContractOrderServiceTest {
     }
 
     private void checkContractOrder(ContractOrderDO contractOrderDO) {
-        ContractOrderDO curContract = contractOrderMapper.selectByPrimaryKey(contractOrderDO.getId());
+        ContractOrderDO curContract = contractOrderMapper.selectByIdAndUserId(contractOrderDO.getUserId(), contractOrderDO.getId());
         log.info("oldOrder={}", contractOrderDO);
         log.info("curOrder={}", curContract);
         /*assert curContract.getUnfilledAmount() == contractOrderDO.getUnfilledAmount().longValue()
@@ -261,7 +261,7 @@ public class ContractOrderServiceTest {
 //    @Test
     public void testCancel(){
         contractOrderManager.cancelOrderByMessage(askContractOrder.getId(), new BigDecimal(1));
-        ContractOrderDO orderDO = contractOrderMapper.selectByPrimaryKey(askContractOrder.getId());
+        ContractOrderDO orderDO = contractOrderMapper.selectByIdAndUserId(askContractOrder.getUserId(), askContractOrder.getId());
         assert orderDO.getStatus() == CANCEL.getCode();
     }
 

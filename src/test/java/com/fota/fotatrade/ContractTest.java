@@ -129,13 +129,6 @@ public class ContractTest {
         //log.info("---------------"+competitorsPriceList);
     }
 
-    @Test
-    public void TestSelect(){
-        Long userId = 17764594330L;
-        Long orderId = 107480908236466L;
-        ContractOrderDO contractOrderDO = contractOrderMapper.selectByIdAndUserId(orderId,userId);
-        log.info(String.valueOf(contractOrderDO));
-    }
 
     @Test
     public void testbug(){
