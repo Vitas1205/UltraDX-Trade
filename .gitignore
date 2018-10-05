@@ -5,6 +5,9 @@ mvnw
 mvnw.cmd
 logs/
 trade-client/target
+*.iml
+*.ipr
+*.iws
 
 bootstrap.yml
 application.yml
