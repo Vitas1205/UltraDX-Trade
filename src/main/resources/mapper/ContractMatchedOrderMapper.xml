@@ -50,6 +50,7 @@
         FROM (
         SELECT * from contract_matched_order
         WHERE gmt_create > #{startDate} AND gmt_create &lt; #{endDate}
+        order by gmt_create, id
         LIMIT #{startRow},#{endRow}) AS a1
     </select>
 
