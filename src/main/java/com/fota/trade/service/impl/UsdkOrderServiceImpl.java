@@ -175,20 +175,23 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         try {
             result = usdkOrderManager.placeOrder(usdkOrderDTO, userInfoMap);
             if (result.isSuccess()) {
+                Runnable postTask = ThreadContextUtil.getPostTask();
+                if (null != postTask) {
+                    executorService.submit(postTask);
+                }
                 tradeLog.info("下单@@@" + usdkOrderDTO);
-                //redisManager.usdtOrderSaveForMatch(usdkOrderDTO);
             }
             resultCode.setCode(result.getCode());
             resultCode.setMessage(result.getMessage());
             return resultCode;
         }catch (Exception e){
-            log.error("USDK order() failed", e);
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
                 resultCode.setCode(businessException.getCode());
                 resultCode.setMessage(businessException.getMessage());
                 return resultCode;
             }
+            log.error("USDK order() failed", e);
         }
         resultCode = ResultCode.error(ResultCodeEnum.ORDER_FAILED.getCode(), ResultCodeEnum.ORDER_FAILED.getMessage());
         return resultCode;
