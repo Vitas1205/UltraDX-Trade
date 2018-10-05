@@ -328,7 +328,7 @@ public class UsdkOrderManager {
             orderMessage.setOrderType(usdkOrderDO.getOrderType());
             orderMessage.setTransferTime(transferTime);
             orderMessage.setOrderDirection(orderDirection);
-            Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", String.valueOf(usdkOrderDTO.getUserId())+usdkOrderDTO.getStatus(), orderMessage);
+            Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", "usdk_doCanceled_"+ orderId, orderMessage);
             if (!sendRet){
                 log.error("Send RocketMQ Message Failed ");
             }
