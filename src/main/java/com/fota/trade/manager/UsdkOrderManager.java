@@ -106,7 +106,7 @@ public class UsdkOrderManager {
     }
 
     //TODO 优化: 先更新账户，再insert订单，而不是先insert订单再更新账户
-    @Transactional(rollbackFor={RuntimeException.class, Exception.class, BusinessException.class})
+    @Transactional(rollbackFor={Throwable.class})
     public com.fota.common.Result<Long> placeOrder(UsdkOrderDTO usdkOrderDTO, Map<String, String> userInfoMap)throws Exception {
         String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
         String ipAddress = StringUtils.isEmpty(userInfoMap.get("ipAddress")) ? "" : userInfoMap.get("ipAddress");
@@ -160,8 +160,7 @@ public class UsdkOrderManager {
                             Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,
                                     userCapitalDTO.getAssetId(), String.valueOf(orderValue), gmtModified.getTime());
                             if (!updateLockedAmountRet){
-                                log.error("getCapitalService().updateLockedAmount failed{}", usdkOrderDO);
-                                throw new RuntimeException("getCapitalService().updateLockedAmount failed");
+                                throw new BusinessException(ResultCodeEnum.USDT_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(), ResultCodeEnum.USDT_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
                             }
                         }else {
                             throw new BusinessException(ResultCodeEnum.USDT_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(), ResultCodeEnum.USDT_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
@@ -183,8 +182,7 @@ public class UsdkOrderManager {
                                 updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,
                                         userCapitalDTO.getAssetId(), String.valueOf(usdkOrderDO.getTotalAmount()), gmtModified.getTime());
                             }catch (Exception e){
-                                log.error("capitalService failed{}", userId, userCapitalDTO.getAssetId(), usdkOrderDO.getTotalAmount(), gmtModified.getTime(), e);
-                                throw new RuntimeException("capitalService failed");
+                                throw new BusinessException(ResultCodeEnum.USDT_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(), ResultCodeEnum.USDT_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
                             }
                             if (!updateLockedAmountRet){
                                 log.error("getCapitalService().updateLockedAmount failed{}", usdkOrderDO);
