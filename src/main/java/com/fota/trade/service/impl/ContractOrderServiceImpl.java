@@ -20,6 +20,7 @@ import com.google.common.base.Joiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
@@ -431,7 +432,25 @@ public class ContractOrderServiceImpl implements
         Date startDate = calendar.getTime();
         BigDecimal totalFee = BigDecimal.ZERO;
         try {
-            totalFee = contractMatchedOrderMapper.getAllFee(startDate, endDate).multiply(new BigDecimal(2));
+            Map<String, Object> map = new HashMap<>();
+            map.put("startDate", startDate);
+            map.put("endDate", endDate);
+            totalFee = BigDecimal.ZERO;
+            Integer pageSize = 500;
+            Integer pageNo = 1;
+            while (true){
+                Integer startRow = (pageNo - 1) * pageSize;
+                Integer endRow = pageSize;
+                map.put("startRow", startRow);
+                map.put("endRow" ,endRow);
+                BigDecimal fee = contractMatchedOrderMapper.getAllFee(map);
+                if (fee != null){
+                    totalFee = totalFee.add(fee);
+                }else {
+                    break;
+                }
+                pageNo++;
+            }
             return totalFee;
         }catch (Exception e){
             log.error("getTodayFee failed",e);
@@ -443,7 +462,25 @@ public class ContractOrderServiceImpl implements
     public BigDecimal getFeeByDate(Date startDate, Date endDate) {
         BigDecimal totalFee = BigDecimal.ZERO;
         try {
-            totalFee = contractMatchedOrderMapper.getAllFee(startDate, endDate).multiply(new BigDecimal(2));
+            Map<String, Object> map = new HashMap<>();
+            map.put("startDate", startDate);
+            map.put("endDate", endDate);
+            totalFee = BigDecimal.ZERO;
+            Integer pageSize = 5000;
+            Integer pageNo = 1;
+            while (true){
+                Integer startRow = (pageNo - 1) * pageSize;
+                Integer endRow = pageSize;
+                map.put("startRow", startRow);
+                map.put("endRow" ,endRow);
+                BigDecimal fee = contractMatchedOrderMapper.getAllFee(map);
+                if (fee != null){
+                    totalFee = totalFee.add(fee);
+                }else {
+                    break;
+                }
+                pageNo++;
+            }
             return totalFee;
         }catch (Exception e){
             log.error("getTodayFee failed",e);
