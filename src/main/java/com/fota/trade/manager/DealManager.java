@@ -142,7 +142,7 @@ public class DealManager {
             int lever = contractLeverManager.getLeverByContractId(x.getUserId(), x.getContractId());
             x.setLever(lever);
             x.fillAmount(filledAmount);
-            updateContractOrder(x.getId(), filledAmount, filledPrice, new Date(transferTime));
+            updateContractOrder(x.getUserId(), x.getId(), filledAmount, filledPrice, new Date(transferTime));
         });
         profiler.complelete("update contract order");
 
@@ -221,10 +221,10 @@ public class DealManager {
         Boolean sendRet = rocketMqManager.sendMessage("match", "contract", matchId+"", orderMessage);
 
     }
-    public void updateContractOrder(long id, BigDecimal filledAmount, BigDecimal filledPrice, Date gmtModified) {
+    public void updateContractOrder(long userId, long id, BigDecimal filledAmount, BigDecimal filledPrice, Date gmtModified) {
         int aff;
         try {
-            aff = contractOrderMapper.updateAmountAndStatus(id, filledAmount, filledPrice, gmtModified);
+            aff = contractOrderMapper.updateAmountAndStatus(userId, id, filledAmount, filledPrice, gmtModified);
         } catch (Throwable t) {
             throw new RuntimeException(String.format("update contract order failed, orderId=%d, filledAmount=%s, filledPrice=%s, gmtModified=%s",
                     id, filledAmount, filledPrice, gmtModified), t);

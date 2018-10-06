@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Import;
  * Code is the law
  */
 @Configuration
-@ComponentScan(basePackages = {"com.fota"})
+@ComponentScan(basePackages = {"com.fota.trade.mapper"})
 @EnableAutoConfiguration
 @Import(DataSourceConfig.class)
 public class MapperTestConfig {

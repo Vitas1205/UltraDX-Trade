@@ -82,8 +82,9 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
     List<ContractOrderDO> selectUnfinishedOrderByContractId(Long contractId);
 
 
-    int updateAmountAndStatus(@Param("orderId") Long orderId,
-                              @Param("lFilledAmount") BigDecimal filledAmount,
+    int updateAmountAndStatus(@Param("userId") Long userId,
+                              @Param("orderId") Long orderId,
+                              @Param("filledAmount") BigDecimal filledAmount,
                               @Param("filledPrice") BigDecimal filledPrice,
                               @Param("gmtModified") Date gmtModified);
 

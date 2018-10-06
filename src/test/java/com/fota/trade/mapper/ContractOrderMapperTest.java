@@ -104,7 +104,7 @@ public class ContractOrderMapperTest {
 
         BigDecimal filledAmount = BigDecimal.valueOf(100L);
         BigDecimal filledPrice = new BigDecimal(0.3);
-        int aff = contractOrderMapper.updateAmountAndStatus(contractOrderDO.getId(),filledAmount, filledPrice, new Date());
+        int aff = contractOrderMapper.updateAmountAndStatus(userId, contractOrderDO.getId(),filledAmount, filledPrice, new Date());
         ContractOrderDO contractOrderDO2 = contractOrderMapper.selectByIdAndUserId(userId, contractOrderDO.getId());
 
         BigDecimal expectAvgPrice = PriceUtil.getAveragePrice(contractOrderDO.getAveragePrice(),
