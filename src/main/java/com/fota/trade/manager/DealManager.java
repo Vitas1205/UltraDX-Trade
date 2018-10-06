@@ -261,9 +261,14 @@ public class DealManager {
                     .setAddedTotalAmount(positionResult.getClosePL())
                     .setTotalLockAmount(ZERO);
             dealer.setDealType(ContractDealer.DealType.FORCE);
-            com.fota.common.Result result = contractService.updateBalances(dealer);
-            if (!result.isSuccess()) {
-                log.error("update balance failed, params={}", dealer);
+            try {
+                com.fota.common.Result result = contractService.updateBalances(dealer);
+                if (!result.isSuccess()) {
+                    log.error("update balance failed, params={}", dealer);
+                    failedBalanceMap.put(postDealMessage.getMsgKey(), JSON.toJSONString(dealer));
+                }
+            }catch (Exception e){
+                log.error("update balance exception, params={}", dealer, e);
                 failedBalanceMap.put(postDealMessage.getMsgKey(), JSON.toJSONString(dealer));
             }
         }
