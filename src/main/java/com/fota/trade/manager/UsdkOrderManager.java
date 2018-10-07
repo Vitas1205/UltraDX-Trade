@@ -106,7 +106,7 @@ public class UsdkOrderManager {
     }
 
     //TODO 优化: 先更新账户，再insert订单，而不是先insert订单再更新账户
-    @Transactional(rollbackFor={RuntimeException.class, Exception.class, BusinessException.class})
+    @Transactional(rollbackFor={Throwable.class})
     public com.fota.common.Result<Long> placeOrder(UsdkOrderDTO usdkOrderDTO, Map<String, String> userInfoMap)throws Exception {
         String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
         String ipAddress = StringUtils.isEmpty(userInfoMap.get("ipAddress")) ? "" : userInfoMap.get("ipAddress");
@@ -162,7 +162,7 @@ public class UsdkOrderManager {
                                         userCapitalDTO.getAssetId(), String.valueOf(orderValue), gmtModified.getTime());
                                 if (!updateLockedAmountRet){
                                     log.error("placeOrder getCapitalService().updateLockedAmount failed usdkOrderDO:{}", usdkOrderDO);
-                                    throw new RuntimeException("placeOrder getCapitalService().updateLockedAmount failed");
+                                    throw new BusinessException(ResultCodeEnum.USDT_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(), ResultCodeEnum.USDT_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
                                 }
                             }catch (Exception e){
                                 log.error("placeOrder getCapitalService().updateLockedAmount exception usdkOrderDO:{}", usdkOrderDO, e);
@@ -193,7 +193,7 @@ public class UsdkOrderManager {
                             }
                             if (!updateLockedAmountRet){
                                 log.error("placeOrder getCapitalService().updateLockedAmount failed usdkOrderDO:{}", usdkOrderDO);
-                                throw new RuntimeException("placeOrder getCapitalService().updateLockedAmount failed");
+                                throw new BusinessException(ResultCodeEnum.USDT_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(), ResultCodeEnum.USDT_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
                             }
                         }else {
                             throw new BusinessException(ResultCodeEnum.COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(), ResultCodeEnum.COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
