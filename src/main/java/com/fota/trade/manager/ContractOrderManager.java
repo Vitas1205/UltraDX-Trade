@@ -4,6 +4,9 @@ import com.alibaba.fastjson.JSONObject;
 import com.fota.asset.domain.UserContractDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.common.Result;
+import com.fota.common.client.CancelTypeEnum;
+import com.fota.common.client.MQConstants;
+import com.fota.common.client.ToCancelMessage;
 import com.fota.common.utils.CommonUtils;
 import com.fota.ticker.entrust.RealTimeEntrust;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
@@ -19,6 +22,7 @@ import com.fota.trade.util.ContractUtils;
 import com.fota.trade.util.Profiler;
 import com.fota.trade.util.ThreadContextUtil;
 import com.google.common.base.Joiner;
+import lombok.NonNull;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,11 +36,12 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.function.Predicate;
 
+import static com.fota.common.client.MQConstants.ORDER_TOPIC;
+import static com.fota.common.client.MQConstants.TO_CANCEL_CONTRACT_TAG;
 import static com.fota.trade.common.Constant.DEFAULT_LEVER;
 import static com.fota.trade.common.ResultCodeEnum.*;
 import static com.fota.trade.domain.enums.ContractStatusEnum.PROCESSING;
-import static com.fota.trade.domain.enums.OrderStatusEnum.CANCEL;
-import static com.fota.trade.domain.enums.OrderStatusEnum.PART_CANCEL;
+import static com.fota.trade.domain.enums.OrderStatusEnum.*;
 import static java.util.stream.Collectors.*;
 
 /**
@@ -84,16 +89,10 @@ public class ContractOrderManager {
         }
 
         ResultCode resultCode = ResultCode.success();
-        List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByContractId(contractId);
-        if (!CollectionUtils.isEmpty(list)) {
-            Map<Long, List<Long>> orderMap = list.stream()
-                    .collect(groupingBy(ContractOrderDO::getUserId, mapping(ContractOrderDO::getId, toList())));
-
-            for (Map.Entry<Long, List<Long>> entry : orderMap.entrySet()) {
-                sendCancelMessage(entry.getValue(), entry.getKey());
-            }
-        }
-
+        ToCancelMessage toCancelMessage = new ToCancelMessage();
+        toCancelMessage.setCancelType(CancelTypeEnum.CANCEL_BY_CONTRACTID);
+        toCancelMessage.setContractId(contractId);
+        rocketMqManager.sendMessage(ORDER_TOPIC, TO_CANCEL_CONTRACT_TAG, "to_cancelByContractId_"+contractId, toCancelMessage);
         return resultCode;
     }
 
@@ -285,9 +284,9 @@ public class ContractOrderManager {
      * @param orderId 委托单ID
      */
 //    @Transactional(rollbackFor = Throwable.class)
-    public ResultCode cancelOrderByMessage(long orderId, BigDecimal unfilleAmount) {
+    public ResultCode cancelOrderByMessage(long userId, long orderId, @NonNull BigDecimal unfilleAmount) {
         for (int i = 0;i<3;i++) {
-            ResultCode resultCode = doCancelOrder(orderId, unfilleAmount);
+            ResultCode resultCode = doCancelOrder(userId, orderId, unfilleAmount);
             if (resultCode.getCode().equals(CONCURRENT_PROBLEM.getCode())) {
                 randomSleep();
                 continue;
@@ -304,24 +303,21 @@ public class ContractOrderManager {
             log.error("sleep exception", e);
         }
     }
-    public ResultCode doCancelOrder(long orderId, BigDecimal unfilleAmount) {
-        //TODO
-        ContractOrderDO contractOrderDO = contractOrderMapper.selectByIdAndUserId(null, orderId);
+    public ResultCode doCancelOrder(long userId, long orderId, BigDecimal unfilleAmount) {
+
+        ContractOrderDO contractOrderDO = contractOrderMapper.selectByIdAndUserId(userId, orderId);
         if (Objects.isNull(contractOrderDO)) {
             return ResultCode.error(ILLEGAL_PARAM.getCode(), "contract order does not exist, id="+orderId);
         }
 
         ResultCode resultCode = new ResultCode();
         Integer status = contractOrderDO.getStatus();
-        Integer toStatus;
 
-        if (status == OrderStatusEnum.COMMIT.getCode()){
-           toStatus = CANCEL.getCode();
-        } else if (status == OrderStatusEnum.PART_MATCH.getCode()) {
-            toStatus = PART_CANCEL.getCode();
-        } else {
+        if (status != COMMIT.getCode() && status != PART_MATCH.getCode()) {
             return ResultCode.error(BIZ_ERROR.getCode(),"illegal order status, id="+contractOrderDO.getId() + ", status="+ contractOrderDO.getStatus());
         }
+        Integer toStatus = unfilleAmount.compareTo(contractOrderDO.getTotalAmount()) < 0 ? PART_CANCEL.getCode() : CANCEL.getCode();
+
         Long transferTime = System.currentTimeMillis();
         int ret = contractOrderMapper.cancelByOpLock(orderId, toStatus, contractOrderDO.getGmtModified());
         if (ret > 0) {

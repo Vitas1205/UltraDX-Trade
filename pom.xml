@@ -152,7 +152,7 @@
 		<dependency>
 			<groupId>com.fota</groupId>
 			<artifactId>common-client</artifactId>
-			<version>1.0.1-SNAPSHOT</version>
+			<version>1.0.2-SNAPSHOT</version>
 		</dependency>
 
 		<dependency>
@@ -167,10 +167,6 @@
 			<version>3.0.5</version>
 		</dependency>
 
-		<!--<dependency>-->
-			<!--<groupId>io.shardingsphere</groupId>-->
-			<!--<artifactId>sharding-jdbc-orchestration-spring-boot-starter</artifactId>-->
-		<!--</dependency>-->
 
 	</dependencies>
 
@@ -187,12 +183,6 @@
 				<groupId>com.zaxxer</groupId>
 				<artifactId>HikariCP-java7</artifactId>
 				<version>${hikari-cp.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>io.shardingsphere</groupId>
-				<artifactId>sharding-jdbc-orchestration-spring-boot-starter</artifactId>
-				<version>${sharding-sphere.version}</version>
 			</dependency>
 
 		</dependencies>

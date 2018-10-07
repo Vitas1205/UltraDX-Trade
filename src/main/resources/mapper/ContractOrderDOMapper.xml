@@ -141,12 +141,9 @@
       gmt_modified = #{gmtModified}
         ,average_price = IF(total_amount - unfilled_amount + #{filledAmount} =0, null ,
         (IFNULL(average_price,0) * (total_amount - unfilled_amount) + #{filledPrice} * #{filledAmount}) / (total_amount - unfilled_amount + #{filledAmount}))
-        ,status = case
-            when unfilled_amount = #{filledAmount} then 10
-            when status in(4,3) then 3
-            when total_amount > (unfilled_amount - #{filledAmount})  then 9
-            else 8
-         end
+        ,status = IF(status in(8,9)
+          ,IF(unfilled_amount - #{filledAmount} > 0 , 9, 10)
+          ,status)
         ,unfilled_amount = unfilled_amount - #{filledAmount}
 
     where user_id=#{userId} and id = #{orderId} and unfilled_amount - #{filledAmount} >=0

@@ -34,7 +34,7 @@ import static com.fota.trade.domain.enums.OrderStatusEnum.MATCH;
 @SpringBootTest
 @Slf4j
 @ContextConfiguration(classes = MapperTestConfig.class)
-@Transactional
+//@Transactional
 public class ContractOrderMapperTest {
 
     @Resource
