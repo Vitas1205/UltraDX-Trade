@@ -49,7 +49,7 @@
         SELECT sum(ask_fee + bid_fee)
         FROM (
         SELECT * from contract_matched_order
-        WHERE gmt_create > #{startDate} AND gmt_create &lt; #{endDate}
+        WHERE gmt_create > #{startDate} AND gmt_create &lt; #{endDate} AND ask_fee + bid_fee > 0
         order by gmt_create DESC, id
         LIMIT #{startRow},#{endRow}) AS a1
     </select>
