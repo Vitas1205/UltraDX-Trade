@@ -260,7 +260,7 @@ public class ContractOrderServiceTest {
 
 //    @Test
     public void testCancel(){
-        contractOrderManager.cancelOrderByMessage(askContractOrder.getId(), new BigDecimal(1));
+        contractOrderManager.cancelOrderByMessage(askContractOrder.getUserId(), askContractOrder.getId(), new BigDecimal(1));
         ContractOrderDO orderDO = contractOrderMapper.selectByIdAndUserId(askContractOrder.getUserId(), askContractOrder.getId());
         assert orderDO.getStatus() == CANCEL.getCode();
     }
