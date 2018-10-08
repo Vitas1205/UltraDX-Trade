@@ -353,11 +353,13 @@
         <include refid="Base_Column_List" />
         from trade_contract_order
         where user_id = #{userId,jdbcType=BIGINT}
+        and status in(8,9)
         <if test="orderTypes != null and orderTypes.size != 0">
             and order_type in
             <foreach item="item" index="index" collection="orderTypes" open="(" separator="," close=")">
                 #{item}
             </foreach>
         </if>
+        limit 1800
     </select>
 </mapper>
