@@ -20,7 +20,7 @@
 
         <!-- 打印出所有的信息，每次大小超过size，则这size大小的日志会自动存入按年份-月份建立的文件夹下面并进行压缩，作为存档 -->
         <RollingRandomAccessFile name="infoFile" fileName="${fileName}/info.log" immediateFlush="false"
-                                 filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.info.gz">
+                                 filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.info">
             <PatternLayout pattern="%d{yyyy-MM-dd 'at' HH:mm:ss z} [%t] %-5level %logger{36} %L %M - %msg%xEx%n" />
             <Policies>
                 <TimeBasedTriggeringPolicy interval="6" modulate="true" />
@@ -38,7 +38,7 @@
 
         <!-- 存储所有error信息 -->
         <RollingRandomAccessFile name="errorFile" fileName="${fileName}/error.log" immediateFlush="false"
-                                 filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.error.gz">
+                                 filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.error">
             <PatternLayout pattern="%d{yyyy-MM-dd 'at' HH:mm:ss z} [%t] %-5level %logger{36} %L %M - %msg%xEx%n" />
             <Policies>
                 <TimeBasedTriggeringPolicy interval="6" modulate="true" />
@@ -54,7 +54,7 @@
 
         <!-- 自定义日志配置 -->
         <RollingRandomAccessFile name="tradeFile" fileName="${fileName}/trade.log" immediateFlush="false"
-                                 filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.trade.gz">
+                                 filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.trade">
             <PatternLayout pattern="%d{yyyy-MM-dd 'at' HH:mm:ss z} [%t] %-5level %logger{36} %L %M - %msg%xEx%n" />
             <Policies>
                 <TimeBasedTriggeringPolicy interval="6" modulate="true" />
@@ -74,13 +74,13 @@
     <!-- 全局配置，默认所有的Logger都继承此配置 -->
     <Loggers>
         <!-- AsyncRoot - 异步记录日志 - 需要LMAX Disruptor的支持 -->
-        <Root level="info" additivity="false">
+        <AsyncRoot level="info" additivity="false">
             <AppenderRef ref="console"/>
             <AppenderRef ref="infoFile"/>
             <AppenderRef ref="errorFile"/>
-        </Root>
-        <Logger name="trade" level="info" additivity="false" includeLocation="true">
+        </AsyncRoot>
+        <AsyncLogger name="trade" level="info" additivity="false" includeLocation="true">
             <AppenderRef ref="tradeFile"/>
-        </Logger>
+        </AsyncLogger>
     </Loggers>
 </Configuration>
