@@ -37,6 +37,7 @@ import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.*;
 import java.util.function.Predicate;
 
@@ -88,6 +89,9 @@ public class ContractOrderManager {
 
     @Autowired
     private RealTimeEntrust realTimeEntrust;
+
+    @Autowired
+    private ContractMatchedOrderMapper contractMatchedOrderMapper;
 
     public ResultCode cancelOrderByContractId(Long contractId, Map<String, String> userInfoMap) throws Exception {
         if (Objects.isNull(contractId)) {
@@ -1022,5 +1026,43 @@ public class ContractOrderManager {
             return true;
         }
         return false;
+    }
+
+    public void cacheTodayFee(){
+        Date date=new Date();
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        calendar.set(Calendar.HOUR_OF_DAY, 18);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        Date endDate = calendar.getTime();
+        calendar.add(Calendar.DATE,-1);
+        Date startDate = calendar.getTime();
+        BigDecimal totalFee = BigDecimal.ZERO;
+        try {
+            Map<String, Object> map = new HashMap<>();
+            map.put("startDate", startDate);
+            map.put("endDate", endDate);
+            totalFee = BigDecimal.ZERO;
+            Integer pageSize = 5000;
+            Integer pageNo = 1;
+            while (true){
+                Integer startRow = (pageNo - 1) * pageSize;
+                Integer endRow = pageSize;
+                map.put("startRow", startRow);
+                map.put("endRow" ,endRow);
+                BigDecimal fee = contractMatchedOrderMapper.getAllFee(map);
+                if (fee != null){
+                    totalFee = totalFee.add(fee);
+                }else {
+                    break;
+                }
+                pageNo++;
+            }
+            redisManager.setWithExpire(Constant.REDIS_TODAY_FEE, totalFee, Duration.ofHours(1));
+        }catch (Exception e){
+            log.error("getTodayFee failed",e);
+        }
+        redisManager.setWithExpire(Constant.REDIS_TODAY_FEE, totalFee, Duration.ofHours(1));
     }
 }

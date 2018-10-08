@@ -267,8 +267,9 @@ public class ContractOrderServiceTest {
 
     @Test
     public void getTodayFeeTest() {
-        BigDecimal ret = contractOrderService.getTodayFee();
-        log.info("--------------------------" + ret);
+        //BigDecimal ret = contractOrderService.getTodayFee();
+        String platformTotalProfit = String.valueOf(contractOrderService.getTodayFee().multiply(new BigDecimal("0.4")).setScale(2,BigDecimal.ROUND_DOWN));
+        log.info("--------------------------" + platformTotalProfit);
     }
 
     @Test

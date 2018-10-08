@@ -535,5 +535,17 @@ public class RedisManager {
         return ops.increment(key, value);
     }
 
+    public boolean setWithExpire(final String key, final Object value, Duration expire) {
+        try {
+            ValueOperations<String, Object> vOps = redisTemplate.opsForValue();
+            vOps.set(key, value);
+            redisTemplate.expire(key, expire.toMillis(), TimeUnit.MILLISECONDS);
+            return true;
+        } catch (Exception e) {
+            log.error("redis set error", e);
+            return false;
+        }
+    }
+
 }
 
