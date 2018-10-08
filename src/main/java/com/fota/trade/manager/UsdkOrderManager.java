@@ -267,7 +267,7 @@ public class UsdkOrderManager {
      * @param orderId 委托单ID
      */
     @Transactional(rollbackFor = Exception.class)
-    public ResultCode cancelOrderByMessage(Long orderId, BigDecimal unfilledAmount) {
+    public ResultCode cancelOrderByMessage(long userId, long orderId, BigDecimal unfilledAmount) {
         ResultCode resultCode;
 
         UsdkOrderDO usdkOrderDO = usdkOrderMapper.selectByPrimaryKey(orderId);
