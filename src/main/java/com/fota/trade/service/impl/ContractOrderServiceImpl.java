@@ -334,7 +334,7 @@ public class ContractOrderServiceImpl implements
     public ResultCode cancelOrderByOrderType(long userId, List<Integer> orderTypes, Map<String, String> userInfoMap) {
         ResultCode resultCode = new ResultCode();
         try {
-            resultCode = contractOrderManager.cancelOrderByOrderType(userId, orderTypes, userInfoMap);
+//            resultCode = contractOrderManager.cancelOrderByOrderType(userId, orderTypes, userInfoMap);
             return resultCode;
         }catch (Exception e){
             log.error("Contract cancelOrderByOrderType() failed", e);
