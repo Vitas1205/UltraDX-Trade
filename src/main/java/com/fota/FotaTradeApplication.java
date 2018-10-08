@@ -41,6 +41,8 @@ public class FotaTradeApplication {
         try {
             consumer.init();
             orderConsumer.init();
+            log.error("runConsumer success");
+
         } catch (Exception e) {
             log.error("runConsumer failed", e);
         }

@@ -11,7 +11,6 @@ import com.fota.trade.domain.ResultCode;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.manager.UsdkOrderManager;
-import com.fota.trade.service.impl.UsdkOrderServiceImpl;
 import com.fota.trade.util.ConvertUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
@@ -29,18 +28,13 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Iterator;
-import java.util.Map;
 
-import static com.fota.trade.common.Constant.MQ_REPET_JUDGE_KEY_ORDER;
 import static com.fota.trade.common.ResultCodeEnum.ILLEGAL_PARAM;
 
 @Slf4j
 @Component
 public class OrderConsumer {
 
-    @Autowired
-    private UsdkOrderServiceImpl usdkOrderService;
 
     @Autowired
     private RedisManager redisManager;
@@ -127,6 +121,8 @@ public class OrderConsumer {
         });
         //调用start()方法启动consumer
         consumer.start();
+        System.out.println("order Consumer Started .");
+
     }
     private void logSuccessMsg(MessageExt messageExt, String extInfo) {
         String body = null;
