@@ -414,6 +414,11 @@ public class ContractOrderServiceTest {
 
         Assert.assertTrue(page != null && page.getData() != null);
     }
+    @Test
+    public void testCancelByContractType() {
+        ResultCode resultCode = contractOrderService.cancelOrderByOrderType(274, Arrays.asList(1), new HashMap<>());
+        assert resultCode.isSuccess();
+    }
 
 
 }
