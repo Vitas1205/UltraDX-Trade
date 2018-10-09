@@ -420,10 +420,11 @@ public class ContractOrderServiceImpl implements
      * 获取昨天六点到今天六点的平台手续费
      */
     @Override
+    @Deprecated
     public BigDecimal getTodayFee() {
         BigDecimal totalFee = BigDecimal.ZERO;
         try{
-            totalFee = redisManager.get(Constant.REDIS_TODAY_FEE) == null ? BigDecimal.ZERO : redisManager.get("todayFee");
+            totalFee = redisManager.get(Constant.REDIS_TODAY_FEE) == null ? BigDecimal.ZERO : redisManager.get(Constant.REDIS_TODAY_FEE);
         }catch (Exception e){
             log.error("redisManager.get(todayFee) failed");
         }
@@ -431,6 +432,7 @@ public class ContractOrderServiceImpl implements
     }
 
     @Override
+    @Deprecated
     public BigDecimal getFeeByDate(Date startDate, Date endDate) {
         BigDecimal totalFee = BigDecimal.ZERO;
         try {

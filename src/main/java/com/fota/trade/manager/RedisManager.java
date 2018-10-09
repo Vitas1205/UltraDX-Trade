@@ -151,6 +151,17 @@ public class RedisManager {
         return null;
     }
 
+    public Double counterWithExpire(final String redisKey, BigDecimal sum, Duration expire) {
+        try {
+            Double count = redisTemplate.opsForValue().increment(redisKey, sum.doubleValue());
+            redisTemplate.expire(redisKey, expire.toMillis(), TimeUnit.MILLISECONDS);
+            return count;
+        } catch (Exception e) {
+            log.error("redis getCount", e);
+        }
+        return null;
+    }
+
     public boolean expire(final String key, long expire) {
         return redisTemplate.expire(key, expire, TimeUnit.SECONDS);
     }

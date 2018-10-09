@@ -35,6 +35,8 @@ import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
@@ -178,7 +180,7 @@ public class DealManager {
 
         sendMatchMessage(contractMatchedOrderDO.getId(), contractMatchedOrderDTO, askFee.add(bidFee));
         contractOrderDOS.stream().forEach(x -> {
-            sendDealMessage(contractMatchedOrderDO.getId(), x, filledAmount, filledPrice);
+            sendDealMessage(contractMatchedOrderDO.getId(), x, filledAmount, filledPrice, askFee.add(bidFee));
             //后台交易监控日志打在里面 注释需谨慎
             saveToLog(x, filledAmount, contractMatchedOrderDO.getId());
         });
@@ -274,7 +276,27 @@ public class DealManager {
         }
         //防止异常抛出
         BasicUtils.exeWhitoutError(() -> updateTotalPosition(postDealMessage.getContractOrderDO().getContractId(), positionResult));
+        BasicUtils.exeWhitoutError(() -> updateTodayFee(postDealMessages));
         return ResultCode.success();
+    }
+
+    public void updateTodayFee(List<PostDealMessage> postDealMessages){
+        BigDecimal totalFee = postDealMessages.stream().map(PostDealMessage::getTotalFee).reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (totalFee.compareTo(ZERO) > 0){
+            Date date = new Date();
+            SimpleDateFormat sdf1 =new SimpleDateFormat("yyyyMMdd");
+            SimpleDateFormat sdf2 =new SimpleDateFormat("H");
+            int hours = Integer.valueOf(sdf2.format(date));
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(date);
+            calendar.add(Calendar.DATE, 1);
+            String dateStr = hours < 18 ? sdf1.format(date) : sdf1.format(calendar.getTime());
+            Double currentFee = redisManager.counterWithExpire(Constant.REDIS_TODAY_FEE + dateStr, totalFee, Duration.ofDays(1L));
+            if (null == currentFee) {
+                log.error("update total position amount failed, totalFee={}", totalFee);
+                return;
+            }
+        }
     }
 
     public UpdatePositionResult updatePosition(List<PostDealMessage> postDealMessages) {
@@ -478,11 +500,12 @@ public class DealManager {
 
     }
 
-    private void sendDealMessage(long matchId, ContractOrderDO contractOrderDO, BigDecimal filledAmount, BigDecimal filledPrice) {
+    private void sendDealMessage(long matchId, ContractOrderDO contractOrderDO, BigDecimal filledAmount, BigDecimal filledPrice, BigDecimal totalFee) {
         PostDealMessage postMatchMessage = new PostDealMessage().setContractOrderDO(contractOrderDO)
                 .setFilledAmount(filledAmount)
                 .setFilledPrice(filledPrice)
-                .setMatchId(matchId);
+                .setMatchId(matchId)
+                .setTotalFee(totalFee);
 
         MessageQueueSelector queueSelector = (final List<MessageQueue> mqs, final Message msg, final Object arg) -> {
             int key = arg.hashCode();
