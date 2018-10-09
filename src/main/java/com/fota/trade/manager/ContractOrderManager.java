@@ -13,7 +13,6 @@ import com.fota.trade.common.RedisKey;
 import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.*;
-import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserContractLeverMapper;
 import com.fota.trade.mapper.UserPositionMapper;
@@ -33,7 +32,6 @@ import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.util.*;
 import java.util.function.Predicate;
 
@@ -603,10 +601,7 @@ public class ContractOrderManager {
             return DEFAULT_LEVER;
         }
         Optional<UserContractLeverDO> leverDO = contractLeverDOS.stream().filter(x -> x.getUserId().equals(userId) && Long.valueOf(x.getAssetId()).equals(assetId)).findFirst();
-        if (leverDO.isPresent()) {
-            return new BigDecimal(leverDO.get().getLever());
-        }
-        return DEFAULT_LEVER;
+        return leverDO.map(userContractLeverDO -> new BigDecimal(userContractLeverDO.getLever())).orElse(DEFAULT_LEVER);
     }
 
     public BigDecimal computePrice(List<CompetitorsPriceDTO> competitorsPriceList, int type, long contractId) {
@@ -912,7 +907,7 @@ public class ContractOrderManager {
                 .setFloatingPL(BigDecimal.ZERO)
                 .setUserId(userId);
         Long orderContractId = newContractOrderDO.getContractId();
-        Integer orderDeriction = newContractOrderDO.getOrderDirection();
+        Integer orderDirection = newContractOrderDO.getOrderDirection();
         UserContractDTO userContractDTO = assetService.getContractAccount(userId);
         if (null == userContractDTO) {
             log.error("null userContractDTO, userId={}", userId);
@@ -945,13 +940,8 @@ public class ContractOrderManager {
 
 
             List<ContractOrderDO> orderList = null;
-            if (!CollectionUtils.isEmpty(allContractOrders)) {
-                orderList = allContractOrders.stream().filter(contractOrder -> contractOrder.getContractId().equals(contractId))
-                        .collect(toList());
-            }
-
-
-            Optional<UserPositionDO> userPositionDOOptional = allPositions.stream().filter(userPosition -> userPosition.getContractId().equals(contractCategoryDO.getId()))
+            Optional<UserPositionDO> userPositionDOOptional = allPositions.stream()
+                    .filter(userPosition -> userPosition.getContractId().equals(contractCategoryDO.getId()))
                     .findFirst();
 
             //计算保证金，浮动盈亏
@@ -972,10 +962,13 @@ public class ContractOrderManager {
                 positionMargin = positionUnfilledAmount.multiply(price).divide(lever, CommonUtils.scale, BigDecimal.ROUND_UP);
 
                 //todo 持仓反方向的"仓加挂"小于该合约持仓保证金，允许下单
-                if (contractCategoryDO.getId().equals(orderContractId) && positionType != orderDeriction){
+                if (contractCategoryDO.getId().equals(orderContractId) && positionType != orderDirection){
                     //计算委托额外保证金
+                    orderList = contractOrderMapper.selectNotEnforceOrderByUserIdAndContractId(userId, contractId);
                     if (!CollectionUtils.isEmpty(orderList)) {
-                        List<ContractOrderDO> filterOrderList = orderList.stream().filter(order -> order.getOrderDirection().equals(orderDeriction)).collect(toList());
+                        List<ContractOrderDO> filterOrderList = orderList.stream()
+                                .filter(order -> order.getOrderDirection().equals(orderDirection))
+                                .collect(toList());
                         Boolean judgeRet = judgeOrderResult(filterOrderList, positionType, positionUnfilledAmount, positionMargin, lever);
                         if (judgeRet){
                             return true;
@@ -984,13 +977,33 @@ public class ContractOrderManager {
                 }
             }
 
-            //计算委托额外保证金
-            if (!CollectionUtils.isEmpty(orderList)) {
+            if (contractCategoryDO.getId().equals(orderContractId)) {
+                orderList = contractOrderMapper.selectNotEnforceOrderByUserIdAndContractId(userId, contractId);
                 List<ContractOrderDO> bidList = orderList.stream().filter(order -> order.getOrderDirection() == OrderDirectionEnum.BID.getCode()).collect(toList());
                 List<ContractOrderDO> askList = orderList.stream().filter(order -> order.getOrderDirection() == OrderDirectionEnum.ASK.getCode()).collect(toList());
                 entrustMargin = getExtraEntrustAmount(userId, contractId, bidList, askList, positionType, positionUnfilledAmount, positionMargin, lever);
-            }
+            } else {
+                String contraryKey = "", sameKey = "";
+                if (positionType == PositionTypeEnum.OVER.getCode()) {
+                    contraryKey = contractId + "-" + PositionTypeEnum.EMPTY.name();
+                    sameKey = contractId + "-" + PositionTypeEnum.OVER.name();
+                } else if (positionType == PositionTypeEnum.EMPTY.getCode()) {
+                    contraryKey = contractId + "-" + PositionTypeEnum.OVER.name();
+                    sameKey = contractId + "-" + PositionTypeEnum.EMPTY.name();
+                }
+                Object contraryValue = redisManager.hGet(RedisKey.getUserContractPositionExtraKey(userId), contraryKey);
+                Object sameValue = redisManager.hGet(RedisKey.getUserContractPositionExtraKey(userId), sameKey);
+                //计算委托额外保证金
+                if (Objects.nonNull(contraryValue) && Objects.nonNull(sameValue)) {
+                    entrustMargin = cal(new BigDecimal(contraryValue.toString()), new BigDecimal(sameValue.toString()), positionMargin);
+                } else {
+                    orderList = contractOrderMapper.selectNotEnforceOrderByUserIdAndContractId(userId, contractId);
+                    List<ContractOrderDO> bidList = orderList.stream().filter(order -> order.getOrderDirection() == OrderDirectionEnum.BID.getCode()).collect(toList());
+                    List<ContractOrderDO> askList = orderList.stream().filter(order -> order.getOrderDirection() == OrderDirectionEnum.ASK.getCode()).collect(toList());
+                    entrustMargin = getExtraEntrustAmount(userId, contractId, bidList, askList, positionType, positionUnfilledAmount, positionMargin, lever);
+                }
 
+            }
             contractAccount.setMarginCallRequirement(contractAccount.getMarginCallRequirement().add(positionMargin))
                     .setFrozenAmount(contractAccount.getFrozenAmount().add(entrustMargin))
                     .setFloatingPL(contractAccount.getFloatingPL().add(floatingPL));
@@ -1019,44 +1032,4 @@ public class ContractOrderManager {
         getExtraEntrustAmount(userId, contractId, bidList, askList, userPositionDO.getPositionType(),
                 userPositionDO.getUnfilledAmount(), BigDecimal.ZERO, BigDecimal.valueOf(lever));
     }
-
-//    public void cacheTodayFee(){
-//        Date date=new Date();
-//        Calendar calendar = Calendar.getInstance();
-//        calendar.setTime(date);
-//        calendar.set(Calendar.HOUR_OF_DAY, 18);
-//        calendar.set(Calendar.MINUTE, 0);
-//        calendar.set(Calendar.SECOND, 0);
-//        Date endDate = calendar.getTime();
-//        calendar.add(Calendar.DATE,-1);
-//        Date startDate = calendar.getTime();
-//        BigDecimal totalFee = BigDecimal.ZERO;
-//        try {
-//            Map<String, Object> map = new HashMap<>();
-//            map.put("startDate", startDate);
-//            map.put("endDate", endDate);
-//            totalFee = BigDecimal.ZERO;
-//            Integer pageSize = 5000;
-//            Integer pageNo = 1;
-//            while (true){
-//                Integer startRow = (pageNo - 1) * pageSize;
-//                Integer endRow = pageSize;
-//                map.put("startRow", startRow);
-//                map.put("endRow" ,endRow);
-//                BigDecimal fee = contractMatchedOrderMapper.getAllFee(map);
-//                if (fee != null){
-//                    totalFee = totalFee.add(fee);
-//                }else {
-//                    break;
-//                }
-//                pageNo++;
-//            }
-//            redisManager.setWithExpire(Constant.REDIS_TODAY_FEE, totalFee, Duration.ofHours(1));
-//            return;
-//        }catch (Exception e){
-//            log.error("getTodayFee failed",e);
-//        }
-//        redisManager.setWithExpire(Constant.REDIS_TODAY_FEE, totalFee, Duration.ofHours(1));
-//        return;
-//    }
 }
