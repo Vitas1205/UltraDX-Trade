@@ -1,6 +1,9 @@
 package com.fota.trade.util;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.net.URL;
@@ -12,9 +15,11 @@ import java.net.MalformedURLException;
  * @Author huangtao 2018/7/12 下午4:04
  * @Description 时间工具
  */
+@Slf4j
 public class DateUtil {
 
     public static final String webUrl1 = "http://www.baidu.com";
+    public static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     /**
      * 获取 网络 时间
@@ -122,6 +127,15 @@ public class DateUtil {
             }
         }
         return endTime;
+    }
+
+    public static Date parse(String str){
+        try {
+            return sdf.parse(str);
+        } catch (ParseException e) {
+            log.error("parse date exception, str={}", str, e);
+            return null;
+        }
     }
 
 }

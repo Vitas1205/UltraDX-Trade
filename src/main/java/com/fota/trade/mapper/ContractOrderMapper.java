@@ -1,5 +1,6 @@
 package com.fota.trade.mapper;
 
+import com.fota.trade.client.RecoveryQuery;
 import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.domain.DateWrapper;
 import com.fota.trade.mapper.common.BaseMapper;
@@ -87,6 +88,17 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
     })
     @ResultMap("BaseResultMap")
     List<ContractOrderDO> selectUnfinishedOrderByContractId(Long contractId);
+
+    @Select({
+            " select * ",
+            " from trade_contract_order_#{tableIndex} ",
+            " where  status in (8,9) " +
+            " and gmt_create <= #{maxGmtCreate} " +
+            " order by gmt_create asc, id asc " +
+             " limit #{start}, #{pageSize} "
+    })
+    @ResultMap("BaseResultMap")
+    List<ContractOrderDO> queryForRecovery(@Param("tableIndex") int tableIndex, @Param("maxGmtCreate") Date maxGmtCreate, @Param("start") int start, @Param("pageSize") int pageSize);
 
 
     int updateAmountAndStatus(@Param("userId") Long userId,

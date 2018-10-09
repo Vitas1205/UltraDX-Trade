@@ -4,6 +4,8 @@ import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
 import com.fota.common.Page;
 import com.fota.common.Result;
+import com.fota.trade.client.RecoveryMetaData;
+import com.fota.trade.client.RecoveryQuery;
 import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.ResultCode;
@@ -26,7 +28,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.stream.Collectors;
 
+import static com.fota.trade.client.constants.Constants.TABLE_NUMBER;
 import static com.fota.trade.common.ResultCodeEnum.DATABASE_EXCEPTION;
 import static com.fota.trade.common.ResultCodeEnum.SYSTEM_ERROR;
 
@@ -140,15 +144,6 @@ public class ContractOrderServiceImpl implements
         return contractOrderDTOPage;
     }
 
-    public com.fota.common.Result<Date> getMaxCreateTime(){
-        try {
-            Date date = contractOrderMapper.getMaxCreateTime();
-            return Result.suc(date);
-        }catch (Throwable t) {
-            log.error("getMaxCreateTime exception", t);
-            return Result.fail(DATABASE_EXCEPTION.getCode(), DATABASE_EXCEPTION.getMessage());
-        }
-    }
 
     @Override
     public Integer countContractOrderByQuery4Recovery(BaseQuery contractOrderQuery) {
@@ -162,6 +157,21 @@ public class ContractOrderServiceImpl implements
             log.error("contractOrderMapper.countContractOrderByQuery4Recovery({})", contractOrderQuery, e);
         }
         return total;
+    }
+
+    @Override
+    public Result<RecoveryMetaData> getRecoveryMetaData() {
+        Date date;
+        try {
+            date = contractOrderMapper.getMaxCreateTime();
+        }catch (Throwable t) {
+            log.error("getMaxCreateTime exception", t);
+            return Result.fail(DATABASE_EXCEPTION.getCode(), DATABASE_EXCEPTION.getMessage());
+        }
+        RecoveryMetaData recoveryMetaData = new RecoveryMetaData();
+        recoveryMetaData.setMaxGmtCreate(date);
+        recoveryMetaData.setTableNumber(TABLE_NUMBER);
+        return Result.suc(recoveryMetaData);
     }
 
     @Override
@@ -202,6 +212,23 @@ public class ContractOrderServiceImpl implements
         }
         contractOrderDTOPage.setData(list);
         return contractOrderDTOPage;
+    }
+
+    @Override
+    public Result<Page<ContractOrderDTO>> listContractOrder4Recovery(RecoveryQuery recoveryQuery) {
+        List<ContractOrderDTO> contractOrderDTOS;
+        try {
+            List<ContractOrderDO> contractOrderDOS = contractOrderMapper.queryForRecovery(recoveryQuery.getTableIndex(), recoveryQuery.getMaxGmtCreate(), recoveryQuery.getStart(), recoveryQuery.getPageSize());
+            contractOrderDTOS = contractOrderDOS.stream().map( x -> BeanUtils.copy(x)).collect(Collectors.toList());
+        }catch (Throwable t) {
+            log.error("queryForRecovery exception, query={}", recoveryQuery, t);
+            return Result.<Page<ContractOrderDTO>>create().error(com.fota.common.ResultCodeEnum.DATABASE_EXCEPTION);
+        }
+        Page<ContractOrderDTO> contractOrderDTOPage = new Page<>();
+        contractOrderDTOPage.setPageSize(recoveryQuery.getPageSize());
+        contractOrderDTOPage.setPageNo(recoveryQuery.getPageIndex());
+        contractOrderDTOPage.setData(contractOrderDTOS);
+        return Result.suc(contractOrderDTOPage);
     }
 
     /**

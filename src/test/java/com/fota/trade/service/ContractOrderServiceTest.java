@@ -5,6 +5,8 @@ import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
 import com.fota.common.Page;
 import com.fota.common.Result;
+import com.fota.trade.client.RecoveryMetaData;
+import com.fota.trade.client.RecoveryQuery;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.OrderCloseTypeEnum;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
@@ -16,6 +18,7 @@ import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.service.impl.ContractAccountServiceImpl;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
 import com.fota.trade.util.BasicUtils;
+import com.fota.trade.util.DateUtil;
 import com.fota.trade.util.PriceUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
@@ -279,8 +282,8 @@ public class ContractOrderServiceTest {
     }
 
     @Test
-    public void testGetMaxGmtCreate(){
-        Result<Date> result = contractOrderService.getMaxCreateTime();
+    public void testGetMetaData(){
+        Result<RecoveryMetaData> result = contractOrderService.getRecoveryMetaData();
         assert result.isSuccess();
         log.info("date={}",result.getData());
 
@@ -411,17 +414,14 @@ public class ContractOrderServiceTest {
 
     @Test
     public void testListUsdkOrderByQuery4Recovery() {
-        BaseQuery usdkOrderQuery = new BaseQuery();
-        usdkOrderQuery.setPageSize(1000);
-        usdkOrderQuery.setPageNo(1);
-        List<Integer> orderStatus = new ArrayList<>();
-        orderStatus.add(OrderStatusEnum.COMMIT.getCode());
-        orderStatus.add(OrderStatusEnum.PART_MATCH.getCode());
-
-        usdkOrderQuery.setOrderStatus(orderStatus);
-        Page<ContractOrderDTO> page = contractOrderService.listContractOrderByQuery4Recovery(usdkOrderQuery);
-
-        Assert.assertTrue(page != null && page.getData() != null);
+        RecoveryQuery recoveryQuery = new RecoveryQuery();
+        recoveryQuery.setMaxGmtCreate(DateUtil.parse("2018-10-09 12:04:00"));
+        recoveryQuery.setTableIndex(18);
+        recoveryQuery.setPageIndex(1);
+        recoveryQuery.setPageSize(10);
+        Result result  = contractOrderService.listContractOrder4Recovery(recoveryQuery);
+        Assert.assertTrue(result.isSuccess());
+        log.info("result={}", result);
     }
     @Test
     public void testCancelByContractType() {
