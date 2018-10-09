@@ -151,6 +151,17 @@ public class RedisManager {
         return null;
     }
 
+    public Double counterWithExpire(final String redisKey, BigDecimal sum, Duration expire) {
+        try {
+            Double count = redisTemplate.opsForValue().increment(redisKey, sum.doubleValue());
+            redisTemplate.expire(redisKey, expire.toMillis(), TimeUnit.MILLISECONDS);
+            return count;
+        } catch (Exception e) {
+            log.error("redis getCount", e);
+        }
+        return null;
+    }
+
     public boolean expire(final String key, long expire) {
         return redisTemplate.expire(key, expire, TimeUnit.SECONDS);
     }
@@ -533,6 +544,18 @@ public class RedisManager {
     public Long dec(String key, long value) {
         ValueOperations<String, Object> ops = redisTemplate.opsForValue();
         return ops.increment(key, value);
+    }
+
+    public boolean setWithExpire(final String key, final Object value, Duration expire) {
+        try {
+            ValueOperations<String, Object> vOps = redisTemplate.opsForValue();
+            vOps.set(key, value);
+            redisTemplate.expire(key, expire.toMillis(), TimeUnit.MILLISECONDS);
+            return true;
+        } catch (Exception e) {
+            log.error("redis set error", e);
+            return false;
+        }
     }
 
 }

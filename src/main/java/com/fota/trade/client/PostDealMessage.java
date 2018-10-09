@@ -19,6 +19,7 @@ public class PostDealMessage {
     private BigDecimal filledPrice;
     private ContractOrderDO contractOrderDO;
     private String msgKey;
+    private BigDecimal totalFee;
 
     @Override
     public boolean equals(Object o) {

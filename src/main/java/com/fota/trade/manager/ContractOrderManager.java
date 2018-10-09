@@ -13,6 +13,7 @@ import com.fota.trade.common.RedisKey;
 import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.*;
+import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserContractLeverMapper;
 import com.fota.trade.mapper.UserPositionMapper;
@@ -32,6 +33,7 @@ import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.*;
 import java.util.function.Predicate;
 
@@ -1017,4 +1019,44 @@ public class ContractOrderManager {
         getExtraEntrustAmount(userId, contractId, bidList, askList, userPositionDO.getPositionType(),
                 userPositionDO.getUnfilledAmount(), BigDecimal.ZERO, BigDecimal.valueOf(lever));
     }
+
+//    public void cacheTodayFee(){
+//        Date date=new Date();
+//        Calendar calendar = Calendar.getInstance();
+//        calendar.setTime(date);
+//        calendar.set(Calendar.HOUR_OF_DAY, 18);
+//        calendar.set(Calendar.MINUTE, 0);
+//        calendar.set(Calendar.SECOND, 0);
+//        Date endDate = calendar.getTime();
+//        calendar.add(Calendar.DATE,-1);
+//        Date startDate = calendar.getTime();
+//        BigDecimal totalFee = BigDecimal.ZERO;
+//        try {
+//            Map<String, Object> map = new HashMap<>();
+//            map.put("startDate", startDate);
+//            map.put("endDate", endDate);
+//            totalFee = BigDecimal.ZERO;
+//            Integer pageSize = 5000;
+//            Integer pageNo = 1;
+//            while (true){
+//                Integer startRow = (pageNo - 1) * pageSize;
+//                Integer endRow = pageSize;
+//                map.put("startRow", startRow);
+//                map.put("endRow" ,endRow);
+//                BigDecimal fee = contractMatchedOrderMapper.getAllFee(map);
+//                if (fee != null){
+//                    totalFee = totalFee.add(fee);
+//                }else {
+//                    break;
+//                }
+//                pageNo++;
+//            }
+//            redisManager.setWithExpire(Constant.REDIS_TODAY_FEE, totalFee, Duration.ofHours(1));
+//            return;
+//        }catch (Exception e){
+//            log.error("getTodayFee failed",e);
+//        }
+//        redisManager.setWithExpire(Constant.REDIS_TODAY_FEE, totalFee, Duration.ofHours(1));
+//        return;
+//    }
 }

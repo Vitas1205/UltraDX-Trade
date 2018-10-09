@@ -147,50 +147,43 @@ public class UsdkOrderManager {
             }
             orderId = usdkOrderDO.getId();
             BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
+            int assetTypeId = 0;
+            BigDecimal entrustValue = BigDecimal.ZERO;
+            int errorCode = 0;
+            String errorMsg;
             if (orderDirection == OrderDirectionEnum.BID.getCode()){
-                //查询usdk账户可用余额
-                for(UserCapitalDTO userCapitalDTO : list){
-                    if (userCapitalDTO.getAssetId() == AssetTypeEnum.USDT.getCode()){
-                        BigDecimal amount = new BigDecimal(userCapitalDTO.getAmount());
-                        BigDecimal lockedAmount = new BigDecimal(userCapitalDTO.getLockedAmount());
-                        BigDecimal availableAmount = amount.subtract(lockedAmount);
-                        //判断账户可用余额是否大于orderValue
-                        if (availableAmount.compareTo(orderValue) >= 0){
-                            Date gmtModified = userCapitalDTO.getGmtModified();
+                assetTypeId = AssetTypeEnum.USDT.getCode();
+                entrustValue = orderValue;
+                errorCode = ResultCodeEnum.USDT_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode();
+                errorMsg = ResultCodeEnum.USDT_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage();
+            }else {
+                assetTypeId = assetId;
+                entrustValue = usdkOrderDO.getTotalAmount();
+                errorCode = ResultCodeEnum.COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode();
+                errorMsg = ResultCodeEnum.COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage();
+            }
+            //查询账户可用余额
+            for(UserCapitalDTO userCapitalDTO : list){
+                if (userCapitalDTO.getAssetId() == assetTypeId){
+                    BigDecimal amount = new BigDecimal(userCapitalDTO.getAmount());
+                    BigDecimal lockedAmount = new BigDecimal(userCapitalDTO.getLockedAmount());
+                    BigDecimal availableAmount = amount.subtract(lockedAmount);
+                    //判断账户可用余额是否大于orderValue
+                    if (availableAmount.compareTo(entrustValue) >= 0){
+                        Date gmtModified = userCapitalDTO.getGmtModified();
+                        try{
                             Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,
-                                    userCapitalDTO.getAssetId(), String.valueOf(orderValue), gmtModified.getTime());
+                                    userCapitalDTO.getAssetId(), String.valueOf(entrustValue), gmtModified.getTime());
                             if (!updateLockedAmountRet){
-                                throw new BusinessException(ResultCodeEnum.USDT_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(), ResultCodeEnum.USDT_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
+                                log.error("placeOrder getCapitalService().updateLockedAmount failed usdkOrderDO:{}", usdkOrderDO);
+                                throw new BusinessException(errorCode, errorMsg);
                             }
-                        }else {
-                            throw new BusinessException(ResultCodeEnum.USDT_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(), ResultCodeEnum.USDT_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
+                        }catch (Exception e){
+                            log.error("placeOrder getCapitalService().updateLockedAmount exception usdkOrderDO:{}", usdkOrderDO, e);
+                            throw new RuntimeException("placeOrder getCapitalService().updateLockedAmount exception");
                         }
-                    }
-                }
-            }else if (orderDirection == OrderDirectionEnum.ASK.getCode()){
-                //查询对应资产账户可用余额
-                for (UserCapitalDTO userCapitalDTO : list){
-                    if (assetId.equals(userCapitalDTO.getAssetId())){
-                        BigDecimal amount = new BigDecimal(userCapitalDTO.getAmount());
-                        BigDecimal lockedAmount = new BigDecimal(userCapitalDTO.getLockedAmount());
-                        BigDecimal availableAmount = amount.subtract(lockedAmount);
-                        //断账户可用余额是否大于tatalValue
-                        if (availableAmount.compareTo(usdkOrderDO.getTotalAmount()) >= 0){
-                            Date gmtModified = userCapitalDTO.getGmtModified();
-                            Boolean updateLockedAmountRet = false;
-                            try {
-                                updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,
-                                        userCapitalDTO.getAssetId(), String.valueOf(usdkOrderDO.getTotalAmount()), gmtModified.getTime());
-                            }catch (Exception e){
-                                throw new BusinessException(ResultCodeEnum.USDT_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(), ResultCodeEnum.USDT_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
-                            }
-                            if (!updateLockedAmountRet){
-                                log.error("getCapitalService().updateLockedAmount failed{}", usdkOrderDO);
-                                throw new RuntimeException("getCapitalService().updateLockedAmount failed");
-                            }
-                        }else {
-                            throw new BusinessException(ResultCodeEnum.COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(), ResultCodeEnum.COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
-                        }
+                    }else {
+                        throw new BusinessException(errorCode, errorMsg);
                     }
                 }
             }
@@ -298,11 +291,16 @@ public class UsdkOrderManager {
                 unlockAmount = unfilledAmount;
             }
             //解冻Coin钱包账户
-            Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(usdkOrderDO.getUserId(),assetId,unlockAmount.negate().toString(), 0L);
-            if (!updateLockedAmountRet){
-                throw new BizException(BIZ_ERROR.getCode(),"getCapitalService().updateLockedAmount failed, usdkOrderDO="+ usdkOrderDO);
+            try{
+                Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(usdkOrderDO.getUserId(),assetId,unlockAmount.negate().toString(), 0L);
+                if (!updateLockedAmountRet){
+                    log.error("cancelOrder getCapitalService().updateLockedAmount failed usdkOrderDO:{}", usdkOrderDO);
+                    throw new BizException(BIZ_ERROR.getCode(),"cancelOrder getCapitalService().updateLockedAmount failed");
+                }
+            }catch (Exception e){
+                log.error("cancelOrder getCapitalService().updateLockedAmount exception usdkOrderDO:{}", usdkOrderDO);
+                throw new BizException(BIZ_ERROR.getCode(),"cancelOrder getCapitalService().updateLockedAmount exception");
             }
-
             UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
             BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
             BigDecimal matchAmount = usdkOrderDTO.getTotalAmount().subtract(unfilledAmount);
@@ -437,10 +435,15 @@ public class UsdkOrderManager {
         }
         balanceTransferDTO.setAssetId(usdkMatchedOrderDTO.getAssetId());
         boolean updateRet = false;
-        updateRet = getCapitalService().updateBalance(balanceTransferDTO);
+        try {
+            updateRet = getCapitalService().updateBalance(balanceTransferDTO);
+        }catch (Exception e){
+            log.error("getCapitalService().updateBalance exception, balanceTransferDTO:{}", balanceTransferDTO);
+            throw new BizException(BIZ_ERROR.getCode(), "getCapitalService().updateBalance exception, balanceTransferDTO:{}" + balanceTransferDTO);
+        }
         if (!updateRet) {
-            log.error("getCapitalService().updateBalance failed{}", balanceTransferDTO);
-            throw new BizException(BIZ_ERROR.getCode(), "getCapitalService().updateBalance failed, param={}" + balanceTransferDTO);
+            log.error("getCapitalService().updateBalance failed, balanceTransferDTO:{}", balanceTransferDTO);
+            throw new BizException(BIZ_ERROR.getCode(), "getCapitalService().updateBalance failed, balanceTransferDTO:{}" + balanceTransferDTO);
         }
         UsdkMatchedOrderDO usdkMatchedOrderDO = com.fota.trade.common.BeanUtils.copy(usdkMatchedOrderDTO);
         usdkMatchedOrderDO.setAskUserId(askUsdkOrder.getUserId());
