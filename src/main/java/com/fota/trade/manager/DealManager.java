@@ -291,7 +291,7 @@ public class DealManager {
             calendar.setTime(date);
             calendar.add(Calendar.DATE, 1);
             String dateStr = hours < 18 ? sdf1.format(date) : sdf1.format(calendar.getTime());
-            Double currentFee = redisManager.counterWithExpire(Constant.REDIS_TODAY_FEE + dateStr, totalFee, Duration.ofDays(2L));
+            Double currentFee = redisManager.counter(Constant.REDIS_TODAY_FEE + dateStr, totalFee);
             if (null == currentFee) {
                 log.error("update total position amount failed, totalFee={}", totalFee);
                 return;

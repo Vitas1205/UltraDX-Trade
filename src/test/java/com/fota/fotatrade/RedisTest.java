@@ -3,6 +3,7 @@ package com.fota.fotatrade;
 import com.fota.ticker.entrust.RealTimeEntrust;
 import com.fota.ticker.entrust.entity.BuyPriceSellPriceDTO;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
+import com.fota.trade.common.Constant;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.PositionTypeEnum;
 import com.fota.trade.manager.RedisManager;
@@ -25,8 +26,11 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.Resource;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -68,11 +72,21 @@ public class RedisTest {
 
     @Test
     public void RedisGetTest(){
-        String redisKey = "fota_competitor_price";
-        long st;
-        st = System.currentTimeMillis();
-        Object obj = redisManager.get(redisKey);
-        log.info("costOfQuery={}, result={}", System.currentTimeMillis() - st,obj);
+        //从redis获取今天手续费
+        Date date = new Date();
+        SimpleDateFormat sdf1 =new SimpleDateFormat("yyyyMMdd");
+        SimpleDateFormat sdf2 =new SimpleDateFormat("H");
+        int hours = Integer.valueOf(sdf2.format(date));
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        calendar.add(Calendar.DATE, 1);
+        String dateStr = hours < 18 ? sdf1.format(date) : sdf1.format(calendar.getTime());
+        BigDecimal totalFee =  BigDecimal.valueOf((Double)redisManager.get(Constant.REDIS_TODAY_FEE + dateStr));
+        if (totalFee == null){
+            log.error("totalFee not exeist, rediskey:{}", Constant.REDIS_TODAY_FEE + dateStr);
+            totalFee = BigDecimal.ZERO;
+        }
+        log.info("totalFee"+totalFee);
     }
 
     @Test
