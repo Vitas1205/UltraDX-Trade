@@ -1,6 +1,7 @@
 package com.fota.trade.mapper;
 
 import com.fota.trade.domain.ContractOrderDO;
+import com.fota.trade.domain.DateWrapper;
 import com.fota.trade.mapper.common.BaseMapper;
 import org.apache.ibatis.annotations.*;
 
@@ -22,8 +23,8 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
             "total_amount, unfilled_amount, ",
             "price, fee, ",
             "status, average_price, order_type, close_type, order_context)",
-            "values (#{id}, #{gmtCreate}, ",
-            "#{gmtModified}, #{userId}, ",
+            "values (#{id}, now(3), ",
+            "now(3), #{userId}, ",
             "#{contractId,jdbcType=INTEGER}, #{contractName,jdbcType=VARCHAR}, ",
             "#{orderDirection,jdbcType=TINYINT}, ",
             "#{totalAmount,jdbcType=BIGINT}, #{unfilledAmount,jdbcType=BIGINT}, ",
@@ -45,6 +46,12 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
     })
     @ResultMap("BaseResultMap")
     ContractOrderDO selectByIdAndUserId(@Param("userId") Long userId, @Param("id") Long id);
+
+    @Select(  " select max(gmt_create) " +
+            " from trade_contract_order " +
+            " where status in (8,9) ")
+    @ResultType(Date.class)
+    Date getMaxCreateTime();
 
 
 

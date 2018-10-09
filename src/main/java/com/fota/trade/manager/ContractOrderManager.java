@@ -4,18 +4,19 @@ import com.alibaba.fastjson.JSONObject;
 import com.fota.asset.domain.UserContractDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.common.Result;
-import com.fota.common.client.CancelTypeEnum;
-import com.fota.common.client.MQConstants;
-import com.fota.common.client.ToCancelMessage;
 import com.fota.common.utils.CommonUtils;
 import com.fota.ticker.entrust.RealTimeEntrust;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
+import com.fota.trade.client.CancelTypeEnum;
+import com.fota.trade.client.ToCancelMessage;
 import com.fota.trade.common.BizException;
 import com.fota.trade.common.Constant;
 import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.*;
-import com.fota.trade.mapper.*;
+import com.fota.trade.mapper.ContractOrderMapper;
+import com.fota.trade.mapper.UserContractLeverMapper;
+import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.service.ContractCategoryService;
 import com.fota.trade.util.BasicUtils;
 import com.fota.trade.util.ContractUtils;
@@ -36,13 +37,13 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.function.Predicate;
 
-import static com.fota.common.client.MQConstants.ORDER_TOPIC;
-import static com.fota.common.client.MQConstants.TO_CANCEL_CONTRACT_TAG;
+import static com.fota.trade.client.MQConstants.ORDER_TOPIC;
+import static com.fota.trade.client.MQConstants.TO_CANCEL_CONTRACT_TAG;
 import static com.fota.trade.common.Constant.DEFAULT_LEVER;
 import static com.fota.trade.common.ResultCodeEnum.*;
 import static com.fota.trade.domain.enums.ContractStatusEnum.PROCESSING;
 import static com.fota.trade.domain.enums.OrderStatusEnum.*;
-import static java.util.stream.Collectors.*;
+import static java.util.stream.Collectors.toList;
 
 /**
  * @author Gavin Shen

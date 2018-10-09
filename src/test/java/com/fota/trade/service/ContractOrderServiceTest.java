@@ -25,6 +25,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.BeanUtils;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
@@ -40,7 +41,7 @@ import static com.fota.ticker.entrust.entity.enums.OrderStatusEnum.CANCEL;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
-//@Transactional
+@Transactional
 @Slf4j
 public class ContractOrderServiceTest {
 
@@ -275,6 +276,14 @@ public class ContractOrderServiceTest {
     public void getAveragePriceTest() {
         BigDecimal ret = PriceUtil.getAveragePrice(null, new BigDecimal(0), new BigDecimal(1), new BigDecimal(10));
         log.info("--------------------------" + ret);
+    }
+
+    @Test
+    public void testGetMaxGmtCreate(){
+        Result<Date> result = contractOrderService.getMaxCreateTime();
+        assert result.isSuccess();
+        log.info("date={}",result.getData());
+
     }
 
     @Test
