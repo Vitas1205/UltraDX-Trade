@@ -1,7 +1,5 @@
 package com.fota.trade.client.constants;
 
-import com.dangdang.ddframe.job.api.ShardingContext;
-import com.dangdang.ddframe.job.api.simple.SimpleJob;
 import com.fota.trade.common.BeanUtil;
 import com.fota.trade.manager.ContractOrderManager;
 import lombok.extern.slf4j.Slf4j;

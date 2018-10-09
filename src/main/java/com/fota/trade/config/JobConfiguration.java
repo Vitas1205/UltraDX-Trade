@@ -1,12 +1,5 @@
 package com.fota.trade.config;
 
-import com.dangdang.ddframe.job.config.JobCoreConfiguration;
-import com.dangdang.ddframe.job.config.simple.SimpleJobConfiguration;
-import com.dangdang.ddframe.job.lite.api.JobScheduler;
-import com.dangdang.ddframe.job.lite.config.LiteJobConfiguration;
-import com.dangdang.ddframe.job.reg.base.CoordinatorRegistryCenter;
-import com.dangdang.ddframe.job.reg.zookeeper.ZookeeperConfiguration;
-import com.dangdang.ddframe.job.reg.zookeeper.ZookeeperRegistryCenter;
 import com.fota.trade.service.ContractCategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
