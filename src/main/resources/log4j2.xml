@@ -2,7 +2,7 @@
 <!-- Configuration后面的status，这个用于设置log4j2自身内部的信息输出，可以不设置，当设置成trace时，
  你会看到log4j2内部各种详细输出。可以设置成OFF(关闭)或Error(只输出错误信息)
 -->
-<Configuration status="INFO">
+<Configuration status="Error">
     <!-- 日志文件目录和压缩文件目录配置 -->
     <Properties>
         <Property name="fileName">./logs/</Property>
@@ -20,7 +20,7 @@
 
         <!-- 打印出所有的信息，每次大小超过size，则这size大小的日志会自动存入按年份-月份建立的文件夹下面并进行压缩，作为存档 -->
         <RollingRandomAccessFile name="infoFile" fileName="${fileName}/info.log" immediateFlush="false"
-                                 filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.info.gz">
+                                 filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.info">
             <PatternLayout pattern="%d{yyyy-MM-dd 'at' HH:mm:ss z} [%t] %-5level %logger{36} %L %M - %msg%xEx%n" />
             <Policies>
                 <TimeBasedTriggeringPolicy interval="6" modulate="true" />
@@ -38,7 +38,7 @@
 
         <!-- 存储所有error信息 -->
         <RollingRandomAccessFile name="errorFile" fileName="${fileName}/error.log" immediateFlush="false"
-                                 filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.error.gz">
+                                 filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.error">
             <PatternLayout pattern="%d{yyyy-MM-dd 'at' HH:mm:ss z} [%t] %-5level %logger{36} %L %M - %msg%xEx%n" />
             <Policies>
                 <TimeBasedTriggeringPolicy interval="6" modulate="true" />
@@ -54,7 +54,7 @@
 
         <!-- 自定义日志配置 -->
         <RollingRandomAccessFile name="tradeFile" fileName="${fileName}/trade.log" immediateFlush="false"
-                                 filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.trade.gz">
+                                 filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.trade">
             <PatternLayout pattern="%d{yyyy-MM-dd 'at' HH:mm:ss z} [%t] %-5level %logger{36} %L %M - %msg%xEx%n" />
             <Policies>
                 <TimeBasedTriggeringPolicy interval="6" modulate="true" />
