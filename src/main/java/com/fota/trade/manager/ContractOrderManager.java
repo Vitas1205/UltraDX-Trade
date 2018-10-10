@@ -983,8 +983,9 @@ public class ContractOrderManager {
             if (contractCategoryDO.getId().equals(orderContractId)) {
                 orderList = contractOrderMapper.selectNotEnforceOrderByUserIdAndContractId(userId, contractId);
                 if (CollectionUtils.isEmpty(orderList)) {
-                    orderList = Collections.emptyList();
+                    orderList = new ArrayList<>();
                 }
+                orderList.add(newContractOrderDO);
                 List<ContractOrderDO> bidList = orderList.stream().filter(order -> order.getOrderDirection() == OrderDirectionEnum.BID.getCode()).collect(toList());
                 List<ContractOrderDO> askList = orderList.stream().filter(order -> order.getOrderDirection() == OrderDirectionEnum.ASK.getCode()).collect(toList());
                 entrustMargin = getExtraEntrustAmount(userId, contractId, bidList, askList, positionType, positionUnfilledAmount, positionMargin, lever);
@@ -1005,8 +1006,9 @@ public class ContractOrderManager {
                 } else {
                     orderList = contractOrderMapper.selectNotEnforceOrderByUserIdAndContractId(userId, contractId);
                     if (CollectionUtils.isEmpty(orderList)) {
-                        orderList = Collections.emptyList();
+                        orderList = new ArrayList<>();
                     }
+                    orderList.add(newContractOrderDO);
                     List<ContractOrderDO> bidList = orderList.stream().filter(order -> order.getOrderDirection() == OrderDirectionEnum.BID.getCode()).collect(toList());
                     List<ContractOrderDO> askList = orderList.stream().filter(order -> order.getOrderDirection() == OrderDirectionEnum.ASK.getCode()).collect(toList());
                     entrustMargin = getExtraEntrustAmount(userId, contractId, bidList, askList, positionType, positionUnfilledAmount, positionMargin, lever);
