@@ -37,6 +37,7 @@ import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.*;
 import java.util.function.Predicate;
 
@@ -88,6 +89,9 @@ public class ContractOrderManager {
 
     @Autowired
     private RealTimeEntrust realTimeEntrust;
+
+    @Autowired
+    private ContractMatchedOrderMapper contractMatchedOrderMapper;
 
     public ResultCode cancelOrderByContractId(Long contractId, Map<String, String> userInfoMap) throws Exception {
         if (Objects.isNull(contractId)) {
@@ -1023,4 +1027,5 @@ public class ContractOrderManager {
         }
         return false;
     }
+
 }

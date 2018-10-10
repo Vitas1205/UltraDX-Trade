@@ -20,6 +20,7 @@ import com.google.common.base.Joiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
@@ -419,35 +420,16 @@ public class ContractOrderServiceImpl implements
      * 获取昨天六点到今天六点的平台手续费
      */
     @Override
+    @Deprecated
     public BigDecimal getTodayFee() {
-        Date date=new Date();
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(date);
-        calendar.set(Calendar.HOUR_OF_DAY, 18);
-        calendar.set(Calendar.MINUTE, 0);
-        calendar.set(Calendar.SECOND, 0);
-        Date endDate = calendar.getTime();
-        calendar.add(Calendar.DATE,-1);
-        Date startDate = calendar.getTime();
         BigDecimal totalFee = BigDecimal.ZERO;
-        try {
-            totalFee = contractMatchedOrderMapper.getAllFee(startDate, endDate).multiply(new BigDecimal(2));
-            return totalFee;
-        }catch (Exception e){
-            log.error("getTodayFee failed",e);
-        }
         return totalFee;
     }
 
     @Override
+    @Deprecated
     public BigDecimal getFeeByDate(Date startDate, Date endDate) {
         BigDecimal totalFee = BigDecimal.ZERO;
-        try {
-            totalFee = contractMatchedOrderMapper.getAllFee(startDate, endDate).multiply(new BigDecimal(2));
-            return totalFee;
-        }catch (Exception e){
-            log.error("getTodayFee failed",e);
-        }
         return totalFee;
     }
 
@@ -511,7 +493,6 @@ public class ContractOrderServiceImpl implements
                     tempTarget.setFilledDate(temp.getGmtCreate());
                     tempTarget.setFilledPrice(temp.getFilledPrice());
                     tempTarget.setMatchType(temp.getMatchType().intValue());
-                    //BeanUtil.fieldCopy(temp, tempTarget);
                     list.add(tempTarget);
                 }
             }
