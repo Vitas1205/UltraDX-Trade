@@ -45,11 +45,6 @@
         bid_user_id, bid_close_type, match_type, ask_fee, bid_fee, filled_price, filled_amount, contract_id, contract_name
     </sql>
 
-    <select id="getAllFee" resultType="java.math.BigDecimal">
-        SELECT sum(ask_fee + bid_fee)
-        FROM contract_matched_order
-        WHERE gmt_create > #{startDate} AND gmt_create &lt; #{endDate}
-    </select>
 
     <select id="count" resultType="java.lang.Long">
         SELECT COUNT(*)

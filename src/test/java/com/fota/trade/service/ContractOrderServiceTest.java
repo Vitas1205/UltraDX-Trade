@@ -271,8 +271,9 @@ public class ContractOrderServiceTest {
 
     @Test
     public void getTodayFeeTest() {
-        BigDecimal ret = contractOrderService.getTodayFee();
-        log.info("--------------------------" + ret);
+        //BigDecimal ret = contractOrderService.getTodayFee();
+        String platformTotalProfit = String.valueOf(contractOrderService.getTodayFee().multiply(new BigDecimal("0.4")).setScale(2,BigDecimal.ROUND_DOWN));
+        log.info("--------------------------" + platformTotalProfit);
     }
 
     @Test
@@ -427,6 +428,14 @@ public class ContractOrderServiceTest {
     public void testCancelByContractType() {
         ResultCode resultCode = contractOrderService.cancelOrderByOrderType(274, Arrays.asList(1), new HashMap<>());
         assert resultCode.isSuccess();
+    }
+
+    @Test
+    public void getFeeByDateTest(){
+        Date end = new Date();
+        Date start = new Date(14000000000L);
+        BigDecimal fee = contractOrderService.getFeeByDate(start, end);
+        log.info("" + fee);
     }
 
 
