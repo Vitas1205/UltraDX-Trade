@@ -56,7 +56,7 @@ public class PostDealConsumer {
 
 
     String EXIST_POST_DEAL = "EXIST_POST_DEAL_";
-    long seconds = 24 * 3600;
+    long seconds = 3600;
 
     @Autowired
     private ContractOrderServiceImpl contractOrderService;
