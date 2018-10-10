@@ -527,6 +527,11 @@ public class ContractOrderManager {
             allContractOrders.add(newContractOrderDO);
         }
 
+        String userContractPositionExtraKey = RedisKey.getUserContractPositionExtraKey(userId);
+        Map<String, Object> userContractPositions = redisManager.hEntries(userContractPositionExtraKey);
+        if (Objects.isNull(userContractPositions)) {
+            userContractPositions = Collections.emptyMap();
+        }
         for (ContractCategoryDTO contractCategoryDO : categoryList) {
 
             long contractId = contractCategoryDO.getId();
@@ -571,8 +576,8 @@ public class ContractOrderManager {
             }
 
             log.info("get contract account before redis1");
-            Object contraryValue = redisManager.hGet(RedisKey.getUserContractPositionExtraKey(userId), contraryKey);
-            Object sameValue = redisManager.hGet(RedisKey.getUserContractPositionExtraKey(userId), sameKey);
+            Object contraryValue = userContractPositions.get(contraryKey);
+            Object sameValue = userContractPositions.get(sameKey);
             log.info("get contract account after redis1");
             if (Objects.nonNull(contraryValue) && Objects.nonNull(sameValue)) {
                 entrustMargin = cal(new BigDecimal(contraryValue.toString()), new BigDecimal(sameValue.toString()), positionMargin);
@@ -843,8 +848,11 @@ public class ContractOrderManager {
         }
 
         log.info("get entrust before hset");
-        redisManager.hSet(RedisKey.getUserContractPositionExtraKey(userId), contraryKey, totalContraryEntrustAmount.toPlainString());
-        redisManager.hSet(RedisKey.getUserContractPositionExtraKey(userId), sameKey, totalSameEntrustAmount.toPlainString());
+        String userContractPositionExtraKey = RedisKey.getUserContractPositionExtraKey(userId);
+        Map<String, Object> map = new HashMap<>();
+        map.put(contraryKey, totalContraryEntrustAmount.toPlainString());
+        map.put(sameKey, totalSameEntrustAmount.toPlainString());
+        redisManager.hPutAll(userContractPositionExtraKey, map);
         log.info("get entrust after hset");
 
         return cal(totalContraryEntrustAmount, totalSameEntrustAmount, positionEntrustAmount);
@@ -942,6 +950,11 @@ public class ContractOrderManager {
         }
         allContractOrders.add(newContractOrderDO);
 
+        String userContractPositionExtraKey = RedisKey.getUserContractPositionExtraKey(userId);
+        Map<String, Object> userContractPositions = redisManager.hEntries(userContractPositionExtraKey);
+        if (Objects.isNull(userContractPositions)) {
+            userContractPositions = Collections.emptyMap();
+        }
         for (ContractCategoryDTO contractCategoryDO : categoryList) {
             long contractId = contractCategoryDO.getId();
             BigDecimal lever = findLever(contractLeverDOS, userId, contractCategoryDO.getAssetId());
@@ -1008,8 +1021,8 @@ public class ContractOrderManager {
                     contraryKey = contractId + "-" + PositionTypeEnum.OVER.name();
                     sameKey = contractId + "-" + PositionTypeEnum.EMPTY.name();
                 }
-                Object contraryValue = redisManager.hGet(RedisKey.getUserContractPositionExtraKey(userId), contraryKey);
-                Object sameValue = redisManager.hGet(RedisKey.getUserContractPositionExtraKey(userId), sameKey);
+                Object contraryValue = userContractPositions.get(contraryKey);
+                Object sameValue = userContractPositions.get(sameKey);
                 //计算委托额外保证金
                 if (Objects.nonNull(contraryValue) && Objects.nonNull(sameValue)) {
                     entrustMargin = cal(new BigDecimal(contraryValue.toString()), new BigDecimal(sameValue.toString()), positionMargin);
