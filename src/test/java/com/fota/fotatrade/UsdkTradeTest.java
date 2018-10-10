@@ -57,7 +57,7 @@ public class UsdkTradeTest {
         //usdkOrderMapper.insertSelective(usdkOrderDO);
         UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
         BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
-        log.info(usdkOrderDTO.getAssetName().toString());
+        assert (usdkOrderDTO.getAssetName()!= null);
     }
 
     @Test
@@ -77,7 +77,7 @@ public class UsdkTradeTest {
 
     @Test
     public void updateTest(){
-        log.info("---------"+redisManager.get("fota_usdk_entrust_1"));
+        //log.info("---------"+redisManager.get("fota_usdk_entrust_1"));
     }
 
     @Test
@@ -93,8 +93,6 @@ public class UsdkTradeTest {
     public void getByUserIdTest(){
         BigDecimal a = new BigDecimal("2.3");
         BigDecimal b = new BigDecimal("2.300");
-        log.info("--------"+a.hashCode());
-        log.info("--------"+b.hashCode());
     }
 
     @Test

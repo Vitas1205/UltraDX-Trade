@@ -134,7 +134,6 @@ public class ContractTest {
         Long userId = 17764594330L;
         Long orderId = 107480908236466L;
         ContractOrderDO contractOrderDO = contractOrderMapper.selectByIdAndUserId(orderId,userId);
-        log.info(String.valueOf(contractOrderDO));
     }
 
     @Test
@@ -146,7 +145,6 @@ public class ContractTest {
             List<UserPositionDO> userPositionDOlist = new ArrayList<>();
             userPositionDOlist = positionlist.stream().filter(userPosition-> userPosition.getContractId().equals(contractCategoryDO.getId()))
                     .limit(1).collect(Collectors.toList());
-            log.info("-------------"+userPositionDOlist.size());
         }
 
     }

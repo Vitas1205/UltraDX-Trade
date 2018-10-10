@@ -27,6 +27,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.annotation.Resource;
+import javax.ws.rs.HEAD;
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -269,13 +270,13 @@ public class ContractOrderServiceTest {
     public void getTodayFeeTest() {
         //BigDecimal ret = contractOrderService.getTodayFee();
         String platformTotalProfit = String.valueOf(contractOrderService.getTodayFee().multiply(new BigDecimal("0.4")).setScale(2,BigDecimal.ROUND_DOWN));
-        log.info("--------------------------" + platformTotalProfit);
+        //log.info("--------------------------" + platformTotalProfit);
     }
 
     @Test
     public void getAveragePriceTest() {
         BigDecimal ret = PriceUtil.getAveragePrice(null, new BigDecimal(0), new BigDecimal(1), new BigDecimal(10));
-        log.info("--------------------------" + ret);
+        //log.info("--------------------------" + ret);
     }
 
     @Test
@@ -292,7 +293,7 @@ public class ContractOrderServiceTest {
         Long endTime = 0L;
         ContractMatchedOrderTradeDTOPage contractMatchedOrderTradeDTOPage =
                 contractOrderService.getContractMacthRecord(userId, contractIds, pageNo, pageSize, startTime, endTime);
-        log.info("--------------------------" + contractMatchedOrderTradeDTOPage);
+        //log.info("--------------------------" + contractMatchedOrderTradeDTOPage);
     }
 
 //    @Test
@@ -335,19 +336,19 @@ public class ContractOrderServiceTest {
     @Test
     public void getContractAccountTest(){
         Result<ContractAccount> result =contractAccountService.getContractAccount(282L);
-        log.info(result.toString());
+        //log.info(result.toString());
     }
 
     @Test
     public void getAccountMsgTest(){
         ContractAccount contractAccount = contractOrderManager.computeContractAccount(282L);
-        log.info(contractAccount.toString());
+        //log.info(contractAccount.toString());
     }
 
     @Test
     public void getEntrustMarginTest(){
         BigDecimal ret = contractOrderManager.getEntrustMargin(17764594100L);
-        log.info(ret.toString());
+        //log.info(ret.toString());
     }
 
     @Test
@@ -427,7 +428,7 @@ public class ContractOrderServiceTest {
         Date end = new Date();
         Date start = new Date(14000000000L);
         BigDecimal fee = contractOrderService.getFeeByDate(start, end);
-        log.info("" + fee);
+        //log.info("" + fee);
     }
 
 

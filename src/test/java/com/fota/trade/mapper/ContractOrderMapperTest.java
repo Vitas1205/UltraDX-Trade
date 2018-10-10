@@ -87,13 +87,13 @@ public class ContractOrderMapperTest {
     @Test
     public void testSelectUnfinishedOrder() throws Exception {
         List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByUserId(17764594100L);
-        log.info("----------------------------" + list.size());
+        //log.info("----------------------------" + list.size());
     }
 
     @Test
     public void testSelectNotEnforceOrderByUserId() throws Exception {
         List<ContractOrderDO> list = contractOrderMapper.selectNotEnforceOrderByUserId(17764594100L);
-        log.info("----------------------------" + list.size());
+        //log.info("----------------------------" + list.size());
     }
 
     @Test
@@ -118,7 +118,7 @@ public class ContractOrderMapperTest {
     @Test
     public void selectTest() throws Exception {
         List<ContractOrderDO> list = contractOrderMapper.selectByUserId(282L);
-        log.info("----------------------------"+list.size());
+        //log.info("----------------------------"+list.size());
     }
 
     @Test
@@ -128,7 +128,7 @@ public class ContractOrderMapperTest {
         orderTypes.add(1);
         orderTypes.add(2);
         List<ContractOrderDO> list = contractOrderMapper.listByUserIdAndOrderType(userId,orderTypes);
-        log.info("----------------------------"+list.size());
+        //log.info("----------------------------"+list.size());
     }
 
 }

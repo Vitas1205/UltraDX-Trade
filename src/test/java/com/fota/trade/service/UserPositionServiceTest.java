@@ -62,7 +62,7 @@ public class UserPositionServiceTest {
     @Test
     public void listPositionByUserIdTest(){
         List<UserPositionDTO> list = userPositionService.listPositionByUserId(282L);
-        log.info("----"+list.size());
+        //log.info("----"+list.size());
     }
 
 
@@ -109,7 +109,7 @@ public class UserPositionServiceTest {
             log.info("resulttt: " + result);
         }
         Object b = redisManager.get("test_counter_aaaa");
-        log.info("aaaaaaaaaaa:" + b);
+        //log.info("aaaaaaaaaaa:" + b);
     }
 
 

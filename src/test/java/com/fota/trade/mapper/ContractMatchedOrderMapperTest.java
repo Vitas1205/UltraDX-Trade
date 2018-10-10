@@ -28,12 +28,12 @@ public class ContractMatchedOrderMapperTest {
     @Test
     public void test_getLatestContractMatched() {
         ContractMatchedOrderDO id = contractMatchedOrderMapper.getLatestContractMatched();
-        log.info("id== :{}",id.getId());
+        //log.info("id== :{}",id.getId());
     }
 
     @Test
     public void test_getLatestContractMatchedList() {
         List<ContractMatchedOrderDO> list = contractMatchedOrderMapper.getLatestContractMatchedList(1001L, 100L);
-        log.info("result:{}",list.toString());
+        //log.info("result:{}",list.toString());
     }
 }

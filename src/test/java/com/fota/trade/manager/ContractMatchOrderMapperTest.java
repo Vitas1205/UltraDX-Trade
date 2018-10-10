@@ -46,7 +46,7 @@ public class ContractMatchOrderMapperTest {
         List<Long> contractIds = new ArrayList<>();
         contractIds.add(1000L);
         int ret = contractMatchedOrderMapper.countByUserId(userId, contractIds, null, null);
-        log.info("----"+ret);
+        //log.info("----"+ret);
     }
 
     @Test
