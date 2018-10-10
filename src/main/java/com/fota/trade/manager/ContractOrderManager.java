@@ -573,6 +573,9 @@ public class ContractOrderManager {
                 entrustMargin = cal(new BigDecimal(contraryValue.toString()), new BigDecimal(sameValue.toString()), positionMargin);
             } else {
                 List<ContractOrderDO> orderList = contractOrderMapper.selectNotEnforceOrderByUserIdAndContractId(userId, contractId);
+                if (CollectionUtils.isEmpty(orderList)) {
+                    orderList = Collections.emptyList();
+                }
                 List<ContractOrderDO> bidList = orderList.stream()
                         .filter(order -> order.getOrderDirection() == OrderDirectionEnum.BID.getCode())
                         .collect(toList());
@@ -979,6 +982,9 @@ public class ContractOrderManager {
 
             if (contractCategoryDO.getId().equals(orderContractId)) {
                 orderList = contractOrderMapper.selectNotEnforceOrderByUserIdAndContractId(userId, contractId);
+                if (CollectionUtils.isEmpty(orderList)) {
+                    orderList = Collections.emptyList();
+                }
                 List<ContractOrderDO> bidList = orderList.stream().filter(order -> order.getOrderDirection() == OrderDirectionEnum.BID.getCode()).collect(toList());
                 List<ContractOrderDO> askList = orderList.stream().filter(order -> order.getOrderDirection() == OrderDirectionEnum.ASK.getCode()).collect(toList());
                 entrustMargin = getExtraEntrustAmount(userId, contractId, bidList, askList, positionType, positionUnfilledAmount, positionMargin, lever);
@@ -998,6 +1004,9 @@ public class ContractOrderManager {
                     entrustMargin = cal(new BigDecimal(contraryValue.toString()), new BigDecimal(sameValue.toString()), positionMargin);
                 } else {
                     orderList = contractOrderMapper.selectNotEnforceOrderByUserIdAndContractId(userId, contractId);
+                    if (CollectionUtils.isEmpty(orderList)) {
+                        orderList = Collections.emptyList();
+                    }
                     List<ContractOrderDO> bidList = orderList.stream().filter(order -> order.getOrderDirection() == OrderDirectionEnum.BID.getCode()).collect(toList());
                     List<ContractOrderDO> askList = orderList.stream().filter(order -> order.getOrderDirection() == OrderDirectionEnum.ASK.getCode()).collect(toList());
                     entrustMargin = getExtraEntrustAmount(userId, contractId, bidList, askList, positionType, positionUnfilledAmount, positionMargin, lever);
@@ -1018,6 +1027,9 @@ public class ContractOrderManager {
 
     public void updateExtraEntrustAmountByContract(Long userId, Long contractId) {
         List<ContractOrderDO> contractOrderDOS = contractOrderMapper.selectNotEnforceOrderByUserIdAndContractId(userId, contractId);
+        if (CollectionUtils.isEmpty(contractOrderDOS)) {
+            contractOrderDOS = Collections.emptyList();
+        }
         List<ContractOrderDO> bidList = contractOrderDOS.stream()
                 .filter(order -> order.getOrderDirection() == OrderDirectionEnum.BID.getCode())
                 .collect(toList());
@@ -1027,9 +1039,15 @@ public class ContractOrderManager {
 
         int lever = contractLeverManager.getLeverByContractId(userId, contractId);
         UserPositionDO userPositionDO = userPositionMapper.selectByUserIdAndId(userId, contractId);
+        Integer positionType = Optional.ofNullable(userPositionDO)
+                .map(UserPositionDO::getPositionType)
+                .orElse(PositionTypeEnum.EMPTY.getCode());
+        BigDecimal unfilledAmount = Optional.ofNullable(userPositionDO)
+                .map(UserPositionDO::getUnfilledAmount)
+                .orElse(BigDecimal.ZERO);
 
         log.info("user position: {}", userPositionDO);
-        getExtraEntrustAmount(userId, contractId, bidList, askList, userPositionDO.getPositionType(),
-                userPositionDO.getUnfilledAmount(), BigDecimal.ZERO, BigDecimal.valueOf(lever));
+        getExtraEntrustAmount(userId, contractId, bidList, askList, positionType, unfilledAmount, BigDecimal.ZERO,
+                BigDecimal.valueOf(lever));
     }
 }
