@@ -328,7 +328,8 @@ public class ContractOrderServiceTest {
         contractOrderDO.setFee(new BigDecimal(0.0005));
         contractOrderDO.setUnfilledAmount(new BigDecimal("0.05"));
         Boolean ret = contractOrderManager.judegOrderAvailable(282L, contractOrderDO);
-        log.info(ret+"");
+        //log.info(ret+"");
+        assert ret == true;
     }
 
     @Test

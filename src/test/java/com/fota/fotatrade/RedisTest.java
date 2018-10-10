@@ -83,10 +83,11 @@ public class RedisTest {
         String dateStr = hours < 18 ? sdf1.format(date) : sdf1.format(calendar.getTime());
         BigDecimal totalFee =  BigDecimal.valueOf((Double)redisManager.get(Constant.REDIS_TODAY_FEE + dateStr));
         if (totalFee == null){
-            log.error("totalFee not exeist, rediskey:{}", Constant.REDIS_TODAY_FEE + dateStr);
+            //log.error("totalFee not exeist, rediskey:{}", Constant.REDIS_TODAY_FEE + dateStr);
             totalFee = BigDecimal.ZERO;
         }
-        log.info("totalFee"+totalFee);
+        //log.info("totalFee"+totalFee);
+        assert totalFee.compareTo(BigDecimal.ZERO) >= 0;
     }
 
     @Test
