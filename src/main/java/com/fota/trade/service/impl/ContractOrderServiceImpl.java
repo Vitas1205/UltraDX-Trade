@@ -423,11 +423,6 @@ public class ContractOrderServiceImpl implements
     @Deprecated
     public BigDecimal getTodayFee() {
         BigDecimal totalFee = BigDecimal.ZERO;
-        try{
-            totalFee = redisManager.get(Constant.REDIS_TODAY_FEE) == null ? BigDecimal.ZERO : redisManager.get(Constant.REDIS_TODAY_FEE);
-        }catch (Exception e){
-            log.error("redisManager.get(todayFee) failed");
-        }
         return totalFee;
     }
 
@@ -435,30 +430,6 @@ public class ContractOrderServiceImpl implements
     @Deprecated
     public BigDecimal getFeeByDate(Date startDate, Date endDate) {
         BigDecimal totalFee = BigDecimal.ZERO;
-        try {
-            Map<String, Object> map = new HashMap<>();
-            map.put("startDate", startDate);
-            map.put("endDate", endDate);
-            totalFee = BigDecimal.ZERO;
-            Integer pageSize = 5000;
-            Integer pageNo = 1;
-            while (true){
-                Integer startRow = (pageNo - 1) * pageSize;
-                Integer endRow = pageSize;
-                map.put("startRow", startRow);
-                map.put("endRow" ,endRow);
-                BigDecimal fee = contractMatchedOrderMapper.getAllFee(map);
-                if (fee != null){
-                    totalFee = totalFee.add(fee);
-                }else {
-                    break;
-                }
-                pageNo++;
-            }
-            return totalFee;
-        }catch (Exception e){
-            log.error("getTodayFee failed",e);
-        }
         return totalFee;
     }
 
@@ -522,7 +493,6 @@ public class ContractOrderServiceImpl implements
                     tempTarget.setFilledDate(temp.getGmtCreate());
                     tempTarget.setFilledPrice(temp.getFilledPrice());
                     tempTarget.setMatchType(temp.getMatchType().intValue());
-                    //BeanUtil.fieldCopy(temp, tempTarget);
                     list.add(tempTarget);
                 }
             }

@@ -298,7 +298,7 @@ public class UsdkOrderManager {
                     throw new BizException(BIZ_ERROR.getCode(),"cancelOrder getCapitalService().updateLockedAmount failed");
                 }
             }catch (Exception e){
-                log.error("cancelOrder getCapitalService().updateLockedAmount exception usdkOrderDO:{}", usdkOrderDO);
+                log.error("cancelOrder getCapitalService().updateLockedAmount exception usdkOrderDO:{}", usdkOrderDO, e);
                 throw new BizException(BIZ_ERROR.getCode(),"cancelOrder getCapitalService().updateLockedAmount exception");
             }
             UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
@@ -438,7 +438,7 @@ public class UsdkOrderManager {
         try {
             updateRet = getCapitalService().updateBalance(balanceTransferDTO);
         }catch (Exception e){
-            log.error("getCapitalService().updateBalance exception, balanceTransferDTO:{}", balanceTransferDTO);
+            log.error("getCapitalService().updateBalance exception, balanceTransferDTO:{}", balanceTransferDTO, e);
             throw new BizException(BIZ_ERROR.getCode(), "getCapitalService().updateBalance exception, balanceTransferDTO:{}" + balanceTransferDTO);
         }
         if (!updateRet) {
