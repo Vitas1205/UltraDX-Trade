@@ -47,7 +47,7 @@ public class ContractCategoryMapperTest {
     @Test
     public void testSelectContractCategory() throws Exception {
         List<ContractCategoryDO> queryList = contractCategoryMapper.getAllContractCategory();
-        log.info("---------------------"+queryList.size());
+        //log.info("---------------------"+queryList.size());
     }
 
 }

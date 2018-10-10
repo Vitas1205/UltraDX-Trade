@@ -28,13 +28,13 @@ public class UsdkMatchedOrderMapperTest {
     @Test
     public void test_getLatestUsdkMatched() {
         UsdkMatchedOrderDO id = usdkMatchedOrderMapper.getLatestUsdkMatched();
-        log.info("id== :{}",id.getId());
+        //log.info("id== :{}",id.getId());
     }
 
     @Test
     public void test_getLatestUsdkMatchedList() {
         List<UsdkMatchedOrderDO> list = usdkMatchedOrderMapper.getLatestUsdkMatchedList(2,1000L);
-        log.info("list usdkMatchedOrder :{}", list.toString());
+        //log.info("list usdkMatchedOrder :{}", list.toString());
     }
 
 }
