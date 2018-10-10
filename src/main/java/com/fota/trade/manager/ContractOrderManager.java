@@ -497,6 +497,7 @@ public class ContractOrderManager {
                 .setFloatingPL(BigDecimal.ZERO)
                 .setUserId(userId);
 
+        log.info("get contract before db");
         UserContractDTO userContractDTO = assetService.getContractAccount(userId);
         if (null == userContractDTO) {
             log.error("null userContractDTO, userId={}", userId);
@@ -512,6 +513,7 @@ public class ContractOrderManager {
         List<CompetitorsPriceDTO> competitorsPrices = realTimeEntrust.getContractCompetitorsPrice();
         List<UserContractLeverDO> contractLeverDOS = userContractLeverMapper.listUserContractLever(userId);
         List<ContractOrderDO> allContractOrders = null;
+        log.info("get contract after db");
         if (Constant.MARKET_USER_ID_LIST.contains(userId)) {
             allContractOrders = new ArrayList<>();
         } else {
@@ -567,11 +569,15 @@ public class ContractOrderManager {
                 contraryKey = contractId + "-" + PositionTypeEnum.OVER.name();
                 sameKey = contractId + "-" + PositionTypeEnum.EMPTY.name();
             }
+
+            log.info("get contract account before redis1");
             Object contraryValue = redisManager.hGet(RedisKey.getUserContractPositionExtraKey(userId), contraryKey);
             Object sameValue = redisManager.hGet(RedisKey.getUserContractPositionExtraKey(userId), sameKey);
+            log.info("get contract account after redis1");
             if (Objects.nonNull(contraryValue) && Objects.nonNull(sameValue)) {
                 entrustMargin = cal(new BigDecimal(contraryValue.toString()), new BigDecimal(sameValue.toString()), positionMargin);
             } else {
+                log.info("get contract account before select not enforce");
                 List<ContractOrderDO> orderList = contractOrderMapper.selectNotEnforceOrderByUserIdAndContractId(userId, contractId);
                 if (CollectionUtils.isEmpty(orderList)) {
                     orderList = Collections.emptyList();
@@ -584,6 +590,7 @@ public class ContractOrderManager {
                         .collect(toList());
 
                 entrustMargin = getExtraEntrustAmount(userId, contractId, bidList, askList, positionType, positionUnfilledAmount, positionMargin, lever);
+                log.info("get contract account after select not enforce");
             }
 
             contractAccount.setMarginCallRequirement(contractAccount.getMarginCallRequirement().add(positionMargin))
@@ -826,7 +833,6 @@ public class ContractOrderManager {
             }
         }
         totalContraryEntrustAmount = totalContraryEntrustAmount.add(fee);
-        redisManager.hSet(RedisKey.getUserContractPositionExtraKey(userId), contraryKey, totalContraryEntrustAmount.toPlainString());
 
         for (ContractOrderDO contractOrderDO : sameList) {
             BigDecimal orderAmount = contractOrderDO.getPrice()
@@ -835,7 +841,11 @@ public class ContractOrderManager {
             BigDecimal orderFee = orderAmount.multiply(lever).multiply(Constant.FEE_RATE);
             totalSameEntrustAmount = totalSameEntrustAmount.add(orderAmount.add(orderFee));
         }
+
+        log.info("get entrust before hset");
+        redisManager.hSet(RedisKey.getUserContractPositionExtraKey(userId), contraryKey, totalContraryEntrustAmount.toPlainString());
         redisManager.hSet(RedisKey.getUserContractPositionExtraKey(userId), sameKey, totalSameEntrustAmount.toPlainString());
+        log.info("get entrust after hset");
 
         return cal(totalContraryEntrustAmount, totalSameEntrustAmount, positionEntrustAmount);
     }
