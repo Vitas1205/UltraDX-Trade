@@ -380,13 +380,12 @@ public class ContractOrderManager {
             int temp =  i + batchSize;
             temp = temp < orderIdList.size() ? temp : orderIdList.size();
             List<Long> subList = orderIdList.subList(i, temp);
-            Map<String, Object> map = new HashMap<>();
             ToCancelMessage toCancelMessage = new ToCancelMessage();
             toCancelMessage.setCancelType(CancelTypeEnum.CANCEL_BY_ORDERID);
             toCancelMessage.setUserId(userId);
             toCancelMessage.setIdList(subList);
             String msgKey = "to_cancel_contract_"+Joiner.on(",").join(subList);
-            rocketMqManager.sendMessage("order", "ContractCancel", msgKey , map);
+            rocketMqManager.sendMessage("order", "ContractCancel", msgKey , toCancelMessage);
             i = temp;
         }
     }
