@@ -8,6 +8,7 @@ import org.apache.ibatis.annotations.*;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @Author: Harry Wang
@@ -28,12 +29,11 @@ public interface ContractMatchedOrderMapper {
 
     List<ContractMatchedOrderDO> queryMatchedOrder(BaseQuery baseQuery);
 
-    BigDecimal getAllFee(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
 
     @Update("UPDATE contract_matched_order SET gmt_modified=now(), status=#{toStatus} WHERE id=#{id}")
     int updateStatus(@Param("id") long id, @Param("toStatus") int toStatus);
 
-    ContractMatchedOrderDO getLatestContractMatched();
+    Long getLatestContractMatched();
 
     List<ContractMatchedOrderDO> getLatestContractMatchedList(@Param("contractId") Long contractId , @Param("id") Long id );
 }

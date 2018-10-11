@@ -45,11 +45,6 @@
         bid_user_id, bid_close_type, match_type, ask_fee, bid_fee, filled_price, filled_amount, contract_id, contract_name
     </sql>
 
-    <select id="getAllFee" resultType="java.math.BigDecimal">
-        SELECT sum(ask_fee + bid_fee)
-        FROM contract_matched_order
-        WHERE gmt_create > #{startDate} AND gmt_create &lt; #{endDate}
-    </select>
 
     <select id="count" resultType="java.lang.Long">
         SELECT COUNT(*)
@@ -128,12 +123,9 @@
         limit #{startRow}, #{endRow}
     </select>
 
-    <select id="getLatestContractMatched" resultMap="BaseResultMap">
-        select
-        <include refid="Base_Column_List"/>
+    <select id="getLatestContractMatched" resultType="java.lang.Long">
+        select max(id)
         from contract_matched_order where status = 1
-        order by gmt_create desc, id
-        limit 1
     </select>
 
     <select id="getLatestContractMatchedList" resultMap="BaseResultMap">
@@ -141,7 +133,7 @@
         <include refid="Base_Column_List" />
         from contract_matched_order
         where id &lt; #{id} and contract_id = #{contractId} and status = 1
-        order by gmt_create desc, id
+        order by id desc
         limit 50
     </select>
 </mapper>

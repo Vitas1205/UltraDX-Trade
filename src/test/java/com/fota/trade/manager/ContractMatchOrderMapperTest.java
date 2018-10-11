@@ -53,7 +53,7 @@ public class ContractMatchOrderMapperTest {
     public void getAllFeeTest(){
         Date end = new Date();
         Date start = new Date(14000000000L);
-        BigDecimal ret = contractMatchedOrderMapper.getAllFee(start, end);
-        log.info("----"+ret);
+        //BigDecimal ret = contractMatchedOrderMapper.getAllFee(start, end);
+        //log.info("----"+ret);
     }
 }
