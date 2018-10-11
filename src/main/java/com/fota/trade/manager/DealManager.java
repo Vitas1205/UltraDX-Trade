@@ -6,7 +6,9 @@ import com.fota.asset.service.ContractService;
 import com.fota.common.utils.CommonUtils;
 import com.fota.trade.client.PostDealMessage;
 import com.fota.trade.client.constants.DealedMessage;
-import com.fota.trade.common.*;
+import com.fota.trade.common.Constant;
+import com.fota.trade.common.ResultCodeEnum;
+import com.fota.trade.common.UpdatePositionResult;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
@@ -66,6 +68,9 @@ public class DealManager {
 
     @Autowired
     private ContractOrderMapper contractOrderMapper;
+
+    @Autowired
+    private ContractOrderManager contractOrderManager;
 
     @Autowired
     private ContractLeverManager contractLeverManager;
@@ -246,22 +251,23 @@ public class DealManager {
         }
         log.info("postDeal, size={}, keys={}", postDealMessages.size(), postDealMessages.stream().map(PostDealMessage::getMsgKey).collect(Collectors.toList()));
         PostDealMessage postDealMessage = postDealMessages.get(0);
-        BigDecimal filledAmount = postDealMessage.getFilledAmount(), filledPrice = postDealMessage.getFilledPrice();
+        ContractOrderDO contractOrderDO = postDealMessage.getContractOrderDO();
+        log.info("postDeal, userId={}, contractId={}", contractOrderDO.getUserId(), contractOrderDO.getContractId());
         //更新持仓
         UpdatePositionResult positionResult = updatePosition(postDealMessages);
         if (null == positionResult) {
             return ResultCode.error(BIZ_ERROR.getCode(), "update position failed");
         }
         DealedMessage dealedMessage = new DealedMessage()
-                .setSubjectId(postDealMessage.getContractOrderDO().getContractId())
+                .setSubjectId(contractOrderDO.getContractId())
                 .setSubjectType(CONTRACT_TYPE)
-                .setUserId(postDealMessage.getContractOrderDO().getUserId());
+                .setUserId(contractOrderDO.getUserId());
 
         rocketMqManager.sendMessage(DEALED_TOPIC, DEALED_CONTRACT_TAG, postDealMessage.getMsgKey() , dealedMessage);
 
         if (positionResult.getClosePL().compareTo(ZERO) != 0) {
             ContractDealer dealer = new ContractDealer()
-                    .setUserId(postDealMessage.getContractOrderDO().getUserId())
+                    .setUserId(contractOrderDO.getUserId())
                     .setAddedTotalAmount(positionResult.getClosePL())
                     .setTotalLockAmount(ZERO);
             dealer.setDealType(ContractDealer.DealType.FORCE);
@@ -277,7 +283,7 @@ public class DealManager {
             }
         }
         //防止异常抛出
-        BasicUtils.exeWhitoutError(() -> updateTotalPosition(postDealMessage.getContractOrderDO().getContractId(), positionResult));
+        BasicUtils.exeWhitoutError(() -> updateTotalPosition(contractOrderDO.getContractId(), positionResult));
         BasicUtils.exeWhitoutError(() -> updateTodayFee(postDealMessages));
         return ResultCode.success();
     }
