@@ -429,6 +429,11 @@ public class ContractOrderServiceTest {
         ResultCode resultCode = contractOrderService.cancelOrderByOrderType(274, Arrays.asList(1), new HashMap<>());
         assert resultCode.isSuccess();
     }
+    @Test
+    public void testCancelByCancelId(){
+        ResultCode resultCode = contractOrderService.cancelOrderByContractId(1150L, new HashMap<>());
+        assert resultCode.isSuccess();
+    }
 
     @Test
     public void getFeeByDateTest(){
