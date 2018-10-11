@@ -29,6 +29,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
+import static com.fota.trade.common.ResultCodeEnum.NO_LATEST_MATCHED_PRICE;
+
 /**
  * @author Gavin Shen
  * @Date 2018/7/7
@@ -252,9 +254,13 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
 //            askCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
 //                    competitorsPrice.getId() == contractId.longValue()).findFirst().get().getPrice();
             bidCurrentPrice = contractOrderManager.computePrice(competitorsPriceList, OrderDirectionEnum.BID.getCode(), contractId);
+            if (null == bidCurrentPrice) {
+                return result.error(NO_LATEST_MATCHED_PRICE.getCode(), NO_LATEST_MATCHED_PRICE.getMessage());
+            }
             askCurrentPrice = contractOrderManager.computePrice(competitorsPriceList, OrderDirectionEnum.ASK.getCode(), contractId);
-            log.info("askCurrentPriceList-----"+askCurrentPrice);
-            log.info("bidCurrentPrice-----"+bidCurrentPrice);
+            if (null == askCurrentPrice) {
+                return result.error(NO_LATEST_MATCHED_PRICE.getCode(), NO_LATEST_MATCHED_PRICE.getMessage());
+            }
         }catch (Exception e){
             log.error("get competiorsPrice failed {}{}", contractId,e);
             return result.error(-1,"getPositionMargin failed");

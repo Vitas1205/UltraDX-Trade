@@ -42,6 +42,7 @@ public enum ResultCodeEnum {
     BALANCE_NOT_ENOUGH(120021, "balance is not enough"),
     LOCK_FAILED(120022, "get lock failed"),
     CONCURRENT_PROBLEM(120023, "concurrent problem"),
+    NO_LATEST_MATCHED_PRICE(120024, "NO_LATEST_MATCHED_PRICE"),
 
 
     ;
