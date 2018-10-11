@@ -76,6 +76,8 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
     @ResultMap("BaseResultMap")
     List<ContractOrderDO> selectByContractIdAndUserId(@Param("contractId") Long contractId, @Param("userId") Long userId);
 
+    List<ContractOrderDO> selectNotEnforceOrderByUserIdAndContractId(@Param("userId") Long userId, @Param("contractId") Long contractId);
+
     @Select({
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, order_direction, ",
