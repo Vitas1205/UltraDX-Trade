@@ -217,10 +217,12 @@ public class ContractOrderServiceImpl implements
 
     @Override
     public Result<Page<ContractOrderDTO>> listContractOrder4Recovery(RecoveryQuery recoveryQuery) {
-        List<ContractOrderDTO> contractOrderDTOS;
+        List<ContractOrderDTO> contractOrderDTOS = null;
         try {
             List<ContractOrderDO> contractOrderDOS = contractOrderMapper.queryForRecovery(recoveryQuery.getTableIndex(), recoveryQuery.getMaxGmtCreate(), recoveryQuery.getStart(), recoveryQuery.getPageSize());
-            contractOrderDTOS = contractOrderDOS.stream().map( x -> BeanUtils.copy(x)).collect(Collectors.toList());
+            if (!CollectionUtils.isEmpty(contractOrderDOS)) {
+                contractOrderDTOS = contractOrderDOS.stream().map( x -> BeanUtils.copy(x)).collect(Collectors.toList());
+            }
         }catch (Throwable t) {
             log.error("queryForRecovery exception, query={}", recoveryQuery, t);
             return Result.<Page<ContractOrderDTO>>create().error(com.fota.common.ResultCodeEnum.DATABASE_EXCEPTION);
