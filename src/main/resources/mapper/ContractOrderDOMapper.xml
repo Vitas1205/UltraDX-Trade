@@ -368,5 +368,6 @@
             fee, usdk_locked_amount, position_locked_amount, status, average_price, order_context
             from trade_contract_order
             where user_id = #{userId,jdbcType=BIGINT} and contract_id = #{contractId}  and status in (8,9) and order_type != 3
+            limit 500
     </select>
 </mapper>
