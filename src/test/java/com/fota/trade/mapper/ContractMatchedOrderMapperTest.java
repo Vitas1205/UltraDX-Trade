@@ -27,13 +27,15 @@ public class ContractMatchedOrderMapperTest {
 
     @Test
     public void test_getLatestContractMatched() {
-        ContractMatchedOrderDO id = contractMatchedOrderMapper.getLatestContractMatched();
-        log.info("id== :{}",id.getId());
+        long time = System.currentTimeMillis();
+        long id = contractMatchedOrderMapper.getLatestContractMatched();
+        log.info("id== :{}, time :{}",id, System.currentTimeMillis() - time);
     }
 
     @Test
     public void test_getLatestContractMatchedList() {
-        List<ContractMatchedOrderDO> list = contractMatchedOrderMapper.getLatestContractMatchedList(1001L, 100L);
-        log.info("result:{}",list.toString());
+        long time = System.currentTimeMillis();
+        List<ContractMatchedOrderDO> list = contractMatchedOrderMapper.getLatestContractMatchedList(1010L, 610273L);
+        log.info("result:{}, time :{}",list.toString(), System.currentTimeMillis() - time);
     }
 }

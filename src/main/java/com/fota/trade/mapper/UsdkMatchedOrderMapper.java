@@ -22,7 +22,7 @@ public interface UsdkMatchedOrderMapper {
 
     List<UsdkMatchedOrderDO> listByUserId(@Param("userId") Long userId, @Param("assetIds") List<Long> assetIds, @Param("startRow") Integer startRow, @Param("endRow") Integer endRow,
                                           @Param("startTime") Date startTime, @Param("endTime") Date endTime);
-    UsdkMatchedOrderDO getLatestUsdkMatched();
+    Long getLatestUsdkMatched();
 
     List<UsdkMatchedOrderDO> getLatestUsdkMatchedList(@Param("assetId") Integer assetId, @Param("id") Long id);
 }
