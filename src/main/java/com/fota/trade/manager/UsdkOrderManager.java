@@ -547,17 +547,17 @@ public class UsdkOrderManager {
         return usdkOrderMapper.updateByFilledAmount(id, filledAmount, filledPrice, gmtModified);
     }
 
-    public Long getLatestUsdkMatched (Integer type) {
+    public Long getLatestUsdkMatched(Integer type) {
         try {
             if (type == 1) {
-                UsdkMatchedOrderDO latestUsdkMatched = usdkMatchedOrderMapper.getLatestUsdkMatched();
+                Long latestUsdkMatched = usdkMatchedOrderMapper.getLatestUsdkMatched();
                 if (latestUsdkMatched != null) {
-                    return latestUsdkMatched.getId();
+                    return latestUsdkMatched;
                 }
             }else if (type ==2) {
-                ContractMatchedOrderDO latestContractMatched = contractMatchedOrderMapper.getLatestContractMatched();
+                Long latestContractMatched = contractMatchedOrderMapper.getLatestContractMatched();
                 if (latestContractMatched != null) {
-                    return latestContractMatched.getId();
+                    return latestContractMatched;
                 }
             }
         } catch (Exception e) {

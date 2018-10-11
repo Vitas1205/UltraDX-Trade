@@ -339,7 +339,7 @@ public class ContractOrderServiceTest {
         contractOrderDO.setCloseType(OrderCloseTypeEnum.MANUAL.getCode());
         contractOrderDO.setFee(new BigDecimal(0.0005));
         contractOrderDO.setUnfilledAmount(new BigDecimal("0.05"));
-        Boolean ret = contractOrderManager.judegOrderAvailable(282L, contractOrderDO);
+        Boolean ret = contractOrderManager.judgeOrderAvailable(282L, contractOrderDO);
         log.info(ret+"");
     }
 
