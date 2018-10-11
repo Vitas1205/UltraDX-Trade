@@ -9,6 +9,7 @@ import com.fota.trade.client.constants.DealedMessage;
 import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.ResultCode;
+import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderOperateTypeEnum;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
@@ -180,7 +181,8 @@ public class DealManager {
 
         sendMatchMessage(contractMatchedOrderDO.getId(), contractMatchedOrderDTO, askFee.add(bidFee));
         contractOrderDOS.stream().forEach(x -> {
-            sendDealMessage(contractMatchedOrderDO.getId(), x, filledAmount, filledPrice, askFee.add(bidFee));
+            BigDecimal fee = x.getOrderDirection().equals(OrderDirectionEnum.ASK.getCode()) ? askFee : bidFee;
+            sendDealMessage(contractMatchedOrderDO.getId(), x, filledAmount, filledPrice, fee);
             //后台交易监控日志打在里面 注释需谨慎
             saveToLog(x, filledAmount, contractMatchedOrderDO.getId());
         });
