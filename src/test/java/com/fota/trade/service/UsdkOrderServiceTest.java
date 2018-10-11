@@ -205,6 +205,11 @@ public class UsdkOrderServiceTest {
 
         Assert.assertTrue(page != null && page.getData() != null);
     }
+    @Test
+    public void test_send_cancel_msg() {
+        ResultCode resultCode = usdkOrderService.cancelAllOrder(274L, new HashMap<>());
+        assert resultCode.isSuccess();
+    }
 
 
 

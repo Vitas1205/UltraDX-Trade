@@ -37,8 +37,5 @@ public class ContractOrderTest {
         log.info("--------"+resultMap);
     }
 
-    @Test
-    public void test_send_cancel_msg() {
-        contractOrderManager.sendCancelMessage(Arrays.asList(153344009850L, 609126722138L), 201L);
-    }
+
 }

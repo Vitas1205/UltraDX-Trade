@@ -7,6 +7,8 @@ import com.fota.asset.domain.UserCapitalDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.CapitalService;
 import com.fota.match.service.UsdkMatchedOrderService;
+import com.fota.trade.client.CancelTypeEnum;
+import com.fota.trade.client.ToCancelMessage;
 import com.fota.trade.client.constants.Constants;
 import com.fota.trade.client.constants.DealedMessage;
 import com.fota.trade.common.BizException;
@@ -21,6 +23,7 @@ import com.fota.trade.util.BasicUtils;
 import com.fota.trade.util.ContractUtils;
 import com.fota.trade.util.ThreadContextUtil;
 import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -30,6 +33,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
@@ -336,15 +340,24 @@ public class UsdkOrderManager {
     }
 
     public void sendCancelMessage(List<Long> orderIdList, Long userId) {
-        //发送MQ消息到match
-        Map<String, Object> map = new HashMap<>();
-        map.putIfAbsent("userId", userId);
-        map.putIfAbsent("idList", orderIdList);
-        Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkCancel",
-                "to_cancel_usdt_"+Joiner.on("_").join(orderIdList), map);
-        if (BooleanUtils.isNotTrue(sendRet)){
-            log.error("failed to send cancel usdk mq, {}", userId);
+        if (CollectionUtils.isEmpty(orderIdList)) {
+            return;
         }
+        //发送MQ消息到match
+
+        List<List<Long>> splitList = Lists.partition(orderIdList, 50);
+        splitList.forEach(subList -> {
+            ToCancelMessage toCancelMessage = new ToCancelMessage();
+            toCancelMessage.setUserId(userId);
+            toCancelMessage.setCancelType(CancelTypeEnum.CANCEL_BY_ORDERID);
+            toCancelMessage.setIdList(subList);
+            Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkCancel",
+                    "to_cancel_usdt_"+Joiner.on("_").join(subList), toCancelMessage);
+            if (BooleanUtils.isNotTrue(sendRet)){
+                log.error("failed to send cancel usdk mq, {}", userId);
+            }
+        });
+
     }
 
 
