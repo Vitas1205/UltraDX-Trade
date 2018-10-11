@@ -4,7 +4,6 @@ import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
 import com.fota.common.Page;
 import com.fota.trade.common.*;
-import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.ResultCode;
 import com.fota.trade.manager.ContractLeverManager;
@@ -15,7 +14,10 @@ import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.service.ContractOrderService;
-import com.fota.trade.util.*;
+import com.fota.trade.util.DateUtil;
+import com.fota.trade.util.PriceUtil;
+import com.fota.trade.util.Profiler;
+import com.fota.trade.util.ThreadContextUtil;
 import com.google.common.base.Joiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,13 +26,8 @@ import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
 
-import static com.fota.trade.common.ResultCodeEnum.LOCK_FAILED;
 import static com.fota.trade.common.ResultCodeEnum.SYSTEM_ERROR;
 
 /**
@@ -397,8 +394,7 @@ public class ContractOrderServiceImpl implements
         ThreadContextUtil.setPrifiler(profiler);
 
         try {
-            ResultCode code = dealManager.deal(contractMatchedOrderDTO);
-            return code;
+            return dealManager.deal(contractMatchedOrderDTO);
 
         } catch (Exception e) {
             if (e instanceof BizException) {

@@ -27,14 +27,17 @@ public class UsdkMatchedOrderMapperTest {
 
     @Test
     public void test_getLatestUsdkMatched() {
-        UsdkMatchedOrderDO id = usdkMatchedOrderMapper.getLatestUsdkMatched();
-        log.info("id== :{}",id.getId());
+        long time = System.currentTimeMillis();
+        long id = usdkMatchedOrderMapper.getLatestUsdkMatched();
+        log.info("id== :{}, time:{}",id, System.currentTimeMillis() - time);
     }
 
     @Test
     public void test_getLatestUsdkMatchedList() {
-        List<UsdkMatchedOrderDO> list = usdkMatchedOrderMapper.getLatestUsdkMatchedList(2,1000L);
-        log.info("list usdkMatchedOrder :{}", list.toString());
+        long time = System.currentTimeMillis();
+
+        List<UsdkMatchedOrderDO> list = usdkMatchedOrderMapper.getLatestUsdkMatchedList(2,10000L);
+        log.info("list usdkMatchedOrder :{}, time :{}", list.toString() , System.currentTimeMillis() - time);
     }
 
 }
