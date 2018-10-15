@@ -182,42 +182,7 @@ public class ContractOrderServiceImpl implements
 
     @Override
     public Page<ContractOrderDTO> listContractOrderByQuery4Recovery(BaseQuery contractOrderQuery) {
-        com.fota.common.Page<ContractOrderDTO> contractOrderDTOPageRet = new com.fota.common.Page<>();
-        if (null == contractOrderQuery){
-            return null;
-        }
-        com.fota.common.Page<ContractOrderDTO> contractOrderDTOPage = new com.fota.common.Page<>();
-        if (contractOrderQuery.getPageNo() <= 0) {
-            contractOrderQuery.setPageNo(Constant.DEFAULT_PAGE_NO);
-        }
-        contractOrderDTOPage.setPageNo(contractOrderQuery.getPageNo());
-        if (contractOrderQuery.getPageSize() <= 0
-                || contractOrderQuery.getPageSize() > 1000) {
-            contractOrderQuery.setPageSize(1000);
-
-        }
-        contractOrderDTOPage.setPageNo(contractOrderQuery.getPageNo());
-        contractOrderDTOPage.setPageSize(contractOrderQuery.getPageSize());
-        contractOrderQuery.setStartRow((contractOrderQuery.getPageNo() - 1) * contractOrderQuery.getPageSize());
-        contractOrderQuery.setEndRow(contractOrderQuery.getPageSize());
-        Map<String, Object> paramMap = null;
-        List<ContractOrderDO> contractOrderDOList = null;
-        List<com.fota.trade.domain.ContractOrderDTO> list = new ArrayList<>();
-        try {
-            paramMap = ParamUtil.objectToMap(contractOrderQuery);
-            paramMap.put("contractId", contractOrderQuery.getSourceId());
-            contractOrderDOList = contractOrderMapper.listByQuery4Recovery(paramMap);
-            if (contractOrderDOList != null && contractOrderDOList.size() > 0) {
-                for (ContractOrderDO contractOrderDO : contractOrderDOList) {
-                    list.add(BeanUtils.copy(contractOrderDO));
-                }
-            }
-        } catch (Exception e) {
-            log.error("contractOrderMapper.listByQuery({})", contractOrderQuery, e);
-            return contractOrderDTOPageRet;
-        }
-        contractOrderDTOPage.setData(list);
-        return contractOrderDTOPage;
+        return null;
     }
 
     @Override

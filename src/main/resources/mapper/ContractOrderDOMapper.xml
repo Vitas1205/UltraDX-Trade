@@ -23,8 +23,6 @@
             <arg column="close_type" jdbcType="TINYINT" javaType="java.lang.Integer"/>
             <arg column="price" jdbcType="DECIMAL" javaType="java.math.BigDecimal"/>
             <arg column="fee" jdbcType="DECIMAL" javaType="java.math.BigDecimal"/>
-            <arg column="usdk_locked_amount" jdbcType="DECIMAL" javaType="java.math.BigDecimal"/>
-            <arg column="position_locked_amount" jdbcType="DECIMAL" javaType="java.math.BigDecimal"/>
             <arg column="status" jdbcType="INTEGER" javaType="java.lang.Integer"/>
             <arg column="average_price" jdbcType="DECIMAL" javaType="java.math.BigDecimal"/>
             <arg column="order_context" jdbcType="VARCHAR" javaType="java.lang.String"/>
@@ -40,7 +38,7 @@
         order_type as orderType,order_direction as orderDirection,
         operate_type as operateType, operate_direction as operateDirection, lever, total_amount as totalAmount,
         unfilled_amount as unfilledAmount, close_type as closeType, price, fee,
-        usdk_locked_amount as usdkLockedAmount, position_locked_amount as positionLockedAmount, status, average_price as
+        status, average_price as
         averagePrice, order_context as orderContext
     </sql>
 
@@ -104,37 +102,6 @@
     </select>
 
 
-    <select id="listByQuery4Recovery" resultType="com.fota.trade.domain.ContractOrderDO">
-        select
-        <include refid="Base_Column_List"/>
-        from trade_contract_order
-        where 1=1
-        <if test="contractId > 0">
-            and contract_id=#{contractId,jdbcType=INTEGER}
-        </if>
-        <if test="userId > 0">
-            and user_id=#{userId,jdbcType=BIGINT}
-        </if>
-        <if test="startTime != null">
-            and gmt_create &gt;= #{startTime}
-        </if>
-        <if test="endTime != null">
-            and gmt_create &lt; #{endTime}
-        </if>
-        <if test="orderStatus != null and orderStatus.size != 0">
-            and status in
-            <foreach item="item" index="index" collection="orderStatus" open="(" separator="," close=")">
-                #{item,jdbcType=INTEGER}
-            </foreach>
-        </if>
-        <if test="orderType != null">
-            and order_type = #{orderType}
-        </if>
-        order by gmt_create ASC
-        limit #{startRow,jdbcType=INTEGER}, #{endRow,jdbcType=INTEGER}
-    </select>
-
-
     <update id="updateAmountAndStatus">
     update trade_contract_order
     set
@@ -169,7 +136,7 @@
         select
             id, gmt_create, gmt_modified, user_id, contract_id, contract_name, order_direction,
             operate_type,order_type,close_type, operate_direction, lever, total_amount, unfilled_amount, price,
-            fee, usdk_locked_amount, position_locked_amount, status, average_price, order_context
+            fee,  status, average_price, order_context
             from trade_contract_order
             where user_id = #{userId,jdbcType=BIGINT} and contract_id = #{contractId}  and status in (8,9) and order_type != 3
             limit 500

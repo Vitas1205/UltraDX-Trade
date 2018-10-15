@@ -38,11 +38,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
 
 
     @Select({
-            "select",
-            "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, order_direction, ",
-            "operate_type, order_type, operate_direction, lever, total_amount, unfilled_amount, close_type, price, ",
-            "fee, usdk_locked_amount, position_locked_amount, status, average_price, order_context",
-            "from trade_contract_order",
+            "select * from trade_contract_order",
             "where user_id =  #{userId,jdbcType=BIGINT} and id = #{id,jdbcType=BIGINT}"
     })
     @ResultMap("BaseResultMap")
@@ -55,36 +51,13 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
     Date getMaxCreateTime();
 
 
-    @Select({
-            "select",
-            "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, order_direction, ",
-            "operate_type,order_type,close_type, operate_direction, lever, total_amount, unfilled_amount, price, ",
-            "fee, usdk_locked_amount, position_locked_amount, status, average_price, order_context",
-            "from trade_contract_order",
-            "where contract_id = #{contractId,jdbcType=BIGINT} and user_id =  #{userId,jdbcType=BIGINT}"
-    })
-    @ResultMap("BaseResultMap")
-    List<ContractOrderDO> selectByContractIdAndUserId(@Param("contractId") Long contractId, @Param("userId") Long userId);
 
     List<ContractOrderDO> selectNotEnforceOrderByUserIdAndContractId(@Param("userId") Long userId, @Param("contractId") Long contractId);
 
-    @Select({
-            "select",
-            "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, order_direction, ",
-            "operate_type,order_type,close_type, operate_direction, lever, total_amount, unfilled_amount, price, ",
-            "fee, usdk_locked_amount, position_locked_amount, status, average_price, order_context",
-            "from trade_contract_order",
-            "where user_id =  #{userId,jdbcType=BIGINT}"
-    })
-    @ResultMap("BaseResultMap")
-    List<ContractOrderDO> selectByUserId(Long userId);
 
 
     @Select({
-            "select",
-            "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, order_direction, ",
-            "operate_type,order_type,close_type, operate_direction, lever, total_amount, unfilled_amount, price, ",
-            "fee, usdk_locked_amount, position_locked_amount, status, average_price, order_context",
+            "select * ",
             "from trade_contract_order",
             "where user_id =  #{userId,jdbcType=BIGINT} and status in (8,9)"
     })
@@ -92,26 +65,13 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
     List<ContractOrderDO> selectUnfinishedOrderByUserId(Long userId);
 
     @Select({
-            "select",
-            "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, order_direction, ",
-            "operate_type,order_type,close_type, operate_direction, lever, total_amount, unfilled_amount, price, ",
-            "fee, usdk_locked_amount, position_locked_amount, status, average_price, order_context",
+            "select * ",
             "from trade_contract_order",
             "where user_id =  #{userId,jdbcType=BIGINT} and status in (8,9) and order_type != 3"
     })
     @ResultMap("BaseResultMap")
     List<ContractOrderDO> selectNotEnforceOrderByUserId(Long userId);
 
-    @Select({
-            "select",
-            "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, order_direction, ",
-            "operate_type,order_type,close_type, operate_direction, lever, total_amount, unfilled_amount, price, ",
-            "fee, usdk_locked_amount, position_locked_amount, status, average_price, order_context",
-            "from trade_contract_order",
-            "where contract_id = #{contractId,jdbcType=BIGINT} and status in (8,9)"
-    })
-    @ResultMap("BaseResultMap")
-    List<ContractOrderDO> selectUnfinishedOrderByContractId(Long contractId);
 
     @Select({
             " select * ",
@@ -136,7 +96,6 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
 
     List<ContractOrderDO> listByQuery(Map<String, Object> param);
 
-    List<ContractOrderDO> listByQuery4Recovery(Map<String, Object> param);
 
     @Update({
             " update trade_contract_order" +
