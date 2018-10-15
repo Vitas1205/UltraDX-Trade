@@ -98,7 +98,7 @@ public class OrderConsumer {
                 }
                 ResultCode resultCode = null;
                 if ("UsdkCancelResult".equals(tag)) {
-                        resultCode = usdkOrderManager.cancelOrderByMessage(orderId, unfilledAmount);
+                        resultCode = usdkOrderManager.cancelOrderByMessage(userId, orderId, unfilledAmount);
                 } else if ("ContractCancelResult".equals(tag)) {
                     resultCode = contractOrderManager.cancelOrderByMessage(userId, orderId, unfilledAmount);
                 }

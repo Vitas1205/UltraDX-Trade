@@ -9,7 +9,6 @@ import com.fota.asset.service.CapitalService;
 import com.fota.match.service.UsdkMatchedOrderService;
 import com.fota.trade.client.CancelTypeEnum;
 import com.fota.trade.client.ToCancelMessage;
-import com.fota.trade.client.constants.Constants;
 import com.fota.trade.client.constants.DealedMessage;
 import com.fota.trade.common.BizException;
 import com.fota.trade.common.BusinessException;
@@ -24,6 +23,7 @@ import com.fota.trade.util.ContractUtils;
 import com.fota.trade.util.ThreadContextUtil;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -95,19 +95,6 @@ public class UsdkOrderManager {
         return assetService;
     }
 
-    public List<UsdkOrderDO> listNotMatchOrder(Long contractOrderIndex, Integer orderDirection) {
-        List<UsdkOrderDO> notMatchOrderList = null;
-        try {
-            notMatchOrderList = usdkOrderMapper.notMatchOrderList(
-                    COMMIT.getCode(), PART_MATCH.getCode(), contractOrderIndex, orderDirection);
-        } catch (Exception e) {
-            log.error("usdkOrderMapper.notMatchOrderList error", e);
-        }
-        if (notMatchOrderList == null) {
-            notMatchOrderList = new ArrayList<>();
-        }
-        return notMatchOrderList;
-    }
 
     //TODO 优化: 先更新账户，再insert订单，而不是先insert订单再更新账户
     @Transactional(rollbackFor={Throwable.class})
@@ -243,7 +230,7 @@ public class UsdkOrderManager {
         if (Objects.isNull(userId) || Objects.isNull(orderId)) {
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), ResultCodeEnum.ILLEGAL_PARAM.getMessage());
         }
-        UsdkOrderDO usdkOrderDO = usdkOrderMapper.selectByPrimaryKey(orderId);
+        UsdkOrderDO usdkOrderDO = usdkOrderMapper.selectByUserIdAndId(userId, orderId);
         if (Objects.isNull(usdkOrderDO)) {
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), ResultCodeEnum.ILLEGAL_PARAM.getMessage());
         }
@@ -262,25 +249,23 @@ public class UsdkOrderManager {
      * @param orderId 委托单ID
      */
     @Transactional(rollbackFor = Exception.class)
-    public ResultCode cancelOrderByMessage(Long orderId, BigDecimal unfilledAmount) {
+    public ResultCode cancelOrderByMessage(long userId, long orderId, @NonNull BigDecimal unfilledAmount) {
         ResultCode resultCode;
 
-        UsdkOrderDO usdkOrderDO = usdkOrderMapper.selectByPrimaryKey(orderId);
+        UsdkOrderDO usdkOrderDO = usdkOrderMapper.selectByUserIdAndId(userId, orderId);
         Integer status = usdkOrderDO.getStatus();
 
         if (Objects.isNull(usdkOrderDO)) {
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), "usdk order does not exist, id={}"+orderId);
         }
-        Integer toStatus;
-        if (status == COMMIT.getCode()){
-            toStatus = CANCEL.getCode();
-        }else if (status == PART_MATCH.getCode()){
-            toStatus = PART_CANCEL.getCode();
-        }else {
-            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), "order has completed, can't be cancel, id="+usdkOrderDO.getId() + "status="+status);
+
+        if (status != COMMIT.getCode() && status != PART_MATCH.getCode()) {
+            return ResultCode.error(BIZ_ERROR.getCode(),"illegal order status, id="+usdkOrderDO.getId() + ", status="+ usdkOrderDO.getStatus());
         }
+        Integer toStatus = unfilledAmount.compareTo(usdkOrderDO.getTotalAmount()) < 0 ? PART_CANCEL.getCode() : CANCEL.getCode();
+
         //更新usdk委托表
-        int ret = usdkOrderMapper.cancelByOpLock(usdkOrderDO.getId(), toStatus, usdkOrderDO.getGmtModified());
+        int ret = usdkOrderMapper.cancelByOpLock(userId, usdkOrderDO.getId(), toStatus, usdkOrderDO.getGmtModified());
         Long transferTime = System.currentTimeMillis();
         if (ret > 0){
             Integer orderDirection = usdkOrderDO.getOrderDirection();
@@ -386,8 +371,8 @@ public class UsdkOrderManager {
         }
         Long transferTime = System.currentTimeMillis();
 
-        UsdkOrderDO askUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getAskOrderId());
-        UsdkOrderDO bidUsdkOrder = usdkOrderMapper.selectByPrimaryKey(usdkMatchedOrderDTO.getBidOrderId());
+        UsdkOrderDO askUsdkOrder = usdkOrderMapper.selectByUserIdAndId(usdkMatchedOrderDTO.getAskUserId(), usdkMatchedOrderDTO.getAskOrderId());
+        UsdkOrderDO bidUsdkOrder = usdkOrderMapper.selectByUserIdAndId(usdkMatchedOrderDTO.getBidUserId(), usdkMatchedOrderDTO.getBidOrderId());
 
         BigDecimal filledAmount = new BigDecimal(usdkMatchedOrderDTO.getFilledAmount());
         if (BasicUtils.gt(filledAmount, askUsdkOrder.getUnfilledAmount())){
@@ -399,11 +384,11 @@ public class UsdkOrderManager {
 
         BigDecimal filledPrice = new BigDecimal(usdkMatchedOrderDTO.getFilledPrice());
 
-        int updateAskOrderRet = doUpdateUsdkOrder(askUsdkOrder.getId(),  filledAmount, filledPrice, new Date(transferTime));
+        int updateAskOrderRet = doUpdateUsdkOrder(usdkMatchedOrderDTO.getAskUserId(), askUsdkOrder.getId(),  filledAmount, filledPrice, new Date(transferTime));
         if (updateAskOrderRet <= 0){
             throw new BizException(ResultCodeEnum.BIZ_ERROR.getCode(), "update askOrder failed, order=" + askUsdkOrder);
         }
-        int updateBIdOrderRet = doUpdateUsdkOrder(bidUsdkOrder.getId(), filledAmount, filledPrice, new Date(transferTime));
+        int updateBIdOrderRet = doUpdateUsdkOrder(usdkMatchedOrderDTO.getBidUserId(), bidUsdkOrder.getId(), filledAmount, filledPrice, new Date(transferTime));
         if (updateBIdOrderRet <= 0){
             throw new BizException(ResultCodeEnum.BIZ_ERROR.getCode(), "update bidOrder failed, order=" + bidUsdkOrder);
         }
@@ -543,28 +528,10 @@ public class UsdkOrderManager {
     }
 
 
-    private int doUpdateUsdkOrder(long id, BigDecimal filledAmount, BigDecimal filledPrice, Date gmtModified) {
-        return usdkOrderMapper.updateByFilledAmount(id, filledAmount, filledPrice, gmtModified);
+    private int doUpdateUsdkOrder(long userId, long id, BigDecimal filledAmount, BigDecimal filledPrice, Date gmtModified) {
+        return usdkOrderMapper.updateByFilledAmount(userId, id, filledAmount, filledPrice, gmtModified);
     }
 
-    public Long getLatestUsdkMatched(Integer type) {
-        try {
-            if (type == 1) {
-                Long latestUsdkMatched = usdkMatchedOrderMapper.getLatestUsdkMatched();
-                if (latestUsdkMatched != null) {
-                    return latestUsdkMatched;
-                }
-            }else if (type ==2) {
-                Long latestContractMatched = contractMatchedOrderMapper.getLatestContractMatched();
-                if (latestContractMatched != null) {
-                    return latestContractMatched;
-                }
-            }
-        } catch (Exception e) {
-            log.error("usdkMatchedOrderMapper.getLatestUsdkMatched error" ,e);
-        }
-        return null;
-    }
 }
 
 

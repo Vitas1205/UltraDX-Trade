@@ -49,54 +49,54 @@ public class RollbackManager {
 
     @Transactional(rollbackFor = {Exception.class})
     public ResultCode rollBack(Date safePoint, long contractId) {
-        int pageSize = 100;
-        int pageIndex = 1;
-        Date startTaskTime = new Date();
-
-        BaseQuery query = new BaseQuery();
-        query.setSourceId((int) contractId);
-        query.setStartTime(safePoint);
-        query.setEndTime(new Date());
-        long count = matchedOrderMapper.count(query);
-        if (0 >= count) {
-            log.info("there is nothing to rollback");
-            return ResultCode.success();
-        }
-
-        //分割任务
-        int maxPageIndex = ((int) count - 1) / pageSize + 1;;
-        List<RollbackTask> tasks = new ArrayList<>();
-        while (pageIndex <= maxPageIndex) {
-            RollbackTask rollbackTask = new RollbackTask();
-            rollbackTask.setContractId(contractId);
-            rollbackTask.setPageSize(pageSize);
-            rollbackTask.setRollbackPoint(safePoint);
-            rollbackTask.setTaskStartPoint(startTaskTime);
-            rollbackTask.setPageSize(pageSize)
-                    .setPageIndex(pageIndex);
-            tasks.add(rollbackTask);
-            pageIndex++;
-        }
-        tasks.forEach(task ->{
-            rollbackMatchedOrder(task);
-        });
+//        int pageSize = 100;
+//        int pageIndex = 1;
+//        Date startTaskTime = new Date();
+//
+//        BaseQuery query = new BaseQuery();
+//        query.setSourceId((int) contractId);
+//        query.setStartTime(safePoint);
+//        query.setEndTime(new Date());
+//        long count = matchedOrderMapper.count(query);
+//        if (0 >= count) {
+//            log.info("there is nothing to rollback");
+//            return ResultCode.success();
+//        }
+//
+//        //分割任务
+//        int maxPageIndex = ((int) count - 1) / pageSize + 1;;
+//        List<RollbackTask> tasks = new ArrayList<>();
+//        while (pageIndex <= maxPageIndex) {
+//            RollbackTask rollbackTask = new RollbackTask();
+//            rollbackTask.setContractId(contractId);
+//            rollbackTask.setPageSize(pageSize);
+//            rollbackTask.setRollbackPoint(safePoint);
+//            rollbackTask.setTaskStartPoint(startTaskTime);
+//            rollbackTask.setPageSize(pageSize)
+//                    .setPageIndex(pageIndex);
+//            tasks.add(rollbackTask);
+//            pageIndex++;
+//        }
+//        tasks.forEach(task ->{
+//            rollbackMatchedOrder(task);
+//        });
 
         return ResultCode.success();
 
     }
-    public void rollbackMatchedOrder(RollbackTask rollbackTask) {
-        log.info("start rollbackTask:{}",JSON.toJSONString(rollbackTask));
-        BaseQuery query = new BaseQuery();
-        query.setSourceId((int) rollbackTask.getContractId());
-        query.setStartTime(rollbackTask.getRollbackPoint());
-        query.setEndTime(rollbackTask.getTaskStartPoint());
-        query.setStartRow(rollbackTask.getStartRow());
-        query.setEndRow(rollbackTask.getPageSize());
-
-        List<ContractMatchedOrderDO> matchedOrderDOS = contractMatchedOrderMapper.queryMatchedOrder(query);
-        matchedOrderDOS.forEach(this::rollbackMatchedOrder);
-
-    }
+//    public void rollbackMatchedOrder(RollbackTask rollbackTask) {
+//        log.info("start rollbackTask:{}",JSON.toJSONString(rollbackTask));
+//        BaseQuery query = new BaseQuery();
+//        query.setSourceId((int) rollbackTask.getContractId());
+//        query.setStartTime(rollbackTask.getRollbackPoint());
+//        query.setEndTime(rollbackTask.getTaskStartPoint());
+//        query.setStartRow(rollbackTask.getStartRow());
+//        query.setEndRow(rollbackTask.getPageSize());
+//
+//        List<ContractMatchedOrderDO> matchedOrderDOS = contractMatchedOrderMapper.queryMatchedOrder(query);
+//        matchedOrderDOS.forEach(this::rollbackMatchedOrder);
+//
+//    }
 
 
 
@@ -105,8 +105,8 @@ public class RollbackManager {
 //            return;
 //        }
 //
-//        ContractOrderDO askContractOrder = contractOrderMapper.selectByPrimaryKey(matchedOrderDO.getAskOrderId());
-//        ContractOrderDO bidContractOrder = contractOrderMapper.selectByPrimaryKey(matchedOrderDO.getBidOrderId());
+//        ContractOrderDO askContractOrder = contractOrderMapper.selectByUserIdAndId(matchedOrderDO.getAskOrderId());
+//        ContractOrderDO bidContractOrder = contractOrderMapper.selectByUserIdAndId(matchedOrderDO.getBidOrderId());
 //
 //        //更新委托状态
 //        BigDecimal oppositeFilledAmount = matchedOrderDO.getFilledAmount().negate();
