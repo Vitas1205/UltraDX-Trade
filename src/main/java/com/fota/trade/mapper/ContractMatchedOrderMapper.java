@@ -29,6 +29,7 @@ public interface ContractMatchedOrderMapper {
 
     List<ContractMatchedOrderDO> queryMatchedOrder(BaseQuery baseQuery);
 
+    BigDecimal getFeeByDate(Map<String, Object> map);
 
     @Update("UPDATE contract_matched_order SET gmt_modified=now(), status=#{toStatus} WHERE id=#{id}")
     int updateStatus(@Param("id") long id, @Param("toStatus") int toStatus);

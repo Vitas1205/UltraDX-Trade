@@ -289,20 +289,41 @@ public class DealManager {
     }
 
     public void updateTodayFee(List<PostDealMessage> postDealMessages){
-        BigDecimal totalFee = postDealMessages.stream().map(PostDealMessage::getTotalFee).reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (CollectionUtils.isEmpty(postDealMessages)){
+            return;
+        }
+        BigDecimal totalFee = postDealMessages.stream().filter(x->x.getTotalFee() != null)
+                .map(PostDealMessage::getTotalFee).reduce(BigDecimal.ZERO, BigDecimal::add);
         if (totalFee.compareTo(ZERO) > 0){
-            Date date = new Date();
-            SimpleDateFormat sdf1 =new SimpleDateFormat("yyyyMMdd");
-            SimpleDateFormat sdf2 =new SimpleDateFormat("H");
-            int hours = Integer.valueOf(sdf2.format(date));
-            Calendar calendar = Calendar.getInstance();
-            calendar.setTime(date);
-            calendar.add(Calendar.DATE, 1);
-            String dateStr = hours < 18 ? sdf1.format(date) : sdf1.format(calendar.getTime());
+            String dateStr = new SimpleDateFormat("yyyyMMdd").format(new Date());
             Double currentFee = redisManager.counter(Constant.REDIS_TODAY_FEE + dateStr, totalFee);
             if (null == currentFee) {
                 log.error("update total position amount failed, totalFee={}", totalFee);
                 return;
+            }
+            if (BasicUtils.equal(new BigDecimal(currentFee), totalFee)) {
+                Map<String, Object> map = new HashMap<>();
+                Calendar calendar = Calendar.getInstance();
+                calendar.setTime(new Date());
+                calendar.set(Calendar.HOUR_OF_DAY, 0);
+                calendar.set(Calendar.MINUTE, 0);
+                calendar.set(Calendar.SECOND, 0);
+                Date endDate = new Date();
+                Date startDate = calendar.getTime();
+                map.put("startDate", startDate);
+                map.put("endDate", endDate);
+                BigDecimal dbFee;
+                try {
+                    dbFee = contractMatchedOrderMapper.getFeeByDate(map);
+                }catch (Exception e){
+                    log.error("contractMatchedOrderMapper.getFeeByDate Exception", e);
+                    return;
+                }
+                if (null == dbFee || dbFee.compareTo(ZERO) == 0) {
+                    redisManager.counter(Constant.REDIS_TODAY_FEE + dateStr, new BigDecimal(currentFee).negate());
+                    return;
+                }
+                redisManager.counter(Constant.REDIS_TODAY_FEE + dateStr, dbFee.subtract(totalFee));
             }
         }
     }
