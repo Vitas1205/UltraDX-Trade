@@ -278,7 +278,7 @@ public class DealManager {
                     failedBalanceMap.put(postDealMessage.getMsgKey(), JSON.toJSONString(dealer));
                 }
             }catch (Exception e){
-                log.error("update balance exception, params={}", dealer, e);
+                log.error("Asset RPC Error!, update balance exception, params={}", dealer, e);
                 failedBalanceMap.put(postDealMessage.getMsgKey(), JSON.toJSONString(dealer));
             }
         }
