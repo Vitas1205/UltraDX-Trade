@@ -550,11 +550,11 @@ public class ContractOrderManager {
 
     public BigDecimal computePrice(List<CompetitorsPriceDTO> competitorsPriceList, int type, long contractId) {
         if (CollectionUtils.isEmpty(competitorsPriceList)) {
-            BigDecimal ret = redisManager.get(Constant.LAST_CONTRACT_MATCH_PRICE + String.valueOf(contractId));
+            String ret = redisManager.get(Constant.LAST_CONTRACT_MATCH_PRICE + String.valueOf(contractId));
             if (null == ret) {
                 log.error("there is no latestMatchedPrice, contractId={}, type={}", contractId, type);
             }
-            return ret;
+            return new BigDecimal(ret);
         }
         Optional<CompetitorsPriceDTO>  competitorsPriceDTOOptional = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == type &&
                 competitorsPrice.getId() == contractId).findFirst();
