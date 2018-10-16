@@ -931,9 +931,6 @@ public class ContractOrderManager {
      * @return
      */
     public Boolean judgeOrderAvailable(long userId, ContractOrderDO newContractOrderDO) {
-        if (marketAccountListService.contains(userId)) {
-            return Boolean.TRUE;
-        }
         ContractAccount contractAccount = new ContractAccount();
         contractAccount.setMarginCallRequirement(BigDecimal.ZERO)
                 .setFrozenAmount(BigDecimal.ZERO)
@@ -952,9 +949,6 @@ public class ContractOrderManager {
             log.error("empty categoryList");
             return false;
         }
-        List<UserPositionDO> allPositions = userPositionMapper.selectByUserId(userId, PositionStatusEnum.UNDELIVERED.getCode());
-        List<CompetitorsPriceDTO> competitorsPrices = realTimeEntrust.getContractCompetitorsPrice();
-        List<UserContractLeverDO> contractLeverDOS = userContractLeverMapper.listUserContractLever(userId);
 
         List<ContractOrderDO> allContractOrders = contractOrderMapper.selectNotEnforceOrderByUserId(userId);
         if (null == allContractOrders) {
@@ -964,6 +958,14 @@ public class ContractOrderManager {
         if (allContractOrders.size() > 200) {
             throw new BizException(ResultCodeEnum.TOO_MUCH_ORDERS);
         }
+
+        if (marketAccountListService.contains(userId)) {
+            return Boolean.TRUE;
+        }
+
+        List<UserPositionDO> allPositions = userPositionMapper.selectByUserId(userId, PositionStatusEnum.UNDELIVERED.getCode());
+        List<CompetitorsPriceDTO> competitorsPrices = realTimeEntrust.getContractCompetitorsPrice();
+        List<UserContractLeverDO> contractLeverDOS = userContractLeverMapper.listUserContractLever(userId);
 
         for (ContractCategoryDTO contractCategoryDO : categoryList) {
             long contractId = contractCategoryDO.getId();
