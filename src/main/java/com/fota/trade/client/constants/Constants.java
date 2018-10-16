@@ -14,4 +14,5 @@ public class Constants {
     public static final String DEFAULT_TAG = "default";
     public static final String UTF8 = "UTF-8";
     public static final int TABLE_NUMBER = 256;
+    public static final long NOT_EXIST = -1L;
 }

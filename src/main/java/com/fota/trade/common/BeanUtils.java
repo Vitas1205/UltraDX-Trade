@@ -11,6 +11,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
+import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
+
 /**
  * @author Gavin Shen
  * @Date 2018/7/7
@@ -214,22 +217,40 @@ public class BeanUtils {
         return userPositionDTO;
     }
 
-    public static ContractMatchedOrderDO copy(ContractMatchedOrderDTO contractMatchedOrderDTO) {
-        ContractMatchedOrderDO contractMatchedOrderDO = new ContractMatchedOrderDO();
-        contractMatchedOrderDO.setAskOrderId(contractMatchedOrderDTO.getAskOrderId());
+    public static ContractMatchedOrderDO extractContractMatchedRecord(ContractMatchedOrderDTO contractMatchedOrderDTO, int orderDirection, BigDecimal fee, Integer closeType) {
+        ContractMatchedOrderDO res = new ContractMatchedOrderDO();
+        res.setGmtCreate(contractMatchedOrderDTO.getGmtCreate())
+                .setMatchId(contractMatchedOrderDTO.getId())
+                .setMatchType(contractMatchedOrderDTO.getMatchType())
+                .setOrderDirection(orderDirection)
+                .setStatus(VALID)
+                .setFilledAmount(contractMatchedOrderDTO.getFilledAmount())
+                .setFilledPrice(new BigDecimal(contractMatchedOrderDTO.getFilledPrice()))
+                .setContractId(contractMatchedOrderDTO.getContractId())
+                .setContractName(contractMatchedOrderDTO.getContractName());
+
+        res.setFee(fee);
+        res.setCloseType(closeType);
+
+        BigDecimal askPrice = null, bidPrice = null;
         if (!StringUtils.isEmpty(contractMatchedOrderDTO.getAskOrderPrice())){
-            contractMatchedOrderDO.setAskOrderPrice(new BigDecimal(contractMatchedOrderDTO.getAskOrderPrice()));
+            askPrice = new BigDecimal(contractMatchedOrderDTO.getAskOrderPrice());
         }
         if (!StringUtils.isEmpty(contractMatchedOrderDTO.getBidOrderPrice())){
-            contractMatchedOrderDO.setBidOrderPrice(new BigDecimal(contractMatchedOrderDTO.getBidOrderPrice()));
+            bidPrice = new BigDecimal(contractMatchedOrderDTO.getBidOrderPrice());
         }
-        contractMatchedOrderDO.setBidOrderId(contractMatchedOrderDTO.getBidOrderId());
-        contractMatchedOrderDO.setMatchType(contractMatchedOrderDTO.getMatchType().byteValue());
-        contractMatchedOrderDO.setFilledPrice(new BigDecimal(contractMatchedOrderDTO.getFilledPrice()));
-        contractMatchedOrderDO.setFilledAmount(contractMatchedOrderDTO.getFilledAmount());
-        contractMatchedOrderDO.setContractName(contractMatchedOrderDTO.getContractName());
-        contractMatchedOrderDO.setContractId(contractMatchedOrderDTO.getContractId());
-        return contractMatchedOrderDO;
+        if (ASK.getCode() == orderDirection) {
+            res.setUserId(contractMatchedOrderDTO.getAskUserId());
+            res.setOrderId(contractMatchedOrderDTO.getAskOrderId());
+            res.setOrderPrice(askPrice);
+            res.setMatchUserId(contractMatchedOrderDTO.getBidUserId());
+        }else {
+            res.setUserId(contractMatchedOrderDTO.getBidUserId());
+            res.setOrderId(contractMatchedOrderDTO.getBidOrderId());
+            res.setOrderPrice(bidPrice);
+            res.setMatchUserId(contractMatchedOrderDTO.getAskUserId());
+        }
+        return res;
     }
 
     public static UsdkMatchedOrderDO extractUsdtRecord(UsdkMatchedOrderDTO usdkMatchedOrderDTO, int orderDirec) {
@@ -237,7 +258,7 @@ public class BeanUtils {
         usdkMatchedOrderDO.setMatchId(usdkMatchedOrderDTO.getId());
         usdkMatchedOrderDO.setOrderDirection(orderDirec);
         usdkMatchedOrderDO.setCloseType(0);
-        if (orderDirec == OrderDirectionEnum.ASK.getCode()) {
+        if (orderDirec == ASK.getCode()) {
             if (usdkMatchedOrderDTO.getAskOrderPrice() != null){
                 usdkMatchedOrderDO.setOrderPrice(new BigDecimal(usdkMatchedOrderDTO.getAskOrderPrice()));
             }

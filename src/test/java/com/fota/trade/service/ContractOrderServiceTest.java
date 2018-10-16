@@ -115,7 +115,7 @@ public class ContractOrderServiceTest {
         log.info(String.valueOf(contractOrderDTOPage));
     }
 
-//    @Test
+    @Test
     public void testUpdateOrderByMatch() {
 
 
@@ -133,7 +133,7 @@ public class ContractOrderServiceTest {
 //        public String assetName;
 //        public int contractType;
 
-        BigDecimal amount = new BigDecimal(0.01);
+        BigDecimal amount = new BigDecimal("0.01");
 
         // 准备数据
         askContractOrder.setId(BasicUtils.generateId());
@@ -175,19 +175,27 @@ public class ContractOrderServiceTest {
 
 
         ContractMatchedOrderDTO contractMatchedOrderDTO = new ContractMatchedOrderDTO();
+        contractMatchedOrderDTO.setId(1L);
+
+        contractMatchedOrderDTO.setAskUserId(askUserId);
         contractMatchedOrderDTO.setAskOrderId(askContractOrder.getId());
+        contractMatchedOrderDTO.setAskOrderPrice(askContractOrder.getPrice().toString());
+        contractMatchedOrderDTO.setAskOrderStatus(askContractOrder.getStatus());
+        contractMatchedOrderDTO.setAskOrderUnfilledAmount(BigDecimal.ZERO);
+
+        contractMatchedOrderDTO.setBidUserId(bidUserId);
         contractMatchedOrderDTO.setBidOrderId(bidContractOrder.getId());
+        contractMatchedOrderDTO.setBidOrderPrice(bidContractOrder.getPrice().toString());
+        contractMatchedOrderDTO.setBidOrderStatus(bidContractOrder.getStatus());
+        contractMatchedOrderDTO.setBidOrderUnfilledAmount(BigDecimal.ZERO);
+
         contractMatchedOrderDTO.setContractId(contractId);
         contractMatchedOrderDTO.setContractName(askContractOrder.getContractName());
         contractMatchedOrderDTO.setAssetName("BTC");
         contractMatchedOrderDTO.setFilledPrice(askContractOrder.getPrice().toString());
         contractMatchedOrderDTO.setFilledAmount(amount);
-
-        contractMatchedOrderDTO.setAskOrderPrice(askContractOrder.getPrice().toString());
-        contractMatchedOrderDTO.setAskOrderStatus(askContractOrder.getStatus());
-        contractMatchedOrderDTO.setBidOrderPrice(bidContractOrder.getPrice().toString());
-        contractMatchedOrderDTO.setBidOrderStatus(bidContractOrder.getStatus());
         contractMatchedOrderDTO.setMatchType(1);
+
         ResultCode resultCode = contractOrderService.updateOrderByMatch(contractMatchedOrderDTO);
         Assert.assertTrue(resultCode.isSuccess());
     }

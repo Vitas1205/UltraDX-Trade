@@ -2,91 +2,43 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.fota.trade.mapper.ContractMatchedOrderMapper">
     <resultMap id="BaseResultMap" type="com.fota.trade.domain.ContractMatchedOrderDO">
-        <id column="id" jdbcType="BIGINT" property="id" />
-        <result column="gmt_create" jdbcType="TIMESTAMP" property="gmtCreate" />
-        <result column="gmt_modified" jdbcType="TIMESTAMP" property="gmtModified" />
-        <result column="ask_order_id" jdbcType="BIGINT" property="askOrderId" />
-        <result column="ask_order_price" jdbcType="DECIMAL" property="askOrderPrice" />
-        <result column="ask_user_id" jdbcType="BIGINT" property="askUserId" />
-        <result column="ask_close_type" jdbcType="TINYINT" property="askCloseType" />
-        <result column="bid_order_id" jdbcType="BIGINT" property="bidOrderId" />
-        <result column="bid_order_price" jdbcType="DECIMAL" property="bidOrderPrice" />
-        <result column="bid_user_id" jdbcType="BIGINT" property="bidUserId" />
-        <result column="bid_close_type" jdbcType="TINYINT" property="bidCloseType" />
-        <result column="match_type" jdbcType="TINYINT" property="matchType" />
-        <result column="ask_fee" jdbcType="DECIMAL" property="askFee" />
-        <result column="bid_fee" jdbcType="DECIMAL" property="bidFee" />
-        <result column="filled_price" jdbcType="DECIMAL" property="filledPrice" />
-        <result column="filled_amount" jdbcType="DECIMAL" property="filledAmount" />
+        <id column="id"  property="id" />
+        <result column="gmt_create"  property="gmtCreate" />
+        <result column="gmt_modified"  property="gmtModified" />
+        <result column="order_id" property="orderId" />
+        <result column="user_id"  property="userId" />
+        <result column="order_price"  property="orderPrice" />
+        <result column="order_direction"  property="orderDirection" />
+        <result column="close_type"  property="closeType" />
+        <result column="match_id"  property="matchId" />
+        <result column="match_user_id"  property="matchUserId" />
+        <result column="match_type"  property="matchType" />
+        <result column="filled_price" property="filledPrice" />
+        <result column="filled_amount"  property="filledAmount" />
+        <result column="fee"  property="fee" />
         <result column="contract_id" property="contractId"/>
-        <result column="contract_name" jdbcType="VARCHAR" property="contractName" />
+        <result column="contract_name"  property="contractName" />
+        <result column="status"  property="status" />
     </resultMap>
     <insert id="insert" parameterType="com.fota.trade.domain.ContractMatchedOrderDO">
-        <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Long">
-            SELECT LAST_INSERT_ID()
-        </selectKey>
-        insert into contract_matched_order (gmt_create, gmt_modified, ask_order_id,
-        ask_order_price, ask_user_id, ask_close_type,
-        bid_order_id, bid_order_price, bid_user_id,
-        bid_close_type, match_type, ask_fee, bid_fee,
-        filled_price, filled_amount, contract_name,contract_id,status
+        insert into trade_contract_matched_record (gmt_create, gmt_modified, order_id,
+        user_id, order_price, order_direction, close_type,
+        match_id, match_user_id, match_type,
+        filled_price, filled_amount, fee, contract_id, contract_name, status
         )
-        values (#{gmtCreate}, #{gmtModified}, #{askOrderId,jdbcType=BIGINT},
-        #{askOrderPrice,jdbcType=DECIMAL}, #{askUserId,jdbcType=BIGINT}, #{askCloseType,jdbcType=TINYINT},
-        #{bidOrderId,jdbcType=BIGINT}, #{bidOrderPrice,jdbcType=DECIMAL}, #{bidUserId,jdbcType=BIGINT},
-        #{bidCloseType,jdbcType=TINYINT}, #{matchType,jdbcType=TINYINT}, #{askFee,jdbcType=DECIMAL}, #{bidFee,jdbcType=DECIMAL},
-        #{filledPrice,jdbcType=DECIMAL}, #{filledAmount,jdbcType=DECIMAL}, #{contractName,jdbcType=VARCHAR}
-        ,#{contractId}, #{status}
-        )
+        values
+        <foreach collection="list" item="item" separator=",">
+            (now(3), now(3), #{item.orderId},
+             #{item.userId}, #{item.orderPrice}, #{item.orderDirection}, #{item.closeType},
+            #{item.matchId}, #{item.matchUserId}, #{item.matchType},
+            #{item.filledPrice}, #{item.filledAmount}, #{item.fee}, #{item.contractId}, #{item.contractName}, #{item.status}
+            )
+        </foreach>
     </insert>
 
-    <sql id="Base_Column_List">
-        id, gmt_create, gmt_modified, ask_order_id, ask_order_price, ask_user_id, ask_close_type, bid_order_id, bid_order_price,
-        bid_user_id, bid_close_type, match_type, ask_fee, bid_fee, filled_price, filled_amount, contract_id, contract_name
-    </sql>
-
-
-    <select id="count" resultType="java.lang.Long">
-        SELECT COUNT(*)
-        FROM contract_matched_order
-        WHERE 1=1
-        <if test="sourceId != null" >
-            and contract_id=#{sourceId}
-        </if>
-        <if test="userId != null" >
-            and user_id=#{userId}
-        </if>
-        <if test="startTime != null">
-            and gmt_create &gt;= #{startTime}
-        </if>
-        <if test="endTime != null">
-            and gmt_create &lt; #{endTime}
-        </if>
-    </select>
-
-    <select id="queryMatchedOrder" resultMap="BaseResultMap">
-        SELECT *
-        FROM contract_matched_order
-        WHERE 1=1
-        <if test="sourceId != null" >
-            and contract_id=#{sourceId}
-        </if>
-        <if test="userId != null" >
-            and user_id=#{userId}
-        </if>
-        <if test="startTime != null">
-            and gmt_create &gt;= #{startTime}
-        </if>
-        <if test="endTime != null">
-            and gmt_create &lt; #{endTime}
-        </if>
-        order by gmt_create desc, id
-        limit #{startRow}, #{endRow}
-    </select>
-
     <select id="countByUserId" resultType="java.lang.Integer">
-        select count(*) from contract_matched_order
-        where (bid_user_id=#{userId} or ask_user_id=#{userId})
+        select count(*) from trade_contract_matched_record
+        where user_id=#{userId}
         <if test="contractIds != null and contractIds.size != 0">
             and contract_id in
             <foreach item="item" index="index" collection="contractIds" open="(" separator="," close=")">
@@ -103,8 +55,8 @@
 
     <select id="listByUserId" resultMap="BaseResultMap">
         select *
-        from contract_matched_order
-        where (bid_user_id=#{userId} or ask_user_id=#{userId})
+        from trade_contract_matched_record
+        where user_id=#{userId}
 
         <if test="contractIds != null and contractIds.size != 0">
             and contract_id in
@@ -123,17 +75,4 @@
         limit #{startRow}, #{endRow}
     </select>
 
-    <select id="getLatestContractMatched" resultType="java.lang.Long">
-        select max(id)
-        from contract_matched_order where status = 1
-    </select>
-
-    <select id="getLatestContractMatchedList" resultMap="BaseResultMap">
-        select
-        <include refid="Base_Column_List" />
-        from contract_matched_order
-        where id &lt; #{id} and contract_id = #{contractId} and status = 1
-        order by id desc
-        limit 50
-    </select>
 </mapper>

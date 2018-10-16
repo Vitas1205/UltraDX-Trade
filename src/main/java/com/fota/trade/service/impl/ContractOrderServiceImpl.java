@@ -9,6 +9,7 @@ import com.fota.trade.client.RecoveryQuery;
 import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.ResultCode;
+import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.manager.ContractLeverManager;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.DealManager;
@@ -18,8 +19,6 @@ import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.service.ContractOrderService;
 import com.fota.trade.util.DateUtil;
-
-import com.fota.trade.util.PriceUtil;
 
 import com.fota.trade.util.Profiler;
 import com.fota.trade.util.ThreadContextUtil;
@@ -39,6 +38,7 @@ import static com.fota.trade.client.constants.Constants.TABLE_NUMBER;
 import static com.fota.trade.common.ResultCodeEnum.DATABASE_EXCEPTION;
 
 import static com.fota.trade.common.ResultCodeEnum.SYSTEM_ERROR;
+import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
 
 /**
  * @Author: JianLi.Gao
@@ -482,23 +482,28 @@ public class ContractOrderServiceImpl implements
                 for (ContractMatchedOrderDO temp : contractMatchedOrders) {
                     // 获取更多信息
                     ContractMatchedOrderTradeDTO tempTarget = new ContractMatchedOrderTradeDTO();
-                    tempTarget.setAskCloseType(temp.getAskCloseType().intValue());
-                    tempTarget.setAskOrderId(temp.getAskOrderId());
-                    tempTarget.setAskOrderPrice(temp.getAskOrderPrice()==null?"0":temp.getAskOrderPrice().toString());
-                    tempTarget.setAskUserId(temp.getAskUserId());
-                    tempTarget.setBidCloseType(temp.getBidCloseType().intValue());
-                    tempTarget.setBidOrderId(temp.getBidOrderId());
-                    tempTarget.setBidOrderPrice(Objects.isNull(temp.getBidOrderPrice()) ? "0" : temp.getBidOrderPrice().toString());
-                    tempTarget.setBidUserId(temp.getBidUserId());
-                    //tempTarget.setContractId(temp.getC)
-                    tempTarget.setContractName(temp.getContractName());
                     tempTarget.setContractMatchedOrderId(temp.getId());
-                    tempTarget.setAskFee(String.valueOf(temp.getAskFee()));
-                    tempTarget.setBidFee(String.valueOf(temp.getBidFee()));
+                    tempTarget.setContractId(temp.getContractId());
+                    tempTarget.setContractName(temp.getContractName());
                     tempTarget.setFilledAmount(temp.getFilledAmount());
                     tempTarget.setFilledDate(temp.getGmtCreate());
                     tempTarget.setFilledPrice(temp.getFilledPrice());
                     tempTarget.setMatchType(temp.getMatchType().intValue());
+
+                    if (ASK.getCode() == temp.getOrderDirection()) {
+                        tempTarget.setAskUserId(temp.getUserId());
+                        tempTarget.setAskOrderId(temp.getOrderId());
+                        tempTarget.setAskOrderPrice(temp.getOrderPrice()==null?"0":temp.getOrderPrice().toString());
+                        tempTarget.setAskFee(String.valueOf(temp.getFee()));
+                        tempTarget.setAskCloseType(temp.getCloseType());
+                    }else {
+                        tempTarget.setBidUserId(temp.getUserId());
+                        tempTarget.setBidOrderId(temp.getOrderId());
+                        tempTarget.setBidCloseType(temp.getCloseType());
+                        tempTarget.setBidOrderPrice(Objects.isNull(temp.getOrderPrice()) ? "0" : temp.getOrderPrice().toString());
+                        tempTarget.setBidFee(String.valueOf(temp.getFee()));
+                    }
+
                     list.add(tempTarget);
                 }
             }

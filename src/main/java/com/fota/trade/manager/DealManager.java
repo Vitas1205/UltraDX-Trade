@@ -39,7 +39,6 @@ import org.springframework.util.CollectionUtils;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
-import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
@@ -50,6 +49,7 @@ import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
 import static com.fota.trade.common.ResultCodeEnum.BIZ_ERROR;
 import static com.fota.trade.common.ResultCodeEnum.ILLEGAL_PARAM;
 import static com.fota.trade.domain.enums.ContractStatusEnum.PROCESSING;
+import static com.fota.trade.domain.enums.OrderDirectionEnum.*;
 import static com.fota.trade.domain.enums.PositionTypeEnum.EMPTY;
 import static com.fota.trade.domain.enums.PositionTypeEnum.OVER;
 import static java.math.BigDecimal.ZERO;
@@ -143,6 +143,7 @@ public class DealManager {
 
         BigDecimal filledAmount = contractMatchedOrderDTO.getFilledAmount();
         BigDecimal filledPrice = new BigDecimal(contractMatchedOrderDTO.getFilledPrice());
+        long matchId = contractMatchedOrderDTO.getId();
         Long transferTime = System.currentTimeMillis();
 
         //更新委托
@@ -154,42 +155,34 @@ public class DealManager {
         });
         profiler.complelete("update contract order");
 
-        ContractMatchedOrderDO contractMatchedOrderDO = com.fota.trade.common.BeanUtils.copy(contractMatchedOrderDTO);
-        BigDecimal askFee = contractMatchedOrderDO.getFilledAmount().
-                multiply(contractMatchedOrderDO.getFilledPrice()).
-                multiply(askContractOrder.getFee()).
-                setScale(CommonUtils.scale, BigDecimal.ROUND_UP);
-        BigDecimal bidFee = contractMatchedOrderDO.getFilledAmount().
-                multiply(contractMatchedOrderDO.getFilledPrice()).
-                multiply(bidContractOrder.getFee()).
-                setScale(CommonUtils.scale, BigDecimal.ROUND_UP);
-        contractMatchedOrderDO.setAskFee(askFee);
-        contractMatchedOrderDO.setBidFee(bidFee);
-        contractMatchedOrderDO.setAskUserId(askContractOrder.getUserId());
-        contractMatchedOrderDO.setBidUserId(bidContractOrder.getUserId());
-        contractMatchedOrderDO.setAskCloseType(askContractOrder.getCloseType().byteValue());
-        contractMatchedOrderDO.setBidCloseType(bidContractOrder.getCloseType().byteValue());
-        contractMatchedOrderDO.setStatus(VALID);
-        contractMatchedOrderDO.setGmtCreate(new Date());
-        contractMatchedOrderDO.setGmtModified(contractMatchedOrderDO.getGmtCreate());
+
+        BigDecimal askFee = filledAmount.
+                multiply(filledPrice).
+                multiply(askContractOrder.getFee());
+        BigDecimal bidFee = filledAmount.
+                multiply(filledPrice).
+                multiply(bidContractOrder.getFee());
+        ContractMatchedOrderDO askMatchedRecord = com.fota.trade.common.BeanUtils.extractContractMatchedRecord(contractMatchedOrderDTO, ASK.getCode(),
+                askFee, askContractOrder.getCloseType());
+
+        ContractMatchedOrderDO bidMatchedRecord = com.fota.trade.common.BeanUtils.extractContractMatchedRecord(contractMatchedOrderDTO, BID.getCode(),
+                bidFee, bidContractOrder.getCloseType());
         try {
-            int ret = contractMatchedOrderMapper.insert(contractMatchedOrderDO);
-            if (ret < 1) {
-                log.error("保存Contract订单数据到数据库失败({})", contractMatchedOrderDO);
+            int ret = contractMatchedOrderMapper.insert(Arrays.asList(askMatchedRecord, bidMatchedRecord));
+            if (ret != 2) {
                 throw new RuntimeException("contractMatchedOrderMapper.insert failed{}");
             }
         } catch (Exception e) {
-            log.error("保存Contract订单数据到数据库失败({})", contractMatchedOrderDO, e);
             throw new RuntimeException("contractMatchedOrderMapper.insert exception{}", e);
         }
         profiler.complelete("persistMatch");
 
-        sendMatchMessage(contractMatchedOrderDO.getId(), contractMatchedOrderDTO, askFee.add(bidFee));
+        sendMatchMessage(contractMatchedOrderDTO, askFee.add(bidFee));
         contractOrderDOS.stream().forEach(x -> {
-            BigDecimal fee = x.getOrderDirection().equals(OrderDirectionEnum.ASK.getCode()) ? askFee : bidFee;
-            sendDealMessage(contractMatchedOrderDO.getId(), x, filledAmount, filledPrice, fee);
+            BigDecimal fee = x.getOrderDirection().equals(ASK.getCode()) ? askFee : bidFee;
+            sendDealMessage(matchId, x, filledAmount, filledPrice, fee);
             //后台交易监控日志打在里面 注释需谨慎
-            saveToLog(x, filledAmount, contractMatchedOrderDO.getId());
+            saveToLog(x, filledAmount, matchId);
         });
 
         resultCode.setCode(ResultCodeEnum.SUCCESS.getCode());
@@ -197,7 +190,8 @@ public class DealManager {
     }
 
 
-    public void sendMatchMessage(long matchId, ContractMatchedOrderDTO contractMatchedOrderDTO, BigDecimal fee){
+    public void sendMatchMessage(ContractMatchedOrderDTO contractMatchedOrderDTO, BigDecimal fee){
+        long matchId = contractMatchedOrderDTO.getId();
         OrderMessage orderMessage = new OrderMessage();
         orderMessage.setSubjectId(contractMatchedOrderDTO.getContractId());
         orderMessage.setSubjectName(contractMatchedOrderDTO.getContractName());

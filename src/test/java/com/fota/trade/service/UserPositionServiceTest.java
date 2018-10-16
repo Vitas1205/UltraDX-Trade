@@ -93,8 +93,7 @@ public class UserPositionServiceTest {
     @Test
     public void test_updateTotalPosition() {
         ContractMatchedOrderDO contractMatchedOrderDO = new ContractMatchedOrderDO();
-        contractMatchedOrderDO.setBidUserId(17764592453L);
-        contractMatchedOrderDO.setAskUserId(211L);
+        contractMatchedOrderDO.setUserId(211L);
         contractMatchedOrderDO.setContractId(1000L);
         contractMatchedOrderDO.setFilledAmount(new BigDecimal("8"));
         //contractOrderManager.updateTotalPosition(contractMatchedOrderDO);

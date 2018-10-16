@@ -18,22 +18,11 @@ import java.util.Map;
  */
 @Mapper
 public interface ContractMatchedOrderMapper {
-    int insert(ContractMatchedOrderDO record);
+    int insert(List<ContractMatchedOrderDO> record);
 
     int countByUserId(@Param("userId") Long userId, @Param("contractIds") List<Long> contractIds, @Param("startTime") Date startTime, @Param("endTime") Date endTime);
 
     List<ContractMatchedOrderDO> listByUserId(@Param("userId") Long userId, @Param("contractIds") List<Long> contractIds, @Param("startRow") Integer startRow, @Param("endRow") Integer endRow,
                                             @Param("startTime") Date startTime, @Param("endTime") Date endTime);
 
-    long count(BaseQuery query);
-
-    List<ContractMatchedOrderDO> queryMatchedOrder(BaseQuery baseQuery);
-
-
-    @Update("UPDATE contract_matched_order SET gmt_modified=now(), status=#{toStatus} WHERE id=#{id}")
-    int updateStatus(@Param("id") long id, @Param("toStatus") int toStatus);
-
-    Long getLatestContractMatched();
-
-    List<ContractMatchedOrderDO> getLatestContractMatchedList(@Param("contractId") Long contractId , @Param("id") Long id );
 }

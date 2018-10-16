@@ -7,4 +7,6 @@ package com.fota.trade.common;
 public class TestConfig {
     public static final long userId=274;
     public static final Long  assetId=0L;
+    public static final Long  contractId=0L;
+    public static final Integer  matchType=0;
 }
