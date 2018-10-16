@@ -956,7 +956,12 @@ public class ContractOrderManager {
             allContractOrders = new ArrayList<>();
         }
         allContractOrders.add(newContractOrderDO);
-        if (allContractOrders.size() > 200) {
+
+        List<ContractOrderDO> currentContractOrders = allContractOrders.stream()
+                .filter(contractOrderDO -> orderContractId.equals(contractOrderDO.getContractId()))
+                .collect(toList());
+
+        if (currentContractOrders.size() > 200) {
             throw new BizException(ResultCodeEnum.TOO_MUCH_ORDERS);
         }
 
@@ -979,13 +984,26 @@ public class ContractOrderManager {
 
 
             List<ContractOrderDO> orderList = null;
+            boolean isCurrentContract = orderContractId.equals(contractCategoryDO.getId());
             if (!CollectionUtils.isEmpty(allContractOrders)) {
-                orderList = allContractOrders.stream().filter(contractOrder -> contractOrder.getContractId().equals(contractId))
-                        .collect(toList());
+                if (isCurrentContract) {
+                    orderList = currentContractOrders;
+                } else {
+                    orderList = allContractOrders.stream()
+                            .filter(contractOrder -> contractOrder.getContractId().equals(contractId))
+                            .collect(toList());
+                }
             }
             Optional<UserPositionDO> userPositionDOOptional = allPositions.stream()
                     .filter(userPosition -> userPosition.getContractId().equals(contractCategoryDO.getId()))
                     .findFirst();
+
+            List<ContractOrderDO> sameDirectionOrderList = Collections.emptyList();
+            if (isCurrentContract) {
+                sameDirectionOrderList = orderList.stream()
+                        .filter(order -> order.getOrderDirection().equals(orderDirection))
+                        .collect(toList());
+            }
 
             //计算保证金，浮动盈亏
             if (userPositionDOOptional.isPresent()) {
@@ -1000,31 +1018,14 @@ public class ContractOrderManager {
                 if (null == price) {
                     return false;
                 }
-                floatingPL = price.subtract(positionAveragePrice).multiply(positionUnfilledAmount).multiply(new BigDecimal(dire));
+                floatingPL = price.subtract(positionAveragePrice)
+                        .multiply(positionUnfilledAmount)
+                        .multiply(new BigDecimal(dire));
 
-                positionMargin = positionUnfilledAmount.multiply(price).divide(lever, CommonUtils.scale, BigDecimal.ROUND_UP);
+                positionMargin = positionUnfilledAmount.multiply(price)
+                        .divide(lever, CommonUtils.scale, BigDecimal.ROUND_UP);
 
-
-                if (contractCategoryDO.getId().equals(orderContractId)) {
-                    //该用户是否达到持仓上限
-                    List<ContractOrderDO> sameDirectionOrderList = orderList.stream()
-                            .filter(order -> order.getOrderDirection().equals(orderDirection))
-                            .collect(toList());
-                    BigDecimal owned = newContractOrderDO.getTotalAmount()
-                            .add(BigDecimal.valueOf(sameDirectionOrderList.size()))
-                            .add(userPositionDO.getUnfilledAmount().multiply(BigDecimal.valueOf(positionType == orderDirection ? 1 : -1)));
-                    BigDecimal limit = BigDecimal.ZERO;
-                    if (contractCategoryDO.getAssetId() == AssetTypeEnum.EOS.getCode()) {
-                        limit = POSITION_LIMIT_EOS;
-                    } else if (contractCategoryDO.getAssetId() == AssetTypeEnum.BTC.getCode()) {
-                        limit = POSITION_LIMIT_BTC;
-                    } else if (contractCategoryDO.getAssetId() == AssetTypeEnum.ETH.getCode()) {
-                        limit = POSITION_LIMIT_ETH;
-                    }
-                    if (owned.compareTo(limit) >= 0) {
-                        throw new BizException(ResultCodeEnum.POSITION_EXCEEDS);
-                    }
-
+                if (isCurrentContract) {
                     //持仓反方向的"仓加挂"小于该合约持仓保证金，允许下单
                     if (positionType != orderDirection) {
                         if (!CollectionUtils.isEmpty(orderList)) {
@@ -1035,6 +1036,26 @@ public class ContractOrderManager {
                             }
                         }
                     }
+                }
+            }
+
+            //该用户是否达到持仓上限
+            if (isCurrentContract) {
+                BigDecimal sameDirectionOrderSum = sameDirectionOrderList.stream()
+                        .map(ContractOrderDO::getUnfilledAmount)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+                BigDecimal owned = sameDirectionOrderSum
+                        .add(positionUnfilledAmount.multiply(BigDecimal.valueOf(positionType == orderDirection ? 1 : -1)));
+                BigDecimal limit = BigDecimal.ZERO;
+                if (contractCategoryDO.getAssetId() == AssetTypeEnum.EOS.getCode()) {
+                    limit = POSITION_LIMIT_EOS;
+                } else if (contractCategoryDO.getAssetId() == AssetTypeEnum.BTC.getCode()) {
+                    limit = POSITION_LIMIT_BTC;
+                } else if (contractCategoryDO.getAssetId() == AssetTypeEnum.ETH.getCode()) {
+                    limit = POSITION_LIMIT_ETH;
+                }
+                if (owned.compareTo(limit) >= 0) {
+                    throw new BizException(ResultCodeEnum.POSITION_EXCEEDS);
                 }
             }
 
