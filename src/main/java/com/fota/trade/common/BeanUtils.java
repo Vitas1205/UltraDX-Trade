@@ -1,6 +1,7 @@
 package com.fota.trade.common;
 
 import com.fota.trade.domain.*;
+import com.fota.trade.domain.enums.OrderDirectionEnum;
 import org.springframework.beans.BeansException;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -231,21 +232,33 @@ public class BeanUtils {
         return contractMatchedOrderDO;
     }
 
-    public static UsdkMatchedOrderDO copy(UsdkMatchedOrderDTO usdkMatchedOrderDTO) {
+    public static UsdkMatchedOrderDO extractUsdtRecord(UsdkMatchedOrderDTO usdkMatchedOrderDTO, int orderDirec) {
         UsdkMatchedOrderDO usdkMatchedOrderDO = new UsdkMatchedOrderDO();
+        usdkMatchedOrderDO.setMatchId(usdkMatchedOrderDTO.getId());
+        usdkMatchedOrderDO.setOrderDirection(orderDirec);
+        usdkMatchedOrderDO.setCloseType(0);
+        if (orderDirec == OrderDirectionEnum.ASK.getCode()) {
+            if (usdkMatchedOrderDTO.getAskOrderPrice() != null){
+                usdkMatchedOrderDO.setOrderPrice(new BigDecimal(usdkMatchedOrderDTO.getAskOrderPrice()));
+            }
+            usdkMatchedOrderDO.setOrderId(usdkMatchedOrderDTO.getAskOrderId());
+            usdkMatchedOrderDO.setUserId(usdkMatchedOrderDTO.getAskUserId());
+            usdkMatchedOrderDO.setMatchUserId(usdkMatchedOrderDTO.getBidUserId());
+        }else {
+            if (usdkMatchedOrderDTO.getBidOrderPrice() != null){
+                usdkMatchedOrderDO.setOrderPrice(new BigDecimal(usdkMatchedOrderDTO.getBidOrderPrice()));
+            }
+            usdkMatchedOrderDO.setOrderId(usdkMatchedOrderDTO.getBidOrderId());
+            usdkMatchedOrderDO.setUserId(usdkMatchedOrderDTO.getBidUserId());
+            usdkMatchedOrderDO.setMatchUserId(usdkMatchedOrderDTO.getAskUserId());
+        }
+
         usdkMatchedOrderDO.setAssetName(usdkMatchedOrderDTO.getAssetName());
         usdkMatchedOrderDO.setAssetId(usdkMatchedOrderDTO.getAssetId());
-        if (usdkMatchedOrderDTO.getAskOrderPrice() != null){
-            usdkMatchedOrderDO.setAskOrderPrice(new BigDecimal(usdkMatchedOrderDTO.getAskOrderPrice()));
-        }
-        if (usdkMatchedOrderDTO.getBidOrderPrice() != null){
-            usdkMatchedOrderDO.setBidOrderPrice(new BigDecimal(usdkMatchedOrderDTO.getBidOrderPrice()));
-        }
-        usdkMatchedOrderDO.setAskOrderId(usdkMatchedOrderDTO.getAskOrderId());
-        usdkMatchedOrderDO.setBidOrderId(usdkMatchedOrderDTO.getBidOrderId());
+
         usdkMatchedOrderDO.setFilledAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
         usdkMatchedOrderDO.setFilledPrice(new BigDecimal(usdkMatchedOrderDTO.getFilledPrice()));
-        usdkMatchedOrderDO.setMatchType(usdkMatchedOrderDTO.getMatchType().byteValue());
+        usdkMatchedOrderDO.setMatchType(usdkMatchedOrderDTO.getMatchType());
         usdkMatchedOrderDO.setGmtCreate(usdkMatchedOrderDTO.getGmtCreate());
         return usdkMatchedOrderDO;
     }
