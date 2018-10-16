@@ -1,6 +1,10 @@
 package com.fota.trade.service;
 
 import com.fota.common.Page;
+import com.fota.common.Result;
+import com.fota.trade.client.RecoveryMetaData;
+import com.fota.trade.client.RecoveryQuery;
+import com.fota.trade.common.TestConfig;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderPriceTypeEnum;
@@ -10,6 +14,7 @@ import com.fota.trade.mapper.UsdkOrderMapper;
 import com.fota.trade.service.impl.UsdkOrderServiceImpl;
 import com.fota.trade.util.BasicUtils;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -19,6 +24,8 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.*;
+
+import static com.fota.trade.common.TestConfig.userId;
 
 /**
  * @author Gavin Shen
@@ -33,8 +40,25 @@ public class UsdkOrderServiceTest {
     private UsdkOrderServiceImpl usdkOrderService;
     @Resource
     private UsdkOrderMapper usdkOrderMapper;
-
-    private Long userId = 274L;
+    UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
+    @Before
+    public void init(){
+        usdkOrderDO.setId(BasicUtils.generateId());
+        usdkOrderDO.setAssetId(2);
+        usdkOrderDO.setAssetName("BTC");
+        usdkOrderDO.setOrderDirection(OrderDirectionEnum.BID.getCode());
+        usdkOrderDO.setUserId(userId);
+        usdkOrderDO.setOrderType(OrderPriceTypeEnum.LIMIT.getCode());
+        usdkOrderDO.setTotalAmount(new BigDecimal("0.01"));
+        usdkOrderDO.setUnfilledAmount(new BigDecimal("0.01"));
+        usdkOrderDO.setPrice(new BigDecimal("6000.1"));
+        usdkOrderDO.setFee(new BigDecimal("1.1"));
+        usdkOrderDO.setStatus(OrderStatusEnum.COMMIT.getCode());
+        usdkOrderDO.setGmtModified(new Date(System.currentTimeMillis()));
+        usdkOrderDO.setGmtCreate(new Date(System.currentTimeMillis()));
+        int insertRet = usdkOrderMapper.insert(usdkOrderDO);
+        Assert.assertTrue(insertRet > 0);
+    }
     @Test
     public void testListUsdkOrderByQuery() throws Exception {
         BaseQuery usdkOrderQuery = new BaseQuery();
@@ -192,18 +216,21 @@ public class UsdkOrderServiceTest {
     }
 
     @Test
+    public void testGetMaxGmtCreate(){
+        Result<RecoveryMetaData> result = usdkOrderService.getRecoveryMetaData();
+        assert result.isSuccess();
+    }
+
+    @Test
     public void testListUsdkOrderByQuery4Recovery() {
-        BaseQuery usdkOrderQuery = new BaseQuery();
-        usdkOrderQuery.setPageSize(1000);
-        usdkOrderQuery.setPageNo(1);
-        List<Integer> orderStatus = new ArrayList<>();
-        orderStatus.add(OrderStatusEnum.COMMIT.getCode());
-        orderStatus.add(OrderStatusEnum.PART_MATCH.getCode());
+        RecoveryQuery recoveryQuery = new RecoveryQuery();
+        recoveryQuery.setPageSize(10);
+        recoveryQuery.setPageIndex(1);
+        recoveryQuery.setMaxGmtCreate(usdkOrderMapper.getMaxCreateTime());
+        recoveryQuery.setTableIndex(0);
+        Result<Page<UsdkOrderDTO>>  result = usdkOrderService.listUsdtOrder4Recovery(recoveryQuery);
 
-        usdkOrderQuery.setOrderStatus(orderStatus);
-        Page<UsdkOrderDTO> page = usdkOrderService.listUsdkOrderByQuery4Recovery(usdkOrderQuery);
-
-        Assert.assertTrue(page != null && page.getData() != null);
+        Assert.assertTrue(result.isSuccess());
     }
     @Test
     public void test_send_cancel_msg() {

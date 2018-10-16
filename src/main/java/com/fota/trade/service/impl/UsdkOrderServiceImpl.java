@@ -20,6 +20,7 @@ import com.fota.trade.util.ThreadContextUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -27,7 +28,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
+import static com.fota.trade.client.constants.Constants.TABLE_NUMBER;
+import static com.fota.trade.common.ResultCodeEnum.DATABASE_EXCEPTION;
 import static com.fota.trade.common.ResultCodeEnum.SYSTEM_ERROR;
 
 
@@ -137,12 +141,36 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
 
     @Override
     public Result<RecoveryMetaData> getRecoveryMetaData() {
-        return null;
+        Date date;
+        try {
+            date = usdkOrderMapper.getMaxCreateTime();
+        }catch (Throwable t) {
+            log.error("getMaxCreateTime exception", t);
+            return Result.fail(DATABASE_EXCEPTION.getCode(), DATABASE_EXCEPTION.getMessage());
+        }
+        RecoveryMetaData recoveryMetaData = new RecoveryMetaData();
+        recoveryMetaData.setMaxGmtCreate(date);
+        recoveryMetaData.setTableNumber(TABLE_NUMBER);
+        return Result.suc(recoveryMetaData);
     }
 
     @Override
     public Result<Page<UsdkOrderDTO>> listUsdtOrder4Recovery(RecoveryQuery recoveryQuery) {
-        return null;
+        List<UsdkOrderDTO> usdkOrderDTOS = null;
+        try {
+            List<UsdkOrderDO> usdkOrderDOS = usdkOrderMapper.queryForRecovery(recoveryQuery.getTableIndex(), recoveryQuery.getMaxGmtCreate(), recoveryQuery.getStart(), recoveryQuery.getPageSize());
+            if (!CollectionUtils.isEmpty(usdkOrderDOS)) {
+                usdkOrderDTOS = usdkOrderDOS.stream().map( x -> BeanUtils.copy(x)).collect(Collectors.toList());
+            }
+        }catch (Throwable t) {
+            log.error("queryForRecovery exception, query={}", recoveryQuery, t);
+            return Result.<Page<UsdkOrderDTO>>create().error(com.fota.common.ResultCodeEnum.DATABASE_EXCEPTION);
+        }
+        Page<UsdkOrderDTO> usdtPage = new Page<>();
+        usdtPage.setPageSize(recoveryQuery.getPageSize());
+        usdtPage.setPageNo(recoveryQuery.getPageIndex());
+        usdtPage.setData(usdkOrderDTOS);
+        return Result.suc(usdtPage);
     }
 
     @Override

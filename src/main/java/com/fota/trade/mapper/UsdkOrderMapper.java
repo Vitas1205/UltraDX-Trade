@@ -1,5 +1,6 @@
 package com.fota.trade.mapper;
 
+import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.domain.UsdkOrderDO;
 import org.apache.ibatis.annotations.*;
 
@@ -64,6 +65,24 @@ public interface UsdkOrderMapper {
                              @Param("filledPrice") BigDecimal filledPrice,
                              @Param("gmtModified") Date gmtModified
                              );
+
+
+    @Select(  " select max(gmt_create) " +
+            " from trade_usdt_order " +
+            " where status in (8,9) ")
+    @ResultType(Date.class)
+    Date getMaxCreateTime();
+
+    @Select({
+            " select * ",
+            " from trade_usdt_order_#{tableIndex} ",
+            " where  status in (8,9) " +
+                    " and gmt_create <= #{maxGmtCreate} " +
+                    " order by gmt_create asc, id asc " +
+                    " limit #{start}, #{pageSize} "
+    })
+    @ResultMap("BaseResultMap")
+    List<UsdkOrderDO> queryForRecovery(@Param("tableIndex") int tableIndex, @Param("maxGmtCreate") Date maxGmtCreate, @Param("start") int start, @Param("pageSize") int pageSize);
 
 
     @Update({
