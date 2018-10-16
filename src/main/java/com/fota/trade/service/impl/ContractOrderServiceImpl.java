@@ -451,6 +451,13 @@ public class ContractOrderServiceImpl implements
         contractMatchedOrderTradeDTOPage.setPageNo(pageNo);
         contractMatchedOrderTradeDTOPage.setPageSize(pageSize);
 
+        if (Constant.MARKET_USER_ID_LIST.contains(userId)) {
+            contractMatchedOrderTradeDTOPage.setTotal(100_000);
+            contractMatchedOrderTradeDTOPage.setPageSize(4);
+
+            return contractMatchedOrderTradeDTOPage;
+        }
+
         int count = 0;
         try {
             count = contractMatchedOrderMapper.countByUserId(userId, contractIds, startTimeD, endTimeD);
