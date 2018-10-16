@@ -18,6 +18,7 @@ import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserContractLeverMapper;
 import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.service.ContractCategoryService;
+import com.fota.trade.service.internal.BlackListService;
 import com.fota.trade.util.BasicUtils;
 import com.fota.trade.util.ContractUtils;
 import com.fota.trade.util.Profiler;
@@ -80,6 +81,9 @@ public class ContractOrderManager {
 
     @Autowired
     private RealTimeEntrust realTimeEntrust;
+
+    @Autowired
+    private BlackListService blackListService;
 
     private static final BigDecimal POSITION_LIMIT_BTC = BigDecimal.valueOf(100);
 
@@ -497,7 +501,7 @@ public class ContractOrderManager {
      * @return
      */
     public  ContractAccount computeContractAccount(long userId, ContractOrderDO newContractOrderDO) {
-        boolean isMarketUser = Constant.MARKET_USER_ID_LIST.contains(userId);
+        boolean isMarketUser = blackListService.contains(userId);
 
         ContractAccount contractAccount = new ContractAccount();
         contractAccount.setMarginCallRequirement(BigDecimal.ZERO)
@@ -654,7 +658,7 @@ public class ContractOrderManager {
         Map<String, BigDecimal> resultMap = new HashMap<>();
         //获取所有合约类型列表
         BigDecimal entrustMargin = BigDecimal.ZERO;
-        if (Constant.MARKET_USER_ID_LIST.contains(userId)) {
+        if (blackListService.contains(userId)) {
             return entrustMargin;
         }
         List<ContractCategoryDTO> queryList =contractCategoryService.listActiveContract();
@@ -927,7 +931,7 @@ public class ContractOrderManager {
      * @return
      */
     public Boolean judgeOrderAvailable(long userId, ContractOrderDO newContractOrderDO) {
-        if (Constant.MARKET_USER_ID_LIST.contains(userId)) {
+        if (blackListService.contains(userId)) {
             return Boolean.TRUE;
         }
         ContractAccount contractAccount = new ContractAccount();
@@ -1050,7 +1054,7 @@ public class ContractOrderManager {
     }
 
     public void updateExtraEntrustAmountByContract(Long userId, Long contractId) {
-        if (Constant.MARKET_USER_ID_LIST.contains(userId)) {
+        if (blackListService.contains(userId)) {
             return;
         }
         List<ContractOrderDO> contractOrderDOS = contractOrderMapper.selectNotEnforceOrderByUserIdAndContractId(userId, contractId);
