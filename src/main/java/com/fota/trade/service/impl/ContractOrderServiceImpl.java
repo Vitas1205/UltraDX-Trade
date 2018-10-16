@@ -20,7 +20,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.*;
 
@@ -46,7 +45,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     @Autowired
     private ContractMatchedOrderMapper contractMatchedOrderMapper;
 
-    @Resource
+    @Autowired
     private DealManager dealManager;
 
     @Autowired
@@ -59,9 +58,6 @@ public class ContractOrderServiceImpl implements ContractOrderService {
             return null;
         }
 
-        if (marketAccountListService.contains(contractOrderQueryDTO.getUserId())) {
-            return null;
-        }
         com.fota.common.Page<ContractOrderDTO> contractOrderDTOPage = new com.fota.common.Page<>();
         if (contractOrderQueryDTO.getPageNo() <= 0) {
             contractOrderQueryDTO.setPageNo(Constant.DEFAULT_PAGE_NO);

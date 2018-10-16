@@ -10,7 +10,6 @@ import com.fota.trade.common.Constant;
 import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.common.UpdatePositionResult;
 import com.fota.trade.domain.*;
-import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderOperateTypeEnum;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
@@ -39,7 +38,6 @@ import org.springframework.util.CollectionUtils;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
-import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
@@ -64,7 +62,6 @@ import static org.springframework.transaction.annotation.Propagation.REQUIRED;
 public class DealManager {
 
     private static final Logger tradeLog = LoggerFactory.getLogger("trade");
-
 
     @Autowired
     private ContractOrderMapper contractOrderMapper;
