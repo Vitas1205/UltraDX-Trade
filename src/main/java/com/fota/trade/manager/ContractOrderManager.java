@@ -157,9 +157,10 @@ public class ContractOrderManager {
         contractOrderDO.setStatus(8);
         //todo 根据用户等级获取费率
 
+        Boolean ret = marketAccountListService.contains(contractOrderDTO.getUserId());
         String userType = StringUtils.isEmpty(userInfoMap.get("userType")) ? "0" : userInfoMap.get("userType");
         BigDecimal feeRate = Constant.FEE_RATE;
-        if (userType.equals(Constant.MARKET_MAKER_ACCOUNT_TAG)){
+        if (userType.equals(Constant.MARKET_MAKER_ACCOUNT_TAG) || ret){
             feeRate = BigDecimal.ZERO;
         }
         contractOrderDO.setFee(feeRate);
