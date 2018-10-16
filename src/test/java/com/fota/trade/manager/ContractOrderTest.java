@@ -29,13 +29,6 @@ public class ContractOrderTest {
     @Autowired
     private ContractOrderManager contractOrderManager;
 
-    @Test
-    public void test() {
-        Long userId = 282L;
-        Map<String, BigDecimal> resultMap = new HashMap<>();
-        resultMap = contractOrderManager.getAccountMsg(userId);
-        log.info("--------"+resultMap);
-    }
 
 
 }

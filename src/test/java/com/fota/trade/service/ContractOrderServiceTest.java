@@ -363,11 +363,6 @@ public class ContractOrderServiceTest {
         log.info(contractAccount.toString());
     }
 
-    @Test
-    public void getEntrustMarginTest(){
-        BigDecimal ret = contractOrderManager.getEntrustMargin(17764594100L);
-        log.info(ret.toString());
-    }
 
     @Test
     public void cancelOrderTest() throws Exception {
