@@ -2,7 +2,7 @@ package com.fota;
 
 import com.fota.trade.Consumer;
 import com.fota.trade.OrderConsumer;
-import com.fota.trade.config.BlackListConfig;
+import com.fota.trade.config.MarketAccountListConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
@@ -17,7 +17,7 @@ import javax.annotation.PostConstruct;
 @RefreshScope
 @SpringBootApplication
 @ImportResource("classpath:application-context.xml")
-@EnableConfigurationProperties(BlackListConfig.class)
+@EnableConfigurationProperties(MarketAccountListConfig.class)
 public class FotaTradeApplication {
 
     @Autowired

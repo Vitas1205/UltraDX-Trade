@@ -7,7 +7,7 @@ import java.util.List;
 
 @Data
 @ConfigurationProperties(prefix = "trade")
-public class BlackListConfig {
+public class MarketAccountListConfig {
 
-    private List<Long> blackList;
+    private List<Long> marketAccountList;
 }

@@ -9,7 +9,7 @@ import com.fota.trade.manager.DealManager;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.service.ContractOrderService;
-import com.fota.trade.service.internal.BlackListService;
+import com.fota.trade.service.internal.MarketAccountListService;
 import com.fota.trade.util.DateUtil;
 import com.fota.trade.util.PriceUtil;
 import com.fota.trade.util.Profiler;
@@ -50,7 +50,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     private DealManager dealManager;
 
     @Autowired
-    private BlackListService blackListService;
+    private MarketAccountListService marketAccountListService;
 
     @Override
     public com.fota.common.Page<ContractOrderDTO> listContractOrderByQuery(BaseQuery contractOrderQueryDTO) {
@@ -59,7 +59,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
             return null;
         }
 
-        if (blackListService.contains(contractOrderQueryDTO.getUserId())) {
+        if (marketAccountListService.contains(contractOrderQueryDTO.getUserId())) {
             return null;
         }
         com.fota.common.Page<ContractOrderDTO> contractOrderDTOPage = new com.fota.common.Page<>();
@@ -420,7 +420,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         contractMatchedOrderTradeDTOPage.setPageNo(pageNo);
         contractMatchedOrderTradeDTOPage.setPageSize(pageSize);
 
-        if (blackListService.contains(userId)) {
+        if (marketAccountListService.contains(userId)) {
             contractMatchedOrderTradeDTOPage.setTotal(100_000);
             contractMatchedOrderTradeDTOPage.setPageSize(4);
 
