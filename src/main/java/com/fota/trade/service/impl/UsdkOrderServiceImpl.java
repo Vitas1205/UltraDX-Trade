@@ -1,12 +1,14 @@
 package com.fota.trade.service.impl;
 
-import com.fota.asset.domain.BalanceTransferDTO;
 import com.fota.asset.service.CapitalService;
 import com.fota.common.Page;
+import com.fota.common.Result;
+import com.fota.trade.client.RecoveryMetaData;
+import com.fota.trade.client.RecoveryQuery;
 import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.ResultCode;
-import com.fota.trade.domain.enums.OrderStatusEnum;
+import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.manager.UsdkOrderManager;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
@@ -18,9 +20,7 @@ import com.fota.trade.util.ThreadContextUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -132,6 +132,16 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
 
     @Override
     public Page<UsdkOrderDTO> listUsdkOrderByQuery4Recovery(BaseQuery usdkOrderQuery) {
+        return null;
+    }
+
+    @Override
+    public Result<RecoveryMetaData> getRecoveryMetaData() {
+        return null;
+    }
+
+    @Override
+    public Result<Page<UsdkOrderDTO>> listUsdtOrder4Recovery(RecoveryQuery recoveryQuery) {
         return null;
     }
 
@@ -298,14 +308,19 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
             if (null != usdkMatchedOrders && usdkMatchedOrders.size() > 0){
                 for (UsdkMatchedOrderDO temp : usdkMatchedOrders){
                     UsdkMatchedOrderTradeDTO tempTarget = new UsdkMatchedOrderTradeDTO();
-                    tempTarget.setAskCloseType(temp.getAskCloseType().intValue());
-                    tempTarget.setAskOrderId(temp.getAskOrderId());
-                    tempTarget.setAskOrderPrice(temp.getAskOrderPrice()==null?"0":temp.getAskOrderPrice().toString());
-                    tempTarget.setAskUserId(temp.getAskUserId());
-                    tempTarget.setBidCloseType(temp.getBidCloseType().intValue());
-                    tempTarget.setBidOrderId(temp.getBidOrderId());
-                    tempTarget.setBidOrderPrice(temp.getBidOrderPrice()==null?"0":temp.getBidOrderPrice().toString());
-                    tempTarget.setBidUserId(temp.getBidUserId());
+
+                    if (OrderDirectionEnum.ASK.getCode() == temp.getOrderDirection()){
+                        tempTarget.setAskOrderId(temp.getOrderId());
+                        tempTarget.setAskOrderPrice(temp.getOrderPrice()==null?"0":temp.getOrderPrice().toString());
+                        tempTarget.setAskUserId(temp.getUserId());
+                        tempTarget.setBidUserId(temp.getMatchUserId());
+                    }else {
+                        tempTarget.setBidOrderId(temp.getOrderId());
+                        tempTarget.setBidOrderPrice(temp.getOrderPrice()==null?"0":temp.getOrderPrice().toString());
+                        tempTarget.setBidUserId(temp.getUserId());
+                        tempTarget.setAskUserId(temp.getMatchUserId());
+                    }
+
                     tempTarget.setAssetName(temp.getAssetName());
                     tempTarget.setUsdkMatchedOrderId(temp.getId());
                     //tempTarget.setFee(temp.getFee().toString());

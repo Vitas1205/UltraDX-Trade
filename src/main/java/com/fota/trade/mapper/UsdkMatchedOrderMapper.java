@@ -16,13 +16,10 @@ import java.util.List;
  */
 @Mapper
 public interface UsdkMatchedOrderMapper {
-    int insert(UsdkMatchedOrderDO record);
+    int insert(List<UsdkMatchedOrderDO> list);
 
     int countByUserId(@Param("userId") Long userId, @Param("assetIds") List<Long> assetIds, @Param("startTime") Date startTime, @Param("endTime") Date endTime);
 
     List<UsdkMatchedOrderDO> listByUserId(@Param("userId") Long userId, @Param("assetIds") List<Long> assetIds, @Param("startRow") Integer startRow, @Param("endRow") Integer endRow,
                                           @Param("startTime") Date startTime, @Param("endTime") Date endTime);
-    Long getLatestUsdkMatched();
-
-    List<UsdkMatchedOrderDO> getLatestUsdkMatchedList(@Param("assetId") Integer assetId, @Param("id") Long id);
 }

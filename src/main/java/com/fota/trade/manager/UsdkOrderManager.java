@@ -443,25 +443,19 @@ public class UsdkOrderManager {
             log.error("getCapitalService().updateBalance failed, balanceTransferDTO:{}", balanceTransferDTO);
             throw new BizException(BIZ_ERROR.getCode(), "getCapitalService().updateBalance failed, balanceTransferDTO:{}" + balanceTransferDTO);
         }
-        UsdkMatchedOrderDO usdkMatchedOrderDO = com.fota.trade.common.BeanUtils.copy(usdkMatchedOrderDTO);
-        usdkMatchedOrderDO.setAskUserId(askUsdkOrder.getUserId());
-        usdkMatchedOrderDO.setBidUserId(bidUsdkOrder.getUserId());
-        usdkMatchedOrderDO.setAskCloseType(new Byte("0"));
-        usdkMatchedOrderDO.setBidCloseType(new Byte("0"));
-        usdkMatchedOrderDO.setGmtCreate(new Date());
+        UsdkMatchedOrderDO askMatchRecordDO = com.fota.trade.common.BeanUtils.extractUsdtRecord(usdkMatchedOrderDTO, OrderDirectionEnum.ASK.getCode());
+        UsdkMatchedOrderDO bidMatchRecordDO = com.fota.trade.common.BeanUtils.extractUsdtRecord(usdkMatchedOrderDTO, OrderDirectionEnum.BID.getCode());
         // 保存订单数据到数据库
         try {
-            int ret = usdkMatchedOrder.insert(usdkMatchedOrderDO);
-            if (ret < 1){
-                log.error("保存usdk订单数据到数据库失败({})", usdkMatchedOrderDO);
+            int ret = usdkMatchedOrder.insert(Arrays.asList(askMatchRecordDO, bidMatchRecordDO));
+            if (ret < 2){
                 throw new RuntimeException("usdkMatchedOrder.insert failed{}");
             }
         } catch (Exception e) {
-            log.error("保存USDK订单数据到数据库失败({})", usdkMatchedOrderDO, e);
             throw new RuntimeException("usdkMatchedOrder.insert exception{}",e);
         }
 
-
+        long matchId = usdkMatchedOrderDTO.getId();
         Runnable runnable = () -> {
             Map<String, Object> askOrderContext = new HashMap<>();
             Map<String, Object> bidOrderContext = new HashMap<>();
@@ -472,8 +466,8 @@ public class UsdkOrderManager {
                 bidOrderContext  = JSON.parseObject(bidUsdkOrder.getOrderContext());
             }
 
-            postProcessOrder(askUsdkOrder, filledAmount, usdkMatchedOrderDO.getId());
-            postProcessOrder(bidUsdkOrder, filledAmount, usdkMatchedOrderDO.getId());
+            postProcessOrder(askUsdkOrder, filledAmount, matchId);
+            postProcessOrder(bidUsdkOrder, filledAmount, matchId);
 
             // 向MQ推送消息
             OrderMessage orderMessage = new OrderMessage();
@@ -500,8 +494,8 @@ public class UsdkOrderManager {
             }
             orderMessage.setAskUserId(askUsdkOrder.getUserId());
             orderMessage.setBidUserId(bidUsdkOrder.getUserId());
-            orderMessage.setMatchOrderId(usdkMatchedOrderDO.getId());
-            Boolean sendRet = rocketMqManager.sendMessage("match", "usdk", String.valueOf(usdkMatchedOrderDO.getId()), orderMessage);
+            orderMessage.setMatchOrderId(matchId);
+            Boolean sendRet = rocketMqManager.sendMessage("match", "usdk", String.valueOf(matchId), orderMessage);
             if (!sendRet){
                 log.error("Send RocketMQ Message Failed ");
             }
