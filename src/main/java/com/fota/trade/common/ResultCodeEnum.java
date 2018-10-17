@@ -42,6 +42,8 @@ public enum ResultCodeEnum {
     BALANCE_NOT_ENOUGH(120021, "balance is not enough"),
     LOCK_FAILED(120022, "get lock failed"),
     CONCURRENT_PROBLEM(120023, "concurrent problem"),
+    TOO_MUCH_ORDERS(120024, "too much orders"),
+    POSITION_EXCEEDS(120025, "position exceeds"),
 
 
     ;

@@ -24,6 +24,7 @@ import org.springframework.util.CollectionUtils;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.io.UnsupportedEncodingException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -155,7 +156,9 @@ public class PostDealConsumer {
         List<String> keyList = postDealMessages.stream()
                 .map(x -> EXIST_POST_DEAL + x.getMsgKey())
                 .collect(Collectors.toList());
-        redisManager.setExPipelined(keyList, "EXIST", seconds);
+        for (String s : keyList) {
+            redisManager.setWithExpire(s, "EXIST", Duration.ofSeconds(seconds));
+        }
     }
 
 
