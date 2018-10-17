@@ -155,7 +155,7 @@ public class ContractOrderManager {
         contractOrderDO.setGmtCreate(new Date(transferTime));
         contractOrderDO.setGmtModified(new Date(transferTime));
         contractOrderDO.setStatus(8);
-        //todo 根据用户等级获取费率
+        //根据用户等级获取费率
 
         Boolean ret = marketAccountListService.contains(contractOrderDTO.getUserId());
         String userType = StringUtils.isEmpty(userInfoMap.get("userType")) ? "0" : userInfoMap.get("userType");
