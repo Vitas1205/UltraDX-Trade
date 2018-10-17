@@ -179,7 +179,7 @@ public class UsdkOrderManager {
                                 throw new BusinessException(errorCode, errorMsg);
                             }
                         }catch (Exception e){
-                            log.error("placeOrder getCapitalService().updateLockedAmount exception usdkOrderDO:{}", usdkOrderDO, e);
+                            log.error("Asset RPC Error!, placeOrder getCapitalService().updateLockedAmount exception usdkOrderDO:{}", usdkOrderDO, e);
                             throw new RuntimeException("placeOrder getCapitalService().updateLockedAmount exception");
                         }
                     }else {
@@ -298,7 +298,7 @@ public class UsdkOrderManager {
                     throw new BizException(BIZ_ERROR.getCode(),"cancelOrder getCapitalService().updateLockedAmount failed");
                 }
             }catch (Exception e){
-                log.error("cancelOrder getCapitalService().updateLockedAmount exception usdkOrderDO:{}", usdkOrderDO, e);
+                log.error("Asset RPC Error!, cancelOrder getCapitalService().updateLockedAmount exception usdkOrderDO:{}", usdkOrderDO, e);
                 throw new BizException(BIZ_ERROR.getCode(),"cancelOrder getCapitalService().updateLockedAmount exception");
             }
             UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
@@ -438,7 +438,7 @@ public class UsdkOrderManager {
         try {
             updateRet = getCapitalService().updateBalance(balanceTransferDTO);
         }catch (Exception e){
-            log.error("getCapitalService().updateBalance exception, balanceTransferDTO:{}", balanceTransferDTO, e);
+            log.error("Asset RPC Error!, getCapitalService().updateBalance exception, balanceTransferDTO:{}", balanceTransferDTO, e);
             throw new BizException(BIZ_ERROR.getCode(), "getCapitalService().updateBalance exception, balanceTransferDTO:{}" + balanceTransferDTO);
         }
         if (!updateRet) {
