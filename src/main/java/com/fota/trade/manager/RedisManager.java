@@ -18,7 +18,6 @@ import java.nio.charset.Charset;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static com.fota.trade.client.constants.Constants.UTF8;
 
@@ -532,7 +531,7 @@ public class RedisManager {
             int mills = random.nextInt(10) + 5;
             Thread.sleep(mills);
         } catch (InterruptedException e) {
-            new RuntimeException(e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -549,8 +548,7 @@ public class RedisManager {
     public boolean setWithExpire(final String key, final Object value, Duration expire) {
         try {
             ValueOperations<String, Object> vOps = redisTemplate.opsForValue();
-            vOps.set(key, value);
-            redisTemplate.expire(key, expire.toMillis(), TimeUnit.MILLISECONDS);
+            vOps.set(key, value, expire.toMillis(), TimeUnit.MILLISECONDS);
             return true;
         } catch (Exception e) {
             log.error("redis set error", e);
