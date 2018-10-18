@@ -33,6 +33,6 @@
     <dubbo:reference interface="com.fota.match.service.ContractMatchedOrderService" id="contractMatchedOrderService" check="false"  registry="zkreg" group="${reference-group}" version="1.0.0" />
 
     <dubbo:consumer check="${check-rpc:false}" timeout="2000" retries="0"> </dubbo:consumer>
-    <dubbo:provider retries="0"/>
+    <dubbo:provider retries="0" threads="2048" dispatcher="message" threadpool="cached" filter="timeout" timeout="2000"/>
 
 </beans>

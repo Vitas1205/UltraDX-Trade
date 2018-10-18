@@ -6,9 +6,11 @@ import com.fota.asset.service.ContractService;
 import com.fota.common.utils.CommonUtils;
 import com.fota.trade.client.PostDealMessage;
 import com.fota.trade.client.constants.DealedMessage;
-import com.fota.trade.common.*;
+import com.fota.trade.common.Constant;
+import com.fota.trade.common.ResultCodeEnum;
+import com.fota.trade.common.UpdatePositionResult;
 import com.fota.trade.domain.*;
-import com.fota.trade.domain.ResultCode;
+import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderOperateTypeEnum;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
@@ -36,7 +38,6 @@ import org.springframework.util.CollectionUtils;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
-import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
@@ -62,9 +63,11 @@ public class DealManager {
 
     private static final Logger tradeLog = LoggerFactory.getLogger("trade");
 
-
     @Autowired
     private ContractOrderMapper contractOrderMapper;
+
+    @Autowired
+    private ContractOrderManager contractOrderManager;
 
     @Autowired
     private ContractLeverManager contractLeverManager;
@@ -180,7 +183,8 @@ public class DealManager {
 
         sendMatchMessage(contractMatchedOrderDO.getId(), contractMatchedOrderDTO, askFee.add(bidFee));
         contractOrderDOS.stream().forEach(x -> {
-            sendDealMessage(contractMatchedOrderDO.getId(), x, filledAmount, filledPrice, askFee.add(bidFee));
+            BigDecimal fee = x.getOrderDirection().equals(OrderDirectionEnum.ASK.getCode()) ? askFee : bidFee;
+            sendDealMessage(contractMatchedOrderDO.getId(), x, filledAmount, filledPrice, fee);
             //后台交易监控日志打在里面 注释需谨慎
             saveToLog(x, filledAmount, contractMatchedOrderDO.getId());
         });
@@ -244,22 +248,23 @@ public class DealManager {
         }
         log.info("postDeal, size={}, keys={}", postDealMessages.size(), postDealMessages.stream().map(PostDealMessage::getMsgKey).collect(Collectors.toList()));
         PostDealMessage postDealMessage = postDealMessages.get(0);
-        BigDecimal filledAmount = postDealMessage.getFilledAmount(), filledPrice = postDealMessage.getFilledPrice();
+        ContractOrderDO contractOrderDO = postDealMessage.getContractOrderDO();
+        log.info("postDeal, userId={}, contractId={}", contractOrderDO.getUserId(), contractOrderDO.getContractId());
         //更新持仓
         UpdatePositionResult positionResult = updatePosition(postDealMessages);
         if (null == positionResult) {
             return ResultCode.error(BIZ_ERROR.getCode(), "update position failed");
         }
         DealedMessage dealedMessage = new DealedMessage()
-                .setSubjectId(postDealMessage.getContractOrderDO().getContractId())
+                .setSubjectId(contractOrderDO.getContractId())
                 .setSubjectType(CONTRACT_TYPE)
-                .setUserId(postDealMessage.getContractOrderDO().getUserId());
+                .setUserId(contractOrderDO.getUserId());
 
         rocketMqManager.sendMessage(DEALED_TOPIC, DEALED_CONTRACT_TAG, postDealMessage.getMsgKey() , dealedMessage);
 
         if (positionResult.getClosePL().compareTo(ZERO) != 0) {
             ContractDealer dealer = new ContractDealer()
-                    .setUserId(postDealMessage.getContractOrderDO().getUserId())
+                    .setUserId(contractOrderDO.getUserId())
                     .setAddedTotalAmount(positionResult.getClosePL())
                     .setTotalLockAmount(ZERO);
             dealer.setDealType(ContractDealer.DealType.FORCE);
@@ -270,31 +275,27 @@ public class DealManager {
                     failedBalanceMap.put(postDealMessage.getMsgKey(), JSON.toJSONString(dealer));
                 }
             }catch (Exception e){
-                log.error("update balance exception, params={}", dealer, e);
+                log.error("Asset RPC Error!, update balance exception, params={}", dealer, e);
                 failedBalanceMap.put(postDealMessage.getMsgKey(), JSON.toJSONString(dealer));
             }
         }
         //防止异常抛出
-        BasicUtils.exeWhitoutError(() -> updateTotalPosition(postDealMessage.getContractOrderDO().getContractId(), positionResult));
+        BasicUtils.exeWhitoutError(() -> updateTotalPosition(contractOrderDO.getContractId(), positionResult));
         BasicUtils.exeWhitoutError(() -> updateTodayFee(postDealMessages));
         return ResultCode.success();
     }
 
     public void updateTodayFee(List<PostDealMessage> postDealMessages){
-        BigDecimal totalFee = postDealMessages.stream().map(PostDealMessage::getTotalFee).reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (CollectionUtils.isEmpty(postDealMessages)){
+            return;
+        }
+        BigDecimal totalFee = postDealMessages.stream().filter(x->x.getTotalFee() != null)
+                .map(PostDealMessage::getTotalFee).reduce(BigDecimal.ZERO, BigDecimal::add);
         if (totalFee.compareTo(ZERO) > 0){
-            Date date = new Date();
-            SimpleDateFormat sdf1 =new SimpleDateFormat("yyyyMMdd");
-            SimpleDateFormat sdf2 =new SimpleDateFormat("H");
-            int hours = Integer.valueOf(sdf2.format(date));
-            Calendar calendar = Calendar.getInstance();
-            calendar.setTime(date);
-            calendar.add(Calendar.DATE, 1);
-            String dateStr = hours < 18 ? sdf1.format(date) : sdf1.format(calendar.getTime());
+            String dateStr = new SimpleDateFormat("yyyyMMdd").format(new Date());
             Double currentFee = redisManager.counter(Constant.REDIS_TODAY_FEE + dateStr, totalFee);
             if (null == currentFee) {
                 log.error("update total position amount failed, totalFee={}", totalFee);
-                return;
             }
         }
     }

@@ -1,36 +1,28 @@
 package com.fota.trade.service.impl;
 
-import com.fota.asset.service.AssetService;
-import com.fota.asset.service.ContractService;
 import com.fota.common.Page;
 import com.fota.trade.common.*;
-import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.ResultCode;
-import com.fota.trade.manager.ContractLeverManager;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.DealManager;
-import com.fota.trade.manager.RedisManager;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
-import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.service.ContractOrderService;
-import com.fota.trade.util.*;
+import com.fota.trade.service.internal.MarketAccountListService;
+import com.fota.trade.util.DateUtil;
+import com.fota.trade.util.PriceUtil;
+import com.fota.trade.util.Profiler;
+import com.fota.trade.util.ThreadContextUtil;
 import com.google.common.base.Joiner;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.CollectionUtils;
 
-import javax.annotation.Resource;
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
 
-import static com.fota.trade.common.ResultCodeEnum.LOCK_FAILED;
 import static com.fota.trade.common.ResultCodeEnum.SYSTEM_ERROR;
 
 /**
@@ -39,10 +31,9 @@ import static com.fota.trade.common.ResultCodeEnum.SYSTEM_ERROR;
  * @Date: Create in 下午11:16 2018/7/5
  * @Modified:
  */
-public class ContractOrderServiceImpl implements
-        ContractOrderService {
+@Slf4j
+public class ContractOrderServiceImpl implements ContractOrderService {
 
-    private static final Logger log = LoggerFactory.getLogger(ContractOrderServiceImpl.class);
     private static final Logger tradeLog = LoggerFactory.getLogger("trade");
 
     @Autowired
@@ -52,32 +43,13 @@ public class ContractOrderServiceImpl implements
     private ContractOrderManager contractOrderManager;
 
     @Autowired
-    private UserPositionMapper userPositionMapper;
-
-    @Autowired
-    private RedisManager redisManager;
-
-    @Autowired
-    private ContractLeverManager contractLeverManager;
-
-    @Autowired
     private ContractMatchedOrderMapper contractMatchedOrderMapper;
 
-    @Resource
+    @Autowired
     private DealManager dealManager;
 
     @Autowired
-    private AssetService assetService;
-    private AssetService getAssetService() { return assetService; }
-
-    @Autowired
-    private ContractService contractService;
-    private ContractService getContractService() {
-        return contractService;
-    }
-
-    private static final int MAX_RETRIES = 3000;
-
+    private MarketAccountListService marketAccountListService;
 
     @Override
     public com.fota.common.Page<ContractOrderDTO> listContractOrderByQuery(BaseQuery contractOrderQueryDTO) {
@@ -86,9 +58,6 @@ public class ContractOrderServiceImpl implements
             return null;
         }
 
-        if (Constant.MARKET_USER_ID_LIST.contains(contractOrderQueryDTO.getUserId())) {
-            return null;
-        }
         com.fota.common.Page<ContractOrderDTO> contractOrderDTOPage = new com.fota.common.Page<>();
         if (contractOrderQueryDTO.getPageNo() <= 0) {
             contractOrderQueryDTO.setPageNo(Constant.DEFAULT_PAGE_NO);
@@ -132,13 +101,6 @@ public class ContractOrderServiceImpl implements
             log.error("contractOrderMapper.listByQuery({})", contractOrderQueryDTO, e);
             return contractOrderDTOPageRet;
         }
-        List<ContractOrderDTO> contractOrderDTOList = null;
-//        try {
-//            contractOrderDTOList = BeanUtils.copyList(contractOrderDOList, ContractOrderDTO.class);
-//        } catch (Exception e) {
-//            log.error("bean copy exception", e);
-//            return contractOrderDTOPageRet
-//        }
         contractOrderDTOPage.setData(list);
         return contractOrderDTOPage;
     }
@@ -397,8 +359,7 @@ public class ContractOrderServiceImpl implements
         ThreadContextUtil.setPrifiler(profiler);
 
         try {
-            ResultCode code = dealManager.deal(contractMatchedOrderDTO);
-            return code;
+            return dealManager.deal(contractMatchedOrderDTO);
 
         } catch (Exception e) {
             if (e instanceof BizException) {
@@ -454,6 +415,13 @@ public class ContractOrderServiceImpl implements
         ContractMatchedOrderTradeDTOPage contractMatchedOrderTradeDTOPage = new ContractMatchedOrderTradeDTOPage();
         contractMatchedOrderTradeDTOPage.setPageNo(pageNo);
         contractMatchedOrderTradeDTOPage.setPageSize(pageSize);
+
+        if (marketAccountListService.contains(userId)) {
+            contractMatchedOrderTradeDTOPage.setTotal(100_000);
+            contractMatchedOrderTradeDTOPage.setPageSize(4);
+
+            return contractMatchedOrderTradeDTOPage;
+        }
 
         int count = 0;
         try {

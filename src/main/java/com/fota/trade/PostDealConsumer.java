@@ -2,12 +2,16 @@ package com.fota.trade;
 
 import com.alibaba.fastjson.JSON;
 import com.fota.trade.client.PostDealMessage;
+import com.fota.trade.domain.ContractOrderDO;
+import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.DealManager;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.consumer.listener.*;
+import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
+import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
+import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -20,13 +24,14 @@ import org.springframework.util.CollectionUtils;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.io.UnsupportedEncodingException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static com.fota.trade.client.constants.Constants.DEFAULT_TAG;
 import static com.fota.trade.client.constants.Constants.CONTRACT_POSITION_UPDATE_TOPIC;
+import static com.fota.trade.client.constants.Constants.DEFAULT_TAG;
 
 /**
  * @Author: Harry Wang
@@ -40,6 +45,9 @@ public class PostDealConsumer {
 
     @Autowired
     private DealManager dealManager;
+
+    @Autowired
+    private ContractOrderManager contractOrderManager;
 
     @Resource
     private RedisTemplate<String, String> redisTemplate;
@@ -111,9 +119,12 @@ public class PostDealConsumer {
                         .stream()
                         .collect(Collectors.groupingBy(PostDealMessage::getGroup));
 
-                postDealMessageMap.entrySet().stream().parallel().forEach(entry -> {
+                postDealMessageMap.entrySet().parallelStream().forEach(entry -> {
                     try {
                         dealManager.postDeal(entry.getValue());
+                        PostDealMessage postDealMessage = entry.getValue().get(0);
+                        ContractOrderDO contractOrderDO = postDealMessage.getContractOrderDO();
+                        contractOrderManager.updateExtraEntrustAmountByContract(contractOrderDO.getUserId(), contractOrderDO.getContractId());
                         markExist(entry.getValue());
                     } catch (Throwable t) {
                         log.error("post deal message exception", t);
@@ -145,7 +156,9 @@ public class PostDealConsumer {
         List<String> keyList = postDealMessages.stream()
                 .map(x -> EXIST_POST_DEAL + x.getMsgKey())
                 .collect(Collectors.toList());
-        redisManager.setExPipelined(keyList, "EXIST", seconds);
+        for (String s : keyList) {
+            redisManager.setWithExpire(s, "EXIST", Duration.ofSeconds(seconds));
+        }
     }
 
 
