@@ -19,27 +19,24 @@ public class UsdkMatchedOrderDO {
 
     private Date gmtModified;
 
-    private Long askOrderId;
+    private Long orderId;
 
-    private BigDecimal askOrderPrice;
+    private Long userId;
 
-    private Byte askCloseType;
+    private Long matchUserId;
 
-    private Long bidOrderId;
+    private BigDecimal orderPrice;
 
-    private BigDecimal bidOrderPrice;
+    private Integer orderDirection;
+    private Integer closeType;
 
-    private Byte bidCloseType;
+    private Long matchId;
 
-    private Byte matchType;
+    private Integer matchType;
 
     private BigDecimal filledPrice;
 
     private BigDecimal filledAmount;
-
-    private Long askUserId;
-
-    private Long bidUserId;
 
     private String assetName;
 

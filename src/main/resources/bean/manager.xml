@@ -7,9 +7,15 @@
 
     <dubbo:application name="fota-trade" id="fota-trade"/>
 
-    <dubbo:registry address="172.16.50.183:2181,172.16.50.184:2181,172.16.50.185:2181" protocol="zookeeper" id="zkreg" >
+    <dubbo:registry address="${spring.cloud.zookeeper.connect-string}" protocol="zookeeper" id="zkreg" >
         <dubbo:parameter key="qos.enable" value="false"/>
     </dubbo:registry>
+
+
+    <dubbo:protocol name="dubbo" port="9002" id="provider"/>
+    <dubbo:consumer check="${check_rpc:false}" timeout="2000" retries="0" registry="zkreg" group="${reference-group}"  version="1.0.0"> </dubbo:consumer>
+    <dubbo:provider retries="0" threads="500" dispatcher="message" threadpool="cached" filter="timeout" timeout="2000" registry="zkreg" group="${service-group}" version="1.0.0"/>
+
 
     <bean id="contractCategoryService" class="com.fota.trade.service.impl.ContractCategoryServiceImpl" />
     <bean id="usdkOrderService" class="com.fota.trade.service.impl.UsdkOrderServiceImpl"  />
@@ -17,22 +23,20 @@
     <bean id="contractOrderService" class="com.fota.trade.service.impl.ContractOrderServiceImpl" />
     <bean id="userContractLeverService" class="com.fota.trade.service.impl.UserContractLeverServiceImpl" />
 
-    <dubbo:protocol name="dubbo" port="9002" id="provider"/>
-    <dubbo:service interface="com.fota.trade.service.ContractCategoryService"  ref="contractCategoryService" registry="zkreg" group="${service-group}"  version="1.0.0"/>
-    <dubbo:service interface="com.fota.trade.service.UsdkOrderService"  ref="usdkOrderService" registry="zkreg" group="${service-group}"  version="1.0.0"/>
-    <dubbo:service interface="com.fota.trade.service.UserPositionService" ref="userPositionService" registry="zkreg" group="${service-group}" version="1.0.0"/>
-    <dubbo:service interface="com.fota.trade.service.ContractOrderService"  ref="contractOrderService" registry="zkreg" group="${service-group}" version="1.0.0"/>
-    <dubbo:service interface="com.fota.trade.service.UserContractLeverService" ref="userContractLeverService" registry="zkreg" group="${service-group}" version="1.0.0"/>
-    <dubbo:service interface="com.fota.trade.service.ContractAccountService" ref="contractAccountService" registry="zkreg" group="${service-group}" version="1.0.0"/>
 
-    <dubbo:reference interface="com.fota.asset.service.AssetService" id="AssetService" check="false" registry="zkreg" group="${reference-group}" version="1.0.0"/>
-    <dubbo:reference interface="com.fota.asset.service.CapitalService" id="capitalService" check="false"  registry="zkreg" group="${reference-group}" version="1.0.0"/>
-    <dubbo:reference interface="com.fota.asset.service.ContractService" id="contractService" check="false"  registry="zkreg" group="${reference-group}" version="1.0.0" />
+    <dubbo:service interface="com.fota.trade.service.ContractCategoryService"  ref="contractCategoryService" />
+    <dubbo:service interface="com.fota.trade.service.UsdkOrderService"  ref="usdkOrderService" />
+    <dubbo:service interface="com.fota.trade.service.UserPositionService" ref="userPositionService" />
+    <dubbo:service interface="com.fota.trade.service.ContractOrderService"  ref="contractOrderService" />
+    <dubbo:service interface="com.fota.trade.service.UserContractLeverService" ref="userContractLeverService" />
+    <dubbo:service interface="com.fota.trade.service.ContractAccountService" ref="contractAccountService" />
 
-    <dubbo:reference interface="com.fota.match.service.UsdkMatchedOrderService" id="usdkMatchedOrderService" check="false"  registry="zkreg" group="${reference-group}" version="1.0.0" />
-    <dubbo:reference interface="com.fota.match.service.ContractMatchedOrderService" id="contractMatchedOrderService" check="false"  registry="zkreg" group="${reference-group}" version="1.0.0" />
+    <dubbo:reference interface="com.fota.asset.service.AssetService" id="AssetService"/>
+    <dubbo:reference interface="com.fota.asset.service.CapitalService" id="capitalService"  />
+    <dubbo:reference interface="com.fota.asset.service.ContractService" id="contractService" />
 
-    <dubbo:consumer check="${check-rpc:false}" timeout="2000" retries="0"> </dubbo:consumer>
-    <dubbo:provider retries="0" threads="500" dispatcher="message" threadpool="cached" filter="timeout" timeout="2000"/>
+    <dubbo:reference interface="com.fota.match.service.UsdkMatchedOrderService" id="usdkMatchedOrderService" />
+    <dubbo:reference interface="com.fota.match.service.ContractMatchedOrderService" id="contractMatchedOrderService" />
+
 
 </beans>

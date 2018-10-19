@@ -8,6 +8,8 @@ import com.fota.common.Result;
 import com.fota.common.utils.CommonUtils;
 import com.fota.ticker.entrust.RealTimeEntrust;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
+import com.fota.trade.client.CancelTypeEnum;
+import com.fota.trade.client.ToCancelMessage;
 import com.fota.trade.common.BizException;
 import com.fota.trade.common.Constant;
 import com.fota.trade.common.RedisKey;
@@ -24,6 +26,7 @@ import com.fota.trade.util.ContractUtils;
 import com.fota.trade.util.Profiler;
 import com.fota.trade.util.ThreadContextUtil;
 import com.google.common.base.Joiner;
+import lombok.NonNull;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -38,12 +41,14 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.function.Predicate;
 
+import static com.fota.trade.client.MQConstants.ORDER_TOPIC;
+import static com.fota.trade.client.MQConstants.TO_CANCEL_CONTRACT_TAG;
 import static com.fota.trade.common.Constant.DEFAULT_LEVER;
 import static com.fota.trade.common.ResultCodeEnum.*;
 import static com.fota.trade.domain.enums.ContractStatusEnum.PROCESSING;
-import static com.fota.trade.domain.enums.OrderStatusEnum.CANCEL;
-import static com.fota.trade.domain.enums.OrderStatusEnum.PART_CANCEL;
-import static java.util.stream.Collectors.*;
+import static com.fota.trade.domain.enums.OrderStatusEnum.*;
+import static java.util.stream.Collectors.toList;
+
 
 /**
  * @author Gavin Shen
@@ -98,16 +103,10 @@ public class ContractOrderManager {
         }
 
         ResultCode resultCode = ResultCode.success();
-        List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByContractId(contractId);
-        if (!CollectionUtils.isEmpty(list)) {
-            Map<Long, List<Long>> orderMap = list.stream()
-                    .collect(groupingBy(ContractOrderDO::getUserId, mapping(ContractOrderDO::getId, toList())));
-
-            for (Map.Entry<Long, List<Long>> entry : orderMap.entrySet()) {
-                sendCancelMessage(entry.getValue(), entry.getKey());
-            }
-        }
-
+        ToCancelMessage toCancelMessage = new ToCancelMessage();
+        toCancelMessage.setCancelType(CancelTypeEnum.CANCEL_BY_CONTRACTID);
+        toCancelMessage.setContractId(contractId);
+        rocketMqManager.sendMessage(ORDER_TOPIC, TO_CANCEL_CONTRACT_TAG, "to_cancelByContractId_"+contractId, toCancelMessage);
         return resultCode;
     }
 
@@ -278,7 +277,7 @@ public class ContractOrderManager {
         if (Objects.isNull(userId) || Objects.isNull(orderId)) {
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), ResultCodeEnum.ILLEGAL_PARAM.getMessage());
         }
-        ContractOrderDO contractOrderDO = contractOrderMapper.selectByPrimaryKey(orderId);
+        ContractOrderDO contractOrderDO = contractOrderMapper.selectByIdAndUserId(userId, orderId);
         if (Objects.isNull(contractOrderDO)) {
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), ResultCodeEnum.ILLEGAL_PARAM.getMessage());
         }
@@ -305,9 +304,9 @@ public class ContractOrderManager {
      * @param orderId 委托单ID
      */
 //    @Transactional(rollbackFor = Throwable.class)
-    public ResultCode cancelOrderByMessage(long orderId, BigDecimal unfilleAmount) {
+    public ResultCode cancelOrderByMessage(long userId, long orderId, @NonNull BigDecimal unfilleAmount) {
         for (int i = 0;i<3;i++) {
-            ResultCode resultCode = doCancelOrder(orderId, unfilleAmount);
+            ResultCode resultCode = doCancelOrder(userId, orderId, unfilleAmount);
             if (resultCode.getCode().equals(CONCURRENT_PROBLEM.getCode())) {
                 randomSleep();
                 continue;
@@ -324,23 +323,21 @@ public class ContractOrderManager {
             log.error("sleep exception", e);
         }
     }
-    public ResultCode doCancelOrder(long orderId, BigDecimal unfilleAmount) {
-        ContractOrderDO contractOrderDO = contractOrderMapper.selectByPrimaryKey(orderId);
+    public ResultCode doCancelOrder(long userId, long orderId, BigDecimal unfilleAmount) {
+
+        ContractOrderDO contractOrderDO = contractOrderMapper.selectByIdAndUserId(userId, orderId);
         if (Objects.isNull(contractOrderDO)) {
             return ResultCode.error(ILLEGAL_PARAM.getCode(), "contract order does not exist, id="+orderId);
         }
 
         ResultCode resultCode = new ResultCode();
         Integer status = contractOrderDO.getStatus();
-        Integer toStatus;
 
-        if (status == OrderStatusEnum.COMMIT.getCode()){
-           toStatus = CANCEL.getCode();
-        } else if (status == OrderStatusEnum.PART_MATCH.getCode()) {
-            toStatus = PART_CANCEL.getCode();
-        } else {
+        if (status != COMMIT.getCode() && status != PART_MATCH.getCode()) {
             return ResultCode.error(BIZ_ERROR.getCode(),"illegal order status, id="+contractOrderDO.getId() + ", status="+ contractOrderDO.getStatus());
         }
+        Integer toStatus = unfilleAmount.compareTo(contractOrderDO.getTotalAmount()) < 0 ? PART_CANCEL.getCode() : CANCEL.getCode();
+
         Long transferTime = System.currentTimeMillis();
         int ret = contractOrderMapper.cancelByOpLock(orderId, toStatus, contractOrderDO.getGmtModified());
         if (ret > 0) {
@@ -398,11 +395,12 @@ public class ContractOrderManager {
             int temp =  i + batchSize;
             temp = temp < orderIdList.size() ? temp : orderIdList.size();
             List<Long> subList = orderIdList.subList(i, temp);
-            Map<String, Object> map = new HashMap<>();
-            map.putIfAbsent("userId", userId);
-            map.putIfAbsent("idList", subList);
+            ToCancelMessage toCancelMessage = new ToCancelMessage();
+            toCancelMessage.setCancelType(CancelTypeEnum.CANCEL_BY_ORDERID);
+            toCancelMessage.setUserId(userId);
+            toCancelMessage.setIdList(subList);
             String msgKey = "to_cancel_contract_"+Joiner.on(",").join(subList);
-            rocketMqManager.sendMessage("order", "ContractCancel", msgKey , map);
+            rocketMqManager.sendMessage("order", "ContractCancel", msgKey , toCancelMessage);
             i = temp;
         }
     }
@@ -431,69 +429,6 @@ public class ContractOrderManager {
         resultCode.setCode(0);
         resultCode.setMessage("success");
         return resultCode;
-    }
-
-    //获取实时持仓保证金、实时浮盈亏金
-    public Map<String, BigDecimal> getAccountMsg(long userId) {
-        Map<String, BigDecimal> resultMap = new HashMap<String, BigDecimal>();
-        //获取所有合约类型列表
-        BigDecimal positionMargin = BigDecimal.ZERO;
-        BigDecimal floatingPL = BigDecimal.ZERO;
-        List<ContractCategoryDTO> queryList = contractCategoryService.listActiveContract();
-        List<UserPositionDO> positionlist = userPositionMapper.selectByUserId(userId, PositionStatusEnum.UNDELIVERED.getCode());
-        List<CompetitorsPriceDTO> competitorsPriceList = realTimeEntrust.getContractCompetitorsPrice();
-
-        if (queryList != null && queryList.size() != 0 && positionlist != null && positionlist.size() != 0) {
-            for (ContractCategoryDTO contractCategoryDO : queryList) {
-                long contractId = contractCategoryDO.getId();
-                List<UserPositionDO> userPositionDOlist = new ArrayList<>();
-                if (positionlist != null && positionlist.size() != 0) {
-                    userPositionDOlist = positionlist.stream().filter(userPosition -> userPosition.getContractId().equals(contractCategoryDO.getId()))
-                            .limit(1).collect(toList());
-                    if (userPositionDOlist != null && userPositionDOlist.size() != 0) {
-                        UserPositionDO userPositionDO = userPositionDOlist.get(0);
-                        //获取买一卖一价
-                        BigDecimal askCurrentPrice = BigDecimal.ZERO;
-                        BigDecimal bidCurrentPrice = BigDecimal.ZERO;
-
-                        BigDecimal lever = new BigDecimal(contractLeverManager.getLeverByContractId(userId, contractId));
-                        Integer positionType = userPositionDO.getPositionType();
-                        BigDecimal positionUnfilledAmount = userPositionDO.getUnfilledAmount();
-                        BigDecimal positionAveragePrice = userPositionDO.getAveragePrice();
-                        try {
-                            if (positionType == PositionTypeEnum.OVER.getCode()) {
-//                                bidCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
-//                                        competitorsPrice.getId() == contractId).findFirst().get().getPrice();
-                                bidCurrentPrice = computePrice(competitorsPriceList, OrderDirectionEnum.BID.getCode(), contractId);
-                                log.info("bidCurrentPrice:"+bidCurrentPrice);
-                                BigDecimal bidPositionEntrustAmount = positionUnfilledAmount.multiply(bidCurrentPrice).divide(lever, 8, BigDecimal.ROUND_DOWN);
-                                positionMargin = positionMargin.add(bidPositionEntrustAmount);
-                                floatingPL = floatingPL.add((bidCurrentPrice.subtract(positionAveragePrice)).multiply(positionUnfilledAmount)).setScale(8, BigDecimal.ROUND_DOWN);
-                            } else if (positionType == PositionTypeEnum.EMPTY.getCode()) {
-//                                askCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
-//                                        competitorsPrice.getId() == contractId).findFirst().get().getPrice();
-                                askCurrentPrice = computePrice(competitorsPriceList, OrderDirectionEnum.ASK.getCode(), contractId);
-                                log.info("askCurrentPrice:"+askCurrentPrice);
-                                BigDecimal askPositionEntrustAmount = positionUnfilledAmount.multiply(askCurrentPrice).divide(lever, 8, BigDecimal.ROUND_DOWN);
-                                positionMargin = positionMargin.add(askPositionEntrustAmount);
-                                floatingPL = floatingPL.add((positionAveragePrice.subtract(askCurrentPrice)).multiply(positionUnfilledAmount)).setScale(8, BigDecimal.ROUND_DOWN);
-                            }
-                        }catch (Exception e){
-                            log.error("get ContractCompetitorsPrice failed{}", contractId, e);
-                            resultMap.put(Constant.POSITION_MARGIN, null);
-                            resultMap.put(Constant.FLOATING_PL, null);
-                            return resultMap;
-                        }
-
-                    }
-                }
-            }
-        }
-        resultMap.put(Constant.POSITION_MARGIN, positionMargin);
-        resultMap.put(Constant.FLOATING_PL, floatingPL);
-        log.info("positionMargin:"+positionMargin);
-        log.info("floatingPL:"+floatingPL);
-        return resultMap;
     }
 
 
@@ -648,8 +583,11 @@ public class ContractOrderManager {
 
     public BigDecimal computePrice(List<CompetitorsPriceDTO> competitorsPriceList, int type, long contractId) {
         if (CollectionUtils.isEmpty(competitorsPriceList)) {
-            log.error("empty competitorsPriceList");
-            return null;
+            String ret = redisManager.get(Constant.LAST_CONTRACT_MATCH_PRICE + String.valueOf(contractId));
+            if (null == ret) {
+                log.error("there is no latestMatchedPrice, contractId={}, type={}", contractId, type);
+            }
+            return new BigDecimal(ret);
         }
         Optional<CompetitorsPriceDTO>  competitorsPriceDTOOptional = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == type &&
                 competitorsPrice.getId() == contractId).findFirst();
@@ -657,7 +595,6 @@ public class ContractOrderManager {
         if (competitorsPriceDTOOptional.isPresent()) {
             return competitorsPriceDTOOptional.get().getPrice();
         }
-        log.error("there is no competitorsPrice, contractId={}, type={}", contractId, type);
         String latestPrice = redisManager.get(Constant.LAST_CONTRACT_MATCH_PRICE + String.valueOf(contractId));
         if (latestPrice != null) {
             return new BigDecimal(latestPrice);
@@ -665,6 +602,7 @@ public class ContractOrderManager {
         log.error("there is no latestMatchedPrice, contractId={}, type={}", contractId, type);
         return null;
     }
+
 
     //todo 判断持仓反方向的"仓加挂"大于是否该合约持仓保证金
     public Boolean judgeOrderResult(List<ContractOrderDO> filterOrderList,Integer positionType,

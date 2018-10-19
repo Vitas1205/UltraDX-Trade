@@ -5,6 +5,8 @@ import com.fota.asset.service.AssetService;
 import com.fota.asset.service.ContractService;
 import com.fota.common.Page;
 import com.fota.common.Result;
+import com.fota.trade.client.RecoveryMetaData;
+import com.fota.trade.client.RecoveryQuery;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.OrderCloseTypeEnum;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
@@ -16,6 +18,7 @@ import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.service.impl.ContractAccountServiceImpl;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
 import com.fota.trade.util.BasicUtils;
+import com.fota.trade.util.DateUtil;
 import com.fota.trade.util.PriceUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
@@ -26,6 +29,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.BeanUtils;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
@@ -41,7 +45,7 @@ import static com.fota.ticker.entrust.entity.enums.OrderStatusEnum.CANCEL;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
-//@Transactional
+@Transactional
 @Slf4j
 public class ContractOrderServiceTest {
 
@@ -112,7 +116,7 @@ public class ContractOrderServiceTest {
         log.info(String.valueOf(contractOrderDTOPage));
     }
 
-//    @Test
+    @Test
     public void testUpdateOrderByMatch() {
 
 
@@ -130,7 +134,7 @@ public class ContractOrderServiceTest {
 //        public String assetName;
 //        public int contractType;
 
-        BigDecimal amount = new BigDecimal(0.01);
+        BigDecimal amount = new BigDecimal("0.01");
 
         // 准备数据
         askContractOrder.setId(BasicUtils.generateId());
@@ -172,19 +176,27 @@ public class ContractOrderServiceTest {
 
 
         ContractMatchedOrderDTO contractMatchedOrderDTO = new ContractMatchedOrderDTO();
+        contractMatchedOrderDTO.setId(1L);
+
+        contractMatchedOrderDTO.setAskUserId(askUserId);
         contractMatchedOrderDTO.setAskOrderId(askContractOrder.getId());
+        contractMatchedOrderDTO.setAskOrderPrice(askContractOrder.getPrice().toString());
+        contractMatchedOrderDTO.setAskOrderStatus(askContractOrder.getStatus());
+        contractMatchedOrderDTO.setAskOrderUnfilledAmount(BigDecimal.ZERO);
+
+        contractMatchedOrderDTO.setBidUserId(bidUserId);
         contractMatchedOrderDTO.setBidOrderId(bidContractOrder.getId());
+        contractMatchedOrderDTO.setBidOrderPrice(bidContractOrder.getPrice().toString());
+        contractMatchedOrderDTO.setBidOrderStatus(bidContractOrder.getStatus());
+        contractMatchedOrderDTO.setBidOrderUnfilledAmount(BigDecimal.ZERO);
+
         contractMatchedOrderDTO.setContractId(contractId);
         contractMatchedOrderDTO.setContractName(askContractOrder.getContractName());
         contractMatchedOrderDTO.setAssetName("BTC");
         contractMatchedOrderDTO.setFilledPrice(askContractOrder.getPrice().toString());
         contractMatchedOrderDTO.setFilledAmount(amount);
-
-        contractMatchedOrderDTO.setAskOrderPrice(askContractOrder.getPrice().toString());
-        contractMatchedOrderDTO.setAskOrderStatus(askContractOrder.getStatus());
-        contractMatchedOrderDTO.setBidOrderPrice(bidContractOrder.getPrice().toString());
-        contractMatchedOrderDTO.setBidOrderStatus(bidContractOrder.getStatus());
         contractMatchedOrderDTO.setMatchType(1);
+
         ResultCode resultCode = contractOrderService.updateOrderByMatch(contractMatchedOrderDTO);
         Assert.assertTrue(resultCode.isSuccess());
     }
@@ -235,7 +247,7 @@ public class ContractOrderServiceTest {
     }
 
     private void checkContractOrder(ContractOrderDO contractOrderDO) {
-        ContractOrderDO curContract = contractOrderMapper.selectByPrimaryKey(contractOrderDO.getId());
+        ContractOrderDO curContract = contractOrderMapper.selectByIdAndUserId(contractOrderDO.getUserId(), contractOrderDO.getId());
         log.info("oldOrder={}", contractOrderDO);
         log.info("curOrder={}", curContract);
         /*assert curContract.getUnfilledAmount() == contractOrderDO.getUnfilledAmount().longValue()
@@ -261,8 +273,8 @@ public class ContractOrderServiceTest {
 
 //    @Test
     public void testCancel(){
-        contractOrderManager.cancelOrderByMessage(askContractOrder.getId(), new BigDecimal(1));
-        ContractOrderDO orderDO = contractOrderMapper.selectByPrimaryKey(askContractOrder.getId());
+        contractOrderManager.cancelOrderByMessage(askContractOrder.getUserId(), askContractOrder.getId(), new BigDecimal(1));
+        ContractOrderDO orderDO = contractOrderMapper.selectByIdAndUserId(askContractOrder.getUserId(), askContractOrder.getId());
         assert orderDO.getStatus() == CANCEL.getCode();
     }
 
@@ -277,6 +289,14 @@ public class ContractOrderServiceTest {
     public void getAveragePriceTest() {
         BigDecimal ret = PriceUtil.getAveragePrice(null, new BigDecimal(0), new BigDecimal(1), new BigDecimal(10));
         log.info("--------------------------" + ret);
+    }
+
+    @Test
+    public void testGetMetaData(){
+        Result<RecoveryMetaData> result = contractOrderService.getRecoveryMetaData();
+        assert result.isSuccess();
+        log.info("date={}",result.getData());
+
     }
 
     @Test
@@ -398,21 +418,23 @@ public class ContractOrderServiceTest {
 
     @Test
     public void testListUsdkOrderByQuery4Recovery() {
-        BaseQuery usdkOrderQuery = new BaseQuery();
-        usdkOrderQuery.setPageSize(1000);
-        usdkOrderQuery.setPageNo(1);
-        List<Integer> orderStatus = new ArrayList<>();
-        orderStatus.add(OrderStatusEnum.COMMIT.getCode());
-        orderStatus.add(OrderStatusEnum.PART_MATCH.getCode());
-
-        usdkOrderQuery.setOrderStatus(orderStatus);
-        Page<ContractOrderDTO> page = contractOrderService.listContractOrderByQuery4Recovery(usdkOrderQuery);
-
-        Assert.assertTrue(page != null && page.getData() != null);
+        RecoveryQuery recoveryQuery = new RecoveryQuery();
+        recoveryQuery.setMaxGmtCreate(DateUtil.parse("2018-10-09 12:04:00"));
+        recoveryQuery.setTableIndex(18);
+        recoveryQuery.setPageIndex(1);
+        recoveryQuery.setPageSize(10);
+        Result result  = contractOrderService.listContractOrder4Recovery(recoveryQuery);
+        Assert.assertTrue(result.isSuccess());
+        log.info("result={}", result);
     }
     @Test
     public void testCancelByContractType() {
         ResultCode resultCode = contractOrderService.cancelOrderByOrderType(274, Arrays.asList(1), new HashMap<>());
+        assert resultCode.isSuccess();
+    }
+    @Test
+    public void testCancelByCancelId(){
+        ResultCode resultCode = contractOrderService.cancelOrderByContractId(1150L, new HashMap<>());
         assert resultCode.isSuccess();
     }
 

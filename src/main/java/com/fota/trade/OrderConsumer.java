@@ -73,12 +73,6 @@ public class OrderConsumer {
             }
             MessageExt messageExt = msgs.get(0);
             String mqKey = messageExt.getKeys();
-            String lockKey = "EXIST_CANCEL_MESSAGE_KEY_" + messageExt.getTags() + "_"+ mqKey;
-            boolean locked = redisManager.tryLock(lockKey, Duration.ofHours(24));
-            if (!locked) {
-                logFailMsg("duplicate message!", messageExt);
-                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-            }
             String tag = messageExt.getTags();
 
             try {
@@ -92,18 +86,21 @@ public class OrderConsumer {
                 }
                 Integer removeResult = res.getInteger("rst");
                 if (null == removeResult || removeSucced != removeResult) {
-                    //如果订单簿移除失败，此消息消费成功，但不做去重，否则没法重试撤单
-                    redisManager.releaseLock(lockKey);
                     logSuccessMsg(messageExt, "remove from book orderList failed");
                     return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
                 }
                 Long orderId = res.getLong("id");
                 BigDecimal unfilledAmount = res.getBigDecimal("unfilledAmount");
+                Long userId = res.getLong("userId");
+                if (null == orderId || null == unfilledAmount || null == userId) {
+                    logFailMsg("illegal message, not retry", messageExt);
+                    return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+                }
                 ResultCode resultCode = null;
                 if ("UsdkCancelResult".equals(tag)) {
-                        resultCode = usdkOrderManager.cancelOrderByMessage(orderId, unfilledAmount);
+                        resultCode = usdkOrderManager.cancelOrderByMessage(userId, orderId, unfilledAmount);
                 } else if ("ContractCancelResult".equals(tag)) {
-                    resultCode = contractOrderManager.cancelOrderByMessage(orderId, unfilledAmount);
+                    resultCode = contractOrderManager.cancelOrderByMessage(userId, orderId, unfilledAmount);
                 }
                 if (!resultCode.isSuccess()) {
 
@@ -111,14 +108,12 @@ public class OrderConsumer {
                         logFailMsg("resultCode="+resultCode, messageExt);
                         return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
                     }
-                    redisManager.releaseLock(lockKey);
                     logFailMsg("resultCode="+resultCode, messageExt);
                     return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                 }
                 logSuccessMsg(messageExt, null);
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             } catch (Exception e) {
-                redisManager.releaseLock(lockKey);
                 logFailMsg(messageExt, e);
                 return ConsumeConcurrentlyStatus.RECONSUME_LATER;
             }
