@@ -12,6 +12,8 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -37,9 +39,11 @@ public class RocketMqManager {
     @Autowired
     private DefaultMQProducer producer;
 
-    @Resource
-    private ConcurrentMap<String, String> failedMQMap;
+//    @Resource
+//    private ConcurrentMap<String, String> failedMQMap;
     private long timeout = 1000;
+
+    private static final Logger LOGGER = LoggerFactory.getLogger("sendMQMessageFailed");
     /**
      *
      * @param topic
@@ -55,7 +59,7 @@ public class RocketMqManager {
         MQMessage mqMessage = new MQMessage(topic, tag, key, message);
         boolean suc =  doSendMessage(mqMessage);
         if (!suc) {
-            failedMQMap.put(topic+"_"+key, JSON.toJSONString(mqMessage));
+            LOGGER.error(JSON.toJSONString(mqMessage));
         }
         return suc;
     }
@@ -65,7 +69,7 @@ public class RocketMqManager {
         MQMessage mqMessage = new MQMessage(topic, tag, key, message, selector, args);
         boolean suc = doSendMessage(mqMessage);
         if (!suc) {
-            failedMQMap.put(topic+"_"+key, JSON.toJSONString(mqMessage));
+            LOGGER.error(JSON.toJSONString(mqMessage));
         }
         return suc;
     }
