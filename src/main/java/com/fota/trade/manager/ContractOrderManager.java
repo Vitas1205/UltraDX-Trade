@@ -431,7 +431,7 @@ public class ContractOrderManager {
 
         List<ContractCategoryDTO> categoryList = contractCategoryService.listActiveContract();
         if (CollectionUtils.isEmpty(categoryList)) {
-            log.error("empty categoryList");
+            log.error("empty categoryList, userId={}", userId);
              return contractAccount.setAccountEquity(new BigDecimal(userContractDTO.getAmount()));
         }
         List<UserPositionDO> allPositions = userPositionMapper.selectByUserId(userId, PositionStatusEnum.UNDELIVERED.getCode());
@@ -887,6 +887,7 @@ public class ContractOrderManager {
         profiler.complelete("listActiveContract");
         //校验合约有效性
         if (CollectionUtils.isEmpty(categoryList)) {
+            log.error("empty categoryList, userId={}", userId);
             return Result.fail( ResultCodeEnum.ILLEGAL_CONTRACT.getCode(), ILLEGAL_CONTRACT.getMessage());
         }
         ContractCategoryDTO contractCategoryDTO = categoryList.stream().filter(x -> x.getId().equals(newContractOrderDO.getContractId())).findFirst()

@@ -1,16 +1,15 @@
 package com.fota.trade.manager;
 
+import com.alibaba.dubbo.remoting.TimeoutException;
 import com.alibaba.fastjson.JSON;
 import com.fota.asset.domain.ContractDealer;
 import com.fota.asset.service.ContractService;
-import com.fota.common.utils.CommonUtils;
 import com.fota.trade.client.PostDealMessage;
 import com.fota.trade.client.constants.DealedMessage;
 import com.fota.trade.common.Constant;
 import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.common.UpdatePositionResult;
 import com.fota.trade.domain.*;
-import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderOperateTypeEnum;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
@@ -44,7 +43,6 @@ import java.util.stream.Collectors;
 
 import static com.fota.trade.client.constants.Constants.*;
 import static com.fota.trade.client.constants.DealedMessage.CONTRACT_TYPE;
-import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
 import static com.fota.trade.common.ResultCodeEnum.BIZ_ERROR;
 import static com.fota.trade.common.ResultCodeEnum.ILLEGAL_PARAM;
 import static com.fota.trade.domain.enums.ContractStatusEnum.PROCESSING;
@@ -94,8 +92,8 @@ public class DealManager {
     @Autowired
     private ContractMatchedOrderMapper contractMatchedOrderMapper;
 
-    @Resource
-    private ConcurrentMap<String, String> failedBalanceMap;
+
+    public static final Logger UPDATE_BALANCE_FAILED_LOGGER = LoggerFactory.getLogger("updateBalanceFailed");
 
     /**
      * 禁止通过内部非Transactional方法调用此方法，否则@Transactional注解会失效
@@ -267,11 +265,15 @@ public class DealManager {
                 com.fota.common.Result result = contractService.updateBalances(dealer);
                 if (!result.isSuccess()) {
                     log.error("update balance failed, params={}", dealer);
-                    failedBalanceMap.put(postDealMessage.getMsgKey(), JSON.toJSONString(dealer));
+                    UPDATE_BALANCE_FAILED_LOGGER.error("failed_type:biz, param:{}", JSON.toJSONString(dealer));
                 }
             }catch (Exception e){
-                log.error("Asset RPC Error!, update balance exception, params={}", dealer, e);
-                failedBalanceMap.put(postDealMessage.getMsgKey(), JSON.toJSONString(dealer));
+                log.error("update balance exception, params={}", dealer, e);
+                if (e instanceof TimeoutException) {
+                    UPDATE_BALANCE_FAILED_LOGGER.error("failed_type:timeout, param:{}", JSON.toJSONString(dealer));
+                }else{
+                    UPDATE_BALANCE_FAILED_LOGGER.error("failed_type:exception, param:{}", JSON.toJSONString(dealer));
+                }
             }
         }
         //防止异常抛出
