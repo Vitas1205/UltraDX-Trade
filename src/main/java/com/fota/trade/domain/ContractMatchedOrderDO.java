@@ -1,6 +1,7 @@
 package com.fota.trade.domain;
 
 import lombok.Data;
+import lombok.experimental.Accessors;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -12,6 +13,7 @@ import java.util.Date;
  * @Modified:
  */
 @Data
+@Accessors(chain = true)
 public class ContractMatchedOrderDO {
     private Long id;
 
@@ -19,31 +21,27 @@ public class ContractMatchedOrderDO {
 
     private Date gmtModified;
 
-    private Long askOrderId;
+    private Long orderId;
 
-    private BigDecimal askOrderPrice;
+    private Long userId;
 
-    private Long askUserId;
+    private BigDecimal orderPrice;
 
-    private Byte askCloseType;
+    private Integer orderDirection;
 
-    private Long bidOrderId;
+    private Integer closeType;
 
-    private BigDecimal bidOrderPrice;
+    private Long matchId;
 
-    private Long bidUserId;
+    private Long matchUserId;
 
-    private Byte bidCloseType;
-
-    private Byte matchType;
-
-    private BigDecimal askFee;
-
-    private BigDecimal bidFee;
+    private Integer matchType;
 
     private BigDecimal filledPrice;
 
     private BigDecimal filledAmount;
+
+    private BigDecimal fee;
 
     private String contractName;
 

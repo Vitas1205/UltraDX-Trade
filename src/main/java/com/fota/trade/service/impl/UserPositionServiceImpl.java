@@ -4,6 +4,7 @@ import com.fota.common.Page;
 import com.fota.common.Result;
 import com.fota.ticker.entrust.RealTimeEntrust;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
+import com.fota.trade.client.constants.Constants;
 import com.fota.trade.client.constants.MatchedOrderStatus;
 import com.fota.trade.common.BeanUtils;
 import com.fota.trade.common.Constant;
@@ -24,10 +25,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+
+import static com.fota.trade.client.constants.Constants.NOT_EXIST;
+import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
+import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
+import static com.fota.trade.domain.enums.PositionStatusEnum.DELIVERED;
+
+import static com.fota.trade.common.ResultCodeEnum.NO_LATEST_MATCHED_PRICE;
 
 /**
  * @author Gavin Shen
@@ -140,36 +145,21 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
             record.setFilledPrice(deliveryCompletedDTO.getPrice());
             record.setFilledAmount(deliveryCompletedDTO.getAmount());
             record.setStatus(MatchedOrderStatus.VALID);
-            record.setAskOrderId(-1L);
-            record.setBidOrderId(-1L);
-            record.setMatchType((byte) -1);
+            record.setUserId(deliveryCompletedDTO.getUserId());
+            record.setFee(deliveryCompletedDTO.getFee());
+            //和持仓方向相反成交
+            record.setOrderDirection(ASK.getCode() + BID.getCode() - deliveryCompletedDTO.getOrderDirection());
+            record.setCloseType( OrderCloseTypeEnum.EXPIRED.getCode());
 
-            Date now = new Date();
-            record.setGmtCreate(now);
-            record.setGmtModified(now);
-            if (Objects.nonNull(deliveryCompletedDTO.getOrderDirection())) {
-                deliveryCompletedDTO.setOrderDirection(deliveryCompletedDTO.getOrderDirection());
-                if (deliveryCompletedDTO.getOrderDirection() == OrderDirectionEnum.ASK.getCode()) {
-                    record.setAskUserId(deliveryCompletedDTO.getUserId());
-                    record.setAskCloseType((byte) OrderCloseTypeEnum.EXPIRED.getCode());
-                    record.setBidUserId(-1L);
-                    record.setBidCloseType((byte) -1);
-                    record.setAskFee(deliveryCompletedDTO.getFee());
-                    record.setBidFee(BigDecimal.ZERO);
-                } else if (deliveryCompletedDTO.getOrderDirection() == OrderDirectionEnum.BID.getCode()) {
-                    record.setBidUserId(deliveryCompletedDTO.getUserId());
-                    record.setBidCloseType((byte) OrderCloseTypeEnum.EXPIRED.getCode());
-                    record.setAskUserId(-1L);
-                    record.setAskCloseType((byte) -1);
-                    record.setBidFee(deliveryCompletedDTO.getFee());
-                    record.setAskFee(BigDecimal.ZERO);
-                }
-            }
-            int insertRet = contractMatchedOrderMapper.insert(record);
+            record.setOrderId(NOT_EXIST);
+            record.setMatchId(NOT_EXIST);
+            record.setMatchType((int)NOT_EXIST);
+            record.setMatchUserId(NOT_EXIST);
 
+            int insertRet = contractMatchedOrderMapper.insert(Arrays.asList(record));
             UserPositionDO userPositionDO = new UserPositionDO();
             userPositionDO.setId(deliveryCompletedDTO.getUserPositionId());
-            userPositionDO.setStatus(2);
+            userPositionDO.setStatus(DELIVERED.getCode());
             int updateRet = userPositionMapper.updateByPrimaryKeySelective(userPositionDO);
             if (updateRet > 0 && insertRet > 0) {
                 return ResultCode.success();
@@ -252,9 +242,13 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
 //            askCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
 //                    competitorsPrice.getId() == contractId.longValue()).findFirst().get().getPrice();
             bidCurrentPrice = contractOrderManager.computePrice(competitorsPriceList, OrderDirectionEnum.BID.getCode(), contractId);
+            if (null == bidCurrentPrice) {
+                return result.error(NO_LATEST_MATCHED_PRICE.getCode(), NO_LATEST_MATCHED_PRICE.getMessage());
+            }
             askCurrentPrice = contractOrderManager.computePrice(competitorsPriceList, OrderDirectionEnum.ASK.getCode(), contractId);
-            log.info("askCurrentPriceList-----"+askCurrentPrice);
-            log.info("bidCurrentPrice-----"+bidCurrentPrice);
+            if (null == askCurrentPrice) {
+                return result.error(NO_LATEST_MATCHED_PRICE.getCode(), NO_LATEST_MATCHED_PRICE.getMessage());
+            }
         }catch (Exception e){
             log.error("get competiorsPrice failed {}{}", contractId,e);
             return result.error(-1,"getPositionMargin failed");

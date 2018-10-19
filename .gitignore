@@ -5,6 +5,9 @@ mvnw
 mvnw.cmd
 logs/
 trade-client/target
+*.iml
+*.ipr
+*.iws
 
 mapdb.wal.0
 mapdb

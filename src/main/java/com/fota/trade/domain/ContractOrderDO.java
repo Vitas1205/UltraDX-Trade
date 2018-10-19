@@ -32,8 +32,7 @@ public class ContractOrderDO {
     private Integer closeType;
     private BigDecimal price;
     private BigDecimal fee;
-    private BigDecimal usdkLockedAmount;
-    private BigDecimal positionLockedAmount;
+
     private Integer status;
     private BigDecimal averagePrice;
     private String orderContext;
