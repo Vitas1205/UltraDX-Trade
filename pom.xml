@@ -47,7 +47,7 @@
 		<dependency>
 			<groupId>com.alibaba</groupId>
 			<artifactId>dubbo</artifactId>
-			<version>2.6.2</version>
+			<version>2.6.4</version>
 		</dependency>
 
 
@@ -141,9 +141,20 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-redis</artifactId>
+			<exclusions>
+                <exclusion>
+                    <artifactId>lettuce-core</artifactId>
+                    <groupId>io.lettuce</groupId>
+                </exclusion>
+            </exclusions>
 		</dependency>
 
-		<dependency>
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+        </dependency>
+
+        <dependency>
 			<groupId>com.fota</groupId>
 			<artifactId>asset-client</artifactId>
 			<version>1.0.2-SNAPSHOT</version>
@@ -178,7 +189,6 @@
 			<artifactId>mapdb</artifactId>
 			<version>3.0.5</version>
 		</dependency>
-
 
 		<dependency>
 			<groupId>io.shardingsphere</groupId>

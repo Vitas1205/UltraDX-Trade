@@ -14,13 +14,15 @@
 
     <dubbo:protocol name="dubbo" port="9002" id="provider"/>
     <dubbo:consumer check="${check_rpc:false}" timeout="2000" retries="0" registry="zkreg" group="${reference-group}"  version="1.0.0"> </dubbo:consumer>
-    <dubbo:provider retries="0" threads="500" threadpool="cached" filter="timeout" timeout="2000"  registry="zkreg" group="${service-group}" version="1.0.0"/>
+    <dubbo:provider retries="0" threads="500" dispatcher="message" threadpool="cached" filter="timeout" timeout="2000" registry="zkreg" group="${service-group}" version="1.0.0"/>
+
 
     <bean id="contractCategoryService" class="com.fota.trade.service.impl.ContractCategoryServiceImpl" />
     <bean id="usdkOrderService" class="com.fota.trade.service.impl.UsdkOrderServiceImpl"  />
     <bean id="userPositionService" class="com.fota.trade.service.impl.UserPositionServiceImpl" />
     <bean id="contractOrderService" class="com.fota.trade.service.impl.ContractOrderServiceImpl" />
     <bean id="userContractLeverService" class="com.fota.trade.service.impl.UserContractLeverServiceImpl" />
+
 
     <dubbo:service interface="com.fota.trade.service.ContractCategoryService"  ref="contractCategoryService" />
     <dubbo:service interface="com.fota.trade.service.UsdkOrderService"  ref="usdkOrderService" />
@@ -35,7 +37,6 @@
 
     <dubbo:reference interface="com.fota.match.service.UsdkMatchedOrderService" id="usdkMatchedOrderService" />
     <dubbo:reference interface="com.fota.match.service.ContractMatchedOrderService" id="contractMatchedOrderService" />
-
 
 
 </beans>

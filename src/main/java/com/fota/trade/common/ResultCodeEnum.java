@@ -43,6 +43,8 @@ public enum ResultCodeEnum {
     LOCK_FAILED(120022, "get lock failed"),
     CONCURRENT_PROBLEM(120023, "concurrent problem"),
     NO_LATEST_MATCHED_PRICE(120024, "NO_LATEST_MATCHED_PRICE"),
+    TOO_MUCH_ORDERS(120024, "too much orders"),
+    POSITION_EXCEEDS(120025, "position exceeds"),
 
 
     ;

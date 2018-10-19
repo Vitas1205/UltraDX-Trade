@@ -36,6 +36,7 @@
         </foreach>
     </insert>
 
+
     <select id="countByUserId" resultType="java.lang.Integer">
         select count(*) from trade_contract_matched_record
         where user_id=#{userId}
