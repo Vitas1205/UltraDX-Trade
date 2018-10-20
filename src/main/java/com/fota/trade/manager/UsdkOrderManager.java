@@ -265,7 +265,7 @@ public class UsdkOrderManager {
         Integer toStatus = unfilledAmount.compareTo(usdkOrderDO.getTotalAmount()) < 0 ? PART_CANCEL.getCode() : CANCEL.getCode();
 
         //更新usdk委托表
-        int ret = usdkOrderMapper.cancelByOpLock(userId, usdkOrderDO.getId(), toStatus, usdkOrderDO.getGmtModified());
+        int ret = usdkOrderMapper.cancel(userId, usdkOrderDO.getId(), toStatus);
         Long transferTime = System.currentTimeMillis();
         if (ret > 0){
             Integer orderDirection = usdkOrderDO.getOrderDirection();
@@ -290,10 +290,7 @@ public class UsdkOrderManager {
                 log.error("Asset RPC Error!, cancelOrder getCapitalService().updateLockedAmount exception usdkOrderDO:{}", usdkOrderDO, e);
                 throw new BizException(BIZ_ERROR.getCode(),"cancelOrder getCapitalService().updateLockedAmount exception");
             }
-            UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
-            BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
-            BigDecimal matchAmount = usdkOrderDTO.getTotalAmount().subtract(unfilledAmount);
-            usdkOrderDTO.setCompleteAmount(matchAmount);
+
             JSONObject jsonObject = JSONObject.parseObject(usdkOrderDO.getOrderContext());
             String username = "";
             if (jsonObject != null && !jsonObject.isEmpty()) {
@@ -301,13 +298,13 @@ public class UsdkOrderManager {
             }
             String ipAddress = "";
             tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                    1, usdkOrderDTO.getAssetName(), username, ipAddress, unfilledAmount, System.currentTimeMillis(), 1,  usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 1);
+                    1, usdkOrderDO.getAssetName(), username, ipAddress, unfilledAmount, System.currentTimeMillis(), 1,  usdkOrderDO.getOrderDirection(), usdkOrderDO.getUserId(), 1);
             OrderMessage orderMessage = new OrderMessage();
-            orderMessage.setOrderId(usdkOrderDTO.getId());
+            orderMessage.setOrderId(usdkOrderDO.getId());
             orderMessage.setEvent(OrderOperateTypeEnum.CANCLE_ORDER.getCode());
-            orderMessage.setUserId(usdkOrderDTO.getUserId());
-            orderMessage.setSubjectId(usdkOrderDTO.getAssetId().longValue());
-            orderMessage.setSubjectName(usdkOrderDTO.getAssetName());
+            orderMessage.setUserId(usdkOrderDO.getUserId());
+            orderMessage.setSubjectId(usdkOrderDO.getAssetId().longValue());
+            orderMessage.setSubjectName(usdkOrderDO.getAssetName());
             orderMessage.setAmount(unfilledAmount);
             orderMessage.setPrice(usdkOrderDO.getPrice());
             orderMessage.setOrderType(usdkOrderDO.getOrderType());

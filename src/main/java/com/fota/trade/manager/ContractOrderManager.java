@@ -39,6 +39,7 @@ import org.springframework.util.CollectionUtils;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.function.Predicate;
 
 import static com.fota.trade.client.MQConstants.ORDER_TOPIC;
@@ -96,6 +97,8 @@ public class ContractOrderManager {
     private static final BigDecimal POSITION_LIMIT_ETH = BigDecimal.valueOf(2_500);
 
     private static final BigDecimal POSITION_LIMIT_EOS = BigDecimal.valueOf(100_000);
+
+    private static final ExecutorService executorService = new ThreadPoolExecutor(4, 10, 10, TimeUnit.MINUTES, new LinkedBlockingDeque<>());
 
     public ResultCode cancelOrderByContractId(Long contractId, Map<String, String> userInfoMap) throws Exception {
         if (Objects.isNull(contractId)) {
@@ -339,7 +342,7 @@ public class ContractOrderManager {
         Integer toStatus = unfilleAmount.compareTo(contractOrderDO.getTotalAmount()) < 0 ? PART_CANCEL.getCode() : CANCEL.getCode();
 
         Long transferTime = System.currentTimeMillis();
-        int ret = contractOrderMapper.cancelByOpLock(orderId, toStatus, contractOrderDO.getGmtModified());
+        int ret = contractOrderMapper.cancel(userId, orderId, toStatus);
         if (ret > 0) {
         } else {
             return ResultCode.error(CONCURRENT_PROBLEM.getCode(),"cancel failed, id="+ contractOrderDO.getId());
@@ -924,6 +927,9 @@ public class ContractOrderManager {
     }
 
     public void updateExtraEntrustAmountByContract(Long userId, Long contractId) {
+        executorService.submit(() -> internalUpdateExtraEntrustAmountByContract(userId, contractId));
+    }
+    public void internalUpdateExtraEntrustAmountByContract(Long userId, Long contractId){
         if (marketAccountListService.contains(userId)) {
             return;
         }
