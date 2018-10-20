@@ -48,8 +48,6 @@ public class ContractOrderMapperTest {
     private Long userId = 282L;
 
     private ContractOrderDO contractOrderDO;
-    @Resource
-    private ContractOrderService contractOrderService;
 
     @Before
     public void init() {
