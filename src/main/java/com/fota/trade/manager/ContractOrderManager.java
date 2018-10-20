@@ -146,8 +146,9 @@ public class ContractOrderManager {
 //    @Transactional(rollbackFor = Throwable.class)
     public Result<Long> placeOrder(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) throws Exception{
 
+        Long orderId = BasicUtils.generateId();
         Profiler profiler = null == ThreadContextUtil.getPrifiler() ?
-                new Profiler("ContractOrderManager.placeOrder"): ThreadContextUtil.getPrifiler();
+                new Profiler("ContractOrderManager.placeOrder", orderId.toString()): ThreadContextUtil.getPrifiler();
         profiler.complelete("start transaction");
         ContractOrderDO contractOrderDO = com.fota.trade.common.BeanUtils.copy(contractOrderDTO);
         String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
@@ -162,7 +163,6 @@ public class ContractOrderManager {
         profiler.complelete("before json serialization");
         contractOrderDO.setOrderContext(JSONObject.toJSONString(contractOrderDTO.getOrderContext()));
         profiler.complelete("json serialization");
-        Long orderId = BasicUtils.generateId();
         long transferTime = System.currentTimeMillis();
         contractOrderDO.setGmtCreate(new Date(transferTime));
         contractOrderDO.setGmtModified(new Date(transferTime));
@@ -799,6 +799,7 @@ public class ContractOrderManager {
      * @return
      */
     public Result<OrderResult> judgeOrderAvailable(long userId, Integer priceType, ContractOrderDO newContractOrderDO) {
+        Profiler profiler = (null == ThreadContextUtil.getPrifiler()) ? new Profiler("judgeOrderAvailable") : ThreadContextUtil.getPrifiler();
         ContractAccount contractAccount = new ContractAccount();
         contractAccount.setMarginCallRequirement(BigDecimal.ZERO)
                 .setFrozenAmount(BigDecimal.ZERO)
@@ -807,7 +808,7 @@ public class ContractOrderManager {
         Long orderContractId = newContractOrderDO.getContractId();
         Integer orderDirection = newContractOrderDO.getOrderDirection();
         UserContractDTO userContractDTO = assetService.getContractAccount(userId);
-
+        profiler.complelete("getContractAccount");
         if (null == userContractDTO) {
             log.error("null userContractDTO, userId={}", userId);
             return Result.fail(NO_CONTRACT_BALANCE.getCode(), NO_CONTRACT_BALANCE.getMessage());
@@ -819,6 +820,7 @@ public class ContractOrderManager {
 
 
         List<ContractCategoryDTO> categoryList = contractCategoryService.listActiveContract();
+        profiler.complelete("listActiveContract");
         //校验合约有效性
         if (CollectionUtils.isEmpty(categoryList)) {
             return Result.fail( ResultCodeEnum.ILLEGAL_CONTRACT.getCode(), ILLEGAL_CONTRACT.getMessage());
@@ -830,6 +832,7 @@ public class ContractOrderManager {
         }
 
         List<CompetitorsPriceDTO> competitorsPrices = realTimeEntrustManager.getContractCompetitorsPriceOrder();
+        profiler.complelete("getContractCompetitorsPriceOrder");
         //计算合约价格
         Result<BigDecimal> getPriceRes = getOrderPrice(competitorsPrices, priceType, newContractOrderDO.getPrice(),
                 contractCategoryDTO.getAssetId(), newContractOrderDO.getContractId(), newContractOrderDO.getOrderDirection());
@@ -846,6 +849,7 @@ public class ContractOrderManager {
 
         //查询用户所有非强平活跃单
         List<ContractOrderDO> allContractOrders = contractOrderMapper.selectNotEnforceOrderByUserId(userId);
+        profiler.complelete("selectNotEnforceOrderByUserId");
         if (null == allContractOrders) {
             allContractOrders = new ArrayList<>();
         }
@@ -862,7 +866,10 @@ public class ContractOrderManager {
 
 
         List<UserPositionDO> allPositions = userPositionMapper.selectByUserId(userId, PositionStatusEnum.UNDELIVERED.getCode());
+        profiler.complelete("selectPositionByUserId");
+
         List<UserContractLeverDO> contractLeverDOS = userContractLeverMapper.listUserContractLever(userId);
+        profiler.complelete("listUserContractLever");
 
         Map<String, Object> map = new HashMap<>();
         OrderResult orderResult = new OrderResult();
