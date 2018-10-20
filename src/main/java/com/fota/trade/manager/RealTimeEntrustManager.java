@@ -23,12 +23,12 @@ public class RealTimeEntrustManager {
      * @return
      */
 
-    @Cacheable(key = "contractBookingOrders", cacheNames = "memoryCache")
+    @Cacheable("competitorsPriceOrder")
     public List<CompetitorsPriceDTO> getContractCompetitorsPriceOrder() {
         return realTimeEntrust.getContractCompetitorsPriceOrder();
     }
 
-    @CacheEvict(cacheNames = "memoryCache", key = "contractBookingOrders")
+    @CacheEvict("competitorsPriceOrder")
     @Scheduled(fixedRate = 500)
     public void deleteContractCompetitorsPriceOrder() {
 

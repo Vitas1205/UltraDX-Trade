@@ -50,7 +50,7 @@ public class DeliveryPriceManager {
     }
 
 
-    @Cacheable(cacheNames = "memoryCache", key = "allDeliveryIndexes")
+    @Cacheable("allDeliveryIndexes")
     public List<DeliveryIndexDTO> getAllDeliveryIndexes(){
         Profiler profiler = ThreadContextUtil.getPrifiler();
         List<DeliveryIndexDTO> ret = deliveryIndexService.getDeliveryIndex();
@@ -59,7 +59,7 @@ public class DeliveryPriceManager {
         }
         return ret;
     }
-    @CacheEvict(cacheNames = "memoryCache", key = "allDeliveryIndexs")
+    @CacheEvict("allDeliveryIndexes")
     @Scheduled(fixedRate = 500)
     public void deleteDeliveryIndexes() {
 
