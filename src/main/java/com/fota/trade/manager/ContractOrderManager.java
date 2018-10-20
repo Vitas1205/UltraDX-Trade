@@ -774,7 +774,7 @@ public class ContractOrderManager {
         }
 
         Integer precision = AssetExtraProperties.getPrecisionByAssetId(assetId);
-        if ( null != precision && precision < orderPrice.precision()) {
+        if ( null != precision && precision < orderPrice.scale()) {
             return Result.fail(AMOUNT_ILLEGAL.getCode(), AMOUNT_ILLEGAL.getMessage());
         }
 
