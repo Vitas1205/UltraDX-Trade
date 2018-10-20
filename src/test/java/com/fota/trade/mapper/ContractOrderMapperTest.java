@@ -1,10 +1,14 @@
 package com.fota.trade.mapper;
 
+import com.fota.common.Page;
 import com.fota.trade.common.ParamUtil;
+import com.fota.trade.domain.BaseQuery;
 import com.fota.trade.domain.ContractOrderDO;
+import com.fota.trade.domain.ContractOrderDTO;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.domain.query.ContractOrderQuery;
+import com.fota.trade.service.ContractOrderService;
 import com.fota.trade.util.BasicUtils;
 import com.fota.trade.util.PriceUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +48,8 @@ public class ContractOrderMapperTest {
     private Long userId = 282L;
 
     private ContractOrderDO contractOrderDO;
+    @Resource
+    private ContractOrderService contractOrderService;
 
     @Before
     public void init() {
@@ -130,7 +136,6 @@ public class ContractOrderMapperTest {
         ContractOrderDO temp = contractOrderMapper.selectByIdAndUserId(userId, contractOrderDO.getId());
         log.info("----------------------------"+temp);
     }
-
 
     @Test
     public void listByUserIdAndOrderTypeTest() throws Exception {

@@ -308,24 +308,12 @@ public class ContractOrderManager {
      */
 //    @Transactional(rollbackFor = Throwable.class)
     public ResultCode cancelOrderByMessage(long userId, long orderId, @NonNull BigDecimal unfilleAmount) {
-        for (int i = 0;i<3;i++) {
-            ResultCode resultCode = doCancelOrder(userId, orderId, unfilleAmount);
-            if (resultCode.getCode().equals(CONCURRENT_PROBLEM.getCode())) {
-                randomSleep();
-                continue;
-            }
-            return resultCode;
-        }
-        return ResultCode.error(CONCURRENT_PROBLEM.getCode(), "update db failed, likely concurrent problem");
+
+        ResultCode resultCode = doCancelOrder(userId, orderId, unfilleAmount);
+        return resultCode;
+
     }
 
-    private void randomSleep(){
-        try {
-            Thread.sleep(BasicUtils.randomInt(5));
-        } catch (InterruptedException e) {
-            log.error("sleep exception", e);
-        }
-    }
     public ResultCode doCancelOrder(long userId, long orderId, BigDecimal unfilleAmount) {
 
         ContractOrderDO contractOrderDO = contractOrderMapper.selectByIdAndUserId(userId, orderId);
@@ -333,11 +321,10 @@ public class ContractOrderManager {
             return ResultCode.error(ILLEGAL_PARAM.getCode(), "contract order does not exist, id="+orderId);
         }
 
-        ResultCode resultCode = new ResultCode();
         Integer status = contractOrderDO.getStatus();
 
         if (status != COMMIT.getCode() && status != PART_MATCH.getCode()) {
-            return ResultCode.error(BIZ_ERROR.getCode(),"illegal order status, id="+contractOrderDO.getId() + ", status="+ contractOrderDO.getStatus());
+            return ResultCode.error(ILLEGAL_PARAM.getCode(),"illegal order status, id="+contractOrderDO.getId() + ", status="+ contractOrderDO.getStatus());
         }
         Integer toStatus = unfilleAmount.compareTo(contractOrderDO.getTotalAmount()) < 0 ? PART_CANCEL.getCode() : CANCEL.getCode();
 
@@ -345,7 +332,7 @@ public class ContractOrderManager {
         int ret = contractOrderMapper.cancel(userId, orderId, toStatus);
         if (ret > 0) {
         } else {
-            return ResultCode.error(CONCURRENT_PROBLEM.getCode(),"cancel failed, id="+ contractOrderDO.getId());
+            return ResultCode.error(ILLEGAL_PARAM.getCode(),"cancel failed, id="+ contractOrderDO.getId());
         }
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO);
@@ -359,7 +346,7 @@ public class ContractOrderManager {
         }
         ContractCategoryDTO contractCategoryDO = contractCategoryService.getContractById(contractOrderDO.getContractId());
         if (contractCategoryDO == null){
-            return ResultCode.error(BIZ_ERROR.getCode(),"contract is null, id="+contractOrderDO.getContractId());
+            return ResultCode.error(ILLEGAL_PARAM.getCode(),"contract is null, id="+contractOrderDO.getContractId());
         }
         tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                 2, contractOrderDTO.getContractName(), username, "", contractOrderDTO.getUnfilledAmount(),
@@ -380,10 +367,8 @@ public class ContractOrderManager {
         if (!sendRet) {
             log.error("send canceled message failed, message={}", orderMessage);
         }
-        resultCode.setCode(0);
-        resultCode.setMessage("success");
         updateExtraEntrustAmountByContract(contractOrderDO.getUserId(), contractOrderDO.getContractId());
-        return resultCode;
+        return ResultCode.success();
     }
 
     public void sendCancelMessage(List<Long> orderIdList, Long userId) {

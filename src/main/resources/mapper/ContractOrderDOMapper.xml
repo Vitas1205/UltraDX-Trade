@@ -47,12 +47,15 @@
     <select id="countByQuery" resultType="java.lang.Integer">
         select count(*)
         from trade_contract_order
-        where 1=1
-        <if test="contractId > 0">
-            and contract_id=#{contractId}
+        where user_id=#{userId}
+        <if test="orderStatus != null and orderStatus.size != 0">
+            and status in
+            <foreach item="item" index="index" collection="orderStatus" open="(" separator="," close=")">
+                #{item}
+            </foreach>
         </if>
-        <if test="userId > 0">
-            and user_id=#{userId}
+        <if test="contractId != null">
+            and contract_id=#{contractId}
         </if>
         <if test="startTime != null">
             and gmt_create &gt;= #{startTime}
@@ -60,12 +63,7 @@
         <if test="endTime != null">
             and gmt_create &lt; #{endTime}
         </if>
-        <if test="orderStatus != null and orderStatus.size != 0">
-            and status in
-            <foreach item="item" index="index" collection="orderStatus" open="(" separator="," close=")">
-                #{item}
-            </foreach>
-        </if>
+
         <if test="orderType != null">
             and order_type = #{orderType}
         </if>
@@ -75,12 +73,16 @@
         select
         <include refid="Base_Column_List"/>
         from trade_contract_order
-        where 1=1
+        where user_id=#{userId}
+        <if test="orderStatus != null and orderStatus.size != 0">
+            and status in
+            <foreach item="item" index="index" collection="orderStatus" open="(" separator="," close=")">
+                #{item,jdbcType=INTEGER}
+            </foreach>
+        </if>
+
         <if test="contractId > 0">
             and contract_id=#{contractId,jdbcType=INTEGER}
-        </if>
-        <if test="userId > 0">
-            and user_id=#{userId,jdbcType=BIGINT}
         </if>
         <if test="startTime != null">
             and gmt_create &gt;= #{startTime}
@@ -88,12 +90,7 @@
         <if test="endTime != null">
             and gmt_create &lt; #{endTime}
         </if>
-        <if test="orderStatus != null and orderStatus.size != 0">
-            and status in
-            <foreach item="item" index="index" collection="orderStatus" open="(" separator="," close=")">
-                #{item,jdbcType=INTEGER}
-            </foreach>
-        </if>
+
         <if test="orderType != null">
             and order_type = #{orderType}
         </if>
