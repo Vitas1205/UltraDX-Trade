@@ -424,17 +424,12 @@ public class ContractOrderManager {
 
 
 
-    public  ContractAccount computeContractAccount(long userId) {
-        return computeContractAccount(userId, null);
-    }
     /**
      *
      * @param userId
-     * @param newContractOrderDO
      * @return
      */
-    public  ContractAccount computeContractAccount(long userId, ContractOrderDO newContractOrderDO) {
-        boolean isMarketUser = marketAccountListService.contains(userId);
+    public  ContractAccount computeContractAccount(long userId) {
 
         ContractAccount contractAccount = new ContractAccount();
         contractAccount.setMarginCallRequirement(BigDecimal.ZERO)
@@ -456,23 +451,9 @@ public class ContractOrderManager {
         List<UserPositionDO> allPositions = userPositionMapper.selectByUserId(userId, PositionStatusEnum.UNDELIVERED.getCode());
         List<CompetitorsPriceDTO> competitorsPrices = realTimeEntrustManager.getContractCompetitorsPriceOrder();
         List<UserContractLeverDO> contractLeverDOS = userContractLeverMapper.listUserContractLever(userId);
-        List<ContractOrderDO> allContractOrders = null;
 
-        if (isMarketUser) {
-            allContractOrders = contractOrderMapper.selectNotEnforceOrderByUserId(userId);
-        }
-        if (null == allContractOrders) {
-            allContractOrders = new ArrayList<>();
-        }
-        if (null != newContractOrderDO) {
-            allContractOrders.add(newContractOrderDO);
-        }
-
-        Map<String, Object> userContractPositions = null;
-        if (!isMarketUser) {
-            String userContractPositionExtraKey = RedisKey.getUserContractPositionExtraKey(userId);
-            userContractPositions = redisManager.hEntries(userContractPositionExtraKey);
-        }
+        String userContractPositionExtraKey = RedisKey.getUserContractPositionExtraKey(userId);
+        Map<String, Object> userContractPositions =  redisManager.hEntries(userContractPositionExtraKey);
         if (Objects.isNull(userContractPositions)) {
             userContractPositions = Collections.emptyMap();
         }
@@ -522,17 +503,10 @@ public class ContractOrderManager {
 
             Object contraryValue = userContractPositions.get(contraryKey);
             Object sameValue = userContractPositions.get(sameKey);
-            if (!isMarketUser && Objects.nonNull(contraryValue) && Objects.nonNull(sameValue)) {
+            if ( Objects.nonNull(contraryValue) && Objects.nonNull(sameValue)) {
                 entrustMargin = cal(new BigDecimal(contraryValue.toString()), new BigDecimal(sameValue.toString()), positionMargin);
             } else {
-                List<ContractOrderDO> orderList = null;
-                if (isMarketUser) {
-                    orderList = allContractOrders.stream()
-                            .filter(contractOrder -> contractOrder.getContractId().equals(contractId))
-                            .collect(toList());
-                } else {
-                    orderList = contractOrderMapper.selectNotEnforceOrderByUserIdAndContractId(userId, contractId);
-                }
+                List<ContractOrderDO> orderList =  contractOrderMapper.selectNotEnforceOrderByUserIdAndContractId(userId, contractId);
                 if (CollectionUtils.isEmpty(orderList)) {
                     orderList = Collections.emptyList();
                 }
@@ -559,7 +533,6 @@ public class ContractOrderManager {
                 .subtract(contractAccount.getFrozenAmount()));
         contractAccount.setAccountEquity(amount.add(contractAccount.getFloatingPL()));
 
-        String userContractPositionExtraKey = RedisKey.getUserContractPositionExtraKey(userId);
         redisManager.hPutAll(userContractPositionExtraKey, map);
         return contractAccount;
     }
