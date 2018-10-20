@@ -103,8 +103,7 @@ public class UsdkOrderMapperTest {
 
     @Test
     public void testCancel(){
-        UsdkOrderDO temp = usdkOrderMapper.selectByUserIdAndId(userId, usdkOrderDO.getId());
-        int aff = usdkOrderMapper.cancelByOpLock(userId, temp.getId(), CANCEL.getCode(), temp.getGmtModified());
+        int aff = usdkOrderMapper.cancel(userId, usdkOrderDO.getId(), CANCEL.getCode());
         assert  1 == aff;
     }
 

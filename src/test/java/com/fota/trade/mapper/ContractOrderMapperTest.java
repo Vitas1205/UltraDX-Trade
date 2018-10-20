@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import static com.fota.trade.domain.enums.OrderStatusEnum.CANCEL;
 import static com.fota.trade.domain.enums.OrderStatusEnum.MATCH;
 
 /**
@@ -139,6 +140,11 @@ public class ContractOrderMapperTest {
         orderTypes.add(2);
         List<ContractOrderDO> list = contractOrderMapper.listByUserIdAndOrderType(userId,orderTypes);
         log.info("----------------------------"+list.size());
+    }
+    @Test
+    public void testCancel(){
+       int aff = contractOrderMapper.cancel(userId, contractOrderDO.getId(), CANCEL.getCode());
+       assert 1 == aff;
     }
 
 }

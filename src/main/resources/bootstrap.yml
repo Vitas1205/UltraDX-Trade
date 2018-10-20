@@ -20,3 +20,5 @@ spring:
 
 service-group:  ${SPRING_SERVICE:dev}
 reference-group: ${SPRING_REFERENCE:daily}
+zk:
+  servers: ${spring.cloud.zookeeper.connect-string}
