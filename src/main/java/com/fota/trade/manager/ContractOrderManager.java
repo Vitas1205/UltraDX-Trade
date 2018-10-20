@@ -149,6 +149,7 @@ public class ContractOrderManager {
         Long orderId = BasicUtils.generateId();
         Profiler profiler = null == ThreadContextUtil.getPrifiler() ?
                 new Profiler("ContractOrderManager.placeOrder", orderId.toString()): ThreadContextUtil.getPrifiler();
+        profiler.setTraceId(orderId.toString());
         profiler.complelete("start transaction");
         ContractOrderDO contractOrderDO = com.fota.trade.common.BeanUtils.copy(contractOrderDTO);
         String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
@@ -204,8 +205,8 @@ public class ContractOrderManager {
             return result;
         }else if(contractCategoryDO.getStatus() == PROCESSING.getCode()){
         }else {
-            result.setCode(ResultCodeEnum.CONTRACT_STATUS_ILLEGAL.getCode());
-            result.setMessage(ResultCodeEnum.CONTRACT_STATUS_ILLEGAL.getMessage());
+            result.setCode(ResultCodeEnum.ILLEGAL_CONTRACT.getCode());
+            result.setMessage(ResultCodeEnum.ILLEGAL_CONTRACT.getMessage());
             result.setData(orderId);
             return result;
         }
