@@ -60,7 +60,7 @@ public class DeliveryPriceManager {
         return ret;
     }
     @CacheEvict("allDeliveryIndexes")
-    @Scheduled(fixedRate = 500)
+    @Scheduled(fixedRate = 1000)
     public void deleteDeliveryIndexes() {
 
     }
