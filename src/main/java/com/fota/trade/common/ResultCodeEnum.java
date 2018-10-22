@@ -34,6 +34,7 @@ public enum ResultCodeEnum {
     NO_COMPETITORS_PRICE(101095, "暂无对手价"),
     ILLEGAL_CONTRACT(101110,"无效合约"),
     PRICE_OUT_OF_BOUNDARY(101092, "价格超出指定范围"),
+    ILLEGAL_ORDER_DIRECTION(101111, "非法订单方向"),
     CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH(120015, "合约账户余额不足"),
 
 

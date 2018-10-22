@@ -11,7 +11,9 @@ import lombok.Setter;
  */
 public enum PriceTypeEnum {
     RIVAL_PRICE("RIVAL_PRICE", 0),
-    SPECIFIED_PRICE("SPECIFIED_PRICE ", 1);
+    SPECIFIED_PRICE("SPECIFIED_PRICE ", 1),
+    MARKET_PRICE("MARKET_PRICE ", 2),
+    ;
 
     @Getter
     @Setter

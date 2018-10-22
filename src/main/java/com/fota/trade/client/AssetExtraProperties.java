@@ -56,5 +56,17 @@ public enum AssetExtraProperties {
         return extraProperties.getSymbol();
     }
 
+    public static AssetExtraProperties getAssetExtraProperties(long assetId){
+        return assetPropertiesMap.get(assetId);
+    }
+    public static String getNameByAssetId(long assetId){
+        AssetExtraProperties extraProperties =  assetPropertiesMap.get(assetId);
+        if (null == extraProperties) {
+            return null;
+        }
+        return extraProperties.name();
+    }
+
+
 
 }

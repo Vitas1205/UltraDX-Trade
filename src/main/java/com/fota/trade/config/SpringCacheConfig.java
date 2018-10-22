@@ -20,7 +20,9 @@ public class SpringCacheConfig {
         SimpleCacheManager cacheManager = new SimpleCacheManager();
         cacheManager.setCaches(
                 Arrays.asList(new ConcurrentMapCache("competitorsPriceOrder"),
-                new ConcurrentMapCache("allDeliveryIndexes"))
+                new ConcurrentMapCache("allDeliveryIndexes"),
+                new ConcurrentMapCache("spotIndexes")
+                        )
         );
         return cacheManager;
     }
