@@ -19,7 +19,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.fota.trade.client.constants.Constants.DEFAULT_LEVER;
-import static org.bouncycastle.asn1.x500.style.RFC4519Style.l;
 
 /**
  * @author Gavin Shen
@@ -70,7 +69,7 @@ public class UserContractLeverServiceImpl implements UserContractLeverService  {
                 }
             }
         } catch (Exception e) {
-            log.error("userContractLeverMapper.listUserContractLever({})", l, e);
+            log.error("userContractLeverMapper.listUserContractLever({})", userId,  e);
         }
         return resultList;
     }
