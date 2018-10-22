@@ -610,7 +610,7 @@ public class ContractOrderManager {
         Optional<CompetitorsPriceDTO>  competitorsPriceDTOOptional = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == type &&
                 competitorsPrice.getId() == contractId).findFirst();
 
-        if (competitorsPriceDTOOptional.isPresent()) {
+        if (competitorsPriceDTOOptional.isPresent() && competitorsPriceDTOOptional.get().getPrice().compareTo(BigDecimal.ZERO) > 0) {
             return competitorsPriceDTOOptional.get().getPrice();
         }
         String latestPrice = redisManager.get(Constant.LAST_CONTRACT_MATCH_PRICE + String.valueOf(contractId));
