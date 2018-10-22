@@ -98,38 +98,37 @@ public class PostDealConsumer {
                     return ConsumeOrderlyStatus.SUCCESS;
                 }
                 log.info("consume postDeal message,size={}, keys={}", msgs.size(), msgs.stream().map(MessageExt::getKeys).collect(Collectors.toList()));
+                try {
+                    List<PostDealMessage> postDealMessages = msgs
+                            .stream()
+                            .map(x -> {
+                                PostDealMessage message = JSON.parseObject(x.getBody(), PostDealMessage.class);
+                                message.setMsgKey(x.getKeys());
+                                return message;
+                            })
+                            .distinct()
+                            .collect(Collectors.toList());
 
-                List<PostDealMessage> postDealMessages = msgs
-                        .stream()
-                        .map(x -> {
-                            PostDealMessage message = JSON.parseObject(x.getBody(), PostDealMessage.class);
-                            message.setMsgKey(x.getKeys());
-                            return message;
-                        })
-                        .distinct()
-                        .collect(Collectors.toList());
+                    postDealMessages = removeDuplicta(postDealMessages);
+                    if (CollectionUtils.isEmpty(postDealMessages)) {
+                        log.error("empty postDealMessages");
+                        return ConsumeOrderlyStatus.SUCCESS;
+                    }
 
-                postDealMessages = removeDuplicta(postDealMessages);
-                if (CollectionUtils.isEmpty(postDealMessages)) {
-                    log.error("empty postDealMessages");
-                    return ConsumeOrderlyStatus.SUCCESS;
-                }
+                    Map<String, List<PostDealMessage>> postDealMessageMap = postDealMessages
+                            .stream()
+                            .collect(Collectors.groupingBy(PostDealMessage::getGroup));
 
-                Map<String, List<PostDealMessage>> postDealMessageMap = postDealMessages
-                        .stream()
-                        .collect(Collectors.groupingBy(PostDealMessage::getGroup));
-
-                postDealMessageMap.entrySet().parallelStream().forEach(entry -> {
-                    try {
+                    postDealMessageMap.entrySet().parallelStream().forEach(entry -> {
                         dealManager.postDeal(entry.getValue());
                         PostDealMessage postDealMessage = entry.getValue().get(0);
                         ContractOrderDO contractOrderDO = postDealMessage.getContractOrderDO();
                         contractOrderManager.updateExtraEntrustAmountByContract(contractOrderDO.getUserId(), contractOrderDO.getContractId());
                         markExist(entry.getValue());
-                    } catch (Throwable t) {
-                        log.error("post deal message exception", t);
-                    }
-                });
+                    });
+                } catch (Throwable t) {
+                    log.error("post deal message exception", t);
+                }
                 return ConsumeOrderlyStatus.SUCCESS;
             }
         });
