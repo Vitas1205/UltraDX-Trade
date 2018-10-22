@@ -1,20 +1,24 @@
 package com.fota.trade.service.impl;
 
-import com.fota.asset.domain.AssetCategoryDTO;
-import com.fota.asset.service.AssetService;
+import com.fota.asset.domain.enums.AssetTypeEnum;
 import com.fota.trade.domain.ContractCategoryDO;
 import com.fota.trade.domain.UserContractLeverDO;
 import com.fota.trade.domain.UserContractLeverDTO;
-import com.fota.trade.domain.enums.AssetTypeEnum;
 import com.fota.trade.mapper.ContractCategoryMapper;
 import com.fota.trade.mapper.UserContractLeverMapper;
 import com.fota.trade.service.UserContractLeverService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
+
 import javax.annotation.Resource;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import static com.fota.trade.client.constants.Constants.DEFAULT_LEVER;
 import static org.bouncycastle.asn1.x500.style.RFC4519Style.l;
 
 /**
@@ -28,38 +32,34 @@ public class UserContractLeverServiceImpl implements UserContractLeverService  {
     private UserContractLeverMapper userContractLeverMapper;
     @Resource
     private ContractCategoryMapper contractCategoryMapper;
-    @Autowired
-    private AssetService assetService;
-
-    private AssetService getAssetService() {
-        return assetService;
-    }
-
 
     @Override
     public List<UserContractLeverDTO> listUserContractLever(long userId) {
         List<UserContractLeverDTO> resultList = new ArrayList<>();
         List<UserContractLeverDO> list;
-        List<AssetCategoryDTO> assetList = getAssetService().getAssetList();
-        for (AssetCategoryDTO assetCategoryDTO : assetList) {
-            if (assetCategoryDTO != null && !assetCategoryDTO.getName().toUpperCase().equals("USDT")) {
-                UserContractLeverDO userContractLeverDO = userContractLeverMapper.selectUserContractLever(userId, assetCategoryDTO.getId());
-                if (userContractLeverDO == null) {
-                    UserContractLeverDO newUserContractLeverDO = new UserContractLeverDO();
-                    newUserContractLeverDO.setUserId(userId);
-                    newUserContractLeverDO.setAssetId(assetCategoryDTO.getId());
-                    newUserContractLeverDO.setAssetName(assetCategoryDTO.getName());
-                    newUserContractLeverDO.setLever(10);
-                    userContractLeverMapper.insert(newUserContractLeverDO);
-                }
-            }
-        }
+
         try {
             list = userContractLeverMapper.listUserContractLever(userId);
+            if (CollectionUtils.isEmpty(list)) {
+                list = new LinkedList<>();
+            }
+            Set<Integer>  leverAssetList = list.stream().map(UserContractLeverDO::getAssetId).collect(Collectors.toSet());
+            List<UserContractLeverDO> defaultLevers = Stream.of(AssetTypeEnum.values()).filter(x -> x.isValid() && !leverAssetList.contains(x.getCode()))
+                    .map(x -> {
+                        UserContractLeverDO userContractLeverDO = new UserContractLeverDO();
+                        userContractLeverDO.setAssetId(x.getCode());
+                        userContractLeverDO.setAssetName(x.name());
+                        userContractLeverDO.setLever(DEFAULT_LEVER);
+                        return userContractLeverDO;
+                    })
+                    .collect(Collectors.toList());
+
+            list.addAll(defaultLevers);
+
+            List<Integer> validAssetCodes = AssetTypeEnum.getValidAssetCodes();
             if (list != null && list.size() > 0) {
                 for (UserContractLeverDO userContractLeverDO : list) {
-                    if (userContractLeverDO.getAssetId().equals(AssetTypeEnum.USDT.getCode())
-                            || userContractLeverDO.getAssetId().equals(AssetTypeEnum.FOTA.getCode())) {
+                    if (!validAssetCodes.contains(userContractLeverDO.getAssetId())) {
                         continue;
                     }
                     UserContractLeverDTO newUserContractLeverDTO = new UserContractLeverDTO();
@@ -87,9 +87,13 @@ public class UserContractLeverServiceImpl implements UserContractLeverService  {
             userContractLeverDO.setAssetId(temp.assetId);
             userContractLeverDO.setUserId(userId);
             try {
-                userContractLeverMapper.update(userContractLeverDO);
+                int aff = userContractLeverMapper.update(userContractLeverDO);
+                if (0 == aff) {
+                    userContractLeverMapper.insert(userContractLeverDO);
+                }
             } catch (Exception e) {
                 log.error("userContractLeverMapper.insert({})", userContractLeverDO, e);
+                return false;
             }
         }
         return true;
