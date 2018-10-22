@@ -14,13 +14,13 @@ public enum AssetTypeEnum {
      */
     USDT(1, "USDT"),
     /**
-     * 以太坊枚举值
-     */
-    ETH(2, "ETH"),
-    /**
      * 比特币枚举值
      */
-    BTC(3, "BTC"),
+    BTC(2, "BTC"),
+    /**
+     * 以太坊枚举值
+     */
+    ETH(3, "ETH"),
     /**
      * FOTA枚举值
      */
