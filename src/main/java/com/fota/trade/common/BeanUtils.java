@@ -1,6 +1,7 @@
 package com.fota.trade.common;
 
 import com.fota.trade.domain.*;
+import com.fota.trade.domain.enums.OrderDirectionEnum;
 import org.springframework.beans.BeansException;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -9,6 +10,9 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+
+import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
+import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
 
 /**
  * @author Gavin Shen
@@ -213,39 +217,69 @@ public class BeanUtils {
         return userPositionDTO;
     }
 
-    public static ContractMatchedOrderDO copy(ContractMatchedOrderDTO contractMatchedOrderDTO) {
-        ContractMatchedOrderDO contractMatchedOrderDO = new ContractMatchedOrderDO();
-        contractMatchedOrderDO.setAskOrderId(contractMatchedOrderDTO.getAskOrderId());
+    public static ContractMatchedOrderDO extractContractMatchedRecord(ContractMatchedOrderDTO contractMatchedOrderDTO, int orderDirection, BigDecimal fee, Integer closeType) {
+        ContractMatchedOrderDO res = new ContractMatchedOrderDO();
+        res.setGmtCreate(contractMatchedOrderDTO.getGmtCreate())
+                .setMatchId(contractMatchedOrderDTO.getId())
+                .setMatchType(contractMatchedOrderDTO.getMatchType())
+                .setOrderDirection(orderDirection)
+                .setStatus(VALID)
+                .setFilledAmount(contractMatchedOrderDTO.getFilledAmount())
+                .setFilledPrice(new BigDecimal(contractMatchedOrderDTO.getFilledPrice()))
+                .setContractId(contractMatchedOrderDTO.getContractId())
+                .setContractName(contractMatchedOrderDTO.getContractName());
+
+        res.setFee(fee);
+        res.setCloseType(closeType);
+
+        BigDecimal askPrice = null, bidPrice = null;
         if (!StringUtils.isEmpty(contractMatchedOrderDTO.getAskOrderPrice())){
-            contractMatchedOrderDO.setAskOrderPrice(new BigDecimal(contractMatchedOrderDTO.getAskOrderPrice()));
+            askPrice = new BigDecimal(contractMatchedOrderDTO.getAskOrderPrice());
         }
         if (!StringUtils.isEmpty(contractMatchedOrderDTO.getBidOrderPrice())){
-            contractMatchedOrderDO.setBidOrderPrice(new BigDecimal(contractMatchedOrderDTO.getBidOrderPrice()));
+            bidPrice = new BigDecimal(contractMatchedOrderDTO.getBidOrderPrice());
         }
-        contractMatchedOrderDO.setBidOrderId(contractMatchedOrderDTO.getBidOrderId());
-        contractMatchedOrderDO.setMatchType(contractMatchedOrderDTO.getMatchType().byteValue());
-        contractMatchedOrderDO.setFilledPrice(new BigDecimal(contractMatchedOrderDTO.getFilledPrice()));
-        contractMatchedOrderDO.setFilledAmount(contractMatchedOrderDTO.getFilledAmount());
-        contractMatchedOrderDO.setContractName(contractMatchedOrderDTO.getContractName());
-        contractMatchedOrderDO.setContractId(contractMatchedOrderDTO.getContractId());
-        return contractMatchedOrderDO;
+        if (ASK.getCode() == orderDirection) {
+            res.setUserId(contractMatchedOrderDTO.getAskUserId());
+            res.setOrderId(contractMatchedOrderDTO.getAskOrderId());
+            res.setOrderPrice(askPrice);
+            res.setMatchUserId(contractMatchedOrderDTO.getBidUserId());
+        }else {
+            res.setUserId(contractMatchedOrderDTO.getBidUserId());
+            res.setOrderId(contractMatchedOrderDTO.getBidOrderId());
+            res.setOrderPrice(bidPrice);
+            res.setMatchUserId(contractMatchedOrderDTO.getAskUserId());
+        }
+        return res;
     }
 
-    public static UsdkMatchedOrderDO copy(UsdkMatchedOrderDTO usdkMatchedOrderDTO) {
+    public static UsdkMatchedOrderDO extractUsdtRecord(UsdkMatchedOrderDTO usdkMatchedOrderDTO, int orderDirec) {
         UsdkMatchedOrderDO usdkMatchedOrderDO = new UsdkMatchedOrderDO();
+        usdkMatchedOrderDO.setMatchId(usdkMatchedOrderDTO.getId());
+        usdkMatchedOrderDO.setOrderDirection(orderDirec);
+        usdkMatchedOrderDO.setCloseType(0);
+        if (orderDirec == ASK.getCode()) {
+            if (usdkMatchedOrderDTO.getAskOrderPrice() != null){
+                usdkMatchedOrderDO.setOrderPrice(new BigDecimal(usdkMatchedOrderDTO.getAskOrderPrice()));
+            }
+            usdkMatchedOrderDO.setOrderId(usdkMatchedOrderDTO.getAskOrderId());
+            usdkMatchedOrderDO.setUserId(usdkMatchedOrderDTO.getAskUserId());
+            usdkMatchedOrderDO.setMatchUserId(usdkMatchedOrderDTO.getBidUserId());
+        }else {
+            if (usdkMatchedOrderDTO.getBidOrderPrice() != null){
+                usdkMatchedOrderDO.setOrderPrice(new BigDecimal(usdkMatchedOrderDTO.getBidOrderPrice()));
+            }
+            usdkMatchedOrderDO.setOrderId(usdkMatchedOrderDTO.getBidOrderId());
+            usdkMatchedOrderDO.setUserId(usdkMatchedOrderDTO.getBidUserId());
+            usdkMatchedOrderDO.setMatchUserId(usdkMatchedOrderDTO.getAskUserId());
+        }
+
         usdkMatchedOrderDO.setAssetName(usdkMatchedOrderDTO.getAssetName());
         usdkMatchedOrderDO.setAssetId(usdkMatchedOrderDTO.getAssetId());
-        if (usdkMatchedOrderDTO.getAskOrderPrice() != null){
-            usdkMatchedOrderDO.setAskOrderPrice(new BigDecimal(usdkMatchedOrderDTO.getAskOrderPrice()));
-        }
-        if (usdkMatchedOrderDTO.getBidOrderPrice() != null){
-            usdkMatchedOrderDO.setBidOrderPrice(new BigDecimal(usdkMatchedOrderDTO.getBidOrderPrice()));
-        }
-        usdkMatchedOrderDO.setAskOrderId(usdkMatchedOrderDTO.getAskOrderId());
-        usdkMatchedOrderDO.setBidOrderId(usdkMatchedOrderDTO.getBidOrderId());
+
         usdkMatchedOrderDO.setFilledAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
         usdkMatchedOrderDO.setFilledPrice(new BigDecimal(usdkMatchedOrderDTO.getFilledPrice()));
-        usdkMatchedOrderDO.setMatchType(usdkMatchedOrderDTO.getMatchType().byteValue());
+        usdkMatchedOrderDO.setMatchType(usdkMatchedOrderDTO.getMatchType());
         usdkMatchedOrderDO.setGmtCreate(usdkMatchedOrderDTO.getGmtCreate());
         return usdkMatchedOrderDO;
     }

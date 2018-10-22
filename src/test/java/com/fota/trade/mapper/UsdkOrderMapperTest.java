@@ -6,7 +6,8 @@ import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderPriceTypeEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.domain.query.UsdkOrderQuery;
-import org.junit.After;
+import com.fota.trade.util.BasicUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -20,6 +21,8 @@ import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 
+import static com.fota.trade.domain.enums.OrderStatusEnum.CANCEL;
+
 /**
  * @author Gavin Shen
  * @Date 2018/7/7
@@ -27,19 +30,22 @@ import java.util.List;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @Transactional
+@Slf4j
 public class UsdkOrderMapperTest {
 
     @Resource
     private UsdkOrderMapper usdkOrderMapper;
 
+    UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
+    long userId = 274L;
 
-    @Test
+    @Before
     public void testInsert() throws Exception {
-        UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
+        usdkOrderDO.setId(BasicUtils.generateId());
         usdkOrderDO.setAssetId(2);
         usdkOrderDO.setAssetName("BTC");
         usdkOrderDO.setOrderDirection(OrderDirectionEnum.BID.getCode());
-        usdkOrderDO.setUserId(9527L);
+        usdkOrderDO.setUserId(userId);
         usdkOrderDO.setOrderType(OrderPriceTypeEnum.LIMIT.getCode());
         usdkOrderDO.setTotalAmount(new BigDecimal("0.01"));
         usdkOrderDO.setUnfilledAmount(new BigDecimal("0.01"));
@@ -48,27 +54,30 @@ public class UsdkOrderMapperTest {
         usdkOrderDO.setStatus(OrderStatusEnum.COMMIT.getCode());
         usdkOrderDO.setGmtModified(new Date(System.currentTimeMillis()));
         usdkOrderDO.setGmtCreate(new Date(System.currentTimeMillis()));
-        long st = System.currentTimeMillis();
         int insertRet = usdkOrderMapper.insert(usdkOrderDO);
-        System.out.println("cost="+(System.currentTimeMillis() - st));
         Assert.assertTrue(insertRet > 0);
+    }
+
+    @Test
+    public void testSelectByUserIdAndId(){
+        UsdkOrderDO res = usdkOrderMapper.selectByUserIdAndId(userId, usdkOrderDO.getId());
+        assert null != res;
     }
 
 
     @Test
     public void testCountByQuery() {
         UsdkOrderQuery usdkOrderQuery = new UsdkOrderQuery();
+        usdkOrderQuery.setUserId(userId);
         usdkOrderQuery.setPageSize(20);
         usdkOrderQuery.setPageNo(1);
-        long st = System.currentTimeMillis();
         Integer count = null;
         try {
             count = usdkOrderMapper.countByQuery(ParamUtil.objectToMap(usdkOrderQuery));
         } catch (Exception e) {
             e.printStackTrace();
         }
-        System.out.println("cost="+(System.currentTimeMillis() - st));
-        Assert.assertTrue(count > 0);
+        assert  count > 0;
     }
 
     @Test
@@ -76,27 +85,26 @@ public class UsdkOrderMapperTest {
         UsdkOrderQuery usdkOrderQuery = new UsdkOrderQuery();
         usdkOrderQuery.setPageSize(20);
         usdkOrderQuery.setPageNo(1);
-        usdkOrderQuery.setUserId(274L);
-        long st = System.currentTimeMillis();
+        usdkOrderQuery.setUserId(userId);
         List<UsdkOrderDO> usdkOrderDOS = usdkOrderMapper.listByQuery(ParamUtil.objectToMap(usdkOrderQuery));
-        System.out.println("cost="+(System.currentTimeMillis() - st));
         Assert.assertTrue(usdkOrderDOS != null && usdkOrderDOS.size() > 0);
     }
-
+    @Test
+    public void testSelectUnfinishedOrderByUserId(){
+        List<UsdkOrderDO> usdkOrderDOS = usdkOrderMapper.selectUnfinishedOrderByUserId(userId);
+        assert usdkOrderDOS.size()>0;
+    }
 
     @Test
-    public void testupdateStatus() throws Exception {
-        UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
-        usdkOrderDO.setStatus(OrderStatusEnum.MATCH.getCode());
-        usdkOrderDO.setId(929L);
-        usdkOrderDO.setUserId(205L);
-        usdkOrderMapper.updateStatus(usdkOrderDO);
+    public void testUpdateByFilledAmount(){
+        int aff = usdkOrderMapper.updateByFilledAmount(userId, usdkOrderDO.getId(), usdkOrderDO.getUnfilledAmount(), usdkOrderDO.getPrice(), new Date());
+        assert aff == 1;
     }
+
     @Test
     public void testCancel(){
-        long id = 990374559884835L;
-        UsdkOrderDO usdkOrderDO = usdkOrderMapper.selectByPrimaryKey(id);
-        assert  1 == usdkOrderMapper.cancelByOpLock(id, 4, usdkOrderDO.getGmtModified());
+        int aff = usdkOrderMapper.cancel(userId, usdkOrderDO.getId(), CANCEL.getCode());
+        assert  1 == aff;
     }
 
 }

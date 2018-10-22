@@ -1,10 +1,14 @@
 package com.fota.trade.mapper;
 
+import com.fota.common.Page;
 import com.fota.trade.common.ParamUtil;
+import com.fota.trade.domain.BaseQuery;
 import com.fota.trade.domain.ContractOrderDO;
+import com.fota.trade.domain.ContractOrderDTO;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.domain.query.ContractOrderQuery;
+import com.fota.trade.service.ContractOrderService;
 import com.fota.trade.util.BasicUtils;
 import com.fota.trade.util.PriceUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +17,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.Rollback;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import static com.fota.trade.domain.enums.OrderStatusEnum.CANCEL;
 import static com.fota.trade.domain.enums.OrderStatusEnum.MATCH;
 
 /**
@@ -31,6 +38,7 @@ import static com.fota.trade.domain.enums.OrderStatusEnum.MATCH;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @Slf4j
+@ContextConfiguration(classes = MapperTestConfig.class)
 @Transactional
 public class ContractOrderMapperTest {
 
@@ -46,7 +54,7 @@ public class ContractOrderMapperTest {
         // 准备数据
         contractOrderDO = new ContractOrderDO();
         contractOrderDO.setId(BasicUtils.generateId());
-        contractOrderDO.setCloseType(0);
+        contractOrderDO.setCloseType(1);
         contractOrderDO.setContractId(1L);
         contractOrderDO.setContractName("BTC0930");
         contractOrderDO.setFee(new BigDecimal("0.01"));
@@ -58,6 +66,7 @@ public class ContractOrderMapperTest {
         contractOrderDO.setUserId(userId);
         contractOrderDO.setStatus(OrderStatusEnum.COMMIT.getCode());
         contractOrderDO.setGmtCreate(new Date());
+        contractOrderDO.setOrderType(1);
         int insertRet = contractOrderMapper.insert(contractOrderDO);
         Assert.assertTrue(insertRet > 0);
     }
@@ -70,7 +79,7 @@ public class ContractOrderMapperTest {
         contractOrderQuery.setPageSize(20);
         contractOrderQuery.setPageNo(1);
         Integer count = contractOrderMapper.countByQuery(ParamUtil.objectToMap(contractOrderQuery));
-        //Assert.assertTrue(count > 0);
+        log.info("countByQuery result={}", count);
     }
 
     @Test
@@ -80,20 +89,25 @@ public class ContractOrderMapperTest {
         contractOrderQuery.setPageSize(20);
         contractOrderQuery.setPageNo(1);
         List<ContractOrderDO> list = contractOrderMapper.listByQuery((ParamUtil.objectToMap(contractOrderQuery)));
-        //Assert.assertTrue(list != null && list.size() > 0);
+        log.info("listByQuery result={}", list);
     }
 
 
     @Test
     public void testSelectUnfinishedOrder() throws Exception {
-        List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByUserId(17764594100L);
+        List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByUserId(userId);
         log.info("----------------------------" + list.size());
     }
 
     @Test
     public void testSelectNotEnforceOrderByUserId() throws Exception {
-        List<ContractOrderDO> list = contractOrderMapper.selectNotEnforceOrderByUserId(17764594100L);
+        List<ContractOrderDO> list = contractOrderMapper.selectNotEnforceOrderByUserId(userId);
         log.info("----------------------------" + list.size());
+    }
+    @Test
+    public void testSelectNotEnforceOrderByUserIdAndContractId(){
+        Object obj = contractOrderMapper.selectNotEnforceOrderByUserIdAndContractId(userId, contractOrderDO.getContractId());
+        log.info("result={}", obj);
     }
 
     @Test
@@ -101,8 +115,8 @@ public class ContractOrderMapperTest {
 
         BigDecimal filledAmount = BigDecimal.valueOf(100L);
         BigDecimal filledPrice = new BigDecimal(0.3);
-        int aff = contractOrderMapper.updateAmountAndStatus(contractOrderDO.getId(),filledAmount, filledPrice, new Date());
-        ContractOrderDO contractOrderDO2 = contractOrderMapper.selectByPrimaryKey(contractOrderDO.getId());
+        int aff = contractOrderMapper.updateAmountAndStatus(userId, contractOrderDO.getId(),filledAmount, filledPrice, new Date());
+        ContractOrderDO contractOrderDO2 = contractOrderMapper.selectByIdAndUserId(userId, contractOrderDO.getId());
 
         BigDecimal expectAvgPrice = PriceUtil.getAveragePrice(contractOrderDO.getAveragePrice(),
                 contractOrderDO.getTotalAmount().subtract(contractOrderDO.getUnfilledAmount()), filledAmount, filledPrice);
@@ -117,18 +131,23 @@ public class ContractOrderMapperTest {
 
     @Test
     public void selectTest() throws Exception {
-        List<ContractOrderDO> list = contractOrderMapper.selectByUserId(282L);
-        log.info("----------------------------"+list.size());
+        ContractOrderDO temp = contractOrderMapper.selectByIdAndUserId(userId, contractOrderDO.getId());
+        log.info("----------------------------"+temp);
     }
 
     @Test
     public void listByUserIdAndOrderTypeTest() throws Exception {
-        Long userId = 282L;
         List<Integer> orderTypes = new ArrayList<>();
+        orderTypes.add(0);
         orderTypes.add(1);
         orderTypes.add(2);
         List<ContractOrderDO> list = contractOrderMapper.listByUserIdAndOrderType(userId,orderTypes);
         log.info("----------------------------"+list.size());
+    }
+    @Test
+    public void testCancel(){
+       int aff = contractOrderMapper.cancel(userId, contractOrderDO.getId(), CANCEL.getCode());
+       assert 1 == aff;
     }
 
 }

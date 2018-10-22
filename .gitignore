@@ -5,7 +5,13 @@ mvnw
 mvnw.cmd
 logs/
 trade-client/target
+*.iml
+*.ipr
+*.iws
 
+mapdb.wal.0
+mapdb
+secure_file_priv=/Users/irisroyalty/dumps/
 bootstrap.yml
 application.yml
 application.properties

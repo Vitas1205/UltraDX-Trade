@@ -29,16 +29,6 @@ public class ContractOrderTest {
     @Autowired
     private ContractOrderManager contractOrderManager;
 
-    @Test
-    public void test() {
-        Long userId = 282L;
-        Map<String, BigDecimal> resultMap = new HashMap<>();
-        resultMap = contractOrderManager.getAccountMsg(userId);
-        log.info("--------"+resultMap);
-    }
 
-    @Test
-    public void test_send_cancel_msg() {
-        contractOrderManager.sendCancelMessage(Arrays.asList(153344009850L, 609126722138L), 201L);
-    }
+
 }

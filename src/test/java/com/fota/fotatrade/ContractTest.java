@@ -1,10 +1,12 @@
 package com.fota.fotatrade;
 
 import com.fota.trade.common.Constant;
+import com.fota.trade.common.TestConfig;
 import com.fota.trade.domain.ContractCategoryDO;
-import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.domain.ContractOrderDTO;
+import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.UserPositionDO;
+import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.PositionStatusEnum;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.RedisManager;
@@ -26,6 +28,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import static com.fota.trade.common.TestConfig.userId;
+import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
 
 /**
  * @Author: Harry Wang
@@ -74,18 +79,20 @@ public class ContractTest {
 
             ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
             //contractOrderDTO.setContractId(1000);
-            contractOrderDTO.setContractName("BTC0203");
-            contractOrderDTO.setContractId(1001L);
-            contractOrderDTO.setUserId(282L);
-            contractOrderDTO.setOrderDirection(1);
+            contractOrderDTO.setContractName("BTC0906");
+            contractOrderDTO.setContractId(1214L);
+            contractOrderDTO.setUserId(userId);
+            contractOrderDTO.setOrderDirection(BID.getCode());
             contractOrderDTO.setOperateType(0);
             contractOrderDTO.setOrderType(1);
+            contractOrderDTO.setPriceType(1);
             contractOrderDTO.setTotalAmount(BigDecimal.ONE);
             contractOrderDTO.setPrice(new BigDecimal("8500"));
             Map<String, String> map = new HashMap<>();
             map.put("usernmae", "123");
             map.put("ip", "192.169.1.1");
-            contractOrderService.order(contractOrderDTO,map);
+            ResultCode result = contractOrderService.order(contractOrderDTO,map);
+            log.info("result={}", result);
         }
 //        int insertContractOrderRet = contractOrderMapper.insertSelective(BeanUtils.copy(contractOrderDTO));
     }
@@ -129,13 +136,6 @@ public class ContractTest {
         //log.info("---------------"+competitorsPriceList);
     }
 
-    @Test
-    public void TestSelect(){
-        Long userId = 17764594330L;
-        Long orderId = 107480908236466L;
-        ContractOrderDO contractOrderDO = contractOrderMapper.selectByIdAndUserId(orderId,userId);
-        log.info(String.valueOf(contractOrderDO));
-    }
 
     @Test
     public void testbug(){

@@ -3,6 +3,7 @@ package com.fota.trade.service;
 import com.fota.common.Page;
 import com.fota.trade.domain.ContractMatchedOrderDO;
 import com.fota.trade.domain.DeliveryCompletedDTO;
+import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.UserPositionDTO;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.query.UserPositionQuery;
@@ -78,7 +79,8 @@ public class UserPositionServiceTest {
         deliveryCompletedDTO.setContractName("BTC0102");
         deliveryCompletedDTO.setPrice(BigDecimal.ONE);
 
-        userPositionService.deliveryPosition(deliveryCompletedDTO);
+        ResultCode resultCode =userPositionService.deliveryPosition(deliveryCompletedDTO);
+
 
         List<ContractMatchedOrderDO> contractMatchedOrderDOS = contractMatchedOrderMapper.listByUserId(9528L, Arrays.asList(1001L), 0, 100, null, null);
         System.out.println(contractMatchedOrderDOS.get(0));
@@ -93,8 +95,7 @@ public class UserPositionServiceTest {
     @Test
     public void test_updateTotalPosition() {
         ContractMatchedOrderDO contractMatchedOrderDO = new ContractMatchedOrderDO();
-        contractMatchedOrderDO.setBidUserId(17764592453L);
-        contractMatchedOrderDO.setAskUserId(211L);
+        contractMatchedOrderDO.setUserId(211L);
         contractMatchedOrderDO.setContractId(1000L);
         contractMatchedOrderDO.setFilledAmount(new BigDecimal("8"));
         //contractOrderManager.updateTotalPosition(contractMatchedOrderDO);

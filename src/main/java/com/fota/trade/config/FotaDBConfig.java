@@ -16,8 +16,8 @@ import javax.sql.DataSource;
  * @author Gavin Shen
  * @Date 2018/7/5
  */
-@Configuration
-@MapperScan(basePackages = {"com.fota.asset.mapper"}, sqlSessionFactoryRef = "sqlSessionFactoryFota")
+//@Configuration
+//@MapperScan(basePackages = {"com.fota.asset.mapper"}, sqlSessionFactoryRef = "sqlSessionFactoryFota")
 public class FotaDBConfig {
 
     @Autowired

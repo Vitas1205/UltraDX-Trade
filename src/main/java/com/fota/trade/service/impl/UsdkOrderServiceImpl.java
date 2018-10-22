@@ -1,12 +1,14 @@
 package com.fota.trade.service.impl;
 
-import com.fota.asset.domain.BalanceTransferDTO;
 import com.fota.asset.service.CapitalService;
 import com.fota.common.Page;
+import com.fota.common.Result;
+import com.fota.trade.client.RecoveryMetaData;
+import com.fota.trade.client.RecoveryQuery;
 import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.ResultCode;
-import com.fota.trade.domain.enums.OrderStatusEnum;
+import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.manager.UsdkOrderManager;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
@@ -18,16 +20,18 @@ import com.fota.trade.util.ThreadContextUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
+import static com.fota.trade.client.constants.Constants.TABLE_NUMBER;
+import static com.fota.trade.common.ResultCodeEnum.DATABASE_EXCEPTION;
 import static com.fota.trade.common.ResultCodeEnum.SYSTEM_ERROR;
 
 
@@ -132,40 +136,41 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
 
     @Override
     public Page<UsdkOrderDTO> listUsdkOrderByQuery4Recovery(BaseQuery usdkOrderQuery) {
-        Page<UsdkOrderDTO> usdkOrderDTOPage = new Page<UsdkOrderDTO>();
-        if (usdkOrderQuery == null) {
-            return usdkOrderDTOPage;
-        }
-        if (usdkOrderQuery.getPageNo() <= 0) {
-            usdkOrderQuery.setPageNo(Constant.DEFAULT_PAGE_NO);
-        }
-        usdkOrderDTOPage.setPageNo(usdkOrderQuery.getPageNo());
-        if (usdkOrderQuery.getPageSize() <= 0
-                || usdkOrderQuery.getPageSize() > 1000) {
-            usdkOrderQuery.setPageSize(1000);
-        }
-        usdkOrderDTOPage.setPageNo(usdkOrderQuery.getPageNo());
-        usdkOrderDTOPage.setPageSize(usdkOrderQuery.getPageSize());
-        usdkOrderQuery.setStartRow((usdkOrderQuery.getPageNo() - 1) * usdkOrderQuery.getPageSize());
-        usdkOrderQuery.setEndRow(usdkOrderQuery.getPageSize());
-        Map<String, Object> paramMap = null;
-        List<UsdkOrderDO> usdkOrderDOList = null;
+        return null;
+    }
+
+    @Override
+    public Result<RecoveryMetaData> getRecoveryMetaData() {
+        Date date;
         try {
-            paramMap = ParamUtil.objectToMap(usdkOrderQuery);
-            paramMap.put("assetId", usdkOrderQuery.getSourceId());
-            usdkOrderDOList = usdkOrderMapper.listByQuery4Recovery(paramMap);
-        } catch (Exception e) {
-            log.error("usdkOrderMapper.listByQuery({})", usdkOrderQuery, e);
-            return usdkOrderDTOPage;
+            date = usdkOrderMapper.getMaxCreateTime();
+        }catch (Throwable t) {
+            log.error("getMaxCreateTime exception", t);
+            return Result.fail(DATABASE_EXCEPTION.getCode(), DATABASE_EXCEPTION.getMessage());
         }
-        List<UsdkOrderDTO> list = new ArrayList<>();
-        if (usdkOrderDOList != null && usdkOrderDOList.size() > 0) {
-            for (UsdkOrderDO usdkOrderDO : usdkOrderDOList) {
-                list.add(BeanUtils.copy(usdkOrderDO));
+        RecoveryMetaData recoveryMetaData = new RecoveryMetaData();
+        recoveryMetaData.setMaxGmtCreate(date);
+        recoveryMetaData.setTableNumber(TABLE_NUMBER);
+        return Result.suc(recoveryMetaData);
+    }
+
+    @Override
+    public Result<Page<UsdkOrderDTO>> listUsdtOrder4Recovery(RecoveryQuery recoveryQuery) {
+        List<UsdkOrderDTO> usdkOrderDTOS = null;
+        try {
+            List<UsdkOrderDO> usdkOrderDOS = usdkOrderMapper.queryForRecovery(recoveryQuery.getTableIndex(), recoveryQuery.getMaxGmtCreate(), recoveryQuery.getStart(), recoveryQuery.getPageSize());
+            if (!CollectionUtils.isEmpty(usdkOrderDOS)) {
+                usdkOrderDTOS = usdkOrderDOS.stream().map( x -> BeanUtils.copy(x)).collect(Collectors.toList());
             }
+        }catch (Throwable t) {
+            log.error("queryForRecovery exception, query={}", recoveryQuery, t);
+            return Result.<Page<UsdkOrderDTO>>create().error(com.fota.common.ResultCodeEnum.DATABASE_EXCEPTION);
         }
-        usdkOrderDTOPage.setData(list);
-        return usdkOrderDTOPage;
+        Page<UsdkOrderDTO> usdtPage = new Page<>();
+        usdtPage.setPageSize(recoveryQuery.getPageSize());
+        usdtPage.setPageNo(recoveryQuery.getPageIndex());
+        usdtPage.setData(usdkOrderDTOS);
+        return Result.suc(usdtPage);
     }
 
     @Override
@@ -331,14 +336,19 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
             if (null != usdkMatchedOrders && usdkMatchedOrders.size() > 0){
                 for (UsdkMatchedOrderDO temp : usdkMatchedOrders){
                     UsdkMatchedOrderTradeDTO tempTarget = new UsdkMatchedOrderTradeDTO();
-                    tempTarget.setAskCloseType(temp.getAskCloseType().intValue());
-                    tempTarget.setAskOrderId(temp.getAskOrderId());
-                    tempTarget.setAskOrderPrice(temp.getAskOrderPrice()==null?"0":temp.getAskOrderPrice().toString());
-                    tempTarget.setAskUserId(temp.getAskUserId());
-                    tempTarget.setBidCloseType(temp.getBidCloseType().intValue());
-                    tempTarget.setBidOrderId(temp.getBidOrderId());
-                    tempTarget.setBidOrderPrice(temp.getBidOrderPrice()==null?"0":temp.getBidOrderPrice().toString());
-                    tempTarget.setBidUserId(temp.getBidUserId());
+
+                    if (OrderDirectionEnum.ASK.getCode() == temp.getOrderDirection()){
+                        tempTarget.setAskOrderId(temp.getOrderId());
+                        tempTarget.setAskOrderPrice(temp.getOrderPrice()==null?"0":temp.getOrderPrice().toString());
+                        tempTarget.setAskUserId(temp.getUserId());
+                        tempTarget.setBidUserId(temp.getMatchUserId());
+                    }else {
+                        tempTarget.setBidOrderId(temp.getOrderId());
+                        tempTarget.setBidOrderPrice(temp.getOrderPrice()==null?"0":temp.getOrderPrice().toString());
+                        tempTarget.setBidUserId(temp.getUserId());
+                        tempTarget.setAskUserId(temp.getMatchUserId());
+                    }
+
                     tempTarget.setAssetName(temp.getAssetName());
                     tempTarget.setUsdkMatchedOrderId(temp.getId());
                     //tempTarget.setFee(temp.getFee().toString());
@@ -367,7 +377,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     @Override
     public UsdkOrderDTO getUsdkOrderById(Long orderId, Long userId) {
         try {
-            UsdkOrderDO usdkOrderDO = usdkOrderMapper.selectByIdAndUserId(orderId, userId);
+            UsdkOrderDO usdkOrderDO = usdkOrderMapper.selectByUserIdAndId(userId, orderId);
             if (usdkOrderDO != null){
                 return BeanUtils.copy(usdkOrderDO);
             }
@@ -380,82 +390,19 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
 
 
 
-    /**
-     * 如果撮合的量等于unfilled的量，则更新状态为已成
-     * 如果撮合的量小于unfilled的量并且状态为已报，增更新状态为部成，
-     * 更新unfilledAmount为减去成交量后的值
-     * @param usdkOrderDO
-     * @param filledAmount
-     * @return
-     */
-    private int updateSingleOrderByFilledAmount(UsdkOrderDO usdkOrderDO, BigDecimal filledAmount) {
-        if (usdkOrderDO.getUnfilledAmount().compareTo(filledAmount) == 0) {
-            usdkOrderDO.setStatus(OrderStatusEnum.MATCH.getCode());
-        } else if (usdkOrderDO.getStatus() == OrderStatusEnum.COMMIT.getCode()) {
-            usdkOrderDO.setStatus(OrderStatusEnum.PART_MATCH.getCode());
-        }
-        usdkOrderDO.setUnfilledAmount(usdkOrderDO.getUnfilledAmount().subtract(filledAmount));
-        return usdkOrderMapper.updateByPrimaryKeyAndOpLock(usdkOrderDO);
-    }
 
     @Override
     public Long getLatestMatchedUsdk (Integer type) {
-        Long id = usdkOrderManager.getLatestUsdkMatched(type);
-        return id;
+        return null;
     }
 
     @Override
     public List<UsdkMatchedOrderTradeDTO> getLatestUsdkMatchedList (Long id ,Integer assetId) {
-        List<com.fota.trade.domain.UsdkMatchedOrderTradeDTO> usdkMatchedOrderTradeDTOList = new ArrayList<>();
-        try {
-            List<UsdkMatchedOrderDO> list = usdkMatchedOrderMapper.getLatestUsdkMatchedList(assetId, id);
-            if (list != null && !list.isEmpty()) {
-                for (UsdkMatchedOrderDO usdkMatchedOrderDO : list) {
-                    com.fota.trade.domain.UsdkMatchedOrderTradeDTO usdkMatchedOrderTradeDTO = new com.fota.trade.domain.UsdkMatchedOrderTradeDTO();
-                    usdkMatchedOrderTradeDTO.setUsdkMatchedOrderId(usdkMatchedOrderDO.getId());
-                    if (usdkMatchedOrderDO.getAskOrderId() != null){}
-                    usdkMatchedOrderTradeDTO.setAskOrderId(usdkMatchedOrderDO.getAskOrderId());
-                    usdkMatchedOrderTradeDTO.setBidOrderId(usdkMatchedOrderDO.getBidOrderId());
-                    usdkMatchedOrderTradeDTO.setFilledPrice(usdkMatchedOrderDO.getFilledPrice());
-                    usdkMatchedOrderTradeDTO.setFilledAmount(usdkMatchedOrderDO.getFilledAmount());
-                    usdkMatchedOrderTradeDTO.setFilledDate(usdkMatchedOrderDO.getGmtCreate());
-                    usdkMatchedOrderTradeDTO.setMatchType(usdkMatchedOrderDO.getMatchType().intValue());
-                    usdkMatchedOrderTradeDTO.setAssetId(usdkMatchedOrderDO.getAssetId().longValue());
-                    usdkMatchedOrderTradeDTO.setAssetName(usdkMatchedOrderDO.getAssetName());
-                    usdkMatchedOrderTradeDTOList.add(usdkMatchedOrderTradeDTO);
-                }
-                return usdkMatchedOrderTradeDTOList;
-            }
-        } catch (Exception e) {
-            log.error("UsdkOrderService getLatestUsdkMatchedList error id:{} assetId:{} ",id, assetId, e);
-        }
         return null;
     }
 
     @Override
     public List<ContractMatchedOrderTradeDTO> getLatestContractMatchedList (Long id ,Long contractId){
-        List<com.fota.trade.domain.ContractMatchedOrderTradeDTO> contractMatchedOrderTradeDTOS = new ArrayList<>();
-        try {
-            List<ContractMatchedOrderDO> list = contractMatchedOrderMapper.getLatestContractMatchedList(contractId, id);
-            if (list !=null && !list.isEmpty()) {
-                for (ContractMatchedOrderDO contractMatchedOrderDO : list){
-                    com.fota.trade.domain.ContractMatchedOrderTradeDTO contractMatchedOrderTradeDTO = new com.fota.trade.domain.ContractMatchedOrderTradeDTO();
-                    contractMatchedOrderTradeDTO.setContractMatchedOrderId(contractMatchedOrderDO.getId());
-                    contractMatchedOrderTradeDTO.setAskOrderId(contractMatchedOrderDO.getAskOrderId());
-                    contractMatchedOrderTradeDTO.setBidOrderId(contractMatchedOrderDO.getBidOrderId());
-                    contractMatchedOrderTradeDTO.setFilledAmount(contractMatchedOrderDO.getFilledAmount());
-                    contractMatchedOrderTradeDTO.setFilledPrice(contractMatchedOrderDO.getFilledPrice());
-                    contractMatchedOrderTradeDTO.setFilledDate(contractMatchedOrderDO.getGmtCreate());
-                    contractMatchedOrderTradeDTO.setMatchType(Integer.valueOf(contractMatchedOrderDO.getMatchType()));
-                    contractMatchedOrderTradeDTO.setContractId(contractMatchedOrderDO.getContractId());
-                    contractMatchedOrderTradeDTO.setContractName(contractMatchedOrderDO.getContractName());
-                    contractMatchedOrderTradeDTOS.add(contractMatchedOrderTradeDTO);
-                }
-                return contractMatchedOrderTradeDTOS;
-            }
-        } catch (Exception e) {
-            log.error("UsdkOrderService getLatestContractMatchedList error id:{} contractId:{}",id ,contractId, e);
-        }
         return null;
     }
 

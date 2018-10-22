@@ -3,6 +3,8 @@
                    http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
                    http://www.springframework.org/schema/context
                    http://www.springframework.org/schema/context/spring-context-4.0.xsd  ">
+
+    <context:property-placeholder ignore-unresolvable="true" location="classpath:bootstrap.yml"/>
     <import resource="bean/manager.xml" />
     <import resource="bean/consumer.xml" />
 
