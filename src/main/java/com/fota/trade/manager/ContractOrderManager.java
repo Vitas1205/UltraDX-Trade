@@ -85,9 +85,6 @@ public class ContractOrderManager {
     private UserPositionMapper userPositionMapper;
 
     @Autowired
-    private CurrentPriceManager currentPriceManager;
-
-    @Autowired
     private ContractCategoryService contractCategoryService;
 
     @Autowired
