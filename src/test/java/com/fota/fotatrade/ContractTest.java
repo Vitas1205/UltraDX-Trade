@@ -7,6 +7,7 @@ import com.fota.trade.domain.ContractOrderDTO;
 import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.UserPositionDO;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
+import com.fota.trade.domain.enums.OrderTypeEnum;
 import com.fota.trade.domain.enums.PositionStatusEnum;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.RedisManager;
@@ -84,8 +85,7 @@ public class ContractTest {
             contractOrderDTO.setUserId(userId);
             contractOrderDTO.setOrderDirection(BID.getCode());
             contractOrderDTO.setOperateType(0);
-            contractOrderDTO.setOrderType(1);
-            contractOrderDTO.setPriceType(1);
+            contractOrderDTO.setOrderType(OrderTypeEnum.MARKET.getCode());
             contractOrderDTO.setTotalAmount(BigDecimal.ONE);
             contractOrderDTO.setPrice(new BigDecimal("8500"));
             Map<String, String> map = new HashMap<>();
