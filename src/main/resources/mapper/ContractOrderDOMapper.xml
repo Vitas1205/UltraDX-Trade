@@ -48,11 +48,11 @@
         select count(*)
         from trade_contract_order
         where 1=1
-        <if test="contractId > 0">
-            and contract_id=#{contractId}
+        <if test="null!= contractId and contractId > 0">
+            and contract_id=#{contractId,jdbcType=INTEGER}
         </if>
-        <if test="userId > 0">
-            and user_id=#{userId}
+        <if test="null!=userId and userId > 0">
+            and user_id=#{userId,jdbcType=BIGINT}
         </if>
         <if test="startTime != null">
             and gmt_create &gt;= #{startTime}
@@ -76,10 +76,10 @@
         <include refid="Base_Column_List"/>
         from trade_contract_order
         where 1=1
-        <if test="contractId > 0">
+        <if test="null!= contractId and contractId > 0">
             and contract_id=#{contractId,jdbcType=INTEGER}
         </if>
-        <if test="userId > 0">
+        <if test="null!=userId and userId > 0">
             and user_id=#{userId,jdbcType=BIGINT}
         </if>
         <if test="startTime != null">

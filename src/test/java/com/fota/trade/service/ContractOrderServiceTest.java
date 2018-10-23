@@ -91,26 +91,11 @@ public class ContractOrderServiceTest {
 
     @Test
     public void testListContractOrderByQuery() throws Exception {
-
-//        BaseQuery contractOrderQuery = new BaseQuery();
-//        contractOrderQuery.setUserId(282L);
-//        contractOrderQuery.setPageSize(20);
-//        contractOrderQuery.setPageNo(1);
-//        contractOrderQuery.setEndTime(LocalDate.now().plusDays(1).toDate());
-//        contractOrderQuery.setSourceId(1000);
-//        contractOrderQuery.setOrderStatus(Arrays.asList(PART_MATCH.getCode(), COMMIT.getCode()));
-//        Page<ContractOrderDTO> result = contractOrderService.listContractOrderByQuery(contractOrderQuery);
-//        Assert.assertTrue(result != null && result.getData() != null);
         BaseQuery baseQuery = new BaseQuery();
         baseQuery.setPageNo(1);
+        baseQuery.setUserId(askUserId);
         baseQuery.setPageSize(1000);
-        //baseQuery.setUserId(17764594443L);
         List<Integer> orderStatus = new ArrayList<>();
-        //baseQuery.setSourceId(1000);
-        //orderStatus.add(OrderStatusEnum.COMMIT.getCode());
-        //orderStatus.add(OrderStatusEnum.PART_MATCH.getCode());
-        //baseQuery.setOrderStatus(orderStatus);
-        //baseQuery.setOrderType(OrderTypeEnum.ENFORCE.getCode());
         Page<ContractOrderDTO> contractOrderDTOPage = null;
         contractOrderDTOPage = contractOrderService.listContractOrderByQuery(baseQuery);
         log.info(String.valueOf(contractOrderDTOPage));
@@ -348,8 +333,8 @@ public class ContractOrderServiceTest {
         contractOrderDO.setCloseType(OrderCloseTypeEnum.MANUAL.getCode());
         contractOrderDO.setFee(new BigDecimal(0.0005));
         contractOrderDO.setUnfilledAmount(new BigDecimal("0.05"));
-        Pair<Boolean, Map<String, Object>> ret = contractOrderManager.judgeOrderAvailable(282L, contractOrderDO);
-        log.info(ret+"");
+//        Pair<Boolean, Map<String, Object>> ret = contractOrderManager.judgeOrderAvailable(282L, contractOrderDO);
+//        log.info(ret+"");
     }
 
     @Test
@@ -362,6 +347,12 @@ public class ContractOrderServiceTest {
     public void getAccountMsgTest(){
         ContractAccount contractAccount = contractOrderManager.computeContractAccount(282L);
         log.info(contractAccount.toString());
+    }
+
+    @Test
+    public void getEntrustMarginTest(){
+//        BigDecimal ret = contractOrderManager.getEntrustMargin(17764594100L);
+//        log.info(ret.toString());
     }
 
     @Test

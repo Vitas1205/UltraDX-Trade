@@ -6,9 +6,12 @@ import com.fota.asset.domain.enums.AssetTypeEnum;
 import com.fota.asset.service.AssetService;
 import com.fota.common.Result;
 import com.fota.common.utils.CommonUtils;
-import com.fota.ticker.entrust.RealTimeEntrust;
+import com.fota.data.domain.TickerDTO;
+import com.fota.data.service.SpotIndexService;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
+import com.fota.trade.client.AssetExtraProperties;
 import com.fota.trade.client.CancelTypeEnum;
+import com.fota.trade.client.OrderResult;
 import com.fota.trade.client.ToCancelMessage;
 import com.fota.trade.common.BizException;
 import com.fota.trade.common.Constant;
@@ -35,18 +38,26 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
-
 import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
-
+import static com.fota.asset.domain.enums.UserContractStatus.LIMIT;
+import static com.fota.trade.PriceTypeEnum.MARKET_PRICE;
+import static com.fota.trade.PriceTypeEnum.RIVAL_PRICE;
+import static com.fota.trade.PriceTypeEnum.SPECIFIED_PRICE;
 import static com.fota.trade.client.MQConstants.ORDER_TOPIC;
 import static com.fota.trade.client.MQConstants.TO_CANCEL_CONTRACT_TAG;
 import static com.fota.trade.common.Constant.DEFAULT_LEVER;
 import static com.fota.trade.common.ResultCodeEnum.*;
 import static com.fota.trade.domain.enums.ContractStatusEnum.PROCESSING;
+import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
+import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
 import static com.fota.trade.domain.enums.OrderStatusEnum.*;
 import static java.util.stream.Collectors.toList;
 
@@ -73,7 +84,6 @@ public class ContractOrderManager {
     @Autowired
     private UserPositionMapper userPositionMapper;
 
-
     @Autowired
     private ContractCategoryService contractCategoryService;
 
@@ -87,7 +97,10 @@ public class ContractOrderManager {
     private RedisManager redisManager;
 
     @Autowired
-    private RealTimeEntrust realTimeEntrust;
+    private RealTimeEntrustManager realTimeEntrustManager;
+
+    @Autowired
+    private CurrentPriceManager currentPriceManager;
 
     @Autowired
     private MarketAccountListService marketAccountListService;
@@ -136,9 +149,14 @@ public class ContractOrderManager {
 
 //    @Transactional(rollbackFor = Throwable.class)
     public Result<Long> placeOrder(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) throws Exception{
-
+        Result checkRes = checkOrderDTO(contractOrderDTO);
+        if (!checkRes.isSuccess()) {
+            return Result.fail(checkRes.getCode(), checkRes.getMessage());
+        }
+        Long orderId = BasicUtils.generateId();
         Profiler profiler = null == ThreadContextUtil.getPrifiler() ?
-                new Profiler("ContractOrderManager.placeOrder"): ThreadContextUtil.getPrifiler();
+                new Profiler("ContractOrderManager.placeOrder", orderId.toString()): ThreadContextUtil.getPrifiler();
+        profiler.setTraceId(orderId.toString());
         profiler.complelete("start transaction");
         ContractOrderDO contractOrderDO = com.fota.trade.common.BeanUtils.copy(contractOrderDTO);
         String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
@@ -153,11 +171,10 @@ public class ContractOrderManager {
         profiler.complelete("before json serialization");
         contractOrderDO.setOrderContext(JSONObject.toJSONString(contractOrderDTO.getOrderContext()));
         profiler.complelete("json serialization");
-        Long orderId = BasicUtils.generateId();
         long transferTime = System.currentTimeMillis();
         contractOrderDO.setGmtCreate(new Date(transferTime));
         contractOrderDO.setGmtModified(new Date(transferTime));
-        contractOrderDO.setStatus(8);
+        contractOrderDO.setStatus(COMMIT.getCode());
         //根据用户等级获取费率
 
         boolean ret = marketAccountListService.contains(contractOrderDTO.getUserId());
@@ -195,8 +212,8 @@ public class ContractOrderManager {
             return result;
         }else if(contractCategoryDO.getStatus() == PROCESSING.getCode()){
         }else {
-            result.setCode(ResultCodeEnum.CONTRACT_STATUS_ILLEGAL.getCode());
-            result.setMessage(ResultCodeEnum.CONTRACT_STATUS_ILLEGAL.getMessage());
+            result.setCode(ResultCodeEnum.ILLEGAL_CONTRACT.getCode());
+            result.setMessage(ResultCodeEnum.ILLEGAL_CONTRACT.getMessage());
             result.setData(orderId);
             return result;
         }
@@ -210,20 +227,20 @@ public class ContractOrderManager {
         if (contractOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()) {
             insertOrderRecord(contractOrderDO);
         } else {
-            Pair<Boolean, Map<String, Object>> judgeRet = judgeOrderAvailable(contractOrderDO.getUserId(), contractOrderDO);
+            Result<OrderResult> judgeRet = judgeOrderAvailable(contractOrderDO.getUserId(), contractOrderDTO.getPriceType(), contractOrderDO);
             profiler.complelete("judge order available");
-            Boolean enough = judgeRet.getLeft();
-            entrustInternalValues.putAll(judgeRet.getRight());
-            if (!enough) {
-                throw new BizException(ResultCodeEnum.CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(), ResultCodeEnum.CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
+
+            if (!judgeRet.isSuccess()) {
+                return Result.fail(judgeRet.getCode(), judgeRet.getMessage());
+            }
+            if (null != judgeRet.getData().getEntrustInternalValues()) {
+                entrustInternalValues.putAll(judgeRet.getData().getEntrustInternalValues());
             }
             insertOrderRecord(contractOrderDO);
             orderId = contractOrderDO.getId();
             profiler.complelete("insert record");
         }
-        BeanUtils.copyProperties(contractOrderDO, contractOrderDTO );
-        contractOrderDTO.setCompleteAmount(BigDecimal.ZERO);
-        contractOrderDTO.setContractId(contractOrderDO.getContractId());
+
         if (contractOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()) {
             // 强平单
             JSONObject jsonObject = JSONObject.parseObject(contractOrderDO.getOrderContext());
@@ -232,12 +249,12 @@ public class ContractOrderManager {
                 username = jsonObject.get("username") == null ? "" : jsonObject.get("username").toString();
             }
             tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                    2, contractOrderDTO.getContractName(), username, ipAddress, contractOrderDTO.getTotalAmount(),
-                    System.currentTimeMillis(), 3, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 2);
+                    2, contractOrderDO.getContractName(), username, ipAddress, contractOrderDO.getTotalAmount(),
+                    System.currentTimeMillis(), 3, contractOrderDO.getOrderDirection(), contractOrderDO.getUserId(), 2);
         } else {
             tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                    2, contractOrderDTO.getContractName(), username, ipAddress, contractOrderDTO.getTotalAmount(),
-                    System.currentTimeMillis(), 2, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 1);
+                    2, contractOrderDO.getContractName(), username, ipAddress, contractOrderDO.getTotalAmount(),
+                    System.currentTimeMillis(), 2, contractOrderDO.getOrderDirection(), contractOrderDO.getUserId(), 1);
         }
         Runnable runnable = () -> {
             sendPlaceOrderMessage(contractOrderDO, contractCategoryDO.getContractType(), contractCategoryDO.getAssetName());
@@ -308,24 +325,12 @@ public class ContractOrderManager {
      */
 //    @Transactional(rollbackFor = Throwable.class)
     public ResultCode cancelOrderByMessage(long userId, long orderId, @NonNull BigDecimal unfilleAmount) {
-        for (int i = 0;i<3;i++) {
-            ResultCode resultCode = doCancelOrder(userId, orderId, unfilleAmount);
-            if (resultCode.getCode().equals(CONCURRENT_PROBLEM.getCode())) {
-                randomSleep();
-                continue;
-            }
-            return resultCode;
-        }
-        return ResultCode.error(CONCURRENT_PROBLEM.getCode(), "update db failed, likely concurrent problem");
+
+        ResultCode resultCode = doCancelOrder(userId, orderId, unfilleAmount);
+        return resultCode;
+
     }
 
-    private void randomSleep(){
-        try {
-            Thread.sleep(BasicUtils.randomInt(5));
-        } catch (InterruptedException e) {
-            log.error("sleep exception", e);
-        }
-    }
     public ResultCode doCancelOrder(long userId, long orderId, BigDecimal unfilleAmount) {
 
         ContractOrderDO contractOrderDO = contractOrderMapper.selectByIdAndUserId(userId, orderId);
@@ -333,11 +338,10 @@ public class ContractOrderManager {
             return ResultCode.error(ILLEGAL_PARAM.getCode(), "contract order does not exist, id="+orderId);
         }
 
-        ResultCode resultCode = new ResultCode();
         Integer status = contractOrderDO.getStatus();
 
         if (status != COMMIT.getCode() && status != PART_MATCH.getCode()) {
-            return ResultCode.error(BIZ_ERROR.getCode(),"illegal order status, id="+contractOrderDO.getId() + ", status="+ contractOrderDO.getStatus());
+            return ResultCode.error(ILLEGAL_PARAM.getCode(),"illegal order status, id="+contractOrderDO.getId() + ", status="+ contractOrderDO.getStatus());
         }
         Integer toStatus = unfilleAmount.compareTo(contractOrderDO.getTotalAmount()) < 0 ? PART_CANCEL.getCode() : CANCEL.getCode();
 
@@ -345,7 +349,7 @@ public class ContractOrderManager {
         int ret = contractOrderMapper.cancel(userId, orderId, toStatus);
         if (ret > 0) {
         } else {
-            return ResultCode.error(CONCURRENT_PROBLEM.getCode(),"cancel failed, id="+ contractOrderDO.getId());
+            return ResultCode.error(ILLEGAL_PARAM.getCode(),"cancel failed, id="+ contractOrderDO.getId());
         }
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO);
@@ -356,10 +360,6 @@ public class ContractOrderManager {
         String username = "";
         if (jsonObject != null && !jsonObject.isEmpty()) {
             username = jsonObject.get("username") == null ? "" : jsonObject.get("username").toString();
-        }
-        ContractCategoryDTO contractCategoryDO = contractCategoryService.getContractById(contractOrderDO.getContractId());
-        if (contractCategoryDO == null){
-            return ResultCode.error(BIZ_ERROR.getCode(),"contract is null, id="+contractOrderDO.getContractId());
         }
         tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                 2, contractOrderDTO.getContractName(), username, "", contractOrderDTO.getUnfilledAmount(),
@@ -374,16 +374,12 @@ public class ContractOrderManager {
         orderMessage.setSubjectId(contractOrderDO.getContractId());
         orderMessage.setSubjectName(contractOrderDO.getContractName());
         orderMessage.setOrderDirection(contractOrderDO.getOrderDirection());
-        orderMessage.setContractType(contractCategoryDO.getContractType());
-        orderMessage.setContractMatchAssetName(contractCategoryDO.getAssetName());
         boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder", "contract_doCanceled_"+ orderId, orderMessage);
         if (!sendRet) {
             log.error("send canceled message failed, message={}", orderMessage);
         }
-        resultCode.setCode(0);
-        resultCode.setMessage("success");
         updateExtraEntrustAmountByContract(contractOrderDO.getUserId(), contractOrderDO.getContractId());
-        return resultCode;
+        return ResultCode.success();
     }
 
     public void sendCancelMessage(List<Long> orderIdList, Long userId) {
@@ -436,17 +432,12 @@ public class ContractOrderManager {
 
 
 
-    public  ContractAccount computeContractAccount(long userId) {
-        return computeContractAccount(userId, null);
-    }
     /**
      *
      * @param userId
-     * @param newContractOrderDO
      * @return
      */
-    public  ContractAccount computeContractAccount(long userId, ContractOrderDO newContractOrderDO) {
-        boolean isMarketUser = marketAccountListService.contains(userId);
+    public  ContractAccount computeContractAccount(long userId) {
 
         ContractAccount contractAccount = new ContractAccount();
         contractAccount.setMarginCallRequirement(BigDecimal.ZERO)
@@ -466,29 +457,25 @@ public class ContractOrderManager {
              return contractAccount.setAccountEquity(new BigDecimal(userContractDTO.getAmount()));
         }
         List<UserPositionDO> allPositions = userPositionMapper.selectByUserId(userId, PositionStatusEnum.UNDELIVERED.getCode());
-        List<CompetitorsPriceDTO> competitorsPrices = realTimeEntrust.getContractCompetitorsPrice();
+        List<CompetitorsPriceDTO> competitorsPrices = realTimeEntrustManager.getContractCompetitorsPriceOrder();
         List<UserContractLeverDO> contractLeverDOS = userContractLeverMapper.listUserContractLever(userId);
-        List<ContractOrderDO> allContractOrders = null;
 
-        if (isMarketUser) {
-            allContractOrders = contractOrderMapper.selectNotEnforceOrderByUserId(userId);
-        }
-        if (null == allContractOrders) {
-            allContractOrders = new ArrayList<>();
-        }
-        if (null != newContractOrderDO) {
-            allContractOrders.add(newContractOrderDO);
-        }
-
-        Map<String, Object> userContractPositions = null;
-        if (!isMarketUser) {
-            String userContractPositionExtraKey = RedisKey.getUserContractPositionExtraKey(userId);
-            userContractPositions = redisManager.hEntries(userContractPositionExtraKey);
-        }
+        String userContractPositionExtraKey = RedisKey.getUserContractPositionExtraKey(userId);
+        Map<String, Object> userContractPositions =  redisManager.hEntries(userContractPositionExtraKey);
         if (Objects.isNull(userContractPositions)) {
             userContractPositions = Collections.emptyMap();
         }
-
+        BigDecimal totalPositionMarginByIndex = BigDecimal.ZERO;
+        BigDecimal totalPositionValueByIndex = BigDecimal.ZERO;
+        BigDecimal totalFloatingPLByIndex = BigDecimal.ZERO;
+        BigDecimal totalEntrustMarginByIndex = BigDecimal.ZERO;
+        //todo 获取简单交割指数列表
+        List<TickerDTO> list = new ArrayList<>();
+        try{
+            list = currentPriceManager.getSpotIndexes();
+        }catch (Exception e){
+            log.error("get simpleIndexList failed", e);
+        }
         Map<String, Object> map = new HashMap<>();
         for (ContractCategoryDTO contractCategoryDO : categoryList) {
             long contractId = contractCategoryDO.getId();
@@ -496,15 +483,19 @@ public class ContractOrderManager {
             BigDecimal positionMargin = BigDecimal.ZERO;
             BigDecimal floatingPL = BigDecimal.ZERO;
             BigDecimal entrustMargin = BigDecimal.ZERO;
+            BigDecimal entrustMarginByIndex = BigDecimal.ZERO;
             BigDecimal positionUnfilledAmount= BigDecimal.ZERO;
+            BigDecimal positionMarginByIndex = BigDecimal.ZERO;
+            BigDecimal floatingPLByIndex = BigDecimal.ZERO;
+            BigDecimal positionValueByIndex = BigDecimal.ZERO;
             int positionType = PositionTypeEnum.EMPTY.getCode();
-
             Optional<UserPositionDO> userPositionDOOptional = allPositions.stream()
                     .filter(userPosition -> userPosition.getContractId().equals(contractCategoryDO.getId()))
                     .findFirst();
-
             //计算保证金，浮动盈亏
             if (userPositionDOOptional.isPresent()) {
+                //获取交割指数
+                BigDecimal index = getIndex(contractCategoryDO.getContractName() , list);
                 UserPositionDO userPositionDO = userPositionDOOptional.get();
                 positionType = userPositionDO.getPositionType();
                 positionUnfilledAmount = userPositionDO.getUnfilledAmount();
@@ -517,9 +508,14 @@ public class ContractOrderManager {
                     return null;
                 }
                 floatingPL = price.subtract(positionAveragePrice).multiply(positionUnfilledAmount).multiply(new BigDecimal(dire));
-
                 positionMargin = positionUnfilledAmount.multiply(price).divide(lever, CommonUtils.scale, BigDecimal.ROUND_UP);
 
+                floatingPLByIndex = index.compareTo(BigDecimal.ZERO) == 0 ? floatingPL :
+                        index.subtract(positionAveragePrice).multiply(positionUnfilledAmount).multiply(new BigDecimal(dire));
+                positionMarginByIndex = index.compareTo(BigDecimal.ZERO) == 0 ? positionMargin :
+                        positionUnfilledAmount.multiply(index).divide(lever, CommonUtils.scale, BigDecimal.ROUND_UP);
+                positionValueByIndex = index.compareTo(BigDecimal.ZERO) == 0 ? positionUnfilledAmount.multiply(price) :
+                        positionUnfilledAmount.multiply(index);
             }
 
             //计算委托额外保证金
@@ -534,17 +530,11 @@ public class ContractOrderManager {
 
             Object contraryValue = userContractPositions.get(contraryKey);
             Object sameValue = userContractPositions.get(sameKey);
-            if (!isMarketUser && Objects.nonNull(contraryValue) && Objects.nonNull(sameValue)) {
-                entrustMargin = cal(new BigDecimal(contraryValue.toString()), new BigDecimal(sameValue.toString()), positionMargin);
+            EntrustMarginDO entrustMarginDO = new EntrustMarginDO();
+            if (Objects.nonNull(contraryValue) && Objects.nonNull(sameValue)) {
+                entrustMarginDO = cal(new BigDecimal(contraryValue.toString()), new BigDecimal(sameValue.toString()), positionMargin, positionMarginByIndex);
             } else {
-                List<ContractOrderDO> orderList = null;
-                if (isMarketUser) {
-                    orderList = allContractOrders.stream()
-                            .filter(contractOrder -> contractOrder.getContractId().equals(contractId))
-                            .collect(toList());
-                } else {
-                    orderList = contractOrderMapper.selectNotEnforceOrderByUserIdAndContractId(userId, contractId);
-                }
+                List<ContractOrderDO> orderList =  contractOrderMapper.selectNotEnforceOrderByUserIdAndContractId(userId, contractId);
                 if (CollectionUtils.isEmpty(orderList)) {
                     orderList = Collections.emptyList();
                 }
@@ -552,28 +542,57 @@ public class ContractOrderManager {
                         .filter(order -> order.getOrderDirection() == OrderDirectionEnum.BID.getCode())
                         .collect(toList());
                 List<ContractOrderDO> askList = orderList.stream()
-                        .filter(order -> order.getOrderDirection() == OrderDirectionEnum.ASK.getCode())
+                        .filter(order -> order.getOrderDirection() == ASK.getCode())
                         .collect(toList());
-
-                Pair<BigDecimal, Map<String, Object>> pair = getExtraEntrustAmount(userId, contractId, bidList, askList, positionType, positionUnfilledAmount, positionMargin, lever);
+                entrustMarginDO = getExtraEntrustAmount(userId, contractId, bidList, askList, positionType, positionUnfilledAmount, positionMargin, positionMarginByIndex, lever);
+                Pair<BigDecimal, Map<String, Object>> pair = entrustMarginDO.getPair();
                 entrustMargin = pair.getLeft();
                 map.putAll(pair.getRight());
             }
-
+            entrustMargin = entrustMarginDO.getEntrustMargin();
+            entrustMarginByIndex = entrustMarginDO.getEntrustMarginByIndex();
             contractAccount.setMarginCallRequirement(contractAccount.getMarginCallRequirement().add(positionMargin))
                     .setFrozenAmount(contractAccount.getFrozenAmount().add(entrustMargin))
                     .setFloatingPL(contractAccount.getFloatingPL().add(floatingPL));
-
+            totalPositionMarginByIndex = totalPositionMarginByIndex.add(positionMarginByIndex);
+            totalFloatingPLByIndex = totalFloatingPLByIndex.add(floatingPLByIndex);
+            totalPositionValueByIndex = totalPositionValueByIndex.add(positionValueByIndex);
+            totalEntrustMarginByIndex = totalPositionMarginByIndex.add(entrustMarginByIndex);
         }
         BigDecimal amount = new BigDecimal(userContractDTO.getAmount());
         contractAccount.setAvailableAmount(amount.add(contractAccount.getFloatingPL())
                 .subtract(contractAccount.getMarginCallRequirement())
                 .subtract(contractAccount.getFrozenAmount()));
         contractAccount.setAccountEquity(amount.add(contractAccount.getFloatingPL()));
-
-        String userContractPositionExtraKey = RedisKey.getUserContractPositionExtraKey(userId);
+        //计算强平安全边际
+        //通过简单现货指数计算出的账户权益
+        BigDecimal accountEquityByIndex = amount.add(totalFloatingPLByIndex);
+        BigDecimal T2 = new BigDecimal("0.6");
+        if (totalPositionMarginByIndex.compareTo(BigDecimal.ZERO) == 0){
+            contractAccount.setSecurityBorder(accountEquityByIndex.subtract((T2.multiply(totalPositionMarginByIndex.add(totalEntrustMarginByIndex)))));
+        }else {
+            BigDecimal L = totalPositionValueByIndex.divide(totalPositionMarginByIndex, CommonUtils.scale, BigDecimal.ROUND_DOWN);
+            BigDecimal securityBorder = accountEquityByIndex.subtract((T2.multiply(totalPositionMarginByIndex.add(totalEntrustMarginByIndex)))).
+                    divide((new BigDecimal("1").subtract(T2.divide(L, CommonUtils.scale, BigDecimal.ROUND_DOWN))), CommonUtils.scale, BigDecimal.ROUND_DOWN);
+            contractAccount.setSecurityBorder(securityBorder);
+        }
+        contractAccount.setAccountMargin(contractAccount.getFrozenAmount().add(contractAccount.getMarginCallRequirement()));
+        contractAccount.setSuggestedAddAmount(totalPositionValueByIndex.add(totalEntrustMarginByIndex).subtract(contractAccount.getAccountEquity()).max(BigDecimal.ZERO));
         redisManager.hPutAll(userContractPositionExtraKey, map);
         return contractAccount;
+
+    }
+
+    public BigDecimal getIndex(String contractName, List<TickerDTO> list){
+        BigDecimal index = BigDecimal.ZERO;
+        String symbol = contractName.substring(0, 3);
+        Optional<TickerDTO> op = list.stream().filter(x->x.getSymbol().equals(symbol)).findFirst();
+        if (!op.isPresent()){
+           log.error("get simpleIndex faild, contractName{}", contractName);
+           return index;
+        }
+        index = op.get().getPrice();
+        return index;
     }
 
     public BigDecimal findLever(List<UserContractLeverDO> contractLeverDOS, long userId, long assetId){
@@ -595,7 +614,7 @@ public class ContractOrderManager {
         Optional<CompetitorsPriceDTO>  competitorsPriceDTOOptional = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == type &&
                 competitorsPrice.getId() == contractId).findFirst();
 
-        if (competitorsPriceDTOOptional.isPresent()) {
+        if (competitorsPriceDTOOptional.isPresent() && competitorsPriceDTOOptional.get().getPrice().compareTo(BigDecimal.ZERO) > 0) {
             return competitorsPriceDTOOptional.get().getPrice();
         }
         String latestPrice = redisManager.get(Constant.LAST_CONTRACT_MATCH_PRICE + String.valueOf(contractId));
@@ -605,7 +624,6 @@ public class ContractOrderManager {
         log.error("there is no latestMatchedPrice, contractId={}, type={}", contractId, type);
         return null;
     }
-
 
     //todo 判断持仓反方向的"仓加挂"大于是否该合约持仓保证金
     public Boolean judgeOrderResult(List<ContractOrderDO> filterOrderList,Integer positionType,
@@ -647,14 +665,15 @@ public class ContractOrderManager {
         return false;
     }
 
+
     /**
      * 获取多空仓额外保证金
      * @return 额外保证金和委托冻结中间值
      */
-    public Pair<BigDecimal, Map<String, Object>> getExtraEntrustAmount(Long userId, Long contractId,
-                                                                       List<ContractOrderDO> bidList, List<ContractOrderDO> askList,
-                                                                       Integer positionType, BigDecimal positionUnfilledAmount,
-                                                                       BigDecimal positionEntrustAmount, BigDecimal lever) {
+    public EntrustMarginDO getExtraEntrustAmount(Long userId, Long contractId,
+                                            List<ContractOrderDO> bidList, List<ContractOrderDO> askList,
+                                            Integer positionType, BigDecimal positionUnfilledAmount,
+                                            BigDecimal positionEntrustAmount,BigDecimal positionMarginByIndex, BigDecimal lever) {
         if (null == positionUnfilledAmount) {
             log.error("null positionUnfilledAmount");
             positionUnfilledAmount = BigDecimal.ZERO;
@@ -714,16 +733,25 @@ public class ContractOrderManager {
         Map<String, Object> map = new HashMap<>();
         map.put(contraryKey, totalContraryEntrustAmount.toPlainString());
         map.put(sameKey, totalSameEntrustAmount.toPlainString());
-
-        BigDecimal entrustMargin = cal(totalContraryEntrustAmount, totalSameEntrustAmount, positionEntrustAmount);
-        return Pair.of(entrustMargin, map);
+        EntrustMarginDO entrustMarginDO =  new EntrustMarginDO();
+        entrustMarginDO =  cal(totalContraryEntrustAmount, totalSameEntrustAmount, positionEntrustAmount, positionMarginByIndex);
+        BigDecimal entrustMargin = entrustMarginDO.getEntrustMargin();
+        entrustMarginDO.setPair(Pair.of(entrustMargin, map));
+        return entrustMarginDO;
     }
 
-    private BigDecimal cal(BigDecimal totalContraryEntrustAmount, BigDecimal totalSameEntrustAmount, BigDecimal positionEntrustAmount) {
-        BigDecimal max = totalContraryEntrustAmount.subtract(positionEntrustAmount).max(BigDecimal.ZERO);
-        max = totalSameEntrustAmount.max(max);
-
-        return max;
+    private EntrustMarginDO cal(BigDecimal totalContraryEntrustAmount, BigDecimal totalSameEntrustAmount, BigDecimal positionEntrustAmount, BigDecimal positionMarginByIndex) {
+        EntrustMarginDO entrustMarginDO = new EntrustMarginDO();
+        BigDecimal max1 = totalContraryEntrustAmount.subtract(positionEntrustAmount).max(BigDecimal.ZERO);
+        max1 = totalSameEntrustAmount.max(max1);
+        BigDecimal max2 = BigDecimal.ZERO;
+        if (positionMarginByIndex.compareTo(BigDecimal.ZERO) > 0){
+            max2 = totalContraryEntrustAmount.subtract(positionEntrustAmount).max(BigDecimal.ZERO);
+            max2 = totalSameEntrustAmount.max(max2);
+        }
+        entrustMarginDO.setEntrustMargin(max1);
+        entrustMarginDO.setEntrustMarginByIndex(max2);
+        return entrustMarginDO;
     }
 
     public void insertOrderRecord(ContractOrderDO contractOrderDO){
@@ -771,7 +799,83 @@ public class ContractOrderManager {
         return ResultCode.success();
     }
 
+    public Result checkOrderDTO(ContractOrderDTO contractOrderDTO) {
+        if (null == contractOrderDTO || null == contractOrderDTO.getPriceType() || null == contractOrderDTO.getTotalAmount() || null == contractOrderDTO.getUserId() || null == contractOrderDTO.getContractId()
+                || null == contractOrderDTO.getOrderDirection()) {
+            return Result.fail(ILLEGAL_PARAM.getCode(), "please check you param, some properties may be null");
+        }
+        if (ASK.getCode() != contractOrderDTO.getOrderDirection() && BID.getCode() != contractOrderDTO.getOrderDirection()) {
+            return Result.fail(ILLEGAL_ORDER_DIRECTION.getCode(), ILLEGAL_ORDER_DIRECTION.getMessage());
+        }
+        return Result.suc(null);
+    }
 
+    /**
+     * 根据不同价格策略，获取下单价格
+     * @param competitorsPriceList
+     * @param priceType
+     * @param orderPrice
+     * @param contractId
+     * @param orderDeriction
+     * @return
+     */
+    public Result<BigDecimal> computeAndCheckOrderPrice(List<CompetitorsPriceDTO> competitorsPriceList, Integer priceType, BigDecimal orderPrice, long assetId, Long contractId, int orderDeriction) {
+
+        if (null == priceType) {
+            return Result.fail(PRICE_TYPE_ILLEGAL.getCode(), PRICE_TYPE_ILLEGAL.getMessage());
+        }
+        if (RIVAL_PRICE.getCode() != priceType && MARKET_PRICE.getCode() != priceType && SPECIFIED_PRICE.getCode() != priceType){
+            return Result.fail(PRICE_TYPE_ILLEGAL.getCode(), PRICE_TYPE_ILLEGAL.getMessage());
+        }
+
+        //无论如何都要获取交割指数
+        BigDecimal indexes = currentPriceManager.getSpotIndex(assetId);
+        Integer scale = AssetExtraProperties.getPrecisionByAssetId(assetId);
+        BigDecimal buyMaxPrice = indexes.multiply(new BigDecimal("1.05")).setScale(scale, RoundingMode.UP);
+        BigDecimal sellMinPrice = indexes.multiply(new BigDecimal("0.95")).setScale(scale, BigDecimal.ROUND_DOWN);
+
+        //市场单
+        if (priceType == MARKET_PRICE.getCode()) {
+            if (orderDeriction == ASK.getCode()) {
+                return Result.suc(sellMinPrice);
+            }
+            return Result.suc(buyMaxPrice);
+        }
+
+        //对手价
+        if (priceType == RIVAL_PRICE.getCode()){
+
+            Optional<CompetitorsPriceDTO> currentPrice = competitorsPriceList.stream().filter(competitorsPrice-> competitorsPrice.getOrderDirection() == orderDeriction &&
+                    competitorsPrice.getId() == contractId.intValue()).findFirst();
+            if (currentPrice.isPresent() && currentPrice.get().getPrice().compareTo(BigDecimal.ZERO) > 0){
+                BigDecimal actualPrice = currentPrice.get().getPrice();
+                Integer precision = AssetExtraProperties.getPrecisionByAssetId(assetId);
+                if (null != precision) {
+                    actualPrice = actualPrice.setScale(precision, BigDecimal.ROUND_DOWN);
+                }
+                return Result.suc(actualPrice);
+            }
+            return Result.fail(NO_COMPETITORS_PRICE.getCode(), NO_COMPETITORS_PRICE.getMessage());
+        }
+
+        //校验价格
+        if (orderPrice.compareTo(BigDecimal.ZERO) <= 0){
+            return Result.fail(AMOUNT_ILLEGAL.getCode(), AMOUNT_ILLEGAL.getMessage());
+        }
+        if ( scale < orderPrice.scale()) {
+            return Result.fail(AMOUNT_ILLEGAL.getCode(), AMOUNT_ILLEGAL.getMessage());
+        }
+        if (indexes != null && indexes.compareTo(BigDecimal.ZERO) != 0){
+            if (orderDeriction == ASK.getCode() && orderPrice.compareTo(sellMinPrice) < 0){
+                return Result.fail(PRICE_OUT_OF_BOUNDARY.getCode(), PRICE_OUT_OF_BOUNDARY.getMessage());
+            }
+            if (orderDeriction == OrderDirectionEnum.BID.getCode() && orderPrice.compareTo(buyMaxPrice) > 0){
+                return Result.fail(PRICE_OUT_OF_BOUNDARY.getCode(), PRICE_OUT_OF_BOUNDARY.getMessage());
+            }
+        }
+        return Result.suc(orderPrice);
+
+    }
 
     /**
      * 判断新的合约委托能否下单
@@ -779,7 +883,8 @@ public class ContractOrderManager {
      * @param newContractOrderDO
      * @return
      */
-    public Pair<Boolean, Map<String, Object>> judgeOrderAvailable(long userId, ContractOrderDO newContractOrderDO) {
+    public Result<OrderResult> judgeOrderAvailable(long userId, Integer priceType, ContractOrderDO newContractOrderDO) {
+        Profiler profiler = (null == ThreadContextUtil.getPrifiler()) ? new Profiler("judgeOrderAvailable") : ThreadContextUtil.getPrifiler();
         ContractAccount contractAccount = new ContractAccount();
         contractAccount.setMarginCallRequirement(BigDecimal.ZERO)
                 .setFrozenAmount(BigDecimal.ZERO)
@@ -788,18 +893,44 @@ public class ContractOrderManager {
         Long orderContractId = newContractOrderDO.getContractId();
         Integer orderDirection = newContractOrderDO.getOrderDirection();
         UserContractDTO userContractDTO = assetService.getContractAccount(userId);
+        profiler.complelete("getContractAccount");
         if (null == userContractDTO) {
             log.error("null userContractDTO, userId={}", userId);
-            return Pair.of(false, Collections.emptyMap());
+            return Result.fail(NO_CONTRACT_BALANCE.getCode(), NO_CONTRACT_BALANCE.getMessage());
         }
+        //用户被接管
+        if (userContractDTO.getStatus() == LIMIT.getCode()) {
+            return Result.fail(CONTRACT_ACCOUNT_HAS_LIMITED.getCode(), CONTRACT_ACCOUNT_HAS_LIMITED.getMessage());
+        }
+
 
         List<ContractCategoryDTO> categoryList = contractCategoryService.listActiveContract();
+        profiler.complelete("listActiveContract");
+        //校验合约有效性
         if (CollectionUtils.isEmpty(categoryList)) {
-            log.error("empty categoryList");
-            return Pair.of(false, Collections.emptyMap());
+            return Result.fail( ResultCodeEnum.ILLEGAL_CONTRACT.getCode(), ILLEGAL_CONTRACT.getMessage());
+        }
+        ContractCategoryDTO contractCategoryDTO = categoryList.stream().filter(x -> x.getId().equals(newContractOrderDO.getContractId())).findFirst()
+                .orElse(null);
+        if (null == contractCategoryDTO) {
+            return Result.fail( ResultCodeEnum.ILLEGAL_CONTRACT.getCode(), ILLEGAL_CONTRACT.getMessage());
         }
 
+        List<CompetitorsPriceDTO> competitorsPrices = realTimeEntrustManager.getContractCompetitorsPriceOrder();
+        profiler.complelete("getContractCompetitorsPriceOrder");
+        //计算合约价格
+        Result<BigDecimal> getPriceRes = computeAndCheckOrderPrice(competitorsPrices, priceType, newContractOrderDO.getPrice(),
+                contractCategoryDTO.getAssetId(), newContractOrderDO.getContractId(), newContractOrderDO.getOrderDirection());
+        if (!getPriceRes.isSuccess()) {
+            return Result.fail(getPriceRes.getCode(), getPriceRes.getMessage());
+        }
+
+        //重新设置价格
+        newContractOrderDO.setPrice(getPriceRes.getData());
+
+        //查询用户所有非强平活跃单
         List<ContractOrderDO> allContractOrders = contractOrderMapper.selectNotEnforceOrderByUserId(userId);
+        profiler.complelete("selectNotEnforceOrderByUserId");
         if (null == allContractOrders) {
             allContractOrders = new ArrayList<>();
         }
@@ -809,19 +940,21 @@ public class ContractOrderManager {
                 .filter(contractOrderDO -> orderContractId.equals(contractOrderDO.getContractId()))
                 .collect(toList());
 
+        //合约数量限制
         if (currentContractOrders.size() > 200) {
             throw new BizException(ResultCodeEnum.TOO_MUCH_ORDERS);
         }
 
-        if (marketAccountListService.contains(userId)) {
-            return Pair.of(true, Collections.emptyMap());
-        }
 
         List<UserPositionDO> allPositions = userPositionMapper.selectByUserId(userId, PositionStatusEnum.UNDELIVERED.getCode());
-        List<CompetitorsPriceDTO> competitorsPrices = realTimeEntrust.getContractCompetitorsPrice();
+        profiler.complelete("selectPositionByUserId");
+
         List<UserContractLeverDO> contractLeverDOS = userContractLeverMapper.listUserContractLever(userId);
+        profiler.complelete("listUserContractLever");
 
         Map<String, Object> map = new HashMap<>();
+        OrderResult orderResult = new OrderResult();
+        orderResult.setEntrustInternalValues(map);
         for (ContractCategoryDTO contractCategoryDO : categoryList) {
             long contractId = contractCategoryDO.getId();
             BigDecimal lever = findLever(contractLeverDOS, userId, contractCategoryDO.getAssetId());
@@ -863,7 +996,7 @@ public class ContractOrderManager {
 
                 BigDecimal price = computePrice(competitorsPrices, userPositionDO.getPositionType(), contractId);
                 if (null == price) {
-                    return Pair.of(false, Collections.emptyMap());
+                    return Result.fail(SYSTEM_ERROR.getCode(), SYSTEM_ERROR.getMessage());
                 }
                 floatingPL = price.subtract(positionAveragePrice)
                         .multiply(positionUnfilledAmount)
@@ -879,15 +1012,17 @@ public class ContractOrderManager {
                             //计算委托额外保证金
                             Boolean judgeRet = judgeOrderResult(sameDirectionOrderList, positionType, positionUnfilledAmount, positionMargin, lever);
                             if (judgeRet){
-                                return Pair.of(true, Collections.emptyMap());
+                                return Result.suc(orderResult);
                             }
                         }
                     }
                 }
             }
 
-            //该用户是否达到持仓上限
-            if (isCurrentContract) {
+            boolean isMarketUser = marketAccountListService.contains(userId);
+
+            //该用户是否达到持仓上限,做市账户不限制
+            if (isCurrentContract && !isMarketUser) {
                 BigDecimal sameDirectionOrderSum = sameDirectionOrderList.stream()
                         .map(ContractOrderDO::getUnfilledAmount)
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -908,8 +1043,8 @@ public class ContractOrderManager {
 
             //计算委托额外保证金
             List<ContractOrderDO> bidList = orderList.stream().filter(order -> order.getOrderDirection() == OrderDirectionEnum.BID.getCode()).collect(toList());
-            List<ContractOrderDO> askList = orderList.stream().filter(order -> order.getOrderDirection() == OrderDirectionEnum.ASK.getCode()).collect(toList());
-            Pair<BigDecimal, Map<String, Object>> pair = getExtraEntrustAmount(userId, contractId, bidList, askList, positionType, positionUnfilledAmount, positionMargin, lever);
+            List<ContractOrderDO> askList = orderList.stream().filter(order -> order.getOrderDirection() == ASK.getCode()).collect(toList());
+            Pair<BigDecimal, Map<String, Object>> pair = getExtraEntrustAmount(userId, contractId, bidList, askList, positionType, positionUnfilledAmount, positionMargin, BigDecimal.ZERO, lever).getPair();
             entrustMargin = pair.getLeft();
             map.putAll(pair.getRight());
 
@@ -923,7 +1058,10 @@ public class ContractOrderManager {
                 .subtract(contractAccount.getMarginCallRequirement())
                 .subtract(contractAccount.getFrozenAmount());
         boolean enough = availableAmount.compareTo(BigDecimal.ZERO) >= 0;
-        return Pair.of(enough, map);
+        if (enough) {
+            return Result.suc(orderResult);
+        }
+        return Result.fail(CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(), CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
     }
 
     public void updateExtraEntrustAmountByContract(Long userId, Long contractId) {
@@ -941,7 +1079,7 @@ public class ContractOrderManager {
                 .filter(order -> order.getOrderDirection() == OrderDirectionEnum.BID.getCode())
                 .collect(toList());
         List<ContractOrderDO> askList = contractOrderDOS.stream()
-                .filter(order -> order.getOrderDirection() == OrderDirectionEnum.ASK.getCode())
+                .filter(order -> order.getOrderDirection() == ASK.getCode())
                 .collect(toList());
 
         int lever = contractLeverManager.getLeverByContractId(userId, contractId);
@@ -954,8 +1092,9 @@ public class ContractOrderManager {
                 .orElse(BigDecimal.ZERO);
 
         log.info("user position: {}", userPositionDO);
-        Pair<BigDecimal, Map<String, Object>> pair = getExtraEntrustAmount(userId, contractId, bidList, askList, positionType, unfilledAmount, BigDecimal.ZERO,
-                BigDecimal.valueOf(lever));
+        EntrustMarginDO entrustMarginDO = new EntrustMarginDO();
+        entrustMarginDO = getExtraEntrustAmount(userId, contractId, bidList, askList, positionType, unfilledAmount, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.valueOf(lever));
+        Pair<BigDecimal, Map<String, Object>> pair = entrustMarginDO.getPair();
         Map<String, Object> map = pair.getRight();
         String userContractPositionExtraKey = RedisKey.getUserContractPositionExtraKey(userId);
         redisManager.hPutAll(userContractPositionExtraKey, map);

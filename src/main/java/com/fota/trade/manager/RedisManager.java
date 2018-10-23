@@ -327,6 +327,9 @@ public class RedisManager {
 
     public boolean hPutAll(String hKey, Map<String, Object> map) {
         try {
+            if (null == map && map.size() <=0 ) {
+                return true;
+            }
             HashOperations<String, String, Object> hOps = redisTemplate.opsForHash();
             hOps.putAll(hKey, map);
             return true;
