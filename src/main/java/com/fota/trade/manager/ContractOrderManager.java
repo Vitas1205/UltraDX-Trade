@@ -462,7 +462,7 @@ public class ContractOrderManager {
 
         List<ContractCategoryDTO> categoryList = contractCategoryService.listActiveContract();
         if (CollectionUtils.isEmpty(categoryList)) {
-            log.error("empty categoryList");
+            log.error("empty categoryList, userId={}", userId);
              return contractAccount.setAccountEquity(new BigDecimal(userContractDTO.getAmount()));
         }
         List<UserPositionDO> allPositions = userPositionMapper.selectByUserId(userId, PositionStatusEnum.UNDELIVERED.getCode());
@@ -795,7 +795,7 @@ public class ContractOrderManager {
 
         List<ContractCategoryDTO> categoryList = contractCategoryService.listActiveContract();
         if (CollectionUtils.isEmpty(categoryList)) {
-            log.error("empty categoryList");
+            log.error("empty categoryList, userId={}", userId);
             return Pair.of(false, Collections.emptyMap());
         }
 

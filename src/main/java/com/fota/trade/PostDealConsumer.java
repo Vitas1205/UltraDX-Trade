@@ -1,12 +1,15 @@
 package com.fota.trade;
 
 import com.alibaba.fastjson.JSON;
+import com.fota.trade.client.FailedTask;
 import com.fota.trade.client.PostDealMessage;
+import com.fota.trade.client.PostDealPhaseEnum;
 import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.DealManager;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
+import com.fota.trade.util.BasicUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
@@ -15,6 +18,8 @@ import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -26,10 +31,16 @@ import javax.annotation.Resource;
 import java.io.UnsupportedEncodingException;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static com.fota.trade.client.FailedTask.NOT_SURE;
+import static com.fota.trade.client.FailedTask.RETRY;
+import static com.fota.trade.client.PostDealPhaseEnum.PARSE;
+import static com.fota.trade.client.PostDealPhaseEnum.REMOVE_DUPLICATE;
+import static com.fota.trade.client.PostDealPhaseEnum.UNKNOWN;
 import static com.fota.trade.client.constants.Constants.CONTRACT_POSITION_UPDATE_TOPIC;
 import static com.fota.trade.client.constants.Constants.DEFAULT_TAG;
 
@@ -42,6 +53,8 @@ import static com.fota.trade.client.constants.Constants.DEFAULT_TAG;
 @Slf4j
 @Component
 public class PostDealConsumer {
+
+    private static final Logger UPDATE_POSITION_FAILED_LOGGER = LoggerFactory.getLogger("updatePositionFailed");
 
     @Autowired
     private DealManager dealManager;
@@ -98,38 +111,47 @@ public class PostDealConsumer {
                     return ConsumeOrderlyStatus.SUCCESS;
                 }
                 log.info("consume postDeal message,size={}, keys={}", msgs.size(), msgs.stream().map(MessageExt::getKeys).collect(Collectors.toList()));
+                try {
+                    List<PostDealMessage> postDealMessages = msgs
+                            .stream()
+                            .map(x -> {
+                                PostDealMessage message = BasicUtils.exeWhitoutError(()->JSON.parseObject(x.getBody(), PostDealMessage.class));
+                                if (null == message) {
+                                    UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedTask(RETRY, PARSE.name(), Arrays.asList(x)));
+                                    return null;
+                                }
+                                message.setMsgKey(x.getKeys());
+                                return message;
+                            })
+                            .filter(x -> null != x)
+                            .distinct()
+                            .collect(Collectors.toList());
 
-                List<PostDealMessage> postDealMessages = msgs
-                        .stream()
-                        .map(x -> {
-                            PostDealMessage message = JSON.parseObject(x.getBody(), PostDealMessage.class);
-                            message.setMsgKey(x.getKeys());
-                            return message;
-                        })
-                        .distinct()
-                        .collect(Collectors.toList());
-
-                postDealMessages = removeDuplicta(postDealMessages);
-                if (CollectionUtils.isEmpty(postDealMessages)) {
-                    log.error("empty postDealMessages");
-                    return ConsumeOrderlyStatus.SUCCESS;
-                }
-
-                Map<String, List<PostDealMessage>> postDealMessageMap = postDealMessages
-                        .stream()
-                        .collect(Collectors.groupingBy(PostDealMessage::getGroup));
-
-                postDealMessageMap.entrySet().parallelStream().forEach(entry -> {
                     try {
+                        postDealMessages = removeDuplicta(postDealMessages);
+                    }catch (Throwable t) {
+                        UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedTask(RETRY, REMOVE_DUPLICATE.name(), msgs));
+                    }
+
+                    if (CollectionUtils.isEmpty(postDealMessages)) {
+                        log.error("empty postDealMessages");
+                        return ConsumeOrderlyStatus.SUCCESS;
+                    }
+
+                    Map<String, List<PostDealMessage>> postDealMessageMap = postDealMessages
+                            .stream()
+                            .collect(Collectors.groupingBy(PostDealMessage::getGroup));
+
+                    postDealMessageMap.entrySet().parallelStream().forEach(entry -> {
                         dealManager.postDeal(entry.getValue());
                         PostDealMessage postDealMessage = entry.getValue().get(0);
                         ContractOrderDO contractOrderDO = postDealMessage.getContractOrderDO();
                         contractOrderManager.updateExtraEntrustAmountByContract(contractOrderDO.getUserId(), contractOrderDO.getContractId());
                         markExist(entry.getValue());
-                    } catch (Throwable t) {
-                        log.error("post deal message exception", t);
-                    }
-                });
+                    });
+                } catch (Throwable t) {
+                    UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedTask(NOT_SURE, UNKNOWN.name(), msgs), t);
+                }
                 return ConsumeOrderlyStatus.SUCCESS;
             }
         });
@@ -140,6 +162,9 @@ public class PostDealConsumer {
     private List<PostDealMessage> removeDuplicta(List<PostDealMessage> postDealMessages) {
         List<String> keys = postDealMessages.stream().map(x -> EXIST_POST_DEAL + x.getMsgKey()).collect(Collectors.toList());
         List<String> existList = redisTemplate.opsForValue().multiGet(keys);
+        if (null == existList) {
+            return postDealMessages;
+        }
         List<PostDealMessage> ret = new ArrayList<>();
         for (int i = 0; i < postDealMessages.size(); i++) {
             PostDealMessage postDealMessage = postDealMessages.get(i);

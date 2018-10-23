@@ -1,16 +1,17 @@
 package com.fota.trade.manager;
 
+import com.alibaba.dubbo.remoting.TimeoutException;
 import com.alibaba.fastjson.JSON;
 import com.fota.asset.domain.ContractDealer;
 import com.fota.asset.service.ContractService;
-import com.fota.common.utils.CommonUtils;
+import com.fota.trade.client.FailedTask;
 import com.fota.trade.client.PostDealMessage;
+import com.fota.trade.client.PostDealPhaseEnum;
 import com.fota.trade.client.constants.DealedMessage;
 import com.fota.trade.common.Constant;
 import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.common.UpdatePositionResult;
 import com.fota.trade.domain.*;
-import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderOperateTypeEnum;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
@@ -42,9 +43,11 @@ import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
+import static com.fota.trade.client.FailedTask.NOT_SURE;
+import static com.fota.trade.client.FailedTask.RETRY;
+import static com.fota.trade.client.PostDealPhaseEnum.UPDATE_BALANCE;
 import static com.fota.trade.client.constants.Constants.*;
 import static com.fota.trade.client.constants.DealedMessage.CONTRACT_TYPE;
-import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
 import static com.fota.trade.common.ResultCodeEnum.BIZ_ERROR;
 import static com.fota.trade.common.ResultCodeEnum.ILLEGAL_PARAM;
 import static com.fota.trade.domain.enums.ContractStatusEnum.PROCESSING;
@@ -94,8 +97,9 @@ public class DealManager {
     @Autowired
     private ContractMatchedOrderMapper contractMatchedOrderMapper;
 
-    @Resource
-    private ConcurrentMap<String, String> failedBalanceMap;
+
+    private static final Logger UPDATE_POSITION_FAILED_LOGGER = LoggerFactory.getLogger("updatePositionFailed");
+
 
     /**
      * 禁止通过内部非Transactional方法调用此方法，否则@Transactional注解会失效
@@ -241,10 +245,8 @@ public class DealManager {
             log.error("empty postDealMessages in postDeal");
             return ResultCode.error(ILLEGAL_PARAM.getCode(), "empty postDealMessages in postDeal");
         }
-        log.info("postDeal, size={}, keys={}", postDealMessages.size(), postDealMessages.stream().map(PostDealMessage::getMsgKey).collect(Collectors.toList()));
         PostDealMessage postDealMessage = postDealMessages.get(0);
         ContractOrderDO contractOrderDO = postDealMessage.getContractOrderDO();
-        log.info("postDeal, userId={}, contractId={}", contractOrderDO.getUserId(), contractOrderDO.getContractId());
         //更新持仓
         UpdatePositionResult positionResult = updatePosition(postDealMessages);
         if (null == positionResult) {
@@ -267,11 +269,15 @@ public class DealManager {
                 com.fota.common.Result result = contractService.updateBalances(dealer);
                 if (!result.isSuccess()) {
                     log.error("update balance failed, params={}", dealer);
-                    failedBalanceMap.put(postDealMessage.getMsgKey(), JSON.toJSONString(dealer));
+                    UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedTask(RETRY, UPDATE_BALANCE.name(), dealer));
                 }
             }catch (Exception e){
-                log.error("Asset RPC Error!, update balance exception, params={}", dealer, e);
-                failedBalanceMap.put(postDealMessage.getMsgKey(), JSON.toJSONString(dealer));
+                log.error("update balance exception, params={}", dealer, e);
+                if (e instanceof TimeoutException) {
+                    UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedTask(NOT_SURE, UPDATE_BALANCE.name(), dealer));
+                }else{
+                    UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedTask(RETRY, UPDATE_BALANCE.name(), dealer));
+                }
             }
         }
         //防止异常抛出
