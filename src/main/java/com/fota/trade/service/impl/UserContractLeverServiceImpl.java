@@ -70,7 +70,7 @@ public class UserContractLeverServiceImpl implements UserContractLeverService  {
                 }
             }
         } catch (Exception e) {
-            log.error("userContractLeverMapper.listUserContractLever({})", l, e);
+            log.error("userContractLeverMapper.listUserContractLever({})", e);
         }
         return resultList;
     }
