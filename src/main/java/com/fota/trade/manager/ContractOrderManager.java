@@ -786,8 +786,8 @@ public class ContractOrderManager {
 
         //对手价
         if (priceType == RIVAL_PRICE.getCode()){
-
-            Optional<CompetitorsPriceDTO> currentPrice = competitorsPriceList.stream().filter(competitorsPrice-> competitorsPrice.getOrderDirection() == orderDeriction &&
+            Integer opDirection = ASK.getCode() + BID.getCode() - orderDeriction;
+            Optional<CompetitorsPriceDTO> currentPrice = competitorsPriceList.stream().filter(competitorsPrice-> competitorsPrice.getOrderDirection() == opDirection &&
                     competitorsPrice.getId() == contractId.intValue()).findFirst();
             if (currentPrice.isPresent() && currentPrice.get().getPrice().compareTo(BigDecimal.ZERO) > 0){
                 BigDecimal actualPrice = currentPrice.get().getPrice();
