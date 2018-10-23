@@ -567,11 +567,15 @@ public class ContractOrderManager {
         //计算强平安全边际
         //通过简单现货指数计算出的账户权益
         BigDecimal accountEquityByIndex = amount.add(totalFloatingPLByIndex);
-        BigDecimal L = totalPositionValueByIndex.divide(totalPositionMarginByIndex, CommonUtils.scale, BigDecimal.ROUND_DOWN);
         BigDecimal T2 = new BigDecimal("0.6");
-        BigDecimal securityBorder = accountEquityByIndex.subtract((T2.multiply(totalPositionMarginByIndex.add(totalEntrustMarginByIndex)))).
-                divide((new BigDecimal("1").subtract(T2.divide(L, CommonUtils.scale, BigDecimal.ROUND_DOWN))), CommonUtils.scale, BigDecimal.ROUND_DOWN);
-        contractAccount.setSecurityBorder(securityBorder);
+        if (totalPositionMarginByIndex.compareTo(BigDecimal.ZERO) == 0){
+            contractAccount.setSecurityBorder(accountEquityByIndex.subtract((T2.multiply(totalPositionMarginByIndex.add(totalEntrustMarginByIndex)))));
+        }else {
+            BigDecimal L = totalPositionValueByIndex.divide(totalPositionMarginByIndex, CommonUtils.scale, BigDecimal.ROUND_DOWN);
+            BigDecimal securityBorder = accountEquityByIndex.subtract((T2.multiply(totalPositionMarginByIndex.add(totalEntrustMarginByIndex)))).
+                    divide((new BigDecimal("1").subtract(T2.divide(L, CommonUtils.scale, BigDecimal.ROUND_DOWN))), CommonUtils.scale, BigDecimal.ROUND_DOWN);
+            contractAccount.setSecurityBorder(securityBorder);
+        }
         contractAccount.setAccountMargin(contractAccount.getFrozenAmount().add(contractAccount.getMarginCallRequirement()));
         contractAccount.setSuggestedAddAmount(totalPositionValueByIndex.add(totalEntrustMarginByIndex).subtract(contractAccount.getAccountEquity()).max(BigDecimal.ZERO));
         redisManager.hPutAll(userContractPositionExtraKey, map);
