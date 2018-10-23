@@ -573,7 +573,7 @@ public class ContractOrderManager {
                 divide((new BigDecimal("1").subtract(T2.divide(L, CommonUtils.scale, BigDecimal.ROUND_DOWN))), CommonUtils.scale, BigDecimal.ROUND_DOWN);
         contractAccount.setSecurityBorder(securityBorder);
         contractAccount.setAccountMargin(contractAccount.getFrozenAmount().add(contractAccount.getMarginCallRequirement()));
-        contractAccount.setSuggestedAddAmout(totalPositionValueByIndex.add(totalEntrustMarginByIndex).subtract(contractAccount.getAccountEquity()).max(BigDecimal.ZERO));
+        contractAccount.setSuggestedAddAmount(totalPositionValueByIndex.add(totalEntrustMarginByIndex).subtract(contractAccount.getAccountEquity()).max(BigDecimal.ZERO));
         redisManager.hPutAll(userContractPositionExtraKey, map);
         return contractAccount;
 
