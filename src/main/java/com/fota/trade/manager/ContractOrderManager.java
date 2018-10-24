@@ -535,7 +535,7 @@ public class ContractOrderManager {
             totalPositionMarginByIndex = totalPositionMarginByIndex.add(positionMarginByIndex);
             totalFloatingPLByIndex = totalFloatingPLByIndex.add(floatingPLByIndex);
             totalPositionValueByIndex = totalPositionValueByIndex.add(positionValueByIndex);
-            totalEntrustMarginByIndex = totalPositionMarginByIndex.add(entrustMarginByIndex);
+            totalEntrustMarginByIndex = totalEntrustMarginByIndex.add(entrustMarginByIndex);
         }
         BigDecimal amount = new BigDecimal(userContractDTO.getAmount());
         contractAccount.setAvailableAmount(amount.add(contractAccount.getFloatingPL())
