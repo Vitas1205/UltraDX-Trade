@@ -23,7 +23,6 @@
     <bean id="contractOrderService" class="com.fota.trade.service.impl.ContractOrderServiceImpl" />
     <bean id="userContractLeverService" class="com.fota.trade.service.impl.UserContractLeverServiceImpl" />
 
-
     <dubbo:service interface="com.fota.trade.service.ContractCategoryService"  ref="contractCategoryService" />
     <dubbo:service interface="com.fota.trade.service.UsdkOrderService"  ref="usdkOrderService" />
     <dubbo:service interface="com.fota.trade.service.UserPositionService" ref="userPositionService" />
@@ -39,7 +38,6 @@
     <dubbo:reference interface="com.fota.match.service.ContractMatchedOrderService" id="contractMatchedOrderService" />
     <dubbo:reference interface="com.fota.data.service.DeliveryIndexService" id="deliveryIndexServicede"/>
     <dubbo:reference interface="com.fota.data.service.SpotIndexService" id="spotIndexService"/>
-
 
 
 </beans>

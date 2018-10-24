@@ -350,6 +350,12 @@ public class ContractOrderServiceTest {
     }
 
     @Test
+    public void getEntrustMarginTest(){
+//        BigDecimal ret = contractOrderManager.getEntrustMargin(17764594100L);
+//        log.info(ret.toString());
+    }
+
+    @Test
     public void cancelOrderTest() throws Exception {
 //        Map<String, String> usermap = new HashMap<>();
 //        ResultCode resultCode = contractOrderManager.cancelOrder(282L, 707427967800392L , usermap);
