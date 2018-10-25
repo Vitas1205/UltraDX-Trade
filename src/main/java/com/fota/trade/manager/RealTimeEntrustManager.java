@@ -2,8 +2,10 @@ package com.fota.trade.manager;
 
 import com.fota.ticker.entrust.RealTimeEntrust;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -13,6 +15,7 @@ import java.util.List;
  * Created by lds on 2018/10/20.
  * Code is the law
  */
+@Slf4j
 @Component
 public class RealTimeEntrustManager {
     @Autowired
@@ -22,7 +25,7 @@ public class RealTimeEntrustManager {
      * @return
      */
 
-//    @Cacheable("competitorsPriceOrder")
+    @Cacheable("competitorsPriceOrder")
     public List<CompetitorsPriceDTO> getContractCompetitorsPriceOrder() {
         return realTimeEntrust.getContractCompetitorsPriceOrder();
     }
@@ -30,6 +33,5 @@ public class RealTimeEntrustManager {
     @CacheEvict("competitorsPriceOrder")
     @Scheduled(fixedRate = 500)
     public void deleteContractCompetitorsPriceOrder() {
-
     }
 }
