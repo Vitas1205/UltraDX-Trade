@@ -733,6 +733,9 @@ public class ContractOrderManager {
     }
 
     public void insertOrderRecord(ContractOrderDO contractOrderDO){
+        if (contractOrderDO.getOrderType().equals(PriceTypeEnum.RIVAL_PRICE.getCode())) {
+            contractOrderDO.setOrderType(PriceTypeEnum.SPECIFIED_PRICE.getCode());
+        }
         int insertContractOrderRet = contractOrderMapper.insert(contractOrderDO);
         if (insertContractOrderRet <= 0) {
             log.error("insert contractOrder failed");
@@ -823,13 +826,9 @@ public class ContractOrderManager {
         //对手价
         if (orderType == RIVAL_PRICE.getCode()){
             Integer opDirection = ASK.getCode() + BID.getCode() - orderDeriction;
-            log.info("---------- rival price ------------");
-            log.info(competitorsPriceList.toString());
             Optional<CompetitorsPriceDTO> currentPrice = competitorsPriceList.stream().filter(competitorsPrice-> competitorsPrice.getOrderDirection() == opDirection &&
 
                     competitorsPrice.getId() == contractId.intValue()).findFirst();
-            log.info("---------- current price ------------");
-            log.info(currentPrice.toString());
             if (currentPrice.isPresent() && currentPrice.get().getPrice().compareTo(BigDecimal.ZERO) > 0){
                 BigDecimal actualPrice = currentPrice.get().getPrice();
                 Integer precision = AssetExtraProperties.getPrecisionByAssetId(assetId);
