@@ -834,6 +834,7 @@ public class ContractOrderManager {
                 }
                 return Result.suc(actualPrice);
             }
+            log.info("contractId={}, competitorsPriceList={}", contractId, competitorsPriceList);
             return Result.fail(NO_COMPETITORS_PRICE.getCode(), NO_COMPETITORS_PRICE.getMessage());
         }
 
