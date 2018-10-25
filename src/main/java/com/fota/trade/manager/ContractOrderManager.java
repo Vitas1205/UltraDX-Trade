@@ -733,6 +733,9 @@ public class ContractOrderManager {
     }
 
     public void insertOrderRecord(ContractOrderDO contractOrderDO){
+        if (contractOrderDO.getOrderType().equals(PriceTypeEnum.RIVAL_PRICE.getCode())) {
+            contractOrderDO.setOrderType(PriceTypeEnum.SPECIFIED_PRICE.getCode());
+        }
         int insertContractOrderRet = contractOrderMapper.insert(contractOrderDO);
         if (insertContractOrderRet <= 0) {
             log.error("insert contractOrder failed");
