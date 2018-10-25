@@ -29,7 +29,7 @@ public class RealTimeEntrustManager {
     }
 
     @CacheEvict("competitorsPriceOrder")
-    @Scheduled(fixedRate = 1000)
+    @Scheduled(fixedRate = 500)
     public void deleteContractCompetitorsPriceOrder() {
 
     }
