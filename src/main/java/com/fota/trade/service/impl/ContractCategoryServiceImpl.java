@@ -74,6 +74,7 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
         list.add(ContractStatusEnum.DELIVERYING.getCode());
         list.add(ContractStatusEnum.UNOPENED.getCode());
         list.add(ContractStatusEnum.ROOLING_BACK.getCode());
+        list.add(ContractStatusEnum.DELIVERED.getCode());
         Map<String, Object> map = new HashMap<>();
         map.put("contractStatus", list);
         try {
