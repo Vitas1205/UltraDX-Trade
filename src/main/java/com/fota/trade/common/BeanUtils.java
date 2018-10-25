@@ -1,18 +1,25 @@
 package com.fota.trade.common;
 
+import com.alibaba.fastjson.JSONObject;
+import com.fota.trade.PriceTypeEnum;
 import com.fota.trade.domain.*;
+import com.fota.trade.domain.enums.OrderCloseTypeEnum;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
+import com.fota.trade.domain.enums.OrderTypeEnum;
 import org.springframework.beans.BeansException;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
+import static com.fota.trade.PriceTypeEnum.MARKET_PRICE;
+import static com.fota.trade.PriceTypeEnum.SPECIFIED_PRICE;
 import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
+import static com.fota.trade.domain.enums.OrderStatusEnum.COMMIT;
+import static com.fota.trade.domain.enums.OrderTypeEnum.LIMIT;
+import static com.fota.trade.domain.enums.OrderTypeEnum.MARKET;
 
 /**
  * @author Gavin Shen
@@ -158,42 +165,42 @@ public class BeanUtils {
         return contractOrderDTO;
     }
 
-    public static ContractOrderDO copy(com.fota.trade.domain.ContractOrderDTO contractOrderDTO) {
+    public static ContractOrderDO extractContractOrderDO(long id, com.fota.trade.domain.ContractOrderDTO contractOrderDTO, String username, BigDecimal feeRate) {
+
         ContractOrderDO contractOrderDO = new ContractOrderDO();
-        if (contractOrderDTO.getId() != null) {
-            contractOrderDO.setId(contractOrderDTO.getId());
-        }
-        if (contractOrderDTO.getGmtCreate() != null) {
-            contractOrderDO.setGmtCreate(contractOrderDTO.getGmtCreate());
-        }
-        if (contractOrderDTO.getGmtModified() != null) {
-            contractOrderDO.setGmtModified(contractOrderDTO.getGmtModified());
-        }
-        if (contractOrderDTO.getUserId() != null) {
-            contractOrderDO.setUserId(contractOrderDTO.getUserId());
-        }if (contractOrderDTO.getOrderDirection() != null) {
-            contractOrderDO.setOrderDirection(contractOrderDTO.getOrderDirection());
-        }if (contractOrderDTO.getOrderType() != null) {
-            contractOrderDO.setOrderType(contractOrderDTO.getOrderType());
-        }if (contractOrderDTO.getOperateType() != null) {
-            contractOrderDO.setOperateType(contractOrderDTO.getOperateType());
-        }if (contractOrderDTO.getOperateDirection() != null) {
-            contractOrderDO.setOperateDirection(contractOrderDTO.getOperateDirection());
-        }if (contractOrderDTO.getUnfilledAmount() != null) {
-            contractOrderDO.setUnfilledAmount(contractOrderDTO.getUnfilledAmount());
-        }if (contractOrderDTO.getCloseType() != null) {
-            contractOrderDO.setCloseType(contractOrderDTO.getCloseType());
-        }if (contractOrderDTO.getAveragePrice() != null) {
-            contractOrderDO.setAveragePrice(contractOrderDTO.getAveragePrice());
-        }
+        contractOrderDO.setId(id);
+
+        contractOrderDO.setUserId(contractOrderDTO.getUserId());
+        contractOrderDO.setOrderDirection(contractOrderDTO.getOrderDirection());
+        contractOrderDO.setOrderType(contractOrderDTO.getOrderType());
+        contractOrderDO.setOperateType(contractOrderDTO.getOperateType());
+        contractOrderDO.setOperateDirection(contractOrderDTO.getOperateDirection());
+        contractOrderDO.setCloseType(contractOrderDTO.getCloseType());
+        contractOrderDO.setAveragePrice(contractOrderDTO.getAveragePrice());
+        contractOrderDO.setTotalAmount(contractOrderDTO.getTotalAmount());
         contractOrderDO.setContractId(contractOrderDTO.getContractId());
         contractOrderDO.setContractName(contractOrderDTO.getContractName());
-        if (contractOrderDTO.getTotalAmount() != null){
-            contractOrderDO.setTotalAmount(contractOrderDTO.getTotalAmount());
+        contractOrderDO.setPrice(contractOrderDTO.getPrice());
+
+        contractOrderDO.setUnfilledAmount(contractOrderDO.getTotalAmount());
+
+        Map<String, Object> newMap = new HashMap<>();
+        if (contractOrderDTO.getOrderContext() !=null){
+            newMap = contractOrderDTO.getOrderContext();
         }
-        if (contractOrderDTO.getPrice() != null){
-            contractOrderDO.setPrice(contractOrderDTO.getPrice());
+        newMap.put("username", username);
+
+        contractOrderDO.setOrderContext(JSONObject.toJSONString(contractOrderDTO.getOrderContext()));
+        contractOrderDO.setStatus(COMMIT.getCode());
+        contractOrderDO.setFee(feeRate);
+        Integer priceType = contractOrderDTO.getPriceType();
+        if (null == contractOrderDO.getOrderType()) {
+            contractOrderDO.setOrderType(LIMIT.getCode());
         }
+        if (contractOrderDO.getCloseType() == null){
+            contractOrderDO.setCloseType(OrderCloseTypeEnum.MANUAL.getCode());
+        }
+
         return contractOrderDO;
     }
 

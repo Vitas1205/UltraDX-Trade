@@ -24,7 +24,7 @@ public class ContractAccountServiceImpl implements ContractAccountService {
         ContractAccount account;
 
         try {
-            account = contractOrderManager.computeContractAccount(userId, null);
+            account = contractOrderManager.computeContractAccount(userId);
             if (null == account) {
                 log.error("computeContractAccount return null, userId={}", userId);
             }
