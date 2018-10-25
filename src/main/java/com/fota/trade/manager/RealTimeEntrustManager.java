@@ -4,7 +4,6 @@ import com.fota.ticker.entrust.RealTimeEntrust;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -23,7 +22,7 @@ public class RealTimeEntrustManager {
      * @return
      */
 
-    @Cacheable("competitorsPriceOrder")
+//    @Cacheable("competitorsPriceOrder")
     public List<CompetitorsPriceDTO> getContractCompetitorsPriceOrder() {
         return realTimeEntrust.getContractCompetitorsPriceOrder();
     }
