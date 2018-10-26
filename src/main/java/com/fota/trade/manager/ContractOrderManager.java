@@ -1057,9 +1057,6 @@ public class ContractOrderManager {
         executorService.submit(() -> internalUpdateExtraEntrustAmountByContract(userId, contractId));
     }
     public void internalUpdateExtraEntrustAmountByContract(Long userId, Long contractId){
-        if (marketAccountListService.contains(userId)) {
-            return;
-        }
         List<ContractOrderDO> contractOrderDOS = contractOrderMapper.selectNotEnforceOrderByUserIdAndContractId(userId, contractId);
         if (CollectionUtils.isEmpty(contractOrderDOS)) {
             contractOrderDOS = Collections.emptyList();
