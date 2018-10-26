@@ -8,6 +8,7 @@ import com.fota.common.Result;
 import com.fota.common.utils.CommonUtils;
 import com.fota.data.domain.TickerDTO;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
+import com.fota.trade.PriceTypeEnum;
 import com.fota.trade.client.AssetExtraProperties;
 import com.fota.trade.client.CancelTypeEnum;
 import com.fota.trade.client.OrderResult;
@@ -495,7 +496,7 @@ public class ContractOrderManager {
                         positionUnfilledAmount.multiply(index);
                 UserPositionDTO userPositionDTO = com.fota.trade.common.BeanUtils.copy(userPositionDO);
                 userPositionDTO.setLever(lever.intValue());
-                userPositionDTO.setAveragePrice(positionAveragePrice);
+                userPositionDTO.setAveragePrice(positionAveragePrice.toPlainString());
                 userPositionDTO.setMargin(positionMargin);
                 userPositionDTO.setFloatingPL(floatingPL);
                 userPositionDTOS.add(userPositionDTO);

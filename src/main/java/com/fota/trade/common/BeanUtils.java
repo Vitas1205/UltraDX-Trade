@@ -206,7 +206,7 @@ public class BeanUtils {
         userPositionDTO.setContractId(userPositionDO.getContractId());
         userPositionDTO.setContractName(userPositionDO.getContractName());
         userPositionDTO.setPositionType(userPositionDO.getPositionType());
-        userPositionDTO.setAveragePrice(userPositionDO.getAveragePrice());
+        userPositionDTO.setAveragePrice(userPositionDO.getAveragePrice().toPlainString());
         userPositionDTO.setAmount(userPositionDO.getUnfilledAmount());
         userPositionDTO.setContractSize(BigDecimal.ONE);
         if (userPositionDO.getFeeRate() != null){
