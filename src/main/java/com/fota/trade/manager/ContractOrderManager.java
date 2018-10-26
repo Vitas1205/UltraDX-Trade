@@ -925,9 +925,9 @@ public class ContractOrderManager {
                 .collect(toList());
 
         //合约数量限制
-        if (currentContractOrders.size() > 200) {
-            throw new BizException(ResultCodeEnum.TOO_MUCH_ORDERS);
-        }
+//        if (currentContractOrders.size() > 200) {
+//            throw new BizException(ResultCodeEnum.TOO_MUCH_ORDERS);
+//        }
 
 
         List<UserPositionDO> allPositions = userPositionMapper.selectByUserId(userId, PositionStatusEnum.UNDELIVERED.getCode());
@@ -1020,9 +1020,9 @@ public class ContractOrderManager {
                 } else if (contractCategoryDO.getAssetId() == AssetTypeEnum.ETH.getCode()) {
                     limit = POSITION_LIMIT_ETH;
                 }
-                if (owned.compareTo(limit) >= 0) {
-                    throw new BizException(ResultCodeEnum.POSITION_EXCEEDS);
-                }
+//                if (owned.compareTo(limit) >= 0) {
+//                    throw new BizException(ResultCodeEnum.POSITION_EXCEEDS);
+//                }
             }
 
             //计算委托额外保证金
