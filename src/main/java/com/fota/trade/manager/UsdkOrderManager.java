@@ -7,7 +7,11 @@ import com.fota.asset.domain.UserCapitalDTO;
 import com.fota.asset.domain.enums.AssetTypeEnum;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.CapitalService;
+import com.fota.common.Result;
 import com.fota.match.service.UsdkMatchedOrderService;
+import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
+import com.fota.trade.PriceTypeEnum;
+import com.fota.trade.client.AssetExtraProperties;
 import com.fota.trade.client.CancelTypeEnum;
 import com.fota.trade.client.ToCancelMessage;
 import com.fota.trade.client.constants.DealedMessage;
@@ -41,12 +45,20 @@ import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
+import java.util.stream.Collectors;
 
+import static com.fota.trade.PriceTypeEnum.MARKET_PRICE;
+import static com.fota.trade.PriceTypeEnum.SPECIFIED_PRICE;
 import static com.fota.trade.client.constants.Constants.DEALED_TOPIC;
 import static com.fota.trade.client.constants.Constants.DEALED_USDT_TAG;
-import static com.fota.trade.common.ResultCodeEnum.BIZ_ERROR;
+import static com.fota.trade.common.ResultCodeEnum.*;
+import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
+import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
 import static com.fota.trade.domain.enums.OrderStatusEnum.*;
+import static com.fota.trade.domain.enums.OrderTypeEnum.LIMIT;
+import static com.fota.trade.domain.enums.OrderTypeEnum.RIVAL;
 import static java.util.stream.Collectors.toList;
 
 
@@ -91,6 +103,10 @@ public class UsdkOrderManager {
 
     @Autowired
     private UsdkMatchedOrderMapper usdkMatchedOrder;
+    @Autowired
+    private RealTimeEntrustManager realTimeEntrustManager;
+    @Autowired
+    private CurrentPriceManager currentPriceManager;
 
     private CapitalService getCapitalService() {
         return capitalService;
@@ -136,7 +152,14 @@ public class UsdkOrderManager {
             BigDecimal price = usdkOrderDO.getPrice();
             BigDecimal totalAmount = usdkOrderDO.getTotalAmount();
             BigDecimal orderValue = totalAmount.multiply(price);
-            usdkOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
+            Result<BigDecimal> checkPriceRes = computeAndCheckOrderPrice(usdkOrderDO.getPrice(), usdkOrderDO.getOrderType(), usdkOrderDO.getOrderDirection(), usdkOrderDO.getAssetId());
+            if (usdkOrderDO.getOrderType() == RIVAL.getCode()) {
+                usdkOrderDO.setOrderType(LIMIT.getCode());
+            }
+            if (!checkPriceRes.isSuccess()) {
+                return Result.fail(checkPriceRes.getCode(), checkPriceRes.getMessage());
+            }
+            usdkOrderDO.setPrice(checkPriceRes.getData());
             //插入委托订单记录
             int ret = insertUsdkOrder(usdkOrderDO);
             profiler.complelete("insertUsdkOrder");
@@ -229,6 +252,48 @@ public class UsdkOrderManager {
         return result;
     }
 
+    private Result<BigDecimal> computeAndCheckOrderPrice(BigDecimal orderPrice, int orderType, int orderDirection, int assetId){
+
+        Integer scale = AssetTypeEnum.getUsdkPricePrecisionByAssetId(assetId);
+
+        if (orderType == PriceTypeEnum.RIVAL_PRICE.getCode()){
+
+            List<CompetitorsPriceDTO> competitorsPriceList = realTimeEntrustManager.getUsdtCompetitorsPriceOrder();
+            Integer opDirection = ASK.getCode() + BID.getCode() - orderDirection;
+
+            CompetitorsPriceDTO competitorsPriceDTO = competitorsPriceList.stream().filter(competitorsPrice-> competitorsPrice.getOrderDirection() == opDirection &&
+                    competitorsPrice.getId() == assetId).findFirst().orElse(null);
+
+            if (null == competitorsPriceDTO || null == competitorsPriceDTO.getPrice() || BigDecimal.ZERO.compareTo(competitorsPriceDTO.getPrice()) >= 0){
+                return Result.fail(NO_COMPETITORS_PRICE.getCode(), NO_COMPETITORS_PRICE.getMessage());
+            }
+            return Result.suc(competitorsPriceDTO.getPrice().setScale(scale, BigDecimal.ROUND_DOWN));
+        }
+
+        //市场单
+        if (orderType == MARKET_PRICE.getCode()) {
+            //如果是fota，获取最新成交价
+            if (AssetTypeEnum.FOTA.getCode() == assetId) {
+                BigDecimal price = realTimeEntrustManager.getUsdtLatestPrice(assetId).setScale(scale, BigDecimal.ROUND_DOWN);
+                return Result.suc(price);
+            }
+            //获取目标价格
+            BigDecimal indexes = currentPriceManager.getSpotIndexByAssetId(assetId);
+            BigDecimal buyMaxPrice = indexes.multiply(new BigDecimal("1.05")).setScale(scale, RoundingMode.UP);
+            BigDecimal sellMinPrice = indexes.multiply(new BigDecimal("0.95")).setScale(scale, BigDecimal.ROUND_DOWN);
+            if (orderDirection == ASK.getCode()) {
+                return Result.suc(sellMinPrice);
+            }
+            return Result.suc(buyMaxPrice);
+        }
+        if (orderType != SPECIFIED_PRICE.getCode()){
+            return Result.fail(PRICE_TYPE_ILLEGAL.getCode(), PRICE_TYPE_ILLEGAL.getMessage());
+        }
+        if (null == orderPrice || orderPrice.compareTo(BigDecimal.ZERO) <= 0 || orderPrice.scale() > scale){
+            return Result.fail(AMOUNT_ILLEGAL.getCode(), AMOUNT_ILLEGAL.getMessage());
+        }
+        return Result.suc(orderPrice);
+    }
     private int insertUsdkOrder(UsdkOrderDO usdkOrderDO) {
         usdkOrderDO.setId(BasicUtils.generateId());
         return usdkOrderMapper.insert(usdkOrderDO);
