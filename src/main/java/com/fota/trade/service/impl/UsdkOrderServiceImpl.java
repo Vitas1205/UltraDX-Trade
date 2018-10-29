@@ -16,6 +16,7 @@ import com.fota.trade.mapper.UsdkMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkOrderMapper;
 import com.fota.trade.service.UsdkOrderService;
 import com.fota.trade.util.DateUtil;
+import com.fota.trade.util.Profiler;
 import com.fota.trade.util.ThreadContextUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -205,6 +206,10 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
             }
             log.error("USDK order() failed", e);
         }finally {
+            Profiler profiler = ThreadContextUtil.getPrifiler();
+            if (null != profiler) {
+                profiler.log();
+            }
             ThreadContextUtil.clear();
         }
         result.setCode(ResultCodeEnum.ORDER_FAILED.getCode());
@@ -290,6 +295,10 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
                 return ResultCode.error(SYSTEM_ERROR.getCode(), SYSTEM_ERROR.getMessage());
             }
         }finally {
+            Profiler profiler = ThreadContextUtil.getPrifiler();
+            if (null != profiler) {
+                profiler.log();
+            }
             ThreadContextUtil.clear();
         }
     }
