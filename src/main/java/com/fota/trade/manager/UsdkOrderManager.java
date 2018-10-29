@@ -382,6 +382,10 @@ public class UsdkOrderManager {
         UsdkOrderDO askUsdkOrder = usdkOrderMapper.selectByUserIdAndId(usdkMatchedOrderDTO.getAskUserId(), usdkMatchedOrderDTO.getAskOrderId());
         UsdkOrderDO bidUsdkOrder = usdkOrderMapper.selectByUserIdAndId(usdkMatchedOrderDTO.getBidUserId(), usdkMatchedOrderDTO.getBidOrderId());
         profiler.complelete("select order");
+
+        List<UsdkOrderDO> usdkOrderDOS = Arrays.asList(askUsdkOrder, bidUsdkOrder);
+        usdkOrderDOS.sort((a, b) -> a.getId().compareTo(b.getId()));
+
         BigDecimal filledAmount = new BigDecimal(usdkMatchedOrderDTO.getFilledAmount());
         if (BasicUtils.gt(filledAmount, askUsdkOrder.getUnfilledAmount())){
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), "askOrder unfilledAmount not enough. order="+askUsdkOrder);
@@ -392,13 +396,11 @@ public class UsdkOrderManager {
 
         BigDecimal filledPrice = new BigDecimal(usdkMatchedOrderDTO.getFilledPrice());
 
-        int updateAskOrderRet = doUpdateUsdkOrder(usdkMatchedOrderDTO.getAskUserId(), askUsdkOrder.getId(),  filledAmount, filledPrice, new Date(transferTime));
-        if (updateAskOrderRet <= 0){
-            throw new BizException(ResultCodeEnum.BIZ_ERROR.getCode(), "update askOrder failed, order=" + askUsdkOrder);
-        }
-        int updateBIdOrderRet = doUpdateUsdkOrder(usdkMatchedOrderDTO.getBidUserId(), bidUsdkOrder.getId(), filledAmount, filledPrice, new Date(transferTime));
-        if (updateBIdOrderRet <= 0){
-            throw new BizException(ResultCodeEnum.BIZ_ERROR.getCode(), "update bidOrder failed, order=" + bidUsdkOrder);
+        for (UsdkOrderDO usdkOrderDO : usdkOrderDOS) {
+            int updateAskOrderRet = doUpdateUsdkOrder(usdkOrderDO.getUserId(), usdkOrderDO.getId(),  filledAmount, filledPrice, new Date(transferTime));
+            if (updateAskOrderRet <= 0) {
+                throw new BizException(ResultCodeEnum.BIZ_ERROR.getCode(), "update askOrder failed, order=" + usdkOrderDO);
+            }
         }
         profiler.complelete("update usdt order");
 
