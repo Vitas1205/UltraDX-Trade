@@ -848,14 +848,14 @@ public class ContractOrderManager {
         if ( scale < orderPrice.scale()) {
             return Result.fail(AMOUNT_ILLEGAL.getCode(), AMOUNT_ILLEGAL.getMessage());
         }
-        if (indexes != null && indexes.compareTo(BigDecimal.ZERO) != 0){
-            if (orderDeriction == ASK.getCode() && orderPrice.compareTo(sellMinPrice) < 0){
-                return Result.fail(PRICE_OUT_OF_BOUNDARY.getCode(), PRICE_OUT_OF_BOUNDARY.getMessage());
-            }
-            if (orderDeriction == OrderDirectionEnum.BID.getCode() && orderPrice.compareTo(buyMaxPrice) > 0){
-                return Result.fail(PRICE_OUT_OF_BOUNDARY.getCode(), PRICE_OUT_OF_BOUNDARY.getMessage());
-            }
-        }
+//        if (indexes != null && indexes.compareTo(BigDecimal.ZERO) != 0){
+//            if (orderDeriction == ASK.getCode() && orderPrice.compareTo(sellMinPrice) < 0){
+//                return Result.fail(PRICE_OUT_OF_BOUNDARY.getCode(), PRICE_OUT_OF_BOUNDARY.getMessage());
+//            }
+//            if (orderDeriction == OrderDirectionEnum.BID.getCode() && orderPrice.compareTo(buyMaxPrice) > 0){
+//                return Result.fail(PRICE_OUT_OF_BOUNDARY.getCode(), PRICE_OUT_OF_BOUNDARY.getMessage());
+//            }
+//        }
         return Result.suc(orderPrice);
 
     }
