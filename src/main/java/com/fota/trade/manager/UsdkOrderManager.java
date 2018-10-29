@@ -273,14 +273,14 @@ public class UsdkOrderManager {
         //市场单
         if (orderType == MARKET_PRICE.getCode()) {
             //如果是fota，获取最新成交价
+            BigDecimal curPrice;
             if (AssetTypeEnum.FOTA.getCode() == assetId) {
-                BigDecimal price = realTimeEntrustManager.getUsdtLatestPrice(assetId).setScale(scale, BigDecimal.ROUND_DOWN);
-                return Result.suc(price);
+                curPrice = realTimeEntrustManager.getUsdtLatestPrice(assetId).setScale(scale, BigDecimal.ROUND_DOWN);
+            }else{
+                curPrice = currentPriceManager.getSpotIndexByAssetId(assetId);
             }
-            //获取目标价格
-            BigDecimal indexes = currentPriceManager.getSpotIndexByAssetId(assetId);
-            BigDecimal buyMaxPrice = indexes.multiply(new BigDecimal("1.05")).setScale(scale, RoundingMode.UP);
-            BigDecimal sellMinPrice = indexes.multiply(new BigDecimal("0.95")).setScale(scale, BigDecimal.ROUND_DOWN);
+            BigDecimal buyMaxPrice = curPrice.multiply(new BigDecimal("1.05")).setScale(scale, RoundingMode.UP);
+            BigDecimal sellMinPrice = curPrice.multiply(new BigDecimal("0.95")).setScale(scale, BigDecimal.ROUND_DOWN);
             if (orderDirection == ASK.getCode()) {
                 return Result.suc(sellMinPrice);
             }
