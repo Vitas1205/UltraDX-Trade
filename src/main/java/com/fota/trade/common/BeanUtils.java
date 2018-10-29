@@ -1,6 +1,7 @@
 package com.fota.trade.common;
 
 import com.alibaba.fastjson.JSONObject;
+import com.fota.asset.domain.enums.AssetTypeEnum;
 import com.fota.trade.domain.*;
 import org.springframework.beans.BeansException;
 import org.springframework.util.CollectionUtils;
@@ -274,7 +275,7 @@ public class BeanUtils {
             usdkMatchedOrderDO.setMatchUserId(usdkMatchedOrderDTO.getAskUserId());
         }
 
-        usdkMatchedOrderDO.setAssetName(usdkMatchedOrderDTO.getAssetName());
+        usdkMatchedOrderDO.setAssetName(AssetTypeEnum.getAssetNameByAssetId(usdkMatchedOrderDTO.getAssetId()));
         usdkMatchedOrderDO.setAssetId(usdkMatchedOrderDTO.getAssetId());
 
         usdkMatchedOrderDO.setFilledAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
