@@ -280,6 +280,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         profiler.setStart(usdkMatchedOrderDTO.getGmtCreate().getTime());
         try {
             profiler.complelete("receive message");
+            ThreadContextUtil.setPrifiler(profiler);
             resultCode = usdkOrderManager.updateOrderByMatch(usdkMatchedOrderDTO);
             if (resultCode.isSuccess()) {
                 Runnable postTask = ThreadContextUtil.getPostTask();
