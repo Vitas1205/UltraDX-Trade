@@ -276,8 +276,10 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     @Override
     public ResultCode updateOrderByMatch(UsdkMatchedOrderDTO usdkMatchedOrderDTO) {
         ResultCode resultCode = new ResultCode();
+        Profiler profiler = new Profiler("UsdkOrderManager.updateOrderByMatch", usdkMatchedOrderDTO.getId().toString());
+        profiler.setStart(usdkMatchedOrderDTO.getGmtCreate().getTime());
         try {
-
+            profiler.complelete("receive message");
             resultCode = usdkOrderManager.updateOrderByMatch(usdkMatchedOrderDTO);
             if (resultCode.isSuccess()) {
                 Runnable postTask = ThreadContextUtil.getPostTask();
@@ -295,10 +297,8 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
                 return ResultCode.error(SYSTEM_ERROR.getCode(), SYSTEM_ERROR.getMessage());
             }
         }finally {
-            Profiler profiler = ThreadContextUtil.getPrifiler();
-            if (null != profiler) {
-                profiler.log();
-            }
+            profiler.log();
+
             ThreadContextUtil.clear();
         }
     }
