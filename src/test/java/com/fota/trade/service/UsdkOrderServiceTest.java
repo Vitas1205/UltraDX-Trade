@@ -33,7 +33,7 @@ import static com.fota.trade.common.TestConfig.userId;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
-@Transactional
+//@Transactional
 public class UsdkOrderServiceTest {
 
     @Resource
@@ -123,14 +123,14 @@ public class UsdkOrderServiceTest {
         usdkOrderDTO.setAveragePrice(new BigDecimal(0));
         usdkOrderDTO.setFee(new BigDecimal(0.01));
         usdkOrderDTO.setOrderDirection(OrderDirectionEnum.BID.getCode());
-        usdkOrderDTO.setOrderType(OrderTypeEnum.ENFORCE.getCode());
+        usdkOrderDTO.setOrderType(OrderTypeEnum.LIMIT.getCode());
         usdkOrderDTO.setPrice(new BigDecimal(6000));
         usdkOrderDTO.setTotalAmount(new BigDecimal(2));
         Map<String, Object> map = new HashMap();
         usdkOrderDTO.setOrderContext(map);
         Map<String, String> map2 =  new HashMap<String, String>();
         map2.put("username", "harry");
-        //com.fota.trade.domain.ResultCode result = usdkOrderService.order(usdkOrderDTO, map2);
+        com.fota.trade.domain.ResultCode result = usdkOrderService.order(usdkOrderDTO, map2);
     }
 
     @Test
@@ -172,16 +172,30 @@ public class UsdkOrderServiceTest {
         int aff1 = usdkOrderMapper.insert(bidOrder);
         assert aff == 1 && aff1 ==1;
 
+        BigDecimal filledAmount = new BigDecimal("0.01");
+
         UsdkMatchedOrderDTO usdkMatchedOrderDTO = new UsdkMatchedOrderDTO();
         usdkMatchedOrderDTO.setAskOrderId(askOrderDO.getId());
+        usdkMatchedOrderDTO.setAskUserId(askOrderDO.getUserId());
+        usdkMatchedOrderDTO.setAskOrderPrice(askOrderDO.getPrice().toString());
+        usdkMatchedOrderDTO.setAskOrderStatus(askOrderDO.getStatus());
+        usdkMatchedOrderDTO.setAskOrderUnfilledAmount(askOrderDO.getTotalAmount().subtract(filledAmount));
+
         usdkMatchedOrderDTO.setBidOrderId(bidOrder.getId());
-        usdkMatchedOrderDTO.setFilledAmount(askOrderDO.getTotalAmount().toString());
+        usdkMatchedOrderDTO.setBidUserId(bidOrder.getUserId());
+        usdkMatchedOrderDTO.setBidOrderPrice(bidOrder.getPrice().toString());
+        usdkMatchedOrderDTO.setBidOrderStatus(bidOrder.getStatus());
+        usdkMatchedOrderDTO.setBidOrderUnfilledAmount(bidOrder.getTotalAmount().subtract(filledAmount));
+
+        usdkMatchedOrderDTO.setFilledAmount(filledAmount.toString());
         usdkMatchedOrderDTO.setFilledPrice(askOrderDO.getPrice().toString());
         usdkMatchedOrderDTO.setAssetId(askOrderDO.getAssetId());
         usdkMatchedOrderDTO.setAskOrderPrice(askOrderDO.getPrice().toString());
         usdkMatchedOrderDTO.setBidOrderPrice(bidOrder.getPrice().toString());
+
         usdkMatchedOrderDTO.setMatchType(1);
         usdkMatchedOrderDTO.setAssetName("BTC");
+        usdkMatchedOrderDTO.setId(BasicUtils.generateId());
 
         com.fota.trade.domain.ResultCode resultCode = usdkOrderService.updateOrderByMatch(usdkMatchedOrderDTO);
 
