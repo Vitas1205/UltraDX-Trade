@@ -1,11 +1,7 @@
 package com.fota.trade.common;
 
 import com.alibaba.fastjson.JSONObject;
-import com.fota.trade.PriceTypeEnum;
 import com.fota.trade.domain.*;
-import com.fota.trade.domain.enums.OrderCloseTypeEnum;
-import com.fota.trade.domain.enums.OrderDirectionEnum;
-import com.fota.trade.domain.enums.OrderTypeEnum;
 import org.springframework.beans.BeansException;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -13,13 +9,11 @@ import org.springframework.util.StringUtils;
 import java.math.BigDecimal;
 import java.util.*;
 
-import static com.fota.trade.PriceTypeEnum.MARKET_PRICE;
-import static com.fota.trade.PriceTypeEnum.SPECIFIED_PRICE;
 import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
+import static com.fota.trade.domain.enums.OrderCloseType.MANUAL;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
 import static com.fota.trade.domain.enums.OrderStatusEnum.COMMIT;
 import static com.fota.trade.domain.enums.OrderTypeEnum.LIMIT;
-import static com.fota.trade.domain.enums.OrderTypeEnum.MARKET;
 
 /**
  * @author Gavin Shen
@@ -193,12 +187,11 @@ public class BeanUtils {
         contractOrderDO.setOrderContext(JSONObject.toJSONString(contractOrderDTO.getOrderContext()));
         contractOrderDO.setStatus(COMMIT.getCode());
         contractOrderDO.setFee(feeRate);
-        Integer priceType = contractOrderDTO.getPriceType();
         if (null == contractOrderDO.getOrderType()) {
             contractOrderDO.setOrderType(LIMIT.getCode());
         }
         if (contractOrderDO.getCloseType() == null){
-            contractOrderDO.setCloseType(OrderCloseTypeEnum.MANUAL.getCode());
+            contractOrderDO.setCloseType(MANUAL.getCode());
         }
 
         return contractOrderDO;

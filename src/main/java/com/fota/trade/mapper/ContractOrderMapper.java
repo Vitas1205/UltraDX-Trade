@@ -1,5 +1,6 @@
 package com.fota.trade.mapper;
 
+import com.fota.trade.UpdateOrderItem;
 import com.fota.trade.client.RecoveryQuery;
 import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.domain.DateWrapper;
@@ -91,6 +92,8 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
                               @Param("filledPrice") BigDecimal filledPrice,
                               @Param("gmtModified") Date gmtModified);
 
+
+//    int batchUpdateAmountAndStatus(List<UpdateOrderItem> updateOrderItems);
 
     int countByQuery(Map<String, Object> param);
 

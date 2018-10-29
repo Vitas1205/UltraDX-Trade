@@ -7,7 +7,6 @@ import com.fota.asset.service.AssetService;
 import com.fota.common.Result;
 import com.fota.common.utils.CommonUtils;
 import com.fota.data.domain.TickerDTO;
-import com.fota.data.service.SpotIndexService;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
 import com.fota.trade.PriceTypeEnum;
 import com.fota.trade.client.AssetExtraProperties;
@@ -199,6 +198,9 @@ public class ContractOrderManager {
             if (null != judgeRet.getData().getEntrustInternalValues()) {
                 entrustInternalValues.putAll(judgeRet.getData().getEntrustInternalValues());
             }
+            if (null != judgeRet.getData().getLever()) {
+                contractOrderDO.setLever(judgeRet.getData().getLever());
+            }
             insertOrderRecord(contractOrderDO);
             orderId = contractOrderDO.getId();
             profiler.complelete("insert record");
@@ -264,6 +266,7 @@ public class ContractOrderManager {
         orderMessage.setSubjectId(contractOrderDO.getContractId());
         orderMessage.setSubjectName(contractOrderDO.getContractName());
         orderMessage.setContractType(contractType);
+        orderMessage.setFee(contractOrderDO.getFee());
         orderMessage.setContractMatchAssetName(assetName);
         boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder",String.valueOf(contractOrderDO.getId()), orderMessage);
         if (!sendRet) {
@@ -810,7 +813,7 @@ public class ContractOrderManager {
         }
 
         //无论如何都要获取交割指数
-        BigDecimal indexes = currentPriceManager.getSpotIndex(assetId);
+        BigDecimal indexes = currentPriceManager.getSpotIndexByAssetId(assetId);
         Integer scale = AssetExtraProperties.getPrecisionByAssetId(assetId);
         BigDecimal buyMaxPrice = indexes.multiply(new BigDecimal("1.05")).setScale(scale, RoundingMode.UP);
         BigDecimal sellMinPrice = indexes.multiply(new BigDecimal("0.95")).setScale(scale, BigDecimal.ROUND_DOWN);
@@ -938,6 +941,7 @@ public class ContractOrderManager {
 
         Map<String, Object> map = new HashMap<>();
         OrderResult orderResult = new OrderResult();
+        orderResult.setLever(findLever(contractLeverDOS, userId, contractCategoryDTO.getAssetId().longValue()).intValue());
         orderResult.setEntrustInternalValues(map);
         for (ContractCategoryDTO contractCategoryDO : categoryList) {
             long contractId = contractCategoryDO.getId();

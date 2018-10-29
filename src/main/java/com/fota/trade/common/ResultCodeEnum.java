@@ -60,6 +60,7 @@ public enum ResultCodeEnum {
     NO_LATEST_MATCHED_PRICE(120024, "NO_LATEST_MATCHED_PRICE"),
     TOO_MUCH_ORDERS(120024, "too much orders"),
     POSITION_EXCEEDS(120025, "position exceeds"),
+    NETWORK_ERROR(120026, "网络异常"),
 
 
     ;

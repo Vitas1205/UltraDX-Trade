@@ -193,5 +193,13 @@
     and position_type = 1
     and contract_id = #{contractId, jdbcType=BIGINT}
   </select>
+  
+  <select id="selectByContractIdAndUserIds">
+    select user_id, contract_id, unfilled_amount, position_type, average_price, lever, gmt_modified  from trade_user_position where contract_id=#{contractId}
+    and user_id in
+    <foreach collection="userIds" item="item" open="(" close=")" separator=",">
+      #{item}
+    </foreach>
+  </select>
 
 </mapper>

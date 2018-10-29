@@ -24,6 +24,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
+import javax.annotation.PreDestroy;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -55,10 +56,12 @@ public class OrderConsumer {
     @Autowired
     private ObjectMapper objectMapper;
 
+    DefaultMQPushConsumer consumer;
+
     private static final int removeSucced=1;
 
     public void init() throws InterruptedException, MQClientException {
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group + "-cancel");
+        consumer = new DefaultMQPushConsumer(group + "-cancel");
         consumer.setInstanceName(clientInstanceName);
         consumer.setNamesrvAddr(namesrvAddr);
         consumer.setMaxReconsumeTimes(3);
@@ -156,6 +159,10 @@ public class OrderConsumer {
         log.error("consume cancel message failed, cause={}, msgId={}, msgKey={}, tag={},  body={}, reconsumeTimes={}",
                 cause, messageExt.getMsgId(), messageExt.getKeys(), messageExt.getTags(),
                 body, messageExt.getReconsumeTimes());
+    }
+    @PreDestroy
+    public void destory(){
+        consumer.shutdown();
     }
 }
 

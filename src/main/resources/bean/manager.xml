@@ -38,6 +38,7 @@
     <dubbo:reference interface="com.fota.match.service.ContractMatchedOrderService" id="contractMatchedOrderService" />
     <dubbo:reference interface="com.fota.data.service.DeliveryIndexService" id="deliveryIndexServicede"/>
     <dubbo:reference interface="com.fota.data.service.SpotIndexService" id="spotIndexService"/>
+    <dubbo:reference interface="com.fota.risk.client.service.RelativeRiskLevelService" id="relativeRiskLevelService"/>
 
 
 </beans>

@@ -1,10 +1,9 @@
 package com.fota.trade;
 
 import com.alibaba.fastjson.JSON;
-import com.fota.trade.client.FailedTask;
+import com.fota.common.Result;
+import com.fota.trade.client.FailedRecord;
 import com.fota.trade.client.PostDealMessage;
-import com.fota.trade.client.PostDealPhaseEnum;
-import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.DealManager;
 import com.fota.trade.manager.RedisManager;
@@ -27,6 +26,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
 import java.io.UnsupportedEncodingException;
 import java.time.Duration;
@@ -36,11 +36,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static com.fota.trade.client.FailedTask.NOT_SURE;
-import static com.fota.trade.client.FailedTask.RETRY;
-import static com.fota.trade.client.PostDealPhaseEnum.PARSE;
-import static com.fota.trade.client.PostDealPhaseEnum.REMOVE_DUPLICATE;
-import static com.fota.trade.client.PostDealPhaseEnum.UNKNOWN;
+import static com.fota.trade.client.FailedRecord.NOT_SURE;
+import static com.fota.trade.client.FailedRecord.RETRY;
+import static com.fota.trade.client.PostDealPhaseEnum.*;
 import static com.fota.trade.client.constants.Constants.CONTRACT_POSITION_UPDATE_TOPIC;
 import static com.fota.trade.client.constants.Constants.DEFAULT_TAG;
 
@@ -82,11 +80,12 @@ public class PostDealConsumer {
     @Autowired
     private ContractOrderServiceImpl contractOrderService;
 
+    DefaultMQPushConsumer consumer;
     @PostConstruct
     public void init() throws InterruptedException, MQClientException {
         //声明并初始化一个consumer
         //需要一个consumer group名字作为构造方法的参数，这里为consumer1
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group + "-postDeal");
+        consumer = new DefaultMQPushConsumer(group + "-postDeal");
         consumer.setInstanceName(clientInstanceName);
         //同样也要设置NameServer地址
         consumer.setNamesrvAddr(namesrvAddr);
@@ -117,7 +116,7 @@ public class PostDealConsumer {
                             .map(x -> {
                                 PostDealMessage message = BasicUtils.exeWhitoutError(()->JSON.parseObject(x.getBody(), PostDealMessage.class));
                                 if (null == message) {
-                                    UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedTask(RETRY, PARSE.name(), Arrays.asList(x)));
+                                    UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedRecord(RETRY, PARSE.name(), Arrays.asList(x)));
                                     return null;
                                 }
                                 message.setMsgKey(x.getKeys());
@@ -130,7 +129,7 @@ public class PostDealConsumer {
                     try {
                         postDealMessages = removeDuplicta(postDealMessages);
                     }catch (Throwable t) {
-                        UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedTask(RETRY, REMOVE_DUPLICATE.name(), msgs));
+                        UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedRecord(RETRY, REMOVE_DUPLICATE.name(), msgs));
                     }
 
                     if (CollectionUtils.isEmpty(postDealMessages)) {
@@ -143,14 +142,16 @@ public class PostDealConsumer {
                             .collect(Collectors.groupingBy(PostDealMessage::getGroup));
 
                     postDealMessageMap.entrySet().parallelStream().forEach(entry -> {
-                        dealManager.postDeal(entry.getValue());
+                        Result result = dealManager.postDeal(entry.getValue(), false);
+                        if (!result.isSuccess()) {
+                            return;
+                        }
                         PostDealMessage postDealMessage = entry.getValue().get(0);
-                        ContractOrderDO contractOrderDO = postDealMessage.getContractOrderDO();
-                        contractOrderManager.updateExtraEntrustAmountByContract(contractOrderDO.getUserId(), contractOrderDO.getContractId());
-                        markExist(entry.getValue());
+                        contractOrderManager.updateExtraEntrustAmountByContract(postDealMessage.getUserId(), postDealMessage.getContractId());
+                        BasicUtils.exeWhitoutError(() ->  markExist(entry.getValue()));
                     });
                 } catch (Throwable t) {
-                    UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedTask(NOT_SURE, UNKNOWN.name(), msgs), t);
+                    UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedRecord(NOT_SURE, UNKNOWN.name(), msgs), t);
                 }
                 return ConsumeOrderlyStatus.SUCCESS;
             }
@@ -219,6 +220,10 @@ public class PostDealConsumer {
         log.error("consume message failed, cause={}, msgId={}, msgKey={}, tag={},  body={}, reconsumeTimes={}",
                 cause, messageExt.getMsgId(), messageExt.getKeys(), messageExt.getTags(),
                 body, messageExt.getReconsumeTimes());
+    }
+    @PreDestroy
+    public void destory(){
+        consumer.shutdown();
     }
 }
 

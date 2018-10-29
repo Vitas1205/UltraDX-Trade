@@ -11,7 +11,7 @@ import com.fota.trade.common.Constant;
 import com.fota.trade.common.ParamUtil;
 import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.domain.*;
-import com.fota.trade.domain.enums.OrderCloseTypeEnum;
+import com.fota.trade.domain.enums.OrderCloseType;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.PositionStatusEnum;
 import com.fota.trade.domain.query.UserPositionQuery;
@@ -149,7 +149,7 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
             record.setFee(deliveryCompletedDTO.getFee());
             //和持仓方向相反成交
             record.setOrderDirection(ASK.getCode() + BID.getCode() - deliveryCompletedDTO.getOrderDirection());
-            record.setCloseType( OrderCloseTypeEnum.EXPIRED.getCode());
+            record.setCloseType( OrderCloseType.EXPIRED.getCode());
 
             record.setOrderId(NOT_EXIST);
             record.setMatchId(NOT_EXIST);

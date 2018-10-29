@@ -8,7 +8,7 @@ import com.fota.common.Result;
 import com.fota.trade.client.RecoveryMetaData;
 import com.fota.trade.client.RecoveryQuery;
 import com.fota.trade.domain.*;
-import com.fota.trade.domain.enums.OrderCloseTypeEnum;
+import com.fota.trade.domain.enums.OrderCloseType;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.domain.enums.OrderTypeEnum;
@@ -313,7 +313,7 @@ public class ContractOrderServiceTest {
         contractOrderDTO.setOrderDirection(OrderDirectionEnum.BID.getCode());
         contractOrderDTO.setUserId(274L);
         contractOrderDTO.setPrice(new BigDecimal(1));
-        contractOrderDTO.setCloseType(OrderCloseTypeEnum.MANUAL.getCode());
+        contractOrderDTO.setCloseType(OrderCloseType.MANUAL.getCode());
         contractOrderDTO.setFee(new BigDecimal(0.01));
         //Result result = contractOrderService.orderReturnId(contractOrderDTO, userInfoMap);
         //log.info(result.toString());
@@ -330,7 +330,7 @@ public class ContractOrderServiceTest {
         contractOrderDO.setOrderDirection(OrderDirectionEnum.ASK.getCode());
         contractOrderDO.setUserId(282L);
         contractOrderDO.setPrice(new BigDecimal(100));
-        contractOrderDO.setCloseType(OrderCloseTypeEnum.MANUAL.getCode());
+        contractOrderDO.setCloseType(OrderCloseType.MANUAL.getCode());
         contractOrderDO.setFee(new BigDecimal(0.0005));
         contractOrderDO.setUnfilledAmount(new BigDecimal("0.05"));
 //        Pair<Boolean, Map<String, Object>> ret = contractOrderManager.judgeOrderAvailable(282L, contractOrderDO);
@@ -388,7 +388,7 @@ public class ContractOrderServiceTest {
         contractOrderDTO.setOrderDirection(OrderDirectionEnum.BID.getCode());
         contractOrderDTO.setUserId(282L);
         contractOrderDTO.setPrice(new BigDecimal(6000));
-        contractOrderDTO.setCloseType(OrderCloseTypeEnum.SYSTEM.getCode());
+        contractOrderDTO.setCloseType(OrderCloseType.SYSTEM.getCode());
         contractOrderDTO.setFee(new BigDecimal(0.01));
         contractOrderDTO.setUnfilledAmount(BigDecimal.TEN);
         //contractOrderService.orderReturnId(contractOrderDTO, userInfoMap);

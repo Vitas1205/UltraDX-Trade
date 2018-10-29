@@ -1,6 +1,7 @@
 package com.fota.trade.util;
 
 import com.fota.asset.domain.ContractDealer;
+import com.fota.trade.client.PostDealMessage;
 import com.fota.trade.common.UpdatePositionResult;
 import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.domain.UserPositionDO;
@@ -20,16 +21,17 @@ public class ContractUtils {
     private static int roundingMode = BigDecimal.ROUND_HALF_UP;
     public static final BigDecimal NEG_ONE = BigDecimal.ONE.negate();
 
-    public static UserPositionDO buildPosition(ContractOrderDO contractOrderDO) {
+    public static UserPositionDO buildPosition(PostDealMessage postDealMessage) {
         UserPositionDO userPositionDO = new UserPositionDO();
-        userPositionDO.setPositionType(contractOrderDO.getOrderDirection());
+        userPositionDO.setPositionType(postDealMessage.getOrderDirection());
         userPositionDO.setAveragePrice(null);
         userPositionDO.setUnfilledAmount(BigDecimal.ZERO);
         userPositionDO.setStatus(1);
-        userPositionDO.setUserId(contractOrderDO.getUserId());
-        userPositionDO.setContractName(contractOrderDO.getContractName());
-        userPositionDO.setContractId(contractOrderDO.getContractId());
-        userPositionDO.setLever(contractOrderDO.getLever());
+        userPositionDO.setUserId(postDealMessage.getUserId());
+        userPositionDO.setContractName(postDealMessage.getContractName());
+        userPositionDO.setContractId(postDealMessage.getContractId());
+        userPositionDO.setLever(postDealMessage.getLever());
+        userPositionDO.setFeeRate(postDealMessage.getFeeRate());
         return userPositionDO;
     }
 

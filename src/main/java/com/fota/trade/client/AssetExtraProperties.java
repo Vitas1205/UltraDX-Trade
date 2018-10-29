@@ -66,6 +66,17 @@ public enum AssetExtraProperties {
         }
         return extraProperties.name();
     }
+    public static String getAssetNameByContractName(String contractName) {
+        if (null == contractName) {
+            return null;
+        }
+        for (AssetTypeEnum assetTypeEnum : AssetTypeEnum.values()) {
+            if (contractName.contains(assetTypeEnum.name())) {
+                return assetTypeEnum.name();
+            }
+        }
+        return null;
+    }
 
 
 

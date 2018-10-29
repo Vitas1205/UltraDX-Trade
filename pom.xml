@@ -169,7 +169,7 @@
 		<dependency>
 			<groupId>com.fota</groupId>
 			<artifactId>trade-client</artifactId>
-            <version>1.0.7-SNAPSHOT</version>
+			<version>1.0.9-SNAPSHOT</version>
 		</dependency>
 
 		<dependency>
@@ -211,6 +211,11 @@
 			<groupId>com.fota</groupId>
 			<artifactId>data-client</artifactId>
 			<version>${data.client.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.fota</groupId>
+			<artifactId>risk-client</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
 	</dependencies>
 
