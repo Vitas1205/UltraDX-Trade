@@ -23,6 +23,7 @@ import com.fota.trade.mapper.UsdkMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkOrderMapper;
 import com.fota.trade.util.BasicUtils;
 import com.fota.trade.util.ContractUtils;
+import com.fota.trade.util.Profiler;
 import com.fota.trade.util.ThreadContextUtil;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
@@ -102,6 +103,8 @@ public class UsdkOrderManager {
     //TODO 优化: 先更新账户，再insert订单，而不是先insert订单再更新账户
     @Transactional(rollbackFor={Throwable.class})
     public com.fota.common.Result<Long> placeOrder(UsdkOrderDTO usdkOrderDTO, Map<String, String> userInfoMap)throws Exception {
+        Profiler profiler = new Profiler("UsdkOrderManager.placeOrder");
+        ThreadContextUtil.setPrifiler(profiler);
         String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
         String ipAddress = StringUtils.isEmpty(userInfoMap.get("ipAddress")) ? "" : userInfoMap.get("ipAddress");
         com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
@@ -119,6 +122,7 @@ public class UsdkOrderManager {
         Long userId = usdkOrderDO.getUserId();
         Integer orderDirection = usdkOrderDO.getOrderDirection();
         List<UserCapitalDTO> list = getAssetService().getUserCapital(userId);
+        profiler.complelete("getUserCapital");
         usdkOrderDO.setFee(usdkFee);
         usdkOrderDO.setStatus(COMMIT.getCode());
         usdkOrderDO.setUnfilledAmount(usdkOrderDO.getTotalAmount());
@@ -135,6 +139,7 @@ public class UsdkOrderManager {
             usdkOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
             //插入委托订单记录
             int ret = insertUsdkOrder(usdkOrderDO);
+            profiler.complelete("insertUsdkOrder");
             if (ret <= 0){
                 log.error("insert contractOrder failed");
                 throw new RuntimeException("insert contractOrder failed");
@@ -168,6 +173,7 @@ public class UsdkOrderManager {
                         try{
                             Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,
                                     userCapitalDTO.getAssetId(), String.valueOf(entrustValue), gmtModified.getTime());
+                            profiler.complelete("updateLockedAmount");
                             if (!updateLockedAmountRet){
                                 log.error("placeOrder getCapitalService().updateLockedAmount failed usdkOrderDO:{}", usdkOrderDO);
                                 throw new BusinessException(errorCode, errorMsg);
@@ -365,6 +371,7 @@ public class UsdkOrderManager {
 
     @Transactional(rollbackFor = Throwable.class)
     public ResultCode updateOrderByMatch(UsdkMatchedOrderDTO usdkMatchedOrderDTO) throws Exception {
+        Profiler profiler =  null == ThreadContextUtil.getPrifiler() ? new Profiler("UsdkOrderManager.updateOrderByMatch", usdkMatchedOrderDTO.getId().toString()) : ThreadContextUtil.getPrifiler();
         if (usdkMatchedOrderDTO == null) {
             log.error(ResultCodeEnum.ILLEGAL_PARAM.getMessage());
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), "illegal usdkMatchedOrderDTO" + usdkMatchedOrderDTO);
@@ -373,6 +380,10 @@ public class UsdkOrderManager {
 
         UsdkOrderDO askUsdkOrder = usdkOrderMapper.selectByUserIdAndId(usdkMatchedOrderDTO.getAskUserId(), usdkMatchedOrderDTO.getAskOrderId());
         UsdkOrderDO bidUsdkOrder = usdkOrderMapper.selectByUserIdAndId(usdkMatchedOrderDTO.getBidUserId(), usdkMatchedOrderDTO.getBidOrderId());
+        profiler.complelete("select order");
+
+        List<UsdkOrderDO> usdkOrderDOS = Arrays.asList(askUsdkOrder, bidUsdkOrder);
+        usdkOrderDOS.sort((a, b) -> a.getId().compareTo(b.getId()));
 
         BigDecimal filledAmount = new BigDecimal(usdkMatchedOrderDTO.getFilledAmount());
         if (BasicUtils.gt(filledAmount, askUsdkOrder.getUnfilledAmount())){
@@ -384,14 +395,13 @@ public class UsdkOrderManager {
 
         BigDecimal filledPrice = new BigDecimal(usdkMatchedOrderDTO.getFilledPrice());
 
-        int updateAskOrderRet = doUpdateUsdkOrder(usdkMatchedOrderDTO.getAskUserId(), askUsdkOrder.getId(),  filledAmount, filledPrice, new Date(transferTime));
-        if (updateAskOrderRet <= 0){
-            throw new BizException(ResultCodeEnum.BIZ_ERROR.getCode(), "update askOrder failed, order=" + askUsdkOrder);
+        for (UsdkOrderDO usdkOrderDO : usdkOrderDOS) {
+            int updateAskOrderRet = doUpdateUsdkOrder(usdkOrderDO.getUserId(), usdkOrderDO.getId(),  filledAmount, filledPrice, new Date(transferTime));
+            if (updateAskOrderRet <= 0) {
+                throw new BizException(ResultCodeEnum.BIZ_ERROR.getCode(), "update askOrder failed, order=" + usdkOrderDO);
+            }
         }
-        int updateBIdOrderRet = doUpdateUsdkOrder(usdkMatchedOrderDTO.getBidUserId(), bidUsdkOrder.getId(), filledAmount, filledPrice, new Date(transferTime));
-        if (updateBIdOrderRet <= 0){
-            throw new BizException(ResultCodeEnum.BIZ_ERROR.getCode(), "update bidOrder failed, order=" + bidUsdkOrder);
-        }
+        profiler.complelete("update usdt order");
 
 
 
@@ -435,6 +445,7 @@ public class UsdkOrderManager {
         boolean updateRet = false;
         try {
             updateRet = getCapitalService().updateBalance(balanceTransferDTO);
+            profiler.complelete("updateBalance");
         }catch (Exception e){
             log.error("Asset RPC Error!, getCapitalService().updateBalance exception, balanceTransferDTO:{}", balanceTransferDTO, e);
             throw new BizException(BIZ_ERROR.getCode(), "getCapitalService().updateBalance exception, balanceTransferDTO:{}" + balanceTransferDTO);
@@ -448,6 +459,7 @@ public class UsdkOrderManager {
         // 保存订单数据到数据库
         try {
             int ret = usdkMatchedOrder.insert(Arrays.asList(askMatchRecordDO, bidMatchRecordDO));
+            profiler.complelete("insert match record");
             if (ret < 2){
                 throw new RuntimeException("usdkMatchedOrder.insert failed{}");
             }

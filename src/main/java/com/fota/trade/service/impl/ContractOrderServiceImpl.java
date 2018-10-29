@@ -368,6 +368,8 @@ public class ContractOrderServiceImpl implements ContractOrderService {
                 contractMatchedOrderDTO.getAskOrderStatus(), contractMatchedOrderDTO.getBidOrderId(),
                 contractMatchedOrderDTO.getBidOrderStatus());
         Profiler profiler = new Profiler("ContractOrderManager.updateOrderByMatch", messageKey);
+        profiler.setStart(contractMatchedOrderDTO.getGmtCreate().getTime());
+        profiler.complelete("receive message");
         ThreadContextUtil.setPrifiler(profiler);
 
         try {
