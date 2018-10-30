@@ -26,7 +26,9 @@
     <dubbo:service interface="com.fota.trade.service.ContractCategoryService"  ref="contractCategoryService" />
     <dubbo:service interface="com.fota.trade.service.UsdkOrderService"  ref="usdkOrderService" />
     <dubbo:service interface="com.fota.trade.service.UserPositionService" ref="userPositionService" />
-    <dubbo:service interface="com.fota.trade.service.ContractOrderService"  ref="contractOrderService" />
+    <dubbo:service interface="com.fota.trade.service.ContractOrderService"  ref="contractOrderService" >
+        <dubbo:method name="getRecoveryMetaData" timeout="20000"></dubbo:method>
+    </dubbo:service>
     <dubbo:service interface="com.fota.trade.service.UserContractLeverService" ref="userContractLeverService" />
     <dubbo:service interface="com.fota.trade.service.ContractAccountService" ref="contractAccountService" />
 
