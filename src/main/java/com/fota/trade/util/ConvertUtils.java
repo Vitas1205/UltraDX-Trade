@@ -75,6 +75,34 @@ public class ConvertUtils {
 
     }
 
+    public static ContractMatchedOrderDO toMatchedOrderDO(PostDealMessage postDealMessage){
+        ContractMatchedOrderDO matchedOrderDO = new ContractMatchedOrderDO();
+        matchedOrderDO.setOrderId(postDealMessage.getOrderId())
+                .setUserId(postDealMessage.getUserId())
+                .setOrderPrice(postDealMessage.getPrice())
+                .setOrderDirection(postDealMessage.getOrderDirection())
+                .setCloseType(postDealMessage.getCloseType());
+
+        matchedOrderDO.setMatchId(postDealMessage.getMatchId());
+        matchedOrderDO.setMatchUserId(postDealMessage.getMatchUserId());
+
+        matchedOrderDO.setMatchType(postDealMessage.getMatchType());
+        matchedOrderDO.setFilledPrice(postDealMessage.getFilledPrice());
+        matchedOrderDO.setFilledAmount(postDealMessage.getFilledAmount());
+
+        BigDecimal fee = postDealMessage.getFilledPrice()
+                .multiply(postDealMessage.getFilledAmount())
+                .multiply(postDealMessage.getFeeRate());
+        matchedOrderDO.setFee(fee);
+
+        matchedOrderDO.setContractId(postDealMessage.getContractId());
+        matchedOrderDO.setContractName(postDealMessage.getContractName());
+        matchedOrderDO.setStatus(VALID);
+
+        return matchedOrderDO;
+
+    }
+
     public static UpdateOrderItem toUpdateOrderItem(ADLMatchedDTO adlMatchedDTO) {
         UpdateOrderItem updateOrderItem = new UpdateOrderItem();
         updateOrderItem.setFilledAmount(adlMatchedDTO.getMatchedAmount())

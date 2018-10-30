@@ -15,6 +15,9 @@ import java.util.Objects;
 @Accessors(chain = true)
 public class PostDealMessage {
 
+    private String msgKey;
+
+
     //================委托信息==========
     private long contractId;
     private long userId;
@@ -43,7 +46,15 @@ public class PostDealMessage {
     private long matchId;
     private BigDecimal filledAmount;
     private BigDecimal filledPrice;
-    private String msgKey;
+
+    //==============成交记录需要
+    private long orderId;
+    private Integer matchType;
+    private BigDecimal price;
+    private Long matchUserId;
+    private Integer closeType;
+
+
 
     @Override
     public boolean equals(Object o) {

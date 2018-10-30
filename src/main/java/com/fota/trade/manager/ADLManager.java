@@ -10,6 +10,7 @@ import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.domain.ContractADLMatchDTO;
 import com.fota.trade.domain.ContractMatchedOrderDO;
 import com.fota.trade.domain.UserPositionDO;
+import com.fota.trade.domain.enums.OrderCloseType;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
@@ -30,6 +31,7 @@ import java.util.stream.Collectors;
 import static com.fota.common.ResultCodeEnum.ILLEGAL_PARAM;
 import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
 import static com.fota.trade.common.ResultCodeEnum.BIZ_ERROR;
+import static com.fota.trade.domain.enums.OrderCloseType.DECREASE_LEVERAGE;
 import static com.fota.trade.domain.enums.OrderCloseType.SYSTEM;
 
 /**
@@ -74,8 +76,8 @@ public class ADLManager {
         }
         List<PostDealMessage> postDealMessages = new LinkedList<>();
 
-        //处理已经撮合的非强平单
-        postDealMessages.addAll(dealManager.processNoEnforceMatchedOrders(adlMatchDTO));
+
+        List<PostDealMessage> matchedPostDeal = dealManager.processNoEnforceMatchedOrders(adlMatchDTO);
 
         BigDecimal unfilledAmount = adlMatchDTO.getUnfilled();
         Long pageSize = 100L;
@@ -93,7 +95,7 @@ public class ADLManager {
             }
 
             List<UserRRLDTO> RRL = riskResult.getData();
-            List<Long> userIds = new LinkedList<>();
+            List<Long> userIds = RRL.stream().map(UserRRLDTO::getUserId).collect(Collectors.toList());
 
             //批量查询持仓
             List<UserPositionDO> userPositionDOS = userPositionMapper.selectByContractIdAndUserIds(userIds, adlMatchDTO.getContractId());
@@ -118,6 +120,11 @@ public class ADLManager {
                         .setFilledAmount(subAmount)
                         .setFilledPrice(currentPrice)
                         .setMsgKey(adlMatchDTO.getId()+"_"+BasicUtils.generateId());
+                postDealMessage.setPrice(currentPrice);
+                postDealMessage.setMatchType(adlMatchDTO.getDirection());
+                postDealMessage.setMatchUserId(adlMatchDTO.getUserId());
+                postDealMessage.setCloseType(DECREASE_LEVERAGE.getCode());
+                postDealMessage.setContractName(adlMatchDTO.getContractName());
                 postDealMessages.add(postDealMessage);
                 unfilledAmount = unfilledAmount.subtract(subAmount);
                 if (unfilledAmount.compareTo(BigDecimal.ZERO) == 0) {
@@ -141,15 +148,28 @@ public class ADLManager {
             throw new BizException(BIZ_ERROR.getCode(), "insert match record failed");
         }
 
-        //添加更新强平单持仓任务
+
+        //写降杠杆成交记录
+        List<ContractMatchedOrderDO> contractMatchedOrderDOS = postDealMessages.stream().map(ConvertUtils::toMatchedOrderDO)
+                .collect(Collectors.toList());
+        aff = contractMatchedOrderMapper.insert(contractMatchedOrderDOS);
+        if (aff < contractMatchedOrderDOS.size()) {
+            throw new BizException(BIZ_ERROR.getCode(), "insert matched record failed");
+        }
+
+        //更新持仓,账户余额
+        if (!CollectionUtils.isEmpty(matchedPostDeal)) {
+            //处理已经撮合的非强平单
+            postDealMessages.addAll(matchedPostDeal);
+        }
         postDealMessages.add(getPostDealMessage4EnforceOrder(adlMatchDTO));
-        List<Future> futures = new LinkedList<>();
         for (PostDealMessage postDealMessage : postDealMessages) {
             Result result = dealManager.postDeal(Arrays.asList(postDealMessage), true);
             if (!result.isSuccess()) {
                 throw new BizException(BIZ_ERROR.getCode(), "update position failed");
             }
         }
+
         return Result.suc(null);
 
     }

@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.fota.common.Result;
 import com.fota.trade.client.ADLPhaseEnum;
 import com.fota.trade.client.FailedRecord;
+import com.fota.trade.common.BizException;
 import com.fota.trade.domain.ContractADLMatchDTO;
 import com.fota.trade.manager.ADLManager;
 import com.fota.trade.manager.ContractOrderManager;
@@ -95,7 +96,7 @@ public class ADLConsumer {
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.setVipChannelEnabled(false);
         //设置consumer所订阅的Topic和Tag，*代表全部的Tag
-        consumer.subscribe(ADL, ADL_TAG);
+        consumer.subscribe(ADL, "*");
         consumer.setConsumeMessageBatchMaxSize(100);
         consumer.setPullInterval(30);
         consumer.setPullBatchSize(100);
@@ -130,7 +131,6 @@ public class ADLConsumer {
                             return message;
                         })
                         .filter(x -> null != x)
-                        .distinct()
                         .collect(Collectors.toList());
 
                 if (CollectionUtils.isEmpty(adlMessages)) {
@@ -142,10 +142,11 @@ public class ADLConsumer {
                     try {
                         Result result = adlManager.adl(adlMessage);
                         if (!result.isSuccess()) {
-                            ADL_FAILED_LOGGER.error("{}", new FailedRecord(NOT_RETRY, UNKNOW.name(), adlMessage));
+                            ADL_FAILED_LOGGER.error("{}", new FailedRecord(NOT_RETRY, UNKNOW.name(), adlMessage, result.getCode()+"", result.getMessage()));
                         }
                     }catch (Throwable t) {
-                        ADL_FAILED_LOGGER.error("{}", new FailedRecord(RETRY, START.name(), adlMessage), t);
+                        ADL_FAILED_LOGGER.error("{}", new FailedRecord(RETRY, START.name(), adlMessage, t.getClass().getSimpleName(),
+                                t.getMessage()));
                     }
                 });
 

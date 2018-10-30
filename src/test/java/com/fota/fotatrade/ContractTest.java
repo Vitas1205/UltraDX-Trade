@@ -30,8 +30,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static com.fota.trade.common.TestConfig.contractId;
 import static com.fota.trade.common.TestConfig.userId;
+import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
+import static com.fota.trade.domain.enums.OrderTypeEnum.ENFORCE;
 
 /**
  * @Author: Harry Wang
@@ -42,7 +45,7 @@ import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
 @SpringBootTest
 @Slf4j
 @RunWith(SpringRunner.class)
-@Transactional
+//@Transactional
 public class ContractTest {
 
     @Autowired
@@ -79,15 +82,14 @@ public class ContractTest {
             list.add(competitorsPriceDTO2);*/
 
             ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
-            //contractOrderDTO.setContractId(1000);
-            contractOrderDTO.setContractName("BTC0906");
-            contractOrderDTO.setContractId(1214L);
+            contractOrderDTO.setContractName("BTC0304");
+            contractOrderDTO.setContractId(1217L);
             contractOrderDTO.setUserId(userId);
-            contractOrderDTO.setOrderDirection(BID.getCode());
+            contractOrderDTO.setOrderDirection(ASK.getCode());
             contractOrderDTO.setOperateType(0);
-            contractOrderDTO.setOrderType(OrderTypeEnum.MARKET.getCode());
-            contractOrderDTO.setTotalAmount(BigDecimal.ONE);
-            contractOrderDTO.setPrice(new BigDecimal("8500"));
+            contractOrderDTO.setOrderType(ENFORCE.getCode());
+            contractOrderDTO.setTotalAmount(new BigDecimal("0.02"));
+            contractOrderDTO.setPrice(new BigDecimal("6604"));
             Map<String, String> map = new HashMap<>();
             map.put("usernmae", "123");
             map.put("ip", "192.169.1.1");
@@ -126,7 +128,7 @@ public class ContractTest {
     @Test
     public void cancleAllOrder(){
         Long userId = 284L;
-        //contractOrderService.cancelAllOrder(userId);
+        //contractOrderService.cancelAllmatch_adlOrder(userId);
     }
 
     @Test
