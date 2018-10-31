@@ -158,13 +158,13 @@
 			<groupId>com.fota</groupId>
 			<artifactId>asset-client</artifactId>
 			<version>1.0.3</version>
-			<exclusions>
-				<exclusion>
-					<artifactId>lombok</artifactId>
-					<groupId>org.projectlombok</groupId>
-				</exclusion>
-			</exclusions>
-		</dependency>
+            <exclusions>
+                <exclusion>
+                    <artifactId>lombok</artifactId>
+                    <groupId>org.projectlombok</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
 
 		<dependency>
 			<groupId>com.fota</groupId>
@@ -182,12 +182,6 @@
 			<groupId>com.fota</groupId>
 			<artifactId>common-client</artifactId>
 			<version>1.0.3-SNAPSHOT</version>
-		</dependency>
-
-		<dependency>
-			<groupId>com.fota</groupId>
-			<artifactId>data-client</artifactId>
-			<version>1.0.7</version>
 		</dependency>
 
 		<dependency>
@@ -221,6 +215,11 @@
 
 	<dependencyManagement>
 		<dependencies>
+			<dependency>
+				<groupId>org.projectlombok</groupId>
+				<artifactId>lombok</artifactId>
+				<version>1.16.16</version>
+			</dependency>
 			<dependency>
 				<groupId>org.springframework.cloud</groupId>
 				<artifactId>spring-cloud-dependencies</artifactId>
