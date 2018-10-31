@@ -1,5 +1,6 @@
 package com.fota.trade.manager;
 
+import com.alibaba.fastjson.JSON;
 import com.fota.common.Result;
 import com.fota.risk.client.domain.UserRRLDTO;
 import com.fota.risk.client.service.RelativeRiskLevelService;
@@ -18,6 +19,8 @@ import com.fota.trade.util.BasicUtils;
 import com.fota.trade.util.ContractUtils;
 import com.fota.trade.util.ConvertUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,6 +60,8 @@ public class ADLManager {
 
     @Autowired
     private ContractMatchedOrderMapper contractMatchedOrderMapper;
+
+    private static final Logger ADL_EXTEA_LOG = LoggerFactory.getLogger("adlExtraInfo");
 
 //    private static final ExecutorService executorService = new ThreadPoolExecutor(1, 10, 10, TimeUnit.MINUTES, new LinkedBlockingDeque<>());
     /**
@@ -169,7 +174,12 @@ public class ADLManager {
                 throw new BizException(BIZ_ERROR.getCode(), "update position failed");
             }
         }
-
+        Map<String, Object> map = new HashMap<>();
+        map.put("platformProfit", platformProfit);
+        map.put("matchId", adlMatchDTO.getId());
+        map.put("enforceUserId", adlMatchDTO.getUserId());
+        map.put("adlUserIds", contractMatchedOrderDOS.stream().map(ContractMatchedOrderDO::getUserId).collect(Collectors.toList()));
+        ADL_EXTEA_LOG.info("{}", JSON.toJSONString(map));
         return Result.suc(null);
 
     }
