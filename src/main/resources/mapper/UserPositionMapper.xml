@@ -195,7 +195,7 @@
   </select>
 
   <select id="selectByUserId" resultMap="BaseResultMap">
-    select *
+    select <include refid="Base_Column_List"/>
     from trade_user_position
     where user_id = #{userId,jdbcType=BIGINT}
       and status = #{status}
