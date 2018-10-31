@@ -1,6 +1,7 @@
 package com.fota.trade.client;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.fota.common.Result;
 import lombok.Data;
 
@@ -37,6 +38,6 @@ public class FailedRecord {
 
     @Override
     public String toString() {
-        return JSON.toJSONString(this);
+        return JSON.toJSONString(this, SerializerFeature.IgnoreNonFieldGetter, SerializerFeature.IgnoreErrorGetter);
     }
 }

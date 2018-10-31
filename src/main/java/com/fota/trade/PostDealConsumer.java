@@ -1,9 +1,9 @@
 package com.fota.trade;
 
 import com.alibaba.fastjson.JSON;
-import com.fota.common.Result;
 import com.fota.trade.client.FailedRecord;
 import com.fota.trade.client.PostDealMessage;
+import com.fota.trade.domain.MQMessage;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.DealManager;
 import com.fota.trade.manager.RedisManager;
@@ -25,7 +25,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
 import java.io.UnsupportedEncodingException;
@@ -129,7 +128,7 @@ public class PostDealConsumer {
                     try {
                         postDealMessages = removeDuplicta(postDealMessages);
                     }catch (Throwable t) {
-                        UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedRecord(RETRY, REMOVE_DUPLICATE.name(), msgs));
+                        UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedRecord(RETRY, REMOVE_DUPLICATE.name(), postDealMessages));
                     }
 
                     if (CollectionUtils.isEmpty(postDealMessages)) {
@@ -142,16 +141,26 @@ public class PostDealConsumer {
                             .collect(Collectors.groupingBy(PostDealMessage::getGroup));
 
                     postDealMessageMap.entrySet().parallelStream().forEach(entry -> {
-                        Result result = dealManager.postDeal(entry.getValue(), false);
-                        if (!result.isSuccess()) {
-                            return;
+
+                        try {
+                            dealManager.postDeal(entry.getValue(), false);
+                            PostDealMessage postDealMessage = entry.getValue().get(0);
+                            contractOrderManager.updateExtraEntrustAmountByContract(postDealMessage.getUserId(), postDealMessage.getContractId());
+                            BasicUtils.exeWhitoutError(() ->  markExist(entry.getValue()));
+                        }catch (Throwable t) {
+                            UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedRecord(NOT_SURE, UNKNOWN.name(), entry.getValue()), t.getClass().getSimpleName(),
+                                    t.getMessage());
                         }
-                        PostDealMessage postDealMessage = entry.getValue().get(0);
-                        contractOrderManager.updateExtraEntrustAmountByContract(postDealMessage.getUserId(), postDealMessage.getContractId());
-                        BasicUtils.exeWhitoutError(() ->  markExist(entry.getValue()));
                     });
                 } catch (Throwable t) {
-                    UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedRecord(NOT_SURE, UNKNOWN.name(), msgs), t);
+
+                    List<MQMessage> mqMessages = msgs.stream().map(x-> {
+                        MQMessage mqMessage = new MQMessage();
+                        mqMessage.setKey(x.getKeys());
+                        mqMessage.setMessage(x.getBody());
+                        return mqMessage;
+                    }).collect(Collectors.toList());
+                    UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedRecord(NOT_SURE, UNKNOWN.name(), mqMessages, t.getClass().getSimpleName(), t.getMessage()));
                 }
                 return ConsumeOrderlyStatus.SUCCESS;
             }
