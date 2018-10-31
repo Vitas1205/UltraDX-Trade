@@ -1,11 +1,8 @@
 package com.fota.trade.common;
 
 import com.alibaba.fastjson.JSONObject;
-import com.fota.trade.PriceTypeEnum;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.OrderCloseTypeEnum;
-import com.fota.trade.domain.enums.OrderDirectionEnum;
-import com.fota.trade.domain.enums.OrderTypeEnum;
 import org.springframework.beans.BeansException;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -13,13 +10,10 @@ import org.springframework.util.StringUtils;
 import java.math.BigDecimal;
 import java.util.*;
 
-import static com.fota.trade.PriceTypeEnum.MARKET_PRICE;
-import static com.fota.trade.PriceTypeEnum.SPECIFIED_PRICE;
 import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
 import static com.fota.trade.domain.enums.OrderStatusEnum.COMMIT;
 import static com.fota.trade.domain.enums.OrderTypeEnum.LIMIT;
-import static com.fota.trade.domain.enums.OrderTypeEnum.MARKET;
 
 /**
  * @author Gavin Shen
@@ -165,7 +159,7 @@ public class BeanUtils {
         return contractOrderDTO;
     }
 
-    public static ContractOrderDO extractContractOrderDO(long id, com.fota.trade.domain.ContractOrderDTO contractOrderDTO, String username, BigDecimal feeRate) {
+    public static ContractOrderDO extractContractOrderDO(long id, ContractOrderDTO contractOrderDTO, String username, BigDecimal feeRate) {
 
         ContractOrderDO contractOrderDO = new ContractOrderDO();
         contractOrderDO.setId(id);
@@ -193,7 +187,6 @@ public class BeanUtils {
         contractOrderDO.setOrderContext(JSONObject.toJSONString(contractOrderDTO.getOrderContext()));
         contractOrderDO.setStatus(COMMIT.getCode());
         contractOrderDO.setFee(feeRate);
-        Integer priceType = contractOrderDTO.getPriceType();
         if (null == contractOrderDO.getOrderType()) {
             contractOrderDO.setOrderType(LIMIT.getCode());
         }
@@ -213,7 +206,7 @@ public class BeanUtils {
         userPositionDTO.setContractId(userPositionDO.getContractId());
         userPositionDTO.setContractName(userPositionDO.getContractName());
         userPositionDTO.setPositionType(userPositionDO.getPositionType());
-        userPositionDTO.setAveragePrice(userPositionDO.getAveragePrice().toString());
+        userPositionDTO.setAveragePrice(userPositionDO.getAveragePrice().toPlainString());
         userPositionDTO.setAmount(userPositionDO.getUnfilledAmount());
         userPositionDTO.setContractSize(BigDecimal.ONE);
         if (userPositionDO.getFeeRate() != null){
