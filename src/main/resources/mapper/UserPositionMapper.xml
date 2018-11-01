@@ -194,4 +194,13 @@
     and contract_id = #{contractId, jdbcType=BIGINT}
   </select>
 
+  <select id="selectByUserId" resultType="com.fota.trade.domain.UserPositionDO">
+    select <include refid="Base_Column_List"/>
+    from trade_user_position
+    where user_id = #{userId,jdbcType=BIGINT}
+      and status = #{status}
+      and unfilled_amount > 0
+    order by gmt_create desc
+  </select>
+
 </mapper>
