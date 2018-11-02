@@ -125,7 +125,7 @@ public class ADLManager {
                 postDealMessage.setSubjectName(adlMatchDTO.getContractName());
                 postDealMessages.add(postDealMessage);
                 contractMatchedOrderDOS.add(ConvertUtils.toMatchedOrderDO(postDealMessage,
-                        currentPrice, DECREASE_LEVERAGE.getCode(), adlMatchDTO.getUserId(), adlMatchDTO.getDirection()
+                        currentPrice, DECREASE_LEVERAGE.getCode(), adlMatchDTO.getUserId(), ConvertUtils.opDirection(adlMatchDTO.getDirection())
                 ));
                 unfilledAmount = unfilledAmount.subtract(subAmount);
                 if (unfilledAmount.compareTo(BigDecimal.ZERO) == 0) {
