@@ -18,6 +18,7 @@ import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserContractLeverMapper;
 import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.msg.ContractDealedMessage;
+import com.fota.trade.msg.TopicConstants;
 import com.fota.trade.service.ContractCategoryService;
 import com.fota.trade.util.*;
 import com.google.common.base.Joiner;
@@ -313,7 +314,6 @@ public class DealManager {
                 .setSubjectType(CONTRACT_TYPE)
                 .setUserId(userId);
 
-        rocketMqManager.sendMessage(DEALED_TOPIC, DEALED_CONTRACT_TAG, sample.getMsgKey() , dealedMessage);
 
         if (positionResult.getClosePL().compareTo(ZERO) != 0) {
             ContractDealer dealer = new ContractDealer()
@@ -575,7 +575,7 @@ public class DealManager {
             int key = arg.hashCode();
             return mqs.get(key % mqs.size());
         };
-        rocketMqManager.sendMessage(CONTRACT_POSITION_UPDATE_TOPIC, DEFAULT_TAG, postDealMessage.getMsgKey(), postDealMessage, queueSelector,
+        rocketMqManager.sendMessage(TopicConstants.TRD_CONTRACT_DEAL, postDealMessage.getSubjectId()+"", postDealMessage.getMsgKey(), postDealMessage, queueSelector,
                 postDealMessage.getUserId() + postDealMessage.getSubjectId());
     }
 

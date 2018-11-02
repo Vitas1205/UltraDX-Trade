@@ -22,6 +22,7 @@ import com.fota.trade.domain.enums.*;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserContractLeverMapper;
 import com.fota.trade.mapper.UserPositionMapper;
+import com.fota.trade.msg.*;
 import com.fota.trade.service.ContractCategoryService;
 import com.fota.trade.service.internal.MarketAccountListService;
 import com.fota.trade.util.BasicUtils;
@@ -29,7 +30,6 @@ import com.fota.trade.util.ContractUtils;
 import com.fota.trade.util.Profiler;
 import com.fota.trade.util.ThreadContextUtil;
 import com.google.common.base.Joiner;
-import lombok.NonNull;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -59,6 +59,7 @@ import static com.fota.trade.domain.enums.ContractStatusEnum.PROCESSING;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
 import static com.fota.trade.domain.enums.OrderStatusEnum.*;
+import static com.fota.trade.msg.TopicConstants.TRD_CONTRACT_CANCELED;
 import static java.util.stream.Collectors.toList;
 
 
@@ -138,7 +139,7 @@ public class ContractOrderManager {
                     .map(ContractOrderDO::getId)
                     .collect(toList());
 
-            sendCancelMessage(orderDOList, userId);
+            sendCancelReq(orderDOList, userId);
         }
 
         resultCode.setCode(0);
@@ -252,23 +253,19 @@ public class ContractOrderManager {
     }
     private void sendPlaceOrderMessage(ContractOrderDO contractOrderDO, Integer contractType, String assetName){
         //推送MQ消息
-        OrderMessage orderMessage = new OrderMessage();
-        orderMessage.setAmount(contractOrderDO.getUnfilledAmount());
+        ContractPlaceOrderMessage placeOrderMessage = new ContractPlaceOrderMessage();
+        placeOrderMessage.setTotalAmount(contractOrderDO.getTotalAmount());
         if (contractOrderDO.getPrice() != null){
-            orderMessage.setPrice(contractOrderDO.getPrice());
+            placeOrderMessage.setPrice(contractOrderDO.getPrice());
         }
-        orderMessage.setOrderDirection(contractOrderDO.getOrderDirection());
-        orderMessage.setOrderType(contractOrderDO.getOrderType());
-        orderMessage.setTransferTime(System.currentTimeMillis());
-        orderMessage.setOrderId(contractOrderDO.getId());
-        orderMessage.setEvent(OrderOperateTypeEnum.PLACE_ORDER.getCode());
-        orderMessage.setUserId(contractOrderDO.getUserId());
-        orderMessage.setSubjectId(contractOrderDO.getContractId());
-        orderMessage.setSubjectName(contractOrderDO.getContractName());
-        orderMessage.setContractType(contractType);
-        orderMessage.setFee(contractOrderDO.getFee());
-        orderMessage.setContractMatchAssetName(assetName);
-        boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder",String.valueOf(contractOrderDO.getId()), orderMessage);
+        placeOrderMessage.setOrderDirection(contractOrderDO.getOrderDirection());
+        placeOrderMessage.setOrderType(contractOrderDO.getOrderType());
+        placeOrderMessage.setOrderId(contractOrderDO.getId());
+        placeOrderMessage.setUserId(contractOrderDO.getUserId());
+        placeOrderMessage.setSubjectId(contractOrderDO.getContractId());
+        placeOrderMessage.setSubjectName(contractOrderDO.getContractName());
+        placeOrderMessage.setFee(contractOrderDO.getFee());
+        boolean sendRet = rocketMqManager.sendMessage(TopicConstants.TRD_CONTRACT_ORDER, placeOrderMessage.getSubjectId()+"", placeOrderMessage.getOrderId()+"", placeOrderMessage);
         if (!sendRet) {
             log.error("Send RocketMQ Message Failed ");
         }
@@ -296,29 +293,23 @@ public class ContractOrderManager {
         }
         ResultCode resultCode = ResultCode.success();
         List<Long> orderIdList = Collections.singletonList(orderId);
-        sendCancelMessage(orderIdList, userId);
+        sendCancelReq(orderIdList, userId);
         return resultCode;
     }
 
     /**
      * 根据撮合发出的MQ消息撤单
-     * @param orderId 委托单ID
      */
 //    @Transactional(rollbackFor = Throwable.class)
-    public ResultCode cancelOrderByMessage(long userId, long orderId, @NonNull BigDecimal unfilleAmount) {
+    public ResultCode cancelOrderByMessage(BaseCanceledMessage canceledMessage) {
 
-        ResultCode resultCode = doCancelOrder(userId, orderId, unfilleAmount);
-        return resultCode;
-
-    }
-
-    public ResultCode doCancelOrder(long userId, long orderId, BigDecimal unfilleAmount) {
-
+        long userId = canceledMessage.getUserId();
+        long orderId = canceledMessage.getOrderId();
+        BigDecimal unfilleAmount = canceledMessage.getUnfilledAmount();
         ContractOrderDO contractOrderDO = contractOrderMapper.selectByIdAndUserId(userId, orderId);
         if (Objects.isNull(contractOrderDO)) {
             return ResultCode.error(ILLEGAL_PARAM.getCode(), "contract order does not exist, id="+orderId);
         }
-
         Integer status = contractOrderDO.getStatus();
 
         if (status != COMMIT.getCode() && status != PART_MATCH.getCode()) {
@@ -345,25 +336,19 @@ public class ContractOrderManager {
         tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                 2, contractOrderDTO.getContractName(), username, "", contractOrderDTO.getUnfilledAmount(),
                 System.currentTimeMillis(), 1, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 1);
-        OrderMessage orderMessage = new OrderMessage();
-        orderMessage.setAmount(unfilleAmount);
-        orderMessage.setPrice(contractOrderDTO.getPrice());
-        orderMessage.setTransferTime(transferTime);
-        orderMessage.setOrderId(contractOrderDTO.getId());
-        orderMessage.setEvent(OrderOperateTypeEnum.CANCLE_ORDER.getCode());
-        orderMessage.setUserId(contractOrderDTO.getUserId());
-        orderMessage.setSubjectId(contractOrderDO.getContractId());
-        orderMessage.setSubjectName(contractOrderDO.getContractName());
-        orderMessage.setOrderDirection(contractOrderDO.getOrderDirection());
-        boolean sendRet = rocketMqManager.sendMessage("order", "ContractOrder", "contract_doCanceled_"+ orderId, orderMessage);
-        if (!sendRet) {
-            log.error("send canceled message failed, message={}", orderMessage);
-        }
+        sendCanceledMessage(canceledMessage);
         updateExtraEntrustAmountByContract(contractOrderDO.getUserId(), contractOrderDO.getContractId());
         return ResultCode.success();
     }
 
-    public void sendCancelMessage(List<Long> orderIdList, Long userId) {
+    public void sendCanceledMessage(BaseCanceledMessage canceledMessage){
+        boolean sendRet = rocketMqManager.sendMessage(TRD_CONTRACT_CANCELED, canceledMessage.getSubjectId()+"", canceledMessage.getOrderId()+"", canceledMessage);
+        if (!sendRet) {
+            log.error("send canceled message failed, message={}", canceledMessage);
+        }
+    }
+
+    public void sendCancelReq(List<Long> orderIdList, Long userId) {
         if (CollectionUtils.isEmpty(orderIdList)) {
             log.error("empty orderList");
             return;
@@ -375,12 +360,12 @@ public class ContractOrderManager {
             int temp =  i + batchSize;
             temp = temp < orderIdList.size() ? temp : orderIdList.size();
             List<Long> subList = orderIdList.subList(i, temp);
-            ToCancelMessage toCancelMessage = new ToCancelMessage();
+            BaseCancelReqMessage toCancelMessage = new BaseCancelReqMessage();
             toCancelMessage.setCancelType(CancelTypeEnum.CANCEL_BY_ORDERID);
             toCancelMessage.setUserId(userId);
             toCancelMessage.setIdList(subList);
             String msgKey = "to_cancel_contract_"+Joiner.on(",").join(subList);
-            rocketMqManager.sendMessage("order", "ContractCancel", msgKey , toCancelMessage);
+            rocketMqManager.sendMessage(TopicConstants.TRD_CONTRACT_CANCEL_REQ, "contract", msgKey , toCancelMessage);
             i = temp;
         }
     }
@@ -404,7 +389,7 @@ public class ContractOrderManager {
                     .map(ContractOrderDO::getId)
                     .collect(toList());
 
-            sendCancelMessage(orderIdList, userId);
+            sendCancelReq(orderIdList, userId);
         }
         resultCode.setCode(0);
         resultCode.setMessage("success");

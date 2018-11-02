@@ -8,8 +8,6 @@ public class Constants {
     public static final String DEALED_TOPIC = "trade-dealed";
 
     public static final String DEALED_USDT_TAG = "usdk";
-    public static final String DEALED_CONTRACT_TAG = "contract";
-
     public static final String CONTRACT_POSITION_UPDATE_TOPIC = "trade-position-update";
     public static final String ADL_TOPIC = "match_adl";
     public static final String ADL_TAG = "adl";
@@ -18,4 +16,8 @@ public class Constants {
     public static final int TABLE_NUMBER = 1024;
     public static final int DEFAULT_LEVER = 10;
     public static final long NOT_EXIST = -1L;
+
+    public static final String COIN_TYPE = "coin";
+    public static final String CONTRACT_TYPE = "contract";
+
 }

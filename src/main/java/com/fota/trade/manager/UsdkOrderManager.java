@@ -11,7 +11,6 @@ import com.fota.common.Result;
 import com.fota.match.service.UsdkMatchedOrderService;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
 import com.fota.trade.PriceTypeEnum;
-import com.fota.trade.client.AssetExtraProperties;
 import com.fota.trade.client.CancelTypeEnum;
 import com.fota.trade.client.ToCancelMessage;
 import com.fota.trade.client.constants.DealedMessage;
@@ -25,13 +24,16 @@ import com.fota.trade.domain.enums.OrderTypeEnum;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkOrderMapper;
+import com.fota.trade.msg.BaseCancelReqMessage;
+import com.fota.trade.msg.BaseCanceledMessage;
+import com.fota.trade.msg.CoinPlaceOrderMessage;
+import com.fota.trade.msg.TopicConstants;
 import com.fota.trade.util.BasicUtils;
 import com.fota.trade.util.ContractUtils;
 import com.fota.trade.util.Profiler;
 import com.fota.trade.util.ThreadContextUtil;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -47,7 +49,6 @@ import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static com.fota.trade.PriceTypeEnum.MARKET_PRICE;
 import static com.fota.trade.PriceTypeEnum.SPECIFIED_PRICE;
@@ -59,6 +60,8 @@ import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
 import static com.fota.trade.domain.enums.OrderStatusEnum.*;
 import static com.fota.trade.domain.enums.OrderTypeEnum.LIMIT;
 import static com.fota.trade.domain.enums.OrderTypeEnum.RIVAL;
+import static com.fota.trade.msg.TopicConstants.TRD_COIN_CANCELED;
+import static com.fota.trade.msg.TopicConstants.TRD_COIN_CANCEL_REQ;
 import static java.util.stream.Collectors.toList;
 
 
@@ -227,20 +230,8 @@ public class UsdkOrderManager {
         usdkOrderDTO.setCompleteAmount(BigDecimal.ZERO);
         //消息一定要在事务外发，不然会出现收到下单消息，db还没有这个订单
        Runnable postTask = () -> {
-           OrderMessage orderMessage = new OrderMessage();
-           orderMessage.setOrderId(usdkOrderDO.getId());
-           orderMessage.setEvent(OrderOperateTypeEnum.PLACE_ORDER.getCode());
-           orderMessage.setUserId(usdkOrderDTO.getUserId());
-           orderMessage.setSubjectId(usdkOrderDTO.getAssetId().longValue());
-           orderMessage.setSubjectName(usdkOrderDTO.getAssetName());
-           orderMessage.setAmount(usdkOrderDO.getTotalAmount());
-           orderMessage.setOrderDirection(usdkOrderDO.getOrderDirection());
-           orderMessage.setOrderType(usdkOrderDO.getOrderType());
-           if (!usdkOrderDO.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
-               orderMessage.setPrice(usdkOrderDO.getPrice());
-           }
-           orderMessage.setTransferTime(transferTime);
-           Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", String.valueOf(usdkOrderDO.getId()), orderMessage);
+           CoinPlaceOrderMessage placeOrderMessage = toCoinPlaceOrderMessage(usdkOrderDO);
+           Boolean sendRet = rocketMqManager.sendMessage(TopicConstants.TRD_COIN_ORDER, placeOrderMessage.getSubjectId()+"", placeOrderMessage.getOrderId()+"", placeOrderMessage);
            if (!sendRet){
                log.error("Send RocketMQ Message Failed ");
            }
@@ -250,6 +241,19 @@ public class UsdkOrderManager {
         result.setMessage("success");
         result.setData(orderId);
         return result;
+    }
+
+    public CoinPlaceOrderMessage toCoinPlaceOrderMessage(UsdkOrderDO usdkOrderDO){
+        CoinPlaceOrderMessage placeOrderMessage = new CoinPlaceOrderMessage();
+        placeOrderMessage.setOrderId(usdkOrderDO.getId());
+        placeOrderMessage.setUserId(usdkOrderDO.getUserId());
+        placeOrderMessage.setSubjectId(usdkOrderDO.getAssetId().longValue());
+        placeOrderMessage.setSubjectName(usdkOrderDO.getAssetName());
+        placeOrderMessage.setTotalAmount(usdkOrderDO.getTotalAmount());
+        placeOrderMessage.setOrderDirection(usdkOrderDO.getOrderDirection());
+        placeOrderMessage.setOrderType(usdkOrderDO.getOrderType());
+        placeOrderMessage.setPrice(usdkOrderDO.getPrice());
+        return placeOrderMessage;
     }
 
     private Result<BigDecimal> computeAndCheckOrderPrice(BigDecimal orderPrice, int orderType, int orderDirection, int assetId){
@@ -314,32 +318,25 @@ public class UsdkOrderManager {
         }
         List<Long> orderIdList = new ArrayList<Long>();
         orderIdList.add(orderId);
-        sendCancelMessage(orderIdList, userId);
+        sendCancelReq(orderIdList, userId);
         return resultCode;
     }
 
     /**
      * 根据撮合发出的MQ消息撤单
-     * @param orderId 委托单ID
      */
     @Transactional(rollbackFor = Exception.class)
-    public ResultCode cancelOrderByMessage(long userId, long orderId, @NonNull BigDecimal unfilledAmount) {
+    public ResultCode cancelOrderByMessage(BaseCanceledMessage baseCanceledMessage) {
         ResultCode resultCode;
 
+        Integer toStatus = baseCanceledMessage.getStatus();
+        long userId=baseCanceledMessage.getUserId();
+        long orderId = baseCanceledMessage.getOrderId();
+        BigDecimal unfilledAmount = baseCanceledMessage.getUnfilledAmount();
         UsdkOrderDO usdkOrderDO = usdkOrderMapper.selectByUserIdAndId(userId, orderId);
-        Integer status = usdkOrderDO.getStatus();
-
-        if (Objects.isNull(usdkOrderDO)) {
-            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), "usdk order does not exist, id={}"+orderId);
-        }
-
-        if (status != COMMIT.getCode() && status != PART_MATCH.getCode()) {
-            return ResultCode.error(BIZ_ERROR.getCode(),"illegal order status, id="+usdkOrderDO.getId() + ", status="+ usdkOrderDO.getStatus());
-        }
-        Integer toStatus = unfilledAmount.compareTo(usdkOrderDO.getTotalAmount()) < 0 ? PART_CANCEL.getCode() : CANCEL.getCode();
 
         //更新usdk委托表
-        int ret = usdkOrderMapper.cancel(userId, usdkOrderDO.getId(), toStatus);
+        int ret = usdkOrderMapper.cancel(userId, orderId, toStatus);
         Long transferTime = System.currentTimeMillis();
         if (ret > 0){
             Integer orderDirection = usdkOrderDO.getOrderDirection();
@@ -373,21 +370,7 @@ public class UsdkOrderManager {
             String ipAddress = "";
             tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                     1, usdkOrderDO.getAssetName(), username, ipAddress, unfilledAmount, System.currentTimeMillis(), 1,  usdkOrderDO.getOrderDirection(), usdkOrderDO.getUserId(), 1);
-            OrderMessage orderMessage = new OrderMessage();
-            orderMessage.setOrderId(usdkOrderDO.getId());
-            orderMessage.setEvent(OrderOperateTypeEnum.CANCLE_ORDER.getCode());
-            orderMessage.setUserId(usdkOrderDO.getUserId());
-            orderMessage.setSubjectId(usdkOrderDO.getAssetId().longValue());
-            orderMessage.setSubjectName(usdkOrderDO.getAssetName());
-            orderMessage.setAmount(unfilledAmount);
-            orderMessage.setPrice(usdkOrderDO.getPrice());
-            orderMessage.setOrderType(usdkOrderDO.getOrderType());
-            orderMessage.setTransferTime(transferTime);
-            orderMessage.setOrderDirection(orderDirection);
-            Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", "usdk_doCanceled_"+ orderId, orderMessage);
-            if (!sendRet){
-                log.error("Send RocketMQ Message Failed ");
-            }
+            sendCanceledMessage(usdkOrderDO, unfilledAmount);
             resultCode = ResultCode.success();
         }else {
             return ResultCode.error(ResultCodeEnum.BIZ_ERROR.getCode(), "usdkOrderMapper.updateByOpLock failed" + usdkOrderDO.getId());
@@ -395,7 +378,20 @@ public class UsdkOrderManager {
         return resultCode;
     }
 
-    public void sendCancelMessage(List<Long> orderIdList, Long userId) {
+    public void sendCanceledMessage(UsdkOrderDO usdkOrderDO, BigDecimal unfilledAmount){
+        BaseCanceledMessage orderMessage = new BaseCanceledMessage();
+        orderMessage.setOrderId(usdkOrderDO.getId());
+        orderMessage.setUserId(usdkOrderDO.getUserId());
+        orderMessage.setSubjectId(usdkOrderDO.getAssetId().longValue());
+        orderMessage.setTotalAmount(usdkOrderDO.getTotalAmount());
+        orderMessage.setUnfilledAmount(unfilledAmount);
+        Boolean sendRet = rocketMqManager.sendMessage(TRD_COIN_CANCELED, orderMessage.getSubjectId()+"", orderMessage.getOrderId()+"", orderMessage);
+        if (!sendRet){
+            log.error("Send RocketMQ Message Failed ");
+        }
+    }
+
+    public void sendCancelReq(List<Long> orderIdList, Long userId) {
         if (CollectionUtils.isEmpty(orderIdList)) {
             return;
         }
@@ -403,12 +399,12 @@ public class UsdkOrderManager {
 
         List<List<Long>> splitList = Lists.partition(orderIdList, 50);
         splitList.forEach(subList -> {
-            ToCancelMessage toCancelMessage = new ToCancelMessage();
-            toCancelMessage.setUserId(userId);
-            toCancelMessage.setCancelType(CancelTypeEnum.CANCEL_BY_ORDERID);
-            toCancelMessage.setIdList(subList);
-            Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkCancel",
-                    "to_cancel_usdt_"+Joiner.on("_").join(subList), toCancelMessage);
+            BaseCancelReqMessage cancelReqMessage = new BaseCancelReqMessage();
+            cancelReqMessage.setUserId(userId);
+            cancelReqMessage.setCancelType(CancelTypeEnum.CANCEL_BY_ORDERID);
+            cancelReqMessage.setIdList(subList);
+            Boolean sendRet = rocketMqManager.sendMessage(TRD_COIN_CANCEL_REQ, "coin",
+                    "to_cancel_usdt_"+Joiner.on("_").join(subList), cancelReqMessage);
             if (BooleanUtils.isNotTrue(sendRet)){
                 log.error("failed to send cancel usdk mq, {}", userId);
             }
@@ -428,7 +424,7 @@ public class UsdkOrderManager {
                     .filter(usdkOrderDO -> usdkOrderDO.getOrderType() != OrderTypeEnum.ENFORCE.getCode())
                     .map(UsdkOrderDO::getId)
                     .collect(toList());
-            sendCancelMessage(orderIdList, userId);
+            sendCancelReq(orderIdList, userId);
         }
 
         return ResultCode.success();

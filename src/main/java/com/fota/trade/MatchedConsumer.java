@@ -1,11 +1,13 @@
 package com.fota.trade;
 
 import com.alibaba.fastjson.JSON;
+import com.fota.trade.client.BizTypeEnum;
 import com.fota.trade.domain.ContractMatchedOrderDTO;
 import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.UsdkMatchedOrderDTO;
 import com.fota.trade.domain.enums.TagsTypeEnum;
 import com.fota.trade.manager.RedisManager;
+import com.fota.trade.msg.TopicConstants;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
 import com.fota.trade.service.impl.UsdkOrderServiceImpl;
 import lombok.extern.slf4j.Slf4j;
@@ -19,11 +21,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.io.UnsupportedEncodingException;
 import java.time.Duration;
 import java.util.List;
 
+import static com.fota.trade.client.BizTypeEnum.COIN;
+import static com.fota.trade.client.BizTypeEnum.CONTRACT;
 import static com.fota.trade.common.Constant.MQ_REPET_JUDGE_KEY_MATCH;
 import static com.fota.trade.common.ResultCodeEnum.ILLEGAL_PARAM;
 
@@ -35,7 +40,7 @@ import static com.fota.trade.common.ResultCodeEnum.ILLEGAL_PARAM;
  */
 @Slf4j
 @Component
-public class Consumer {
+public class MatchedConsumer {
 
     @Autowired
     private UsdkOrderServiceImpl usdkOrderService;
@@ -49,15 +54,28 @@ public class Consumer {
     @Value("${spring.rocketmq.instanceName}")
     private String clientInstanceName;
 
-    DefaultMQPushConsumer consumer;
+    DefaultMQPushConsumer coinMatchedConsumer;
+    DefaultMQPushConsumer contractMatchedConsumer;
     @Autowired
     private ContractOrderServiceImpl contractOrderService;
+    @PostConstruct
     public void init() throws InterruptedException, MQClientException {
-        //声明并初始化一个consumer
-        //需要一个consumer group名字作为构造方法的参数，这里为consumer1
-        consumer = new DefaultMQPushConsumer(group + "-match");
+
+        coinMatchedConsumer = initMatchedConsumer(TopicConstants.MCH_COIN_MATCH,
+                (List<MessageExt> msgs, ConsumeConcurrentlyContext context) ->  consumeMatchedMessage(msgs, context, COIN)
+        );
+
+        coinMatchedConsumer = initMatchedConsumer(TopicConstants.MCH_CONTRACT_MATCH,
+                (List<MessageExt> msgs, ConsumeConcurrentlyContext context) ->  consumeMatchedMessage(msgs, context, CONTRACT)
+        );
+
+
+
+    }
+
+    public DefaultMQPushConsumer initMatchedConsumer(String topic, MessageListenerConcurrently listenerConcurrently) throws MQClientException {
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group + "_"+ topic);
         consumer.setInstanceName(clientInstanceName);
-        //同样也要设置NameServer地址
         consumer.setNamesrvAddr(namesrvAddr);
         consumer.setMaxReconsumeTimes(10);
         //这里设置的是一个consumer的消费策略
@@ -66,75 +84,66 @@ public class Consumer {
         //CONSUME_FROM_TIMESTAMP 从某个时间点开始消费，和setConsumeTimestamp()配合使用，默认是半个小时以前
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.setVipChannelEnabled(false);
-        //设置consumer所订阅的Topic和Tag，*代表全部的Tag
-        consumer.subscribe("match_order", "usdk || contract");
+        consumer.subscribe(topic, "*");
         consumer.setConsumeMessageBatchMaxSize(1);
-        //设置一个Listener，主要进行消息的逻辑处理
-        consumer.registerMessageListener(new MessageListenerConcurrently() {
-            @Override
-            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context) {
+        return consumer;
+    }
 
-                if (CollectionUtils.isEmpty(msgs)) {
-                    log.error("message error!");
-                    return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-                }
-                MessageExt messageExt = msgs.get(0);
+    public ConsumeConcurrentlyStatus consumeMatchedMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context, BizTypeEnum bizType){
+        if (CollectionUtils.isEmpty(msgs)) {
+            log.error("message error!");
+            return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+        }
+        MessageExt messageExt = msgs.get(0);
 
-                String mqKey = messageExt.getKeys();
+        String mqKey = messageExt.getKeys();
 
 
-                ResultCode resultCode = null;
+        ResultCode resultCode = null;
 
-                String existKey = MQ_REPET_JUDGE_KEY_MATCH  + messageExt.getTags() + "_" + mqKey;
-                //判断是否已经成交
-                boolean locked = redisManager.tryLock(existKey, Duration.ofHours(1));
-                if (!locked) {
-                    logSuccessMsg(messageExt, "already consumed, not retry");
-                    return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-                }
+        String existKey = MQ_REPET_JUDGE_KEY_MATCH  + messageExt.getTags() + "_" + mqKey;
+        //判断是否已经成交
+        boolean locked = redisManager.tryLock(existKey, Duration.ofHours(1));
+        if (!locked) {
+            logSuccessMsg(messageExt, "already consumed, not retry");
+            return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+        }
 
-                try {
-                    String tag = messageExt.getTags();
-                    byte[] bodyByte = messageExt.getBody();
-                    String bodyStr = null;
-                    try {
-                        bodyStr = new String(bodyByte, "UTF-8");
-                    } catch (UnsupportedEncodingException e) {
-                        log.error("get mq message failed", e);
-                        return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-                    }
-                    log.info("receive match message, ------------" + bodyStr);
-                    if (TagsTypeEnum.USDK.getDesc().equals(tag)) {
-                        UsdkMatchedOrderDTO usdkMatchedOrderDTO = JSON.parseObject(bodyStr, UsdkMatchedOrderDTO.class);
-                        resultCode = usdkOrderService.updateOrderByMatch(usdkMatchedOrderDTO);
-
-                    } else if (TagsTypeEnum.CONTRACT.getDesc().equals(tag)) {
-                        ContractMatchedOrderDTO contractMatchedOrderDTO = JSON.parseObject(bodyStr, ContractMatchedOrderDTO.class);
-                        resultCode = contractOrderService.updateOrderByMatch(contractMatchedOrderDTO);
-                    }
-
-                    if (!resultCode.isSuccess()) {
-                        logFailMsg("resultCode="+resultCode, messageExt);
-                        if (resultCode.getCode() == ILLEGAL_PARAM.getCode()) {
-                            return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-                        }
-                        redisManager.del(existKey);
-                        return ConsumeConcurrentlyStatus.RECONSUME_LATER;
-                    }
-                    //一定要成交成功才能标记
-                    redisManager.set(existKey, "1", Duration.ofDays(1));
-                    return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-                } catch (Exception e) {
-                    logFailMsg(messageExt, e);
-                    redisManager.del(existKey);
-                    return ConsumeConcurrentlyStatus.RECONSUME_LATER;
-                }
-
+        try {
+            byte[] bodyByte = messageExt.getBody();
+            String bodyStr = null;
+            try {
+                bodyStr = new String(bodyByte, "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                log.error("get mq message failed", e);
+                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
-        });
-        //调用start()方法启动consumer
-        consumer.start();
-        System.out.println("Consumer Started.");
+            log.info("receive match message, ------------" + bodyStr);
+            if (TagsTypeEnum.USDK.getDesc().equals(bizType)) {
+                UsdkMatchedOrderDTO usdkMatchedOrderDTO = JSON.parseObject(bodyStr, UsdkMatchedOrderDTO.class);
+                resultCode = usdkOrderService.updateOrderByMatch(usdkMatchedOrderDTO);
+
+            } else if (BizTypeEnum.CONTRACT.equals(bizType)) {
+                ContractMatchedOrderDTO contractMatchedOrderDTO = JSON.parseObject(bodyStr, ContractMatchedOrderDTO.class);
+                resultCode = contractOrderService.updateOrderByMatch(contractMatchedOrderDTO);
+            }
+
+            if (!resultCode.isSuccess()) {
+                logFailMsg("resultCode="+resultCode, messageExt);
+                if (resultCode.getCode() == ILLEGAL_PARAM.getCode()) {
+                    return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+                }
+                redisManager.del(existKey);
+                return ConsumeConcurrentlyStatus.RECONSUME_LATER;
+            }
+            //一定要成交成功才能标记
+            redisManager.set(existKey, "1", Duration.ofDays(1));
+            return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+        } catch (Exception e) {
+            logFailMsg(messageExt, e);
+            redisManager.del(existKey);
+            return ConsumeConcurrentlyStatus.RECONSUME_LATER;
+        }
     }
 
     private void logSuccessMsg(MessageExt messageExt, String extInfo) {
@@ -171,7 +180,8 @@ public class Consumer {
 
     @PreDestroy
     public void destory(){
-        consumer.shutdown();
+        coinMatchedConsumer.shutdown();
+        contractMatchedConsumer.shutdown();
     }
 }
 

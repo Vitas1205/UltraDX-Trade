@@ -7,6 +7,7 @@ import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.DealManager;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.msg.ContractDealedMessage;
+import com.fota.trade.msg.TopicConstants;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
 import com.fota.trade.util.BasicUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +42,7 @@ import static com.fota.trade.client.FailedRecord.RETRY;
 import static com.fota.trade.client.PostDealPhaseEnum.*;
 import static com.fota.trade.client.constants.Constants.CONTRACT_POSITION_UPDATE_TOPIC;
 import static com.fota.trade.client.constants.Constants.DEFAULT_TAG;
+import static com.fota.trade.msg.TopicConstants.TRD_CONTRACT_DEAL;
 
 /**
  * @Author: Harry Wang
@@ -85,7 +87,7 @@ public class PostDealConsumer {
     public void init() throws InterruptedException, MQClientException {
         //声明并初始化一个consumer
         //需要一个consumer group名字作为构造方法的参数，这里为consumer1
-        consumer = new DefaultMQPushConsumer(group + "-postDeal");
+        consumer = new DefaultMQPushConsumer(group + "_"+ TRD_CONTRACT_DEAL);
         consumer.setInstanceName(clientInstanceName);
         //同样也要设置NameServer地址
         consumer.setNamesrvAddr(namesrvAddr);
@@ -97,7 +99,7 @@ public class PostDealConsumer {
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.setVipChannelEnabled(false);
         //设置consumer所订阅的Topic和Tag，*代表全部的Tag
-        consumer.subscribe(CONTRACT_POSITION_UPDATE_TOPIC, DEFAULT_TAG);
+        consumer.subscribe(TRD_CONTRACT_DEAL, DEFAULT_TAG);
         consumer.setConsumeMessageBatchMaxSize(100);
         consumer.setPullInterval(30);
         consumer.setPullBatchSize(100);
