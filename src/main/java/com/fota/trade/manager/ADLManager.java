@@ -176,6 +176,7 @@ public class ADLManager {
         map.put("direction", adlMatchDTO.getDirection());
         map.put("price", adlMatchDTO.getPrice());
         map.put("currentPrice", currentPrice);
+        map.put("orderId", adlMatchDTO.getOrderId());
         map.put("adlUserIds", contractMatchedOrderDOS.stream().map(ContractMatchedOrderDO::getUserId).collect(Collectors.toList()));
         ADL_EXTEA_LOG.info("{}", JSON.toJSONString(map));
         return Result.suc(null);
