@@ -7,7 +7,6 @@ import com.fota.asset.service.ContractService;
 import com.fota.common.Result;
 import com.fota.trade.UpdateOrderItem;
 import com.fota.trade.client.FailedRecord;
-import com.fota.trade.client.PostDealMessage;
 import com.fota.trade.client.constants.DealedMessage;
 import com.fota.trade.common.BizException;
 import com.fota.trade.common.Constant;
@@ -18,6 +17,7 @@ import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserContractLeverMapper;
 import com.fota.trade.mapper.UserPositionMapper;
+import com.fota.trade.msg.ContractDealedMessage;
 import com.fota.trade.service.ContractCategoryService;
 import com.fota.trade.util.*;
 import com.google.common.base.Joiner;
@@ -185,7 +185,7 @@ public class DealManager {
         return resultCode;
     }
 
-    public List<PostDealMessage> processNoEnforceMatchedOrders(ContractADLMatchDTO contractADLMatchDTO) {
+    public List<ContractDealedMessage> processNoEnforceMatchedOrders(ContractADLMatchDTO contractADLMatchDTO) {
         if (CollectionUtils.isEmpty(contractADLMatchDTO.getMatchedList())) {
             log.error("empty contractMatchedOrderDTOList");
             return null;
@@ -290,14 +290,14 @@ public class DealManager {
      * @param rollback 是否回滚， rollback=true, 更新持仓失败会回滚事务，否则打日志
      * @return 只要更新完持仓就返回成功，后续失败打日志
      */
-    public Result postDeal(List<PostDealMessage> postDealMessages, boolean rollback) {
+    public Result postDeal(List<ContractDealedMessage> postDealMessages, boolean rollback) {
         if (CollectionUtils.isEmpty(postDealMessages)) {
             log.error("empty postDealMessages in postDeal");
             return Result.fail(ILLEGAL_PARAM.getCode(), "empty postDealMessages in postDeal");
         }
-        PostDealMessage sample = postDealMessages.get(0);
+        ContractDealedMessage sample = postDealMessages.get(0);
         long userId =sample.getUserId();
-        long contractId = sample.getContractId();
+        long contractId = sample.getSubjectId();
 
                 //更新持仓
         UpdatePositionResult positionResult = updatePosition(postDealMessages);
@@ -342,12 +342,12 @@ public class DealManager {
         return Result.suc(null);
     }
 
-    public void updateTodayFee(List<PostDealMessage> postDealMessages){
+    public void updateTodayFee(List<ContractDealedMessage> postDealMessages){
         if (CollectionUtils.isEmpty(postDealMessages)){
             return;
         }
         BigDecimal totalFee = postDealMessages.stream().filter(x->x.getTotalFee() != null)
-                .map(PostDealMessage::getTotalFee).reduce(BigDecimal.ZERO, BigDecimal::add);
+                .map(ContractDealedMessage::getTotalFee).reduce(BigDecimal.ZERO, BigDecimal::add);
         if (totalFee.compareTo(ZERO) > 0){
             String dateStr = new SimpleDateFormat("yyyyMMdd").format(new Date());
             Double currentFee = redisManager.counter(Constant.REDIS_TODAY_FEE + dateStr, totalFee);
@@ -357,11 +357,11 @@ public class DealManager {
         }
     }
 
-    public UpdatePositionResult updatePosition(List<PostDealMessage> postDealMessages) {
+    public UpdatePositionResult updatePosition(List<ContractDealedMessage> postDealMessages) {
 
-        PostDealMessage sample = postDealMessages.get(0);
+        ContractDealedMessage sample = postDealMessages.get(0);
         long userId = sample.getUserId();
-        long contractId = sample.getContractId();
+        long contractId = sample.getSubjectId();
 
         UpdatePositionResult result = new UpdatePositionResult();
         UserPositionDO userPositionDO = userPositionMapper.selectByUserIdAndContractId(userId, contractId);
@@ -377,7 +377,7 @@ public class DealManager {
         BigDecimal totalClosePL = ZERO;
         //记录开始持仓量
         result.setOldAmount(preAmount);
-        for (PostDealMessage postDealMessage : postDealMessages) {
+        for (ContractDealedMessage postDealMessage : postDealMessages) {
             BigDecimal rate = postDealMessage.getFeeRate();
             BigDecimal filledAmount = postDealMessage.getFilledAmount(), filledPrice = postDealMessage.getFilledPrice();
 
@@ -556,35 +556,27 @@ public class DealManager {
 
     }
 
-    private PostDealMessage toDealMessage(long matchId, ContractOrderDO contractOrderDO, BigDecimal filledAmount, BigDecimal filledPrice) {
-        PostDealMessage postMatchMessage = new PostDealMessage(contractOrderDO.getContractId(), contractOrderDO.getUserId(),
+    private ContractDealedMessage toDealMessage(long matchId, ContractOrderDO contractOrderDO, BigDecimal filledAmount, BigDecimal filledPrice) {
+        ContractDealedMessage postMatchMessage = new ContractDealedMessage(contractOrderDO.getContractId(), contractOrderDO.getUserId(),
                 contractOrderDO.getOrderDirection(), contractOrderDO.getFee(), contractOrderDO.getLever(),  contractOrderDO.getContractName());
 
-        postMatchMessage.setFilledAmount(filledAmount)
-                .setFilledPrice(filledPrice)
-                .setMatchId(matchId)
-                .setMsgKey(matchId + "_" + contractOrderDO.getId());
+        postMatchMessage.setFilledAmount(filledAmount);
+        postMatchMessage.setFilledPrice(filledPrice);
+        postMatchMessage.setMatchId(matchId);
+        postMatchMessage.setMsgKey(matchId + "_" + contractOrderDO.getId());
         return postMatchMessage;
     }
     private void sendDealMessage(long matchId, ContractOrderDO contractOrderDO, BigDecimal filledAmount, BigDecimal filledPrice) {
-        PostDealMessage postMatchMessage = new PostDealMessage(contractOrderDO.getContractId(), contractOrderDO.getUserId(),
-                contractOrderDO.getOrderDirection(), contractOrderDO.getFee(), contractOrderDO.getLever(),  contractOrderDO.getContractName());
-
-        postMatchMessage.setFilledAmount(filledAmount)
-                .setFilledPrice(filledPrice)
-                .setMatchId(matchId)
-                .setMsgKey(matchId + "_" + contractOrderDO.getId());
-        sendDealMessage(postMatchMessage);
-
-
+        ContractDealedMessage contractDealedMessage = toDealMessage(matchId, contractOrderDO, filledAmount, filledPrice);
+        sendDealMessage(contractDealedMessage);
     }
-    public void sendDealMessage(PostDealMessage postDealMessage) {
+    public void sendDealMessage(ContractDealedMessage postDealMessage) {
         MessageQueueSelector queueSelector = (final List<MessageQueue> mqs, final Message msg, final Object arg) -> {
             int key = arg.hashCode();
             return mqs.get(key % mqs.size());
         };
         rocketMqManager.sendMessage(CONTRACT_POSITION_UPDATE_TOPIC, DEFAULT_TAG, postDealMessage.getMsgKey(), postDealMessage, queueSelector,
-                postDealMessage.getUserId() + postDealMessage.getContractId());
+                postDealMessage.getUserId() + postDealMessage.getSubjectId());
     }
 
     private ResultCode checkParam(ContractOrderDO askContractOrder, ContractOrderDO bidContractOrder, ContractMatchedOrderDTO contractMatchedOrderDTO) {

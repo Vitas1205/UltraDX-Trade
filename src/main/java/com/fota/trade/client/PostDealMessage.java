@@ -1,6 +1,5 @@
 package com.fota.trade.client;
 
-import com.fota.trade.domain.ContractOrderDO;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -19,7 +18,7 @@ public class PostDealMessage {
 
 
     //================委托信息==========
-    private long contractId;
+    private long subjectId;
     private long userId;
 
     /**
@@ -68,11 +67,11 @@ public class PostDealMessage {
         return this.msgKey.hashCode();
     }
     public String getGroup(){
-        return userId + "_" + contractId;
+        return userId + "_" + subjectId;
     }
 
     public PostDealMessage(long contractId, long userId, int orderDirection, BigDecimal feeRate, Integer lever,  String contractName) {
-        this.contractId = contractId;
+        this.subjectId = contractId;
         this.userId = userId;
         this.orderDirection = orderDirection;
         this.lever = lever;
@@ -81,7 +80,7 @@ public class PostDealMessage {
     }
 
     public PostDealMessage(long contractId, long userId, int orderDirection, BigDecimal feeRate) {
-        this.contractId = contractId;
+        this.subjectId = contractId;
         this.userId = userId;
         this.orderDirection = orderDirection;
         this.feeRate = feeRate;

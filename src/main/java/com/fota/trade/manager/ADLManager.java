@@ -3,18 +3,16 @@ package com.fota.trade.manager;
 import com.alibaba.fastjson.JSON;
 import com.fota.common.Result;
 import com.fota.risk.client.domain.UserRRLDTO;
-import com.fota.risk.client.service.RelativeRiskLevelService;
-import com.fota.trade.client.PostDealMessage;
+import com.fota.risk.client.manager.RelativeRiskLevelManager;
 import com.fota.trade.common.BizException;
-import com.fota.trade.common.ResultCode;
 import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.domain.ContractADLMatchDTO;
 import com.fota.trade.domain.ContractMatchedOrderDO;
 import com.fota.trade.domain.UserPositionDO;
-import com.fota.trade.domain.enums.OrderCloseType;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
+import com.fota.trade.msg.ContractDealedMessage;
 import com.fota.trade.util.BasicUtils;
 import com.fota.trade.util.ContractUtils;
 import com.fota.trade.util.ConvertUtils;
@@ -28,7 +26,6 @@ import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.util.*;
-import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 import static com.fota.common.ResultCodeEnum.ILLEGAL_PARAM;
@@ -50,7 +47,7 @@ public class ADLManager {
     private UserPositionMapper userPositionMapper;
 
     @Autowired
-    RelativeRiskLevelService riskLevelService;
+    RelativeRiskLevelManager riskLevelManager;
 
     @Autowired
     private DealManager dealManager;
@@ -79,18 +76,19 @@ public class ADLManager {
         if (1 != aff) {
             return Result.fail(ILLEGAL_PARAM.getCode(), "duplicate message or concurrency problem");
         }
-        List<PostDealMessage> postDealMessages = new LinkedList<>();
+        List<ContractDealedMessage> postDealMessages = new LinkedList<>();
 
 
-        List<PostDealMessage> matchedPostDeal = dealManager.processNoEnforceMatchedOrders(adlMatchDTO);
+        List<ContractDealedMessage> matchedPostDeal = dealManager.processNoEnforceMatchedOrders(adlMatchDTO);
 
         BigDecimal unfilledAmount = adlMatchDTO.getUnfilled();
-        Long pageSize = 100L;
+        int pageSize = 100;
         int needPositionDirection = adlMatchDTO.getDirection();
         //获取当前价格
         BigDecimal currentPrice = currentPriceManager.getSpotIndexByContractName(adlMatchDTO.getContractName());
+        List<ContractMatchedOrderDO> contractMatchedOrderDOS = new LinkedList<>();
 
-        for (long start = 0; unfilledAmount.compareTo(BigDecimal.ZERO) > 0; start = start + pageSize + 1) {
+        for (int start = 0; unfilledAmount.compareTo(BigDecimal.ZERO) > 0; start = start + pageSize + 1) {
             Result<List<UserRRLDTO>> riskResult = getRRLWithRetry(adlMatchDTO.getContractId(),
                     needPositionDirection, start, start + pageSize);
 
@@ -109,7 +107,6 @@ public class ADLManager {
             }
 
             Map<Long, UserPositionDO> userPositionDOMap = userPositionDOS.stream().collect(Collectors.toMap(UserPositionDO::getUserId, x -> x));
-
             //按照RRL顺序减仓
             for (UserRRLDTO userRRLDTO : RRL) {
                 UserPositionDO userPositionDO = userPositionDOMap.get(userRRLDTO.getUserId());
@@ -119,18 +116,17 @@ public class ADLManager {
                 }
                 BigDecimal subAmount = userPositionDO.getUnfilledAmount().min(unfilledAmount);
                 //注意direction与仓位方向相反,费率为0
-                PostDealMessage postDealMessage = new PostDealMessage(userPositionDO.getContractId(), userPositionDO.getUserId(),
+                ContractDealedMessage postDealMessage = new ContractDealedMessage(userPositionDO.getContractId(), userPositionDO.getUserId(),
                         ConvertUtils.opDirection(adlMatchDTO.getDirection()), BigDecimal.ZERO);
-                postDealMessage.setMatchId(adlMatchDTO.getId())
-                        .setFilledAmount(subAmount)
-                        .setFilledPrice(currentPrice)
-                        .setMsgKey(adlMatchDTO.getId()+"_"+BasicUtils.generateId());
-                postDealMessage.setPrice(currentPrice);
-                postDealMessage.setMatchType(adlMatchDTO.getDirection());
-                postDealMessage.setMatchUserId(adlMatchDTO.getUserId());
-                postDealMessage.setCloseType(DECREASE_LEVERAGE.getCode());
-                postDealMessage.setContractName(adlMatchDTO.getContractName());
+                postDealMessage.setMatchId(adlMatchDTO.getId());
+                postDealMessage.setFilledAmount(subAmount);
+                postDealMessage.setFilledPrice(currentPrice);
+                postDealMessage.setMsgKey(adlMatchDTO.getId()+"_"+BasicUtils.generateId());
+                postDealMessage.setSubjectName(adlMatchDTO.getContractName());
                 postDealMessages.add(postDealMessage);
+                contractMatchedOrderDOS.add(ConvertUtils.toMatchedOrderDO(postDealMessage,
+                        currentPrice, DECREASE_LEVERAGE.getCode(), adlMatchDTO.getUserId(), adlMatchDTO.getDirection()
+                ));
                 unfilledAmount = unfilledAmount.subtract(subAmount);
                 if (unfilledAmount.compareTo(BigDecimal.ZERO) == 0) {
                     break;
@@ -155,8 +151,6 @@ public class ADLManager {
 
 
         //写降杠杆成交记录
-        List<ContractMatchedOrderDO> contractMatchedOrderDOS = postDealMessages.stream().map(ConvertUtils::toMatchedOrderDO)
-                .collect(Collectors.toList());
         aff = contractMatchedOrderMapper.insert(contractMatchedOrderDOS);
         if (aff < contractMatchedOrderDOS.size()) {
             throw new BizException(BIZ_ERROR.getCode(), "insert matched record failed");
@@ -167,8 +161,8 @@ public class ADLManager {
             //处理已经撮合的非强平单
             postDealMessages.addAll(matchedPostDeal);
         }
-        postDealMessages.add(getPostDealMessage4EnforceOrder(adlMatchDTO));
-        for (PostDealMessage postDealMessage : postDealMessages) {
+        postDealMessages.add(getContractDealedMessage4EnforceOrder(adlMatchDTO));
+        for (ContractDealedMessage postDealMessage : postDealMessages) {
             Result result = dealManager.postDeal(Arrays.asList(postDealMessage), true);
             if (!result.isSuccess()) {
                 throw new BizException(BIZ_ERROR.getCode(), "update position failed");
@@ -188,34 +182,35 @@ public class ADLManager {
      * 划分需要哪些用户足够分摊 unfilledAmount 数量的持仓。因为amount不准确，而且有可能会变化，所以会有一个buffer=end-start,
      * 即 找到一个end使得  end - start + sum(RRL[i].amount）>= unfilledAmount, (start<=i<end)
      *
-     * @param RRL
+     * @param
      * @param start 开始
      * @return end
      */
-    public int split(List<UserRRLDTO> RRL, int start, BigDecimal unfilledAmount, List<Long> userIds) {
-        userIds.clear();
-        BigDecimal amount = BigDecimal.ZERO;
-        Iterator<UserRRLDTO> iterator = RRL.listIterator(start);
-        UserRRLDTO userRRLDTO = null;
-        int end = start;
-        for (; iterator.hasNext(); userRRLDTO = iterator.next()) {
-            amount = amount.add(userRRLDTO.getAmount());
-            userIds.add(userRRLDTO.getUserId());
-            end++;
-            if (amount.add(new BigDecimal(end - start)).compareTo(unfilledAmount) >= 0) {
-                return end;
-            }
-        }
-        return end;
-    }
+//    public int split(List<UserRRLDTO> RRL, int start, BigDecimal unfilledAmount, List<Long> userIds) {
+//        userIds.clear();
+//        BigDecimal amount = BigDecimal.ZERO;
+//        Iterator<UserRRLDTO> iterator = RRL.listIterator(start);
+//        UserRRLDTO userRRLDTO = null;
+//        int end = start;
+//        for (; iterator.hasNext(); userRRLDTO = iterator.next()) {
+//            amount = amount.add(userRRLDTO.getAmount());
+//            userIds.add(userRRLDTO.getUserId());
+//            end++;
+//            if (amount.add(new BigDecimal(end - start)).compareTo(unfilledAmount) >= 0) {
+//                return end;
+//            }
+//        }
+//        return end;
+//    }
 
-    public Result<List<UserRRLDTO>> getRRLWithRetry(long contractId, int direction, long start, long end) {
+    public Result<List<UserRRLDTO>> getRRLWithRetry(long contractId, int direction, int start, int end) {
         int maxRetries = 3;
         for (int i = 0; i < maxRetries; i++) {
             try {
                 //获取排行榜，以后可以看排行榜变化频率考虑是否缓存
-                return riskLevelService.range(contractId,
+                List<UserRRLDTO> ret = riskLevelManager.range(contractId,
                         direction, start, end);
+                return Result.suc(ret);
             } catch (Throwable t) {
                 //调用抛异常三次，回滚事务
                 if ((maxRetries - 1) == i) {
@@ -228,13 +223,17 @@ public class ADLManager {
 
     }
 
-    public PostDealMessage getPostDealMessage4EnforceOrder(ContractADLMatchDTO adlMatchDTO) {
-        PostDealMessage postDealMessage = new PostDealMessage(adlMatchDTO.getContractId(), adlMatchDTO.getUserId(),
+//    public List<UserRRLDTO> getRRL(long contractId, long direction, long start, long end){
+//
+//    }
+
+    public ContractDealedMessage getContractDealedMessage4EnforceOrder(ContractADLMatchDTO adlMatchDTO) {
+        ContractDealedMessage postDealMessage = new ContractDealedMessage(adlMatchDTO.getContractId(), adlMatchDTO.getUserId(),
                 adlMatchDTO.getDirection(), BigDecimal.ZERO);
-        postDealMessage.setMatchId(adlMatchDTO.getId())
-                .setFilledAmount(adlMatchDTO.getUnfilled())
-                .setFilledPrice(adlMatchDTO.getPrice())
-                .setMsgKey(adlMatchDTO.getId()+"_"+adlMatchDTO.getOrderId());
+        postDealMessage.setMatchId(adlMatchDTO.getId());
+        postDealMessage.setFilledAmount(adlMatchDTO.getUnfilled());
+        postDealMessage.setFilledPrice(adlMatchDTO.getPrice());
+        postDealMessage.setMsgKey(adlMatchDTO.getId()+"_"+adlMatchDTO.getOrderId());
         return postDealMessage;
     }
 

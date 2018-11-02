@@ -2,14 +2,13 @@ package com.fota.trade;
 
 import com.alibaba.fastjson.JSON;
 import com.fota.common.Result;
-import com.fota.trade.client.ADLPhaseEnum;
 import com.fota.trade.client.FailedRecord;
-import com.fota.trade.common.BizException;
 import com.fota.trade.domain.ContractADLMatchDTO;
 import com.fota.trade.manager.ADLManager;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.DealManager;
 import com.fota.trade.manager.RedisManager;
+import com.fota.trade.msg.TopicConstants;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
 import com.fota.trade.util.BasicUtils;
 import com.fota.trade.util.DistinctFilter;
@@ -32,19 +31,14 @@ import org.springframework.util.CollectionUtils;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import static com.fota.trade.client.ADLPhaseEnum.START;
 import static com.fota.trade.client.ADLPhaseEnum.UNKNOW;
-import static com.fota.trade.client.FailedRecord.NOT_RETRY;
-import static com.fota.trade.client.FailedRecord.NOT_SURE;
-import static com.fota.trade.client.FailedRecord.RETRY;
+import static com.fota.trade.client.FailedRecord.*;
 import static com.fota.trade.client.PostDealPhaseEnum.PARSE;
-import static com.fota.trade.client.PostDealPhaseEnum.UNKNOWN;
-import static com.fota.trade.client.constants.Constants.*;
-import static com.fota.trade.domain.MQTopicConstants.ADL;
+import static com.fota.trade.msg.TopicConstants.MCH_CONTRACT_ADL;
 
 
 @Slf4j
@@ -96,7 +90,7 @@ public class ADLConsumer {
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.setVipChannelEnabled(false);
         //设置consumer所订阅的Topic和Tag，*代表全部的Tag
-        consumer.subscribe(ADL, "*");
+        consumer.subscribe("mch_adl", "*");
         consumer.setConsumeMessageBatchMaxSize(100);
         consumer.setPullInterval(30);
         consumer.setPullBatchSize(100);

@@ -2,11 +2,11 @@ package com.fota.trade;
 
 import com.alibaba.fastjson.JSON;
 import com.fota.trade.client.FailedRecord;
-import com.fota.trade.client.PostDealMessage;
 import com.fota.trade.domain.MQMessage;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.DealManager;
 import com.fota.trade.manager.RedisManager;
+import com.fota.trade.msg.ContractDealedMessage;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
 import com.fota.trade.util.BasicUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -111,10 +111,10 @@ public class PostDealConsumer {
                 }
                 log.info("consume postDeal message,size={}, keys={}", msgs.size(), msgs.stream().map(MessageExt::getKeys).collect(Collectors.toList()));
                 try {
-                    List<PostDealMessage> postDealMessages = msgs
+                    List<ContractDealedMessage> postDealMessages = msgs
                             .stream()
                             .map(x -> {
-                                PostDealMessage message = BasicUtils.exeWhitoutError(()->JSON.parseObject(x.getBody(), PostDealMessage.class));
+                                ContractDealedMessage message = BasicUtils.exeWhitoutError(()->JSON.parseObject(x.getBody(), ContractDealedMessage.class));
                                 if (null == message) {
                                     UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedRecord(RETRY, PARSE.name(), Arrays.asList(x)));
                                     return null;
@@ -137,16 +137,16 @@ public class PostDealConsumer {
                         return ConsumeOrderlyStatus.SUCCESS;
                     }
 
-                    Map<String, List<PostDealMessage>> postDealMessageMap = postDealMessages
+                    Map<String, List<ContractDealedMessage>> postDealMessageMap = postDealMessages
                             .stream()
-                            .collect(Collectors.groupingBy(PostDealMessage::getGroup));
+                            .collect(Collectors.groupingBy(ContractDealedMessage::getGroup));
 
                     postDealMessageMap.entrySet().parallelStream().forEach(entry -> {
 
                         try {
                             dealManager.postDeal(entry.getValue(), false);
-                            PostDealMessage postDealMessage = entry.getValue().get(0);
-                            contractOrderManager.updateExtraEntrustAmountByContract(postDealMessage.getUserId(), postDealMessage.getContractId());
+                            ContractDealedMessage postDealMessage = entry.getValue().get(0);
+                            contractOrderManager.updateExtraEntrustAmountByContract(postDealMessage.getUserId(), postDealMessage.getSubjectId());
                             BasicUtils.exeWhitoutError(() ->  markExist(entry.getValue()));
                         }catch (Throwable t) {
                             UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedRecord(NOT_SURE, UNKNOWN.name(), entry.getValue()), t.getClass().getSimpleName(),
@@ -170,15 +170,15 @@ public class PostDealConsumer {
         consumer.start();
     }
 
-    private List<PostDealMessage> removeDuplicta(List<PostDealMessage> postDealMessages) {
+    private List<ContractDealedMessage> removeDuplicta(List<ContractDealedMessage> postDealMessages) {
         List<String> keys = postDealMessages.stream().map(x -> EXIST_POST_DEAL + x.getMsgKey()).collect(Collectors.toList());
         List<String> existList = redisTemplate.opsForValue().multiGet(keys);
         if (null == existList) {
             return postDealMessages;
         }
-        List<PostDealMessage> ret = new ArrayList<>();
+        List<ContractDealedMessage> ret = new ArrayList<>();
         for (int i = 0; i < postDealMessages.size(); i++) {
-            PostDealMessage postDealMessage = postDealMessages.get(i);
+            ContractDealedMessage postDealMessage = postDealMessages.get(i);
             if (null == existList.get(i)) {
                 ret.add(postDealMessage);
             } else {
@@ -188,7 +188,7 @@ public class PostDealConsumer {
         return ret;
     }
 
-    public void markExist(List<PostDealMessage> postDealMessages) {
+    public void markExist(List<ContractDealedMessage> postDealMessages) {
         List<String> keyList = postDealMessages.stream()
                 .map(x -> EXIST_POST_DEAL + x.getMsgKey())
                 .collect(Collectors.toList());

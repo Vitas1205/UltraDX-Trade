@@ -2,13 +2,10 @@ package com.fota.trade.util;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.fota.risk.client.domain.UserRRLDTO;
 import com.fota.trade.UpdateOrderItem;
-import com.fota.trade.client.PostDealMessage;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.OrderCloseType;
-import com.fota.trade.domain.enums.OrderDirectionEnum;
-import com.fota.trade.domain.enums.OrderTypeEnum;
+import com.fota.trade.msg.ContractDealedMessage;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -17,7 +14,6 @@ import java.util.Optional;
 import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
-import static com.fota.trade.domain.enums.OrderTypeEnum.ENFORCE;
 
 /**
  * Created by Swifree on 2018/9/17.
@@ -75,18 +71,18 @@ public class ConvertUtils {
 
     }
 
-    public static ContractMatchedOrderDO toMatchedOrderDO(PostDealMessage postDealMessage){
+    public static ContractMatchedOrderDO toMatchedOrderDO(ContractDealedMessage postDealMessage, BigDecimal orderPrice, int closeType, long matchUserId, int matchType){
         ContractMatchedOrderDO matchedOrderDO = new ContractMatchedOrderDO();
         matchedOrderDO.setOrderId(postDealMessage.getOrderId())
                 .setUserId(postDealMessage.getUserId())
-                .setOrderPrice(postDealMessage.getPrice())
+                .setOrderPrice(orderPrice)
                 .setOrderDirection(postDealMessage.getOrderDirection())
-                .setCloseType(postDealMessage.getCloseType());
+                .setCloseType(closeType);
 
         matchedOrderDO.setMatchId(postDealMessage.getMatchId());
-        matchedOrderDO.setMatchUserId(postDealMessage.getMatchUserId());
+        matchedOrderDO.setMatchUserId(matchUserId);
 
-        matchedOrderDO.setMatchType(postDealMessage.getMatchType());
+        matchedOrderDO.setMatchType(matchType);
         matchedOrderDO.setFilledPrice(postDealMessage.getFilledPrice());
         matchedOrderDO.setFilledAmount(postDealMessage.getFilledAmount());
 
@@ -95,8 +91,8 @@ public class ConvertUtils {
                 .multiply(postDealMessage.getFeeRate());
         matchedOrderDO.setFee(fee);
 
-        matchedOrderDO.setContractId(postDealMessage.getContractId());
-        matchedOrderDO.setContractName(postDealMessage.getContractName());
+        matchedOrderDO.setContractId(postDealMessage.getSubjectId());
+        matchedOrderDO.setContractName(postDealMessage.getSubjectName());
         matchedOrderDO.setStatus(VALID);
 
         return matchedOrderDO;
