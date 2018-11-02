@@ -78,7 +78,7 @@ public class ADLConsumer {
     public void init() throws InterruptedException, MQClientException {
         //声明并初始化一个consumer
         //需要一个consumer group名字作为构造方法的参数，这里为consumer1
-        consumer = new DefaultMQPushConsumer(group + "-adl");
+        consumer = new DefaultMQPushConsumer(group + "_" + MCH_CONTRACT_ADL);
         consumer.setInstanceName(clientInstanceName);
         //同样也要设置NameServer地址
         consumer.setNamesrvAddr(namesrvAddr);
@@ -90,7 +90,7 @@ public class ADLConsumer {
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.setVipChannelEnabled(false);
         //设置consumer所订阅的Topic和Tag，*代表全部的Tag
-        consumer.subscribe("mch_adl", "*");
+        consumer.subscribe(MCH_CONTRACT_ADL, "*");
         consumer.setConsumeMessageBatchMaxSize(100);
         consumer.setPullInterval(30);
         consumer.setPullBatchSize(100);
