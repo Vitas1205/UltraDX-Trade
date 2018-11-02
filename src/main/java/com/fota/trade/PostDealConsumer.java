@@ -111,7 +111,6 @@ public class PostDealConsumer {
                     log.error("message error!");
                     return ConsumeOrderlyStatus.SUCCESS;
                 }
-                log.info("consume postDeal message,size={}, keys={}", msgs.size(), msgs.stream().map(MessageExt::getKeys).collect(Collectors.toList()));
                 try {
                     List<ContractDealedMessage> postDealMessages = msgs
                             .stream()

@@ -65,7 +65,7 @@ public class MatchedConsumer {
                 (List<MessageExt> msgs, ConsumeConcurrentlyContext context) ->  consumeMatchedMessage(msgs, context, COIN)
         );
 
-        coinMatchedConsumer = initMatchedConsumer(TopicConstants.MCH_CONTRACT_MATCH,
+        contractMatchedConsumer = initMatchedConsumer(TopicConstants.MCH_CONTRACT_MATCH,
                 (List<MessageExt> msgs, ConsumeConcurrentlyContext context) ->  consumeMatchedMessage(msgs, context, CONTRACT)
         );
 
@@ -86,6 +86,8 @@ public class MatchedConsumer {
         consumer.setVipChannelEnabled(false);
         consumer.subscribe(topic, "*");
         consumer.setConsumeMessageBatchMaxSize(1);
+        consumer.setMessageListener(listenerConcurrently);
+        consumer.start();
         return consumer;
     }
 
@@ -118,12 +120,11 @@ public class MatchedConsumer {
                 log.error("get mq message failed", e);
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
-            log.info("receive match message, ------------" + bodyStr);
-            if (TagsTypeEnum.USDK.getDesc().equals(bizType)) {
+            if (COIN.equals(bizType)) {
                 UsdkMatchedOrderDTO usdkMatchedOrderDTO = JSON.parseObject(bodyStr, UsdkMatchedOrderDTO.class);
                 resultCode = usdkOrderService.updateOrderByMatch(usdkMatchedOrderDTO);
 
-            } else if (BizTypeEnum.CONTRACT.equals(bizType)) {
+            } else if (CONTRACT.equals(bizType)) {
                 ContractMatchedOrderDTO contractMatchedOrderDTO = JSON.parseObject(bodyStr, ContractMatchedOrderDTO.class);
                 resultCode = contractOrderService.updateOrderByMatch(contractMatchedOrderDTO);
             }

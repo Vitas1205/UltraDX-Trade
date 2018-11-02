@@ -24,10 +24,7 @@ import com.fota.trade.domain.enums.OrderTypeEnum;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkOrderMapper;
-import com.fota.trade.msg.BaseCancelReqMessage;
-import com.fota.trade.msg.BaseCanceledMessage;
-import com.fota.trade.msg.CoinPlaceOrderMessage;
-import com.fota.trade.msg.TopicConstants;
+import com.fota.trade.msg.*;
 import com.fota.trade.util.BasicUtils;
 import com.fota.trade.util.ContractUtils;
 import com.fota.trade.util.Profiler;
@@ -542,37 +539,6 @@ public class UsdkOrderManager {
             postProcessOrder(askUsdkOrder, filledAmount, matchId);
             postProcessOrder(bidUsdkOrder, filledAmount, matchId);
 
-            // 向MQ推送消息
-            OrderMessage orderMessage = new OrderMessage();
-            orderMessage.setSubjectId(usdkMatchedOrderDTO.getAssetId().longValue());
-            orderMessage.setSubjectName(usdkMatchedOrderDTO.getAssetName());
-            orderMessage.setTransferTime(transferTime);
-            orderMessage.setPrice(new BigDecimal(usdkMatchedOrderDTO.getFilledPrice()));
-            orderMessage.setAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
-            orderMessage.setEvent(OrderOperateTypeEnum.DEAL_ORDER.getCode());
-            orderMessage.setAskOrderId(usdkMatchedOrderDTO.getAskOrderId());
-            orderMessage.setBidOrderId(usdkMatchedOrderDTO.getBidOrderId());
-            orderMessage.setAskOrderContext(askOrderContext);
-            orderMessage.setBidOrderContext(bidOrderContext);
-            orderMessage.setAskOrderType(askUsdkOrder.getOrderType());
-            orderMessage.setBidOrderType(bidUsdkOrder.getOrderType());
-            orderMessage.setAskOrderUnfilledAmount(usdkMatchedOrderDTO.getAskOrderUnfilledAmount());
-            orderMessage.setBidOrderUnfilledAmount(usdkMatchedOrderDTO.getBidOrderUnfilledAmount());
-            orderMessage.setMatchType(usdkMatchedOrderDTO.getMatchType());
-            if (askUsdkOrder.getPrice() != null){
-                orderMessage.setAskOrderEntrustPrice(askUsdkOrder.getPrice());
-            }
-            if (bidUsdkOrder.getPrice() != null){
-                orderMessage.setBidOrderEntrustPrice(bidUsdkOrder.getPrice());
-            }
-            orderMessage.setAskUserId(askUsdkOrder.getUserId());
-            orderMessage.setBidUserId(bidUsdkOrder.getUserId());
-            orderMessage.setMatchOrderId(matchId);
-            Boolean sendRet = rocketMqManager.sendMessage("match", "usdk", String.valueOf(matchId), orderMessage);
-            if (!sendRet){
-                log.error("Send RocketMQ Message Failed ");
-            }
-
         };
         ThreadContextUtil.setPostTask(runnable);
 
@@ -587,11 +553,18 @@ public class UsdkOrderManager {
         tradeLog.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                 1, usdkOrderDO.getAssetName(), userName,filledAmount, System.currentTimeMillis(), 4,  usdkOrderDO.getOrderDirection(), usdkOrderDO.getUserId(), 1);
 
-        DealedMessage dealedMessage = new DealedMessage();
-        dealedMessage.setSubjectId(usdkOrderDO.getAssetId())
-                .setSubjectType(DealedMessage.USDT_TYPE)
-                .setUserId(usdkOrderDO.getUserId());
-        rocketMqManager.sendMessage(DEALED_TOPIC, DEALED_USDT_TAG, matchId + "_" + usdkOrderDO.getId(), dealedMessage);
+        CoinDealedMessage coinDealedMessage = new CoinDealedMessage();
+        coinDealedMessage.setUserId(usdkOrderDO.getUserId());
+        coinDealedMessage.setOrderId(usdkOrderDO.getId());
+        coinDealedMessage.setSubjectId(usdkOrderDO.getAssetId());
+        coinDealedMessage.setSubjectName(usdkOrderDO.getAssetName());
+        coinDealedMessage.setOrderDirection(usdkOrderDO.getOrderDirection());
+        coinDealedMessage.setOrderType(usdkOrderDO.getOrderType());
+        coinDealedMessage.setFilledAmount(filledAmount);
+        coinDealedMessage.setFilledPrice(usdkOrderDO.getPrice());
+        coinDealedMessage.setMatchId(matchId);
+
+        rocketMqManager.sendMessage(DEALED_TOPIC, DEALED_USDT_TAG, matchId + "_" + usdkOrderDO.getId(), coinDealedMessage);
     }
 
 
