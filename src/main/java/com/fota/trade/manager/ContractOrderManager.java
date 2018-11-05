@@ -48,6 +48,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import static com.fota.asset.domain.enums.UserContractStatus.LIMIT;
+import static com.fota.common.utils.CommonUtils.scale;
 import static com.fota.trade.PriceTypeEnum.MARKET_PRICE;
 import static com.fota.trade.PriceTypeEnum.RIVAL_PRICE;
 import static com.fota.trade.PriceTypeEnum.SPECIFIED_PRICE;
@@ -190,7 +191,7 @@ public class ContractOrderManager {
         if (contractOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()) {
             insertOrderRecord(contractOrderDO);
         } else {
-            Result<OrderResult> judgeRet = judgeOrderAvailable(contractOrderDO.getUserId(), contractOrderDO);
+            Result<OrderResult> judgeRet = judgeOrderAvailable(contractOrderDO.getUserId(), contractOrderDO, contractOrderDTO.getEntrustValue());
             profiler.complelete("judge order available");
 
             if (!judgeRet.isSuccess()) {
@@ -474,12 +475,12 @@ public class ContractOrderManager {
                     return null;
                 }
                 floatingPL = price.subtract(positionAveragePrice).multiply(positionUnfilledAmount).multiply(new BigDecimal(dire));
-                positionMargin = positionUnfilledAmount.multiply(price).divide(lever, CommonUtils.scale, BigDecimal.ROUND_UP);
+                positionMargin = positionUnfilledAmount.multiply(price).divide(lever, scale, BigDecimal.ROUND_UP);
 
                 floatingPLByIndex = index.compareTo(BigDecimal.ZERO) == 0 ? floatingPL :
                         index.subtract(positionAveragePrice).multiply(positionUnfilledAmount).multiply(new BigDecimal(dire));
                 positionMarginByIndex = index.compareTo(BigDecimal.ZERO) == 0 ? positionMargin :
-                        positionUnfilledAmount.multiply(index).divide(lever, CommonUtils.scale, BigDecimal.ROUND_UP);
+                        positionUnfilledAmount.multiply(index).divide(lever, scale, BigDecimal.ROUND_UP);
                 positionValueByIndex = index.compareTo(BigDecimal.ZERO) == 0 ? positionUnfilledAmount.multiply(price) :
                         positionUnfilledAmount.multiply(index);
             }
@@ -537,9 +538,9 @@ public class ContractOrderManager {
         if (totalPositionMarginByIndex.compareTo(BigDecimal.ZERO) == 0){
             contractAccount.setSecurityBorder(accountEquityByIndex.subtract((T2.multiply(totalPositionMarginByIndex.add(totalEntrustMarginByIndex)))));
         }else {
-            BigDecimal L = totalPositionValueByIndex.divide(totalPositionMarginByIndex, CommonUtils.scale, BigDecimal.ROUND_DOWN);
+            BigDecimal L = totalPositionValueByIndex.divide(totalPositionMarginByIndex, scale, BigDecimal.ROUND_DOWN);
             BigDecimal securityBorder = accountEquityByIndex.subtract((T2.multiply(totalPositionMarginByIndex.add(totalEntrustMarginByIndex)))).
-                    divide((new BigDecimal("1").subtract(T2.divide(L, CommonUtils.scale, BigDecimal.ROUND_DOWN))), CommonUtils.scale, BigDecimal.ROUND_DOWN);
+                    divide((new BigDecimal("1").subtract(T2.divide(L, scale, BigDecimal.ROUND_DOWN))), scale, BigDecimal.ROUND_DOWN);
             contractAccount.setSecurityBorder(securityBorder);
         }
         contractAccount.setAccountMargin(contractAccount.getFrozenAmount().add(contractAccount.getMarginCallRequirement()));
@@ -769,9 +770,12 @@ public class ContractOrderManager {
     }
 
     public Result checkOrderDTO(ContractOrderDTO contractOrderDTO) {
-        if (null == contractOrderDTO  || null == contractOrderDTO.getTotalAmount() || null == contractOrderDTO.getUserId() || null == contractOrderDTO.getContractId()
+        if (null == contractOrderDTO   || null == contractOrderDTO.getUserId() || null == contractOrderDTO.getContractId()
                 || null == contractOrderDTO.getOrderDirection()) {
-            return Result.fail(ILLEGAL_PARAM.getCode(), "please check you param, some properties may be null");
+            return Result.fail(ILLEGAL_PARAM.getCode(), ILLEGAL_PARAM.getMessage());
+        }
+        if ( null == contractOrderDTO.getTotalAmount() && null == contractOrderDTO.getEntrustValue()) {
+            return Result.fail(ILLEGAL_PARAM.getCode(), ILLEGAL_PARAM.getMessage());
         }
         if (ASK.getCode() != contractOrderDTO.getOrderDirection() && BID.getCode() != contractOrderDTO.getOrderDirection()) {
             return Result.fail(ILLEGAL_ORDER_DIRECTION.getCode(), ILLEGAL_ORDER_DIRECTION.getMessage());
@@ -854,7 +858,7 @@ public class ContractOrderManager {
      * @param newContractOrderDO
      * @return
      */
-    public Result<OrderResult> judgeOrderAvailable(long userId, ContractOrderDO newContractOrderDO) {
+    public Result<OrderResult> judgeOrderAvailable(long userId, ContractOrderDO newContractOrderDO, BigDecimal entrustValue) {
         Profiler profiler = (null == ThreadContextUtil.getPrifiler()) ? new Profiler("judgeOrderAvailable") : ThreadContextUtil.getPrifiler();
         ContractAccount contractAccount = new ContractAccount();
         contractAccount.setMarginCallRequirement(BigDecimal.ZERO)
@@ -896,10 +900,13 @@ public class ContractOrderManager {
         if (!getPriceRes.isSuccess()) {
             return Result.fail(getPriceRes.getCode(), getPriceRes.getMessage());
         }
-
         //重新设置价格
         newContractOrderDO.setPrice(getPriceRes.getData());
 
+        //根据金额计算数量
+        if (null != entrustValue) {
+            newContractOrderDO.setTotalAmount(entrustValue.divide(newContractOrderDO.getPrice(), scale, BigDecimal.ROUND_DOWN));
+        }
         //查询用户所有非强平活跃单
         List<ContractOrderDO> allContractOrders = contractOrderMapper.selectNotEnforceOrderByUserId(userId);
         profiler.complelete("selectNotEnforceOrderByUserId");
@@ -976,7 +983,7 @@ public class ContractOrderManager {
                         .multiply(new BigDecimal(dire));
 
                 positionMargin = positionUnfilledAmount.multiply(price)
-                        .divide(lever, CommonUtils.scale, BigDecimal.ROUND_UP);
+                        .divide(lever, scale, BigDecimal.ROUND_UP);
 
                 if (isCurrentContract) {
                     //持仓反方向的"仓加挂"小于该合约持仓保证金，允许下单
