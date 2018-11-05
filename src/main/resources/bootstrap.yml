@@ -22,3 +22,11 @@ service-group:  ${SPRING_SERVICE:dev}
 reference-group: ${SPRING_REFERENCE:daily}
 zk:
   servers: ${spring.cloud.zookeeper.connect-string}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  server:
+    servlet:
+      context-path: /monitor
