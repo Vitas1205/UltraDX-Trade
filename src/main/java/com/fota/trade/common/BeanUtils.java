@@ -1,8 +1,11 @@
 package com.fota.trade.common;
 
 import com.alibaba.fastjson.JSONObject;
+
 import com.fota.asset.domain.enums.AssetTypeEnum;
 import com.fota.trade.domain.*;
+
+
 import org.springframework.beans.BeansException;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -160,7 +163,7 @@ public class BeanUtils {
         return contractOrderDTO;
     }
 
-    public static ContractOrderDO extractContractOrderDO(long id, com.fota.trade.domain.ContractOrderDTO contractOrderDTO, String username, BigDecimal feeRate) {
+    public static ContractOrderDO extractContractOrderDO(long id, ContractOrderDTO contractOrderDTO, String username, BigDecimal feeRate) {
 
         ContractOrderDO contractOrderDO = new ContractOrderDO();
         contractOrderDO.setId(id);
@@ -207,7 +210,7 @@ public class BeanUtils {
         userPositionDTO.setContractId(userPositionDO.getContractId());
         userPositionDTO.setContractName(userPositionDO.getContractName());
         userPositionDTO.setPositionType(userPositionDO.getPositionType());
-        userPositionDTO.setAveragePrice(userPositionDO.getAveragePrice().toString());
+        userPositionDTO.setAveragePrice(userPositionDO.getAveragePrice().toPlainString());
         userPositionDTO.setAmount(userPositionDO.getUnfilledAmount());
         userPositionDTO.setContractSize(BigDecimal.ONE);
         if (userPositionDO.getFeeRate() != null){

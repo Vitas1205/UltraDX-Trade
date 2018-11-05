@@ -3,6 +3,7 @@ package com.fota.trade.manager;
 import com.fota.ticker.entrust.EntrustCacheConstants;
 import com.fota.ticker.entrust.RealTimeEntrust;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -17,6 +18,7 @@ import java.util.List;
  * Created by lds on 2018/10/20.
  * Code is the law
  */
+@Slf4j
 @Component
 public class RealTimeEntrustManager {
     @Autowired
@@ -36,7 +38,6 @@ public class RealTimeEntrustManager {
     @CacheEvict("competitorsPriceOrder")
     @Scheduled(fixedRate = 500)
     public void deleteContractCompetitorsPriceOrder() {
-
     }
 
     @Cacheable("usdtPriceOrder")

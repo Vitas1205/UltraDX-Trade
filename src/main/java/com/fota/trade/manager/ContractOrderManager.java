@@ -38,6 +38,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
+
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -47,11 +48,16 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+
 import static com.fota.asset.domain.enums.UserContractStatus.LIMIT;
+
 import static com.fota.common.utils.CommonUtils.scale;
 import static com.fota.trade.PriceTypeEnum.MARKET_PRICE;
 import static com.fota.trade.PriceTypeEnum.RIVAL_PRICE;
 import static com.fota.trade.PriceTypeEnum.SPECIFIED_PRICE;
+
+import static com.fota.trade.PriceTypeEnum.*;
+
 import static com.fota.trade.client.MQConstants.ORDER_TOPIC;
 import static com.fota.trade.client.MQConstants.TO_CANCEL_CONTRACT_TAG;
 import static com.fota.trade.common.Constant.DEFAULT_LEVER;
@@ -444,6 +450,7 @@ public class ContractOrderManager {
             log.error("get simpleIndexList failed", e);
         }
         Map<String, Object> map = new HashMap<>();
+        List<UserPositionDTO> userPositionDTOS = new ArrayList<>(allPositions.size());
         for (ContractCategoryDTO contractCategoryDO : categoryList) {
             long contractId = contractCategoryDO.getId();
             BigDecimal lever = findLever(contractLeverDOS, userId, contractCategoryDO.getAssetId());
@@ -483,6 +490,12 @@ public class ContractOrderManager {
                         positionUnfilledAmount.multiply(index).divide(lever, scale, BigDecimal.ROUND_UP);
                 positionValueByIndex = index.compareTo(BigDecimal.ZERO) == 0 ? positionUnfilledAmount.multiply(price) :
                         positionUnfilledAmount.multiply(index);
+                UserPositionDTO userPositionDTO = com.fota.trade.common.BeanUtils.copy(userPositionDO);
+                userPositionDTO.setLever(lever.intValue());
+                userPositionDTO.setAveragePrice(positionAveragePrice.toPlainString());
+                userPositionDTO.setMargin(positionMargin);
+                userPositionDTO.setFloatingPL(floatingPL);
+                userPositionDTOS.add(userPositionDTO);
             }
 
             //计算委托额外保证金
@@ -513,7 +526,6 @@ public class ContractOrderManager {
                         .collect(toList());
                 entrustMarginDO = getExtraEntrustAmount(userId, contractId, bidList, askList, positionType, positionUnfilledAmount, positionMargin, positionMarginByIndex, lever);
                 Pair<BigDecimal, Map<String, Object>> pair = entrustMarginDO.getPair();
-                entrustMargin = pair.getLeft();
                 map.putAll(pair.getRight());
             }
             entrustMargin = entrustMarginDO.getEntrustMargin();
@@ -545,6 +557,7 @@ public class ContractOrderManager {
         }
         contractAccount.setAccountMargin(contractAccount.getFrozenAmount().add(contractAccount.getMarginCallRequirement()));
         contractAccount.setSuggestedAddAmount(totalPositionValueByIndex.add(totalEntrustMarginByIndex).subtract(contractAccount.getAccountEquity()).max(BigDecimal.ZERO));
+        contractAccount.setUserPositionDTOS(userPositionDTOS);
         redisManager.hPutAll(userContractPositionExtraKey, map);
         return contractAccount;
 
@@ -1048,9 +1061,6 @@ public class ContractOrderManager {
         executorService.submit(() -> internalUpdateExtraEntrustAmountByContract(userId, contractId));
     }
     public void internalUpdateExtraEntrustAmountByContract(Long userId, Long contractId){
-        if (marketAccountListService.contains(userId)) {
-            return;
-        }
         List<ContractOrderDO> contractOrderDOS = contractOrderMapper.selectNotEnforceOrderByUserIdAndContractId(userId, contractId);
         if (CollectionUtils.isEmpty(contractOrderDOS)) {
             contractOrderDOS = Collections.emptyList();
