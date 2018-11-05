@@ -7,6 +7,8 @@ import com.fota.asset.service.AssetService;
 import com.fota.common.Result;
 import com.fota.common.utils.CommonUtils;
 import com.fota.data.domain.TickerDTO;
+import com.fota.risk.client.domain.UserPositionQuantileDTO;
+import com.fota.risk.client.manager.RelativeRiskLevelManager;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
 import com.fota.trade.PriceTypeEnum;
 import com.fota.trade.client.AssetExtraProperties;
@@ -112,6 +114,9 @@ public class ContractOrderManager {
 
     @Autowired
     private MarketAccountListService marketAccountListService;
+
+    @Autowired
+    private RelativeRiskLevelManager relativeRiskLevelManager;
 
     private static final BigDecimal POSITION_LIMIT_BTC = BigDecimal.valueOf(100);
 
@@ -451,6 +456,18 @@ public class ContractOrderManager {
         }
         Map<String, Object> map = new HashMap<>();
         List<UserPositionDTO> userPositionDTOS = new ArrayList<>(allPositions.size());
+        UserPositionQuantileDTO userPositionQuantileDTO = new UserPositionQuantileDTO();
+        List<UserPositionQuantileDTO.UserPositionDTO> dtoList = allPositions.stream()
+                .map(userPositionDO -> {
+                    UserPositionQuantileDTO.UserPositionDTO userPositionDTO = new UserPositionQuantileDTO.UserPositionDTO();
+                    userPositionDTO.setContractId(userPositionDO.getContractId());
+                    userPositionDTO.setPositionType(userPositionDO.getPositionType());
+
+                    return userPositionDTO;
+                }).collect(toList());
+        userPositionQuantileDTO.setUserPositions(dtoList);
+        userPositionQuantileDTO.setUserId(userId);
+        Map<Long, Long> quantiles = relativeRiskLevelManager.quantiles(userPositionQuantileDTO);
         for (ContractCategoryDTO contractCategoryDO : categoryList) {
             long contractId = contractCategoryDO.getId();
             BigDecimal lever = findLever(contractLeverDOS, userId, contractCategoryDO.getAssetId());
@@ -481,6 +498,8 @@ public class ContractOrderManager {
                 if (null == price) {
                     return null;
                 }
+                BigDecimal currentPrice = price.multiply(positionUnfilledAmount);
+
                 floatingPL = price.subtract(positionAveragePrice).multiply(positionUnfilledAmount).multiply(new BigDecimal(dire));
                 positionMargin = positionUnfilledAmount.multiply(price).divide(lever, scale, BigDecimal.ROUND_UP);
 
@@ -495,6 +514,8 @@ public class ContractOrderManager {
                 userPositionDTO.setAveragePrice(positionAveragePrice.toPlainString());
                 userPositionDTO.setMargin(positionMargin);
                 userPositionDTO.setFloatingPL(floatingPL);
+                userPositionDTO.setCurrentPrice(currentPrice);
+                userPositionDTO.setQuantile(quantiles.getOrDefault(contractId, -1L));
                 userPositionDTOS.add(userPositionDTO);
             }
 

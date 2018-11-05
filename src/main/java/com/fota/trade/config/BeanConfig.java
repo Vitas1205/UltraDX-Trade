@@ -12,8 +12,9 @@ import org.springframework.data.redis.core.RedisTemplate;
  */
 @Configuration
 public class BeanConfig {
+
     @Bean
-    public RelativeRiskLevelManager relativeRiskLevelManager(@Autowired RedisTemplate<String, Object> redisTemplate){
+    public RelativeRiskLevelManager relativeRiskLevelManager(RedisTemplate<String, Object> redisTemplate){
         RelativeRiskLevelManager relativeRiskLevelManager = new RelativeRiskLevelManager();
         relativeRiskLevelManager.setRedisTemplate(redisTemplate);
         return relativeRiskLevelManager;

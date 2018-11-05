@@ -2,6 +2,8 @@ package com.fota.trade.service.impl;
 
 import com.fota.common.Page;
 import com.fota.common.Result;
+import com.fota.risk.client.domain.UserPositionQuantileDTO;
+import com.fota.risk.client.manager.RelativeRiskLevelManager;
 import com.fota.ticker.entrust.RealTimeEntrust;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
 import com.fota.trade.client.constants.Constants;
@@ -22,10 +24,12 @@ import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.fota.trade.client.constants.Constants.NOT_EXIST;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
@@ -57,8 +61,11 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
     @Autowired
     private RealTimeEntrust realTimeEntrust;
 
-    @Resource
+    @Autowired
     private ContractOrderManager contractOrderManager;
+
+    @Autowired
+    private RelativeRiskLevelManager relativeRiskLevelManager;
 
     @Override
     public Page<UserPositionDTO> listPositionByQuery(long userId, long contractId, int pageNo, int pageSize) {
@@ -93,24 +100,34 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
         }
         List<UserPositionDO> userPositionDOList = null;
         List<UserPositionDTO> list = new ArrayList<>();
+        List<CompetitorsPriceDTO> contractCompetitorsPrice = realTimeEntrust.getContractCompetitorsPriceOrder();
         try {
             userPositionDOList = userPositionMapper.listByQuery(ParamUtil.objectToMap(userPositionQuery));
-            if (userPositionDOList != null && userPositionDOList.size() > 0) {
+            if (!CollectionUtils.isEmpty(userPositionDOList)) {
+                UserPositionQuantileDTO userPositionQuantileDTO = new UserPositionQuantileDTO();
+                List<UserPositionQuantileDTO.UserPositionDTO> positionDTOList = userPositionDOList.stream()
+                        .map(userPositionDO -> {
+                            UserPositionQuantileDTO.UserPositionDTO userPositionDTO = new UserPositionQuantileDTO.UserPositionDTO();
+                            userPositionDTO.setPositionType(userPositionDO.getPositionType());
+                            userPositionDTO.setContractId(userPositionDO.getContractId());
+
+                            return userPositionDTO;
+                        }).collect(Collectors.toList());
+                userPositionQuantileDTO.setUserPositions(positionDTOList);
+                userPositionQuantileDTO.setUserId(userId);
+                Map<Long, Long> quantiles = relativeRiskLevelManager.quantiles(userPositionQuantileDTO);
                 for (UserPositionDO tmp : userPositionDOList) {
-                    list.add(BeanUtils.copy(tmp));
+                    UserPositionDTO userPositionDTO = BeanUtils.copy(tmp);
+                    userPositionDTO.setQuantile(quantiles.getOrDefault(userPositionDTO.getContractId(), 1L));
+                    BigDecimal computePrice = contractOrderManager.computePrice(contractCompetitorsPrice, tmp.getPositionType(), tmp.getContractId());
+                    userPositionDTO.setCurrentPrice(computePrice.multiply(tmp.getUnfilledAmount()));
+                    list.add(userPositionDTO);
                 }
             }
         } catch (Exception e) {
             log.error("userPositionMapper.listByQuery({})", userPositionQuery, e);
             return page;
         }
-//        List<UserPositionDTO> userPositionDTOList = null;
-//        try {
-//            userPositionDTOList = BeanUtils.copyList(userPositionDOList, UserPositionDTO.class);
-//        } catch (Exception e) {
-//            log.error("bean copy exception", e);
-//            return userPositionDTOPage;
-//        }
         page.setData(list);
         return page;
     }
