@@ -99,7 +99,7 @@ public class PostDealConsumer {
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.setVipChannelEnabled(false);
         //设置consumer所订阅的Topic和Tag，*代表全部的Tag
-        consumer.subscribe(TRD_CONTRACT_DEAL, DEFAULT_TAG);
+        consumer.subscribe(TRD_CONTRACT_DEAL, "*");
         consumer.setConsumeMessageBatchMaxSize(100);
         consumer.setPullInterval(30);
         consumer.setPullBatchSize(100);
