@@ -81,8 +81,6 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         }
         contractOrderDTOPage.setPageNo(contractOrderQueryDTO.getPageNo());
         contractOrderDTOPage.setPageSize(contractOrderQueryDTO.getPageSize());
-        contractOrderQueryDTO.setStartRow((contractOrderQueryDTO.getPageNo() - 1) * contractOrderQueryDTO.getPageSize());
-        contractOrderQueryDTO.setEndRow(contractOrderQueryDTO.getPageSize());
 
         Map<String, Object> paramMap = null;
 
@@ -118,19 +116,6 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     }
 
 
-    @Override
-    public Integer countContractOrderByQuery4Recovery(BaseQuery contractOrderQuery) {
-        Map<String, Object> paramMap = null;
-        Integer total = null;
-        try {
-            paramMap = ParamUtil.objectToMap(contractOrderQuery);
-            paramMap.put("contractId", contractOrderQuery.getSourceId());
-            total = contractOrderMapper.countByQuery(paramMap);
-        } catch (Exception e) {
-            log.error("contractOrderMapper.countContractOrderByQuery4Recovery({})", contractOrderQuery, e);
-        }
-        return total;
-    }
 
     @Override
     public Result<RecoveryMetaData> getRecoveryMetaData() {
@@ -147,10 +132,6 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         return Result.suc(recoveryMetaData);
     }
 
-    @Override
-    public Page<ContractOrderDTO> listContractOrderByQuery4Recovery(BaseQuery contractOrderQuery) {
-        return null;
-    }
 
     @Override
     public Result<Page<ContractOrderDTO>> listContractOrder4Recovery(RecoveryQuery recoveryQuery) {
@@ -179,6 +160,10 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     @Override
     public List<ContractOrderDTO> getAllContractOrder(BaseQuery contractOrderQuery) {
         Map<String, Object> paramMap = null;
+        if (null == contractOrderQuery.getUserId()) {
+            return null;
+        }
+
         List<com.fota.trade.domain.ContractOrderDTO> list = new ArrayList<>();
         try {
             paramMap = ParamUtil.objectToMap(contractOrderQuery);

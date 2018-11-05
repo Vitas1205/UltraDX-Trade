@@ -88,8 +88,6 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         }
         usdkOrderDTOPage.setPageNo(usdkOrderQuery.getPageNo());
         usdkOrderDTOPage.setPageSize(usdkOrderQuery.getPageSize());
-        usdkOrderQuery.setStartRow((usdkOrderQuery.getPageNo() - 1) * usdkOrderQuery.getPageSize());
-        usdkOrderQuery.setEndRow(usdkOrderQuery.getPageSize());
         Map<String, Object> paramMap = null;
         int total = 0;
         try {
@@ -121,24 +119,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         return usdkOrderDTOPage;
     }
 
-    @Override
-    public Integer countUsdkOrderByQuery4Recovery(BaseQuery usdkOrderQuery) {
-        Map<String, Object> paramMap = null;
-        Integer total = 0;
-        try {
-            paramMap = ParamUtil.objectToMap(usdkOrderQuery);
-            paramMap.put("assetId", usdkOrderQuery.getSourceId());
-            total = usdkOrderMapper.countByQuery(paramMap);
-        } catch (Exception e) {
-            log.error("usdkOrderMapper.countByQuery4Recovery({})", usdkOrderQuery, e);
-        }
-        return total;
-    }
 
-    @Override
-    public Page<UsdkOrderDTO> listUsdkOrderByQuery4Recovery(BaseQuery usdkOrderQuery) {
-        return null;
-    }
 
     @Override
     public Result<RecoveryMetaData> getRecoveryMetaData() {

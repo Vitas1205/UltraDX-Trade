@@ -211,6 +211,11 @@
 			<artifactId>risk-client</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
+		<dependency>
+			<groupId>com.fota</groupId>
+			<artifactId>fota-id-generator</artifactId>
+			<version>1.0.0</version>
+		</dependency>
 	</dependencies>
 
 	<dependencyManagement>

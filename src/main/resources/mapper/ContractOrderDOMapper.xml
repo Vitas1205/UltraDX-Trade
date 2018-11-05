@@ -75,12 +75,9 @@
         select
         <include refid="Base_Column_List"/>
         from trade_contract_order
-        where 1=1
+        where user_id=#{userId}
         <if test="null!= contractId and contractId > 0">
             and contract_id=#{contractId,jdbcType=INTEGER}
-        </if>
-        <if test="null!=userId and userId > 0">
-            and user_id=#{userId,jdbcType=BIGINT}
         </if>
         <if test="startTime != null">
             and gmt_create &gt;= #{startTime}
