@@ -162,10 +162,10 @@ public class DealManager {
                 multiply(filledPrice).
                 multiply(bidContractOrder.getFee());
         ContractMatchedOrderDO askMatchedRecord = com.fota.trade.common.BeanUtils.extractContractMatchedRecord(contractMatchedOrderDTO, ASK.getCode(),
-                askFee, askContractOrder.getCloseType());
+                askFee, askContractOrder.getOrderType());
 
         ContractMatchedOrderDO bidMatchedRecord = com.fota.trade.common.BeanUtils.extractContractMatchedRecord(contractMatchedOrderDTO, BID.getCode(),
-                bidFee, bidContractOrder.getCloseType());
+                bidFee, bidContractOrder.getOrderType());
         try {
             int ret = contractMatchedOrderMapper.insert(Arrays.asList(askMatchedRecord, bidMatchedRecord));
             if (ret != 2) {

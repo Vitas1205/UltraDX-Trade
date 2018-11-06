@@ -1,11 +1,8 @@
 package com.fota.trade.common;
 
 import com.alibaba.fastjson.JSONObject;
-
 import com.fota.asset.domain.enums.AssetTypeEnum;
 import com.fota.trade.domain.*;
-
-
 import org.springframework.beans.BeansException;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -14,7 +11,6 @@ import java.math.BigDecimal;
 import java.util.*;
 
 import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
-import static com.fota.trade.domain.enums.OrderCloseType.MANUAL;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
 import static com.fota.trade.domain.enums.OrderStatusEnum.COMMIT;
 import static com.fota.trade.domain.enums.OrderTypeEnum.LIMIT;
@@ -193,9 +189,6 @@ public class BeanUtils {
         contractOrderDO.setFee(feeRate);
         if (null == contractOrderDO.getOrderType()) {
             contractOrderDO.setOrderType(LIMIT.getCode());
-        }
-        if (contractOrderDO.getCloseType() == null){
-            contractOrderDO.setCloseType(MANUAL.getCode());
         }
 
         return contractOrderDO;

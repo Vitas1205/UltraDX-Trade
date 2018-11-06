@@ -9,6 +9,7 @@ import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.domain.ContractADLMatchDTO;
 import com.fota.trade.domain.ContractMatchedOrderDO;
 import com.fota.trade.domain.UserPositionDO;
+import com.fota.trade.domain.enums.OrderCloseType;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
@@ -32,7 +33,7 @@ import static com.fota.common.ResultCodeEnum.ILLEGAL_PARAM;
 import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
 import static com.fota.trade.common.ResultCodeEnum.BIZ_ERROR;
 import static com.fota.trade.domain.enums.OrderCloseType.DECREASE_LEVERAGE;
-import static com.fota.trade.domain.enums.OrderCloseType.SYSTEM;
+import static com.fota.trade.domain.enums.OrderCloseType.ENFORCE;
 
 /**
  * Created by lds on 2018/10/24.
@@ -255,7 +256,7 @@ public class ADLManager {
                 .setContractName(contractADLMatchDTO.getContractName());
 
         res.setFee(BigDecimal.ZERO);
-        res.setCloseType(SYSTEM.getCode());
+        res.setCloseType(ENFORCE.getCode());
         res.setUserId(contractADLMatchDTO.getUserId());
         res.setOrderId(contractADLMatchDTO.getOrderId());
         res.setOrderPrice(contractADLMatchDTO.getPrice());

@@ -149,7 +149,7 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
             record.setFee(deliveryCompletedDTO.getFee());
             //和持仓方向相反成交
             record.setOrderDirection(ASK.getCode() + BID.getCode() - deliveryCompletedDTO.getOrderDirection());
-            record.setCloseType( OrderCloseType.EXPIRED.getCode());
+            record.setCloseType( OrderCloseType.DELIVERY.getCode());
 
             record.setOrderId(NOT_EXIST);
             record.setMatchId(NOT_EXIST);

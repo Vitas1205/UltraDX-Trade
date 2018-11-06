@@ -313,7 +313,7 @@ public class ContractOrderServiceTest {
         contractOrderDTO.setOrderDirection(OrderDirectionEnum.BID.getCode());
         contractOrderDTO.setUserId(274L);
         contractOrderDTO.setPrice(new BigDecimal(1));
-        contractOrderDTO.setCloseType(OrderCloseType.MANUAL.getCode());
+        contractOrderDTO.setCloseType(OrderCloseType.LIMIT.getCode());
         contractOrderDTO.setFee(new BigDecimal(0.01));
         //Result result = contractOrderService.orderReturnId(contractOrderDTO, userInfoMap);
         //log.info(result.toString());
@@ -330,7 +330,7 @@ public class ContractOrderServiceTest {
         contractOrderDO.setOrderDirection(OrderDirectionEnum.ASK.getCode());
         contractOrderDO.setUserId(282L);
         contractOrderDO.setPrice(new BigDecimal(100));
-        contractOrderDO.setCloseType(OrderCloseType.MANUAL.getCode());
+        contractOrderDO.setCloseType(OrderCloseType.LIMIT.getCode());
         contractOrderDO.setFee(new BigDecimal(0.0005));
         contractOrderDO.setUnfilledAmount(new BigDecimal("0.05"));
 //        Pair<Boolean, Map<String, Object>> ret = contractOrderManager.judgeOrderAvailable(282L, contractOrderDO);
@@ -388,7 +388,7 @@ public class ContractOrderServiceTest {
         contractOrderDTO.setOrderDirection(OrderDirectionEnum.BID.getCode());
         contractOrderDTO.setUserId(282L);
         contractOrderDTO.setPrice(new BigDecimal(6000));
-        contractOrderDTO.setCloseType(OrderCloseType.SYSTEM.getCode());
+        contractOrderDTO.setCloseType(OrderCloseType.ENFORCE.getCode());
         contractOrderDTO.setFee(new BigDecimal(0.01));
         contractOrderDTO.setUnfilledAmount(BigDecimal.TEN);
         //contractOrderService.orderReturnId(contractOrderDTO, userInfoMap);

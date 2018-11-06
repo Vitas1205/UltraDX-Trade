@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.fota.trade.UpdateOrderItem;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.OrderCloseType;
+import com.fota.trade.domain.enums.OrderTypeEnum;
 import com.fota.trade.msg.ContractDealedMessage;
 
 import java.math.BigDecimal;
@@ -43,13 +44,14 @@ public class ConvertUtils {
         return ASK.getCode() + BID.getCode() - direction;
     }
 
+
     public static ContractMatchedOrderDO toMatchedOrderDO(ADLMatchedDTO adlMatchedDTO, int matchType, long enforceUserId, long contractId, String contractName){
         ContractMatchedOrderDO matchedOrderDO = new ContractMatchedOrderDO();
         matchedOrderDO.setOrderId(adlMatchedDTO.getId())
                 .setUserId(adlMatchedDTO.getUserId())
                 .setOrderPrice(adlMatchedDTO.getPrice())
                 .setOrderDirection(adlMatchedDTO.getDirection())
-                .setCloseType(OrderCloseType.MANUAL.getCode());
+                .setCloseType(adlMatchedDTO.getOrderType());
 
         matchedOrderDO.setMatchId(adlMatchedDTO.getId());
         matchedOrderDO.setMatchUserId(enforceUserId);
