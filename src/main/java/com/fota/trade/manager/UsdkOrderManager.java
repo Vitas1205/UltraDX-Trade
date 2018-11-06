@@ -124,6 +124,9 @@ public class UsdkOrderManager {
         String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
         String ipAddress = StringUtils.isEmpty(userInfoMap.get("ipAddress")) ? "" : userInfoMap.get("ipAddress");
         com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
+        Long orderId = BasicUtils.generateId();
+        usdkOrderDTO.setId(orderId);
+
         UsdkOrderDO usdkOrderDO = com.fota.trade.common.BeanUtils.copy(usdkOrderDTO);
         Map<String, Object> newMap = new HashMap<>();
         if (usdkOrderDTO.getOrderContext() !=null){
@@ -132,7 +135,6 @@ public class UsdkOrderManager {
         newMap.put("username", username);
         usdkOrderDTO.setOrderContext(newMap);
         usdkOrderDO.setOrderContext(JSONObject.toJSONString(usdkOrderDTO.getOrderContext()));
-        Long orderId = usdkOrderDO.getId();
         ResultCode resultCode = new ResultCode();
         Integer assetId = usdkOrderDO.getAssetId();
         Long userId = usdkOrderDO.getUserId();
@@ -296,7 +298,6 @@ public class UsdkOrderManager {
         return Result.suc(orderPrice);
     }
     private int insertUsdkOrder(UsdkOrderDO usdkOrderDO) {
-        usdkOrderDO.setId(BasicUtils.generateId());
         return usdkOrderMapper.insert(usdkOrderDO);
     }
 

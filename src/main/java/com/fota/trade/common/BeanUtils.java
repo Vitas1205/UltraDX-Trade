@@ -112,9 +112,7 @@ public class BeanUtils {
 
     public static UsdkOrderDO copy(UsdkOrderDTO usdkOrderDTO) {
         UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
-        if (usdkOrderDTO.getId() != null) {
-            usdkOrderDO.setId(usdkOrderDTO.getId());
-        }
+        usdkOrderDO.setId(usdkOrderDTO.getId());
         if (usdkOrderDTO.getGmtCreate() != null) {
             usdkOrderDO.setGmtCreate(usdkOrderDTO.getGmtCreate());
         }
