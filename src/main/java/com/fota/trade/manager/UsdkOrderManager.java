@@ -280,8 +280,8 @@ public class UsdkOrderManager {
             }else{
                 curPrice = currentPriceManager.getSpotIndexByAssetId(assetId);
             }
-            BigDecimal buyMaxPrice = curPrice.multiply(new BigDecimal("1.05")).setScale(scale, RoundingMode.UP);
-            BigDecimal sellMinPrice = curPrice.multiply(new BigDecimal("0.95")).setScale(scale, BigDecimal.ROUND_DOWN);
+            BigDecimal buyMaxPrice = curPrice.multiply(new BigDecimal("1.9")).setScale(scale, RoundingMode.UP);
+            BigDecimal sellMinPrice = curPrice.multiply(new BigDecimal("0.1")).setScale(scale, BigDecimal.ROUND_DOWN);
             if (orderDirection == ASK.getCode()) {
                 return Result.suc(sellMinPrice);
             }

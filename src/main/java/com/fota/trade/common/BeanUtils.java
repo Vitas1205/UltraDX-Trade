@@ -190,6 +190,9 @@ public class BeanUtils {
         if (null == contractOrderDO.getOrderType()) {
             contractOrderDO.setOrderType(LIMIT.getCode());
         }
+        if (null == contractOrderDO.getCloseType()) {
+            contractOrderDO.setCloseType(contractOrderDO.getOrderType());
+        }
 
         return contractOrderDO;
     }

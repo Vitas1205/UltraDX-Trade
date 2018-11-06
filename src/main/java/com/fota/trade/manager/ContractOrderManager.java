@@ -907,6 +907,7 @@ public class ContractOrderManager {
 
         List<CompetitorsPriceDTO> competitorsPrices = realTimeEntrustManager.getContractCompetitorsPriceOrder();
         profiler.complelete("getContractCompetitorsPriceOrder");
+        int assetId = AssetTypeEnum.getAssetIdByContractName(contractCategoryDTO.getContractName());
         //计算合约价格
         Result<BigDecimal> getPriceRes = computeAndCheckOrderPrice(competitorsPrices, newContractOrderDO.getOrderType(), newContractOrderDO.getPrice(),
                 contractCategoryDTO.getAssetId(), newContractOrderDO.getContractId(), newContractOrderDO.getOrderDirection());
@@ -917,8 +918,16 @@ public class ContractOrderManager {
         newContractOrderDO.setPrice(getPriceRes.getData());
 
         //根据金额计算数量
+        int scale = AssetTypeEnum.getContractAmountPrecisionByAssetId(assetId);
         if (null != entrustValue) {
             newContractOrderDO.setTotalAmount(entrustValue.divide(newContractOrderDO.getPrice(), scale, BigDecimal.ROUND_DOWN));
+            newContractOrderDO.setUnfilledAmount(newContractOrderDO.getTotalAmount());
+        }else {
+            newContractOrderDO.setTotalAmount(newContractOrderDO.getTotalAmount().setScale(scale,BigDecimal.ROUND_DOWN));
+            newContractOrderDO.setUnfilledAmount(newContractOrderDO.getTotalAmount());
+        }
+        if (newContractOrderDO.getTotalAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            return Result.fail(AMOUNT_ILLEGAL.getCode(), "合约金额太小");
         }
         //查询用户所有非强平活跃单
         List<ContractOrderDO> allContractOrders = contractOrderMapper.selectNotEnforceOrderByUserId(userId);
