@@ -440,7 +440,12 @@ public class UsdkOrderManager {
         UsdkOrderDO askUsdkOrder = usdkOrderMapper.selectByUserIdAndId(usdkMatchedOrderDTO.getAskUserId(), usdkMatchedOrderDTO.getAskOrderId());
         UsdkOrderDO bidUsdkOrder = usdkOrderMapper.selectByUserIdAndId(usdkMatchedOrderDTO.getBidUserId(), usdkMatchedOrderDTO.getBidOrderId());
         profiler.complelete("select order");
-
+        if (null == askUsdkOrder ) {
+            return ResultCode.error(ILLEGAL_PARAM.getCode(), "null askOrder!!! ");
+        }
+        if (null == bidUsdkOrder) {
+            return ResultCode.error(ILLEGAL_PARAM.getCode(), "null bidOrder!!! ");
+        }
         List<UsdkOrderDO> usdkOrderDOS = Arrays.asList(askUsdkOrder, bidUsdkOrder);
         usdkOrderDOS.sort((a, b) -> a.getId().compareTo(b.getId()));
 
