@@ -210,19 +210,23 @@ public class ADLManager {
 //    }
 
     public Result<List<UserRRLDTO>> getRRLWithRetry(long contractId, int direction, int start, int end) {
-        int maxRetries = 3;
+        int maxRetries = 5;
         for (int i = 0; i < maxRetries; i++) {
             try {
                 //获取排行榜，以后可以看排行榜变化频率考虑是否缓存
                 List<UserRRLDTO> ret = riskLevelManager.range(contractId,
                         direction, start, end);
+                if (CollectionUtils.isEmpty(ret) && (i+1) < maxRetries) {
+                    BasicUtils.exeWhitoutError(() -> Thread.sleep(30));
+                    continue;
+                }
                 return Result.suc(ret);
             } catch (Throwable t) {
                 //调用抛异常三次，回滚事务
-                if ((maxRetries - 1) == i) {
+                if ((maxRetries - 1) >= i) {
                     throw new BizException(ResultCodeEnum.BIZ_ERROR.getCode(), "riskLevelService.range result exception." + t.getMessage());
                 }
-                BasicUtils.exeWhitoutError(() -> Thread.sleep(200));
+                BasicUtils.exeWhitoutError(() -> Thread.sleep(30));
             }
         }
         throw new BizException(ResultCodeEnum.BIZ_ERROR.getCode(), "riskLevelService.range result exception.");
