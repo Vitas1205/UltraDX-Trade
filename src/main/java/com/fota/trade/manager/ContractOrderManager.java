@@ -577,6 +577,8 @@ public class ContractOrderManager {
                     divide((new BigDecimal("1").subtract(T2.divide(L, scale, BigDecimal.ROUND_DOWN))), scale, BigDecimal.ROUND_DOWN);
             contractAccount.setSecurityBorder(securityBorder);
         }
+        BigDecimal btcSpotIndex = getIndex(AssetTypeEnum.BTC.getDesc(), list);
+        contractAccount.setAccountValuation(contractAccount.getAccountEquity().multiply(btcSpotIndex));
         contractAccount.setAccountMargin(contractAccount.getFrozenAmount().add(contractAccount.getMarginCallRequirement()));
         contractAccount.setSuggestedAddAmount(totalPositionValueByIndex.add(totalEntrustMarginByIndex).subtract(contractAccount.getAccountEquity()).max(BigDecimal.ZERO));
         contractAccount.setUserPositionDTOS(userPositionDTOS);
