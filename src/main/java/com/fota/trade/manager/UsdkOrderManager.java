@@ -146,10 +146,10 @@ public class UsdkOrderManager {
             int errorCode = 0;
             String errorMsg;
             if (orderDirection == OrderDirectionEnum.BID.getCode()){
-                assetTypeId = AssetTypeEnum.USDT.getCode();
+                assetTypeId = AssetTypeEnum.BTC.getCode();
                 entrustValue = orderValue;
-                errorCode = ResultCodeEnum.USDT_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode();
-                errorMsg = ResultCodeEnum.USDT_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage();
+                errorCode = ResultCodeEnum.CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode();
+                errorMsg = ResultCodeEnum.CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage();
             }else {
                 assetTypeId = assetId;
                 entrustValue = usdkOrderDO.getTotalAmount();
@@ -275,7 +275,7 @@ public class UsdkOrderManager {
             Integer assetId = 0;
             BigDecimal unlockAmount ;
             if (orderDirection == OrderDirectionEnum.BID.getCode()){
-                assetId = AssetTypeEnum.USDT.getCode();
+                assetId = AssetTypeEnum.BTC.getCode();
                 BigDecimal price = usdkOrderDO.getPrice();
                 unlockAmount = unfilledAmount.multiply(price);
             }else {
@@ -401,13 +401,13 @@ public class UsdkOrderManager {
         // 卖币 ask +totalUsdk = filledAmount * filledPrice - filledAmount * filledPrice * feeRate
         // 卖币 ask -lockedAsset = filledAmount
         // 卖币 ask -totalAsset = filledAmount
-        BigDecimal addLockedUsdk = BigDecimal.ZERO;
+        BigDecimal addLockedBTC = BigDecimal.ZERO;
         BigDecimal addBidTotalAsset = filledAmount.subtract(BigDecimal.ZERO);
-        BigDecimal addTotalUsdk = filledAmount.multiply(filledPrice);
+        BigDecimal addTotalBTC = filledAmount.multiply(filledPrice);
         if (usdkMatchedOrderDTO.getBidOrderPrice() != null){
-            addLockedUsdk = filledAmount.multiply(new BigDecimal(usdkMatchedOrderDTO.getBidOrderPrice()));
+            addLockedBTC = filledAmount.multiply(new BigDecimal(usdkMatchedOrderDTO.getBidOrderPrice()));
         }
-        BigDecimal addAskTotalUsdk = filledAmount.multiply(filledPrice);
+        BigDecimal addAskTotalBTC = filledAmount.multiply(filledPrice);
         BigDecimal addLockedAsset = filledAmount;
         BigDecimal addTotalAsset = filledAmount;
         BalanceTransferDTO balanceTransferDTO = new BalanceTransferDTO();
@@ -418,7 +418,7 @@ public class UsdkOrderManager {
             balanceTransferDTO.setAskLockedAsset("0");
             balanceTransferDTO.setAskTotalAsset("0");
         }else {
-            balanceTransferDTO.setAskTotalUsdk(addAskTotalUsdk.toString());
+            balanceTransferDTO.setAskTotalUsdk(addAskTotalBTC.toString());
             balanceTransferDTO.setAskLockedAsset(addLockedAsset.toString());
             balanceTransferDTO.setAskTotalAsset(addTotalAsset.toString());
         }
@@ -428,8 +428,8 @@ public class UsdkOrderManager {
             balanceTransferDTO.setBidLockedUsdk("0");
         }else {
             balanceTransferDTO.setBidTotalAsset(addBidTotalAsset.toString());
-            balanceTransferDTO.setBidTotalUsdk(addTotalUsdk.toString());
-            balanceTransferDTO.setBidLockedUsdk(addLockedUsdk.toString());
+            balanceTransferDTO.setBidTotalUsdk(addTotalBTC.toString());
+            balanceTransferDTO.setBidLockedUsdk(addLockedBTC.toString());
         }
         balanceTransferDTO.setAssetId(usdkMatchedOrderDTO.getAssetId());
         boolean updateRet = false;
