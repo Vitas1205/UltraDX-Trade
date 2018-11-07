@@ -110,13 +110,13 @@ public class DealManager {
     public ResultCode deal(ContractMatchedOrderDTO contractMatchedOrderDTO) {
 
         long contractId = contractMatchedOrderDTO.getContractId();
-        ContractCategoryDTO contractCategoryDO = contractCategoryService.getContractById(contractId);
-        if (null == contractCategoryDO) {
-            return ResultCode.error(ILLEGAL_PARAM.getCode(), "null contractCategoryDO, id=" + contractId);
-        }
-        if (!Objects.equals(PROCESSING.getCode(), contractCategoryDO.getStatus())) {
-            return ResultCode.error(ILLEGAL_PARAM.getCode(), "illegal contract status, id=" + contractId + ", status=" + contractCategoryDO.getStatus());
-        }
+//        ContractCategoryDTO contractCategoryDO = contractCategoryService.getContractById(contractId);
+//        if (null == contractCategoryDO) {
+//            return ResultCode.error(ILLEGAL_PARAM.getCode(), "null contractCategoryDO, id=" + contractId);
+//        }
+//        if (!Objects.equals(PROCESSING.getCode(), contractCategoryDO.getStatus())) {
+//            return ResultCode.error(ILLEGAL_PARAM.getCode(), "illegal contract status, id=" + contractId + ", status=" + contractCategoryDO.getStatus());
+//        }
 
         ContractOrderDO askContractOrder = contractOrderMapper.selectByIdAndUserId(contractMatchedOrderDTO.getAskUserId(), contractMatchedOrderDTO.getAskOrderId());
         ContractOrderDO bidContractOrder = contractOrderMapper.selectByIdAndUserId(contractMatchedOrderDTO.getBidUserId(), contractMatchedOrderDTO.getBidOrderId());

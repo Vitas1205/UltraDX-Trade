@@ -64,6 +64,7 @@ import static com.fota.trade.client.MQConstants.ORDER_TOPIC;
 import static com.fota.trade.client.MQConstants.TO_CANCEL_CONTRACT_TAG;
 import static com.fota.trade.common.Constant.DEFAULT_LEVER;
 import static com.fota.trade.common.ResultCodeEnum.*;
+import static com.fota.trade.domain.enums.ContractStatusEnum.DELIVERYING;
 import static com.fota.trade.domain.enums.ContractStatusEnum.PROCESSING;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
@@ -295,14 +296,14 @@ public class ContractOrderManager {
             return ResultCode.error(ResultCodeEnum.ENFORCE_ORDER_CANNOT_BE_CANCELED.getCode(),
                     ResultCodeEnum.ENFORCE_ORDER_CANNOT_BE_CANCELED.getMessage());
         }
-        ContractCategoryDTO contractCategoryDO = contractCategoryService.getContractById(contractOrderDO.getContractId());
-        if (contractCategoryDO == null){
-            return ResultCode.error(BIZ_ERROR.getCode(),"contract is null, id="+contractOrderDO.getContractId());
-        }
-        if (contractCategoryDO.getStatus() != PROCESSING.getCode()){
-            log.error("contract status illegal,can not cancel{}", contractCategoryDO);
-            return ResultCode.error(BIZ_ERROR.getCode(),"illegal status, id="+contractCategoryDO.getId() + ", status="+ contractCategoryDO.getStatus());
-        }
+//        ContractCategoryDTO contractCategoryDO = contractCategoryService.getContractById(contractOrderDO.getContractId());
+//        if (contractCategoryDO == null){
+//            return ResultCode.error(BIZ_ERROR.getCode(),"contract is null, id="+contractOrderDO.getContractId());
+//        }
+//        if (contractCategoryDO.getStatus() == DELIVERYING.getCode()){
+//            log.error("contract status illegal,can not cancel{}", contractCategoryDO);
+//            return ResultCode.error(BIZ_ERROR.getCode(),"illegal status, id="+contractCategoryDO.getId() + ", status="+ contractCategoryDO.getStatus());
+//        }
         ResultCode resultCode = ResultCode.success();
         List<Long> orderIdList = Collections.singletonList(orderId);
         sendCancelReq(orderIdList, userId);
