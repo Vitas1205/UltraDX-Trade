@@ -829,7 +829,7 @@ public class ContractOrderManager {
      * @param orderDeriction
      * @return
      */
-    public Result<BigDecimal> computeAndCheckOrderPrice(List<CompetitorsPriceDTO> competitorsPriceList, Integer orderType, BigDecimal orderPrice, long assetId, Long contractId, int orderDeriction) {
+    public Result<BigDecimal> computeAndCheckOrderPrice(List<CompetitorsPriceDTO> competitorsPriceList, Integer orderType, BigDecimal orderPrice, int assetId, Long contractId, int orderDeriction) {
 
         if (null == orderType) {
             return Result.fail(PRICE_TYPE_ILLEGAL.getCode(), PRICE_TYPE_ILLEGAL.getMessage());
@@ -840,7 +840,9 @@ public class ContractOrderManager {
 
         //无论如何都要获取交割指数
         BigDecimal indexes = currentPriceManager.getSpotIndexByAssetId(assetId);
-        Integer scale = AssetExtraProperties.getPrecisionByAssetId(assetId);
+        Integer scale = AssetTypeEnum.getContractPricePrecisionByAssetId(assetId);
+        int roundingMode = ASK.getCode() == orderDeriction ? BigDecimal.ROUND_UP : BigDecimal.ROUND_DOWN;
+
         BigDecimal buyMaxPrice = indexes.multiply(new BigDecimal("1.05")).setScale(scale, RoundingMode.UP);
         BigDecimal sellMinPrice = indexes.multiply(new BigDecimal("0.95")).setScale(scale, BigDecimal.ROUND_DOWN);
 
@@ -859,15 +861,12 @@ public class ContractOrderManager {
 
                     competitorsPrice.getId() == contractId.intValue()).findFirst();
             if (currentPrice.isPresent() && currentPrice.get().getPrice().compareTo(BigDecimal.ZERO) > 0){
-                BigDecimal actualPrice = currentPrice.get().getPrice();
-                Integer precision = AssetExtraProperties.getPrecisionByAssetId(assetId);
-                if (null != precision) {
-                    actualPrice = actualPrice.setScale(precision, BigDecimal.ROUND_DOWN);
-                }
-                return Result.suc(actualPrice);
+                orderPrice= currentPrice.get().getPrice().setScale(scale, roundingMode);
+            }else {
+                log.info("contractId={}, competitorsPriceList={}", contractId, competitorsPriceList);
+                return Result.fail(NO_COMPETITORS_PRICE.getCode(), NO_COMPETITORS_PRICE.getMessage());
             }
-            log.info("contractId={}, competitorsPriceList={}", contractId, competitorsPriceList);
-            return Result.fail(NO_COMPETITORS_PRICE.getCode(), NO_COMPETITORS_PRICE.getMessage());
+
         }
 
         //校验价格
