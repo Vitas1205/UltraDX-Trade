@@ -161,7 +161,7 @@
         <dependency>
 			<groupId>com.fota</groupId>
 			<artifactId>asset-client</artifactId>
-			<version>1.0.4-SNAPSHOT</version>
+			<version>1.0.4</version>
             <exclusions>
                 <exclusion>
                     <artifactId>lombok</artifactId>
@@ -179,7 +179,7 @@
 		<dependency>
 			<groupId>com.fota</groupId>
 			<artifactId>trade-client</artifactId>
-			<version>1.0.9-SNAPSHOT</version>
+			<version>1.0.9</version>
 
 		</dependency>
 
@@ -214,7 +214,7 @@
 		<dependency>
 			<groupId>com.fota</groupId>
 			<artifactId>risk-client</artifactId>
-			<version>0.0.1-SNAPSHOT</version>
+			<version>0.0.1</version>
 		</dependency>
 		<dependency>
 			<groupId>com.fota</groupId>
