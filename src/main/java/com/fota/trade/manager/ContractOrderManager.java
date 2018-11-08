@@ -5,7 +5,6 @@ import com.fota.asset.domain.UserContractDTO;
 import com.fota.asset.domain.enums.AssetTypeEnum;
 import com.fota.asset.service.AssetService;
 import com.fota.common.Result;
-import com.fota.common.utils.CommonUtils;
 import com.fota.data.domain.TickerDTO;
 import com.fota.risk.client.domain.UserPositionQuantileDTO;
 import com.fota.risk.client.manager.RelativeRiskLevelManager;
@@ -24,7 +23,10 @@ import com.fota.trade.domain.enums.*;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserContractLeverMapper;
 import com.fota.trade.mapper.UserPositionMapper;
-import com.fota.trade.msg.*;
+import com.fota.trade.msg.BaseCancelReqMessage;
+import com.fota.trade.msg.BaseCanceledMessage;
+import com.fota.trade.msg.ContractPlaceOrderMessage;
+import com.fota.trade.msg.TopicConstants;
 import com.fota.trade.service.ContractCategoryService;
 import com.fota.trade.service.internal.MarketAccountListService;
 import com.fota.trade.util.BasicUtils;
@@ -52,14 +54,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 import static com.fota.asset.domain.enums.UserContractStatus.LIMIT;
-
 import static com.fota.common.utils.CommonUtils.scale;
-import static com.fota.trade.PriceTypeEnum.MARKET_PRICE;
-import static com.fota.trade.PriceTypeEnum.RIVAL_PRICE;
-import static com.fota.trade.PriceTypeEnum.SPECIFIED_PRICE;
-
 import static com.fota.trade.PriceTypeEnum.*;
-
 import static com.fota.trade.client.MQConstants.ORDER_TOPIC;
 import static com.fota.trade.client.MQConstants.TO_CANCEL_CONTRACT_TAG;
 import static com.fota.trade.common.Constant.DEFAULT_LEVER;
@@ -515,7 +511,12 @@ public class ContractOrderManager {
                 userPositionDTO.setMargin(positionMargin);
                 userPositionDTO.setFloatingPL(floatingPL);
                 userPositionDTO.setCurrentPrice(currentPrice);
-                userPositionDTO.setQuantile(quantiles.getOrDefault(contractId, -1L));
+                Long quantile = quantiles.get(userPositionDTO.getContractId());
+                if (Objects.isNull(quantile)) {
+                    quantile = Constant.DEFAULT_POSITION_QUANTILE;
+                    log.error("user:{} contract:{}/{} quantile miss", userId, contractId, positionType);
+                }
+                userPositionDTO.setQuantile(quantile);
                 userPositionDTOS.add(userPositionDTO);
             }
 

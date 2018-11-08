@@ -33,6 +33,7 @@ public class Constant {
     public static final String CONTRACT_TOTAL_POSITION = "FOTA_CONTRACT_TOTAL_POSITION_";
     public static final BigDecimal DEFAULT_LEVER = new BigDecimal(10);
     public static final String MARKET_MAKER_ACCOUNT_TAG = "1";
+    public static final Long DEFAULT_POSITION_QUANTILE = 1L;
 
 
     //-------------------Redis-------------------//

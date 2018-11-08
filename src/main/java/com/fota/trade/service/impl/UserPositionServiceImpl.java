@@ -6,7 +6,6 @@ import com.fota.risk.client.domain.UserPositionQuantileDTO;
 import com.fota.risk.client.manager.RelativeRiskLevelManager;
 import com.fota.ticker.entrust.RealTimeEntrust;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
-import com.fota.trade.client.constants.Constants;
 import com.fota.trade.client.constants.MatchedOrderStatus;
 import com.fota.trade.common.BeanUtils;
 import com.fota.trade.common.Constant;
@@ -26,17 +25,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 
-import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.fota.trade.client.constants.Constants.NOT_EXIST;
+import static com.fota.trade.common.ResultCodeEnum.NO_LATEST_MATCHED_PRICE;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
 import static com.fota.trade.domain.enums.PositionStatusEnum.DELIVERED;
-
-import static com.fota.trade.common.ResultCodeEnum.NO_LATEST_MATCHED_PRICE;
 
 /**
  * @author Gavin Shen
@@ -118,7 +115,12 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
                 Map<Long, Long> quantiles = relativeRiskLevelManager.quantiles(userPositionQuantileDTO);
                 for (UserPositionDO tmp : userPositionDOList) {
                     UserPositionDTO userPositionDTO = BeanUtils.copy(tmp);
-                    userPositionDTO.setQuantile(quantiles.getOrDefault(userPositionDTO.getContractId(), 1L));
+                    Long quantile = quantiles.get(userPositionDTO.getContractId());
+                    if (Objects.isNull(quantile)) {
+                        quantile = Constant.DEFAULT_POSITION_QUANTILE;
+                        log.error("user:{} contract:{}/{} quantile miss", userId, contractId, tmp.getPositionType());
+                    }
+                    userPositionDTO.setQuantile(quantile);
                     BigDecimal computePrice = contractOrderManager.computePrice(contractCompetitorsPrice, tmp.getPositionType(), tmp.getContractId());
                     userPositionDTO.setCurrentPrice(computePrice.multiply(tmp.getUnfilledAmount()));
                     list.add(userPositionDTO);
