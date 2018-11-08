@@ -59,6 +59,7 @@ import static com.fota.trade.domain.enums.OrderTypeEnum.LIMIT;
 import static com.fota.trade.domain.enums.OrderTypeEnum.RIVAL;
 import static com.fota.trade.msg.TopicConstants.TRD_COIN_CANCELED;
 import static com.fota.trade.msg.TopicConstants.TRD_COIN_CANCEL_REQ;
+import static com.fota.trade.msg.TopicConstants.TRD_COIN_DEAL;
 import static java.util.stream.Collectors.toList;
 
 
@@ -567,7 +568,7 @@ public class UsdkOrderManager {
         coinDealedMessage.setFilledPrice(usdkOrderDO.getPrice());
         coinDealedMessage.setMatchId(matchId);
 
-        rocketMqManager.sendMessage(DEALED_TOPIC, DEALED_USDT_TAG, matchId + "_" + usdkOrderDO.getId(), coinDealedMessage);
+        rocketMqManager.sendMessage(TRD_COIN_DEAL, usdkOrderDO.getAssetId()+"", matchId + "_" + usdkOrderDO.getId(), coinDealedMessage);
     }
 
 
