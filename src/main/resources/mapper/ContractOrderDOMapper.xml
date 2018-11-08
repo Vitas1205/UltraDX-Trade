@@ -75,12 +75,9 @@
         select
         <include refid="Base_Column_List"/>
         from trade_contract_order
-        where 1=1
+        where user_id=#{userId}
         <if test="null!= contractId and contractId > 0">
             and contract_id=#{contractId,jdbcType=INTEGER}
-        </if>
-        <if test="null!=userId and userId > 0">
-            and user_id=#{userId,jdbcType=BIGINT}
         </if>
         <if test="startTime != null">
             and gmt_create &gt;= #{startTime}
@@ -116,6 +113,21 @@
     where user_id=#{userId} and id = #{orderId} and unfilled_amount - #{filledAmount} >=0
   </update>
 
+    <!--<update id="batchUpdateAmountAndStatus">-->
+    <!--<foreach collection="list" item="item" separator="$">-->
+        <!--update trade_contract_order-->
+        <!--set-->
+        <!--gmt_modified = now(3)-->
+        <!--,average_price = IF(total_amount - unfilled_amount + #{item.filledAmount} =0, null ,-->
+        <!--(IFNULL(average_price,0) * (total_amount - unfilled_amount) + #{item.filledPrice} * #{item.filledAmount}) / (total_amount - unfilled_amount + #{item.filledAmount}))-->
+        <!--,status = IF(status in(8,9)-->
+        <!--,IF(unfilled_amount - #{item.filledAmount} > 0 , 9, 10)-->
+        <!--,status)-->
+        <!--,unfilled_amount = unfilled_amount - #{item.filledAmount}-->
+
+        <!--where user_id=#{item.userId} and id = #{item.id} and unfilled_amount - #{item.filledAmount} >=0-->
+    <!--</foreach>-->
+  <!--</update>-->
 
 
     <select id="listByUserIdAndOrderType" resultType="com.fota.trade.domain.ContractOrderDO">

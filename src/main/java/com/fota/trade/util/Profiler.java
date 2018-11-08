@@ -1,6 +1,8 @@
 package com.fota.trade.util;
 
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.CollectionUtils;
 
@@ -17,6 +19,8 @@ public class Profiler {
 
     private static String format = "profile of %s, traceId=%s: { total:%s, detail:%s }";
 
+    @Getter
+    @Setter
     private long start;
     private String method;
     private String traceId;
@@ -26,6 +30,7 @@ public class Profiler {
         this.method = method;
         start();
     }
+
 
     public Profiler(String method, String traceId) {
         this.method = method;

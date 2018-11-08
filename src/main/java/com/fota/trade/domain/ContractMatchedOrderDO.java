@@ -48,4 +48,6 @@ public class ContractMatchedOrderDO {
     private Long contractId;
 
     private Integer status;
+
+    private BigDecimal platformProfit;
 }

@@ -8,7 +8,7 @@ import com.fota.common.Result;
 import com.fota.trade.client.RecoveryMetaData;
 import com.fota.trade.client.RecoveryQuery;
 import com.fota.trade.domain.*;
-import com.fota.trade.domain.enums.OrderCloseTypeEnum;
+import com.fota.trade.domain.enums.OrderCloseType;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.domain.enums.OrderTypeEnum;
@@ -258,7 +258,7 @@ public class ContractOrderServiceTest {
 
 //    @Test
     public void testCancel(){
-        contractOrderManager.cancelOrderByMessage(askContractOrder.getUserId(), askContractOrder.getId(), new BigDecimal(1));
+//        contractOrderManager.cancelOrderByMessage(askContractOrder.getUserId(), askContractOrder.getId(), new BigDecimal(1));
         ContractOrderDO orderDO = contractOrderMapper.selectByIdAndUserId(askContractOrder.getUserId(), askContractOrder.getId());
         assert orderDO.getStatus() == CANCEL.getCode();
     }
@@ -313,7 +313,7 @@ public class ContractOrderServiceTest {
         contractOrderDTO.setOrderDirection(OrderDirectionEnum.BID.getCode());
         contractOrderDTO.setUserId(274L);
         contractOrderDTO.setPrice(new BigDecimal(1));
-        contractOrderDTO.setCloseType(OrderCloseTypeEnum.MANUAL.getCode());
+        contractOrderDTO.setCloseType(OrderCloseType.LIMIT.getCode());
         contractOrderDTO.setFee(new BigDecimal(0.01));
         //Result result = contractOrderService.orderReturnId(contractOrderDTO, userInfoMap);
         //log.info(result.toString());
@@ -330,7 +330,7 @@ public class ContractOrderServiceTest {
         contractOrderDO.setOrderDirection(OrderDirectionEnum.ASK.getCode());
         contractOrderDO.setUserId(282L);
         contractOrderDO.setPrice(new BigDecimal(100));
-        contractOrderDO.setCloseType(OrderCloseTypeEnum.MANUAL.getCode());
+        contractOrderDO.setCloseType(OrderCloseType.LIMIT.getCode());
         contractOrderDO.setFee(new BigDecimal(0.0005));
         contractOrderDO.setUnfilledAmount(new BigDecimal("0.05"));
 //        Pair<Boolean, Map<String, Object>> ret = contractOrderManager.judgeOrderAvailable(282L, contractOrderDO);
@@ -388,24 +388,12 @@ public class ContractOrderServiceTest {
         contractOrderDTO.setOrderDirection(OrderDirectionEnum.BID.getCode());
         contractOrderDTO.setUserId(282L);
         contractOrderDTO.setPrice(new BigDecimal(6000));
-        contractOrderDTO.setCloseType(OrderCloseTypeEnum.SYSTEM.getCode());
+        contractOrderDTO.setCloseType(OrderCloseType.ENFORCE.getCode());
         contractOrderDTO.setFee(new BigDecimal(0.01));
         contractOrderDTO.setUnfilledAmount(BigDecimal.TEN);
         //contractOrderService.orderReturnId(contractOrderDTO, userInfoMap);
     }
 
-    @Test
-    public void testCountByQuery() {
-        BaseQuery usdkOrderQuery = new BaseQuery();
-        usdkOrderQuery.setPageSize(1000);
-        usdkOrderQuery.setPageNo(1);
-        List<Integer> orderStatus = new ArrayList<>();
-        orderStatus.add(OrderStatusEnum.COMMIT.getCode());
-        orderStatus.add(OrderStatusEnum.PART_MATCH.getCode());
-        usdkOrderQuery.setOrderStatus(orderStatus);
-        Integer total = contractOrderService.countContractOrderByQuery4Recovery(usdkOrderQuery);
-        Assert.assertTrue(total > 0);
-    }
 
     @Test
     public void testListUsdkOrderByQuery4Recovery() {

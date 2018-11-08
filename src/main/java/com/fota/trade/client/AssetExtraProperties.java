@@ -19,6 +19,7 @@ public enum AssetExtraProperties {
     BCH(AssetTypeEnum.BCH.getCode(), 2, 3),
     ETC(AssetTypeEnum.ETC.getCode(), 3, 4),
     LTC(AssetTypeEnum.LTC.getCode(), 2, 5),
+    FOTA(AssetTypeEnum.FOTA.getCode(), 6, -1),
     ;
 
     private long assetId;
@@ -65,6 +66,17 @@ public enum AssetExtraProperties {
             return null;
         }
         return extraProperties.name();
+    }
+    public static String getAssetNameByContractName(String contractName) {
+        if (null == contractName) {
+            return null;
+        }
+        for (AssetTypeEnum assetTypeEnum : AssetTypeEnum.values()) {
+            if (contractName.contains(assetTypeEnum.name())) {
+                return assetTypeEnum.name();
+            }
+        }
+        return null;
     }
 
 

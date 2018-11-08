@@ -1,5 +1,7 @@
 package com.fota.fotatrade;
 
+import com.fota.risk.client.domain.UserRRLDTO;
+import com.fota.risk.client.manager.RelativeRiskLevelManager;
 import com.fota.ticker.entrust.RealTimeEntrust;
 import com.fota.ticker.entrust.entity.BuyPriceSellPriceDTO;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
@@ -55,18 +57,29 @@ public class RedisTest {
 
     @Resource
     private RedisTemplate<String, String> redisTemplate;
+    @Autowired
+        private RelativeRiskLevelManager riskLevelManager;
 
     String testKey = "testKey";
     @Before
     public void init(){
         //初始化连接池
-        redisTemplate.opsForValue().get(testKey);
+//        redisTemplate.opsForValue().get(testKey);
     }
     @Test
     public void RedisTest(){
         String redisKey = "mykey"+123;
         for (int i = 0;i <= 10;i++){
             long count = redisTemplate.opsForValue().increment(redisKey, 1);
+        }
+    }
+    @Test
+    public void testGetRRL(){
+
+        for (int i=0;i<10;i++) {
+            List<UserRRLDTO> ret = riskLevelManager.range(1204L,
+                    2, 0, -1);
+            System.out.println(ret);
         }
     }
 

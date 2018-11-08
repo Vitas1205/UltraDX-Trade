@@ -26,7 +26,9 @@
     <dubbo:service interface="com.fota.trade.service.ContractCategoryService"  ref="contractCategoryService" />
     <dubbo:service interface="com.fota.trade.service.UsdkOrderService"  ref="usdkOrderService" />
     <dubbo:service interface="com.fota.trade.service.UserPositionService" ref="userPositionService" />
-    <dubbo:service interface="com.fota.trade.service.ContractOrderService"  ref="contractOrderService" />
+    <dubbo:service interface="com.fota.trade.service.ContractOrderService"  ref="contractOrderService" >
+        <dubbo:method name="getRecoveryMetaData" timeout="20000"></dubbo:method>
+    </dubbo:service>
     <dubbo:service interface="com.fota.trade.service.UserContractLeverService" ref="userContractLeverService" />
     <dubbo:service interface="com.fota.trade.service.ContractAccountService" ref="contractAccountService" />
 
@@ -38,6 +40,7 @@
     <dubbo:reference interface="com.fota.match.service.ContractMatchedOrderService" id="contractMatchedOrderService" />
     <dubbo:reference interface="com.fota.data.service.DeliveryIndexService" id="deliveryIndexServicede"/>
     <dubbo:reference interface="com.fota.data.service.SpotIndexService" id="spotIndexService"/>
+    <dubbo:reference interface="com.fota.risk.client.service.RelativeRiskLevelService" id="relativeRiskLevelService"/>
 
 
 </beans>

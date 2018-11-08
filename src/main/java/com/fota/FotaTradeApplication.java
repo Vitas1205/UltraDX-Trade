@@ -1,7 +1,7 @@
 package com.fota;
 
-import com.fota.trade.Consumer;
-import com.fota.trade.OrderConsumer;
+import com.fota.trade.MatchedConsumer;
+import com.fota.trade.CanceledConsumer;
 import com.fota.trade.config.MarketAccountListConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,8 +13,6 @@ import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.context.annotation.ImportResource;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-import javax.annotation.PostConstruct;
-
 @Slf4j
 @RefreshScope
 @SpringBootApplication
@@ -25,24 +23,13 @@ import javax.annotation.PostConstruct;
 public class FotaTradeApplication {
 
     @Autowired
-    private Consumer consumer;
+    private MatchedConsumer consumer;
 
     @Autowired
-    private OrderConsumer orderConsumer;
+    private CanceledConsumer orderConsumer;
 
     public static void main(String[] args) {
         SpringApplication.run(FotaTradeApplication.class, args);
     }
 
-    @PostConstruct
-    public void runConsumer() {
-        try {
-            consumer.init();
-            orderConsumer.init();
-            log.error("runConsumer success");
-
-        } catch (Exception e) {
-            log.error("runConsumer failed", e);
-        }
-    }
 }
