@@ -87,6 +87,7 @@ public class ADLManager {
         int needPositionDirection = adlMatchDTO.getDirection();
         //获取当前价格
         BigDecimal currentPrice = currentPriceManager.getSpotIndexByContractName(adlMatchDTO.getContractName());
+        //降杠杆和强平单成交记录
         List<ContractMatchedOrderDO> contractMatchedOrderDOS = new LinkedList<>();
 
         for (int start = 0; unfilledAmount.compareTo(BigDecimal.ZERO) > 0; start = start + pageSize + 1) {
@@ -143,19 +144,16 @@ public class ADLManager {
         }
 
         BigDecimal platformProfit = calPlatformProfit(adlMatchDTO, currentPrice);
-        //写强平单成交记录
-        ContractMatchedOrderDO contractMatchedOrderDO = getMatchRecordForEnforceOrder(adlMatchDTO, platformProfit);
-        aff = contractMatchedOrderMapper.insert(Arrays.asList(contractMatchedOrderDO));
-        if (aff != 1) {
-            throw new BizException(BIZ_ERROR.getCode(), "insert match record failed");
+        ContractMatchedOrderDO forceddMatchRecord = getMatchRecordForEnforceOrder(adlMatchDTO, platformProfit);
+        contractMatchedOrderDOS.add(forceddMatchRecord);
+        if (!CollectionUtils.isEmpty(contractMatchedOrderDOS)) {
+            //写成交记录
+            aff = contractMatchedOrderMapper.insert(contractMatchedOrderDOS);
+            if (aff < contractMatchedOrderDOS.size()) {
+                throw new BizException(BIZ_ERROR.getCode(), "insert matched record failed");
+            }
         }
 
-
-        //写降杠杆成交记录
-        aff = contractMatchedOrderMapper.insert(contractMatchedOrderDOS);
-        if (aff < contractMatchedOrderDOS.size()) {
-            throw new BizException(BIZ_ERROR.getCode(), "insert matched record failed");
-        }
 
         //更新持仓,账户余额
         if (!CollectionUtils.isEmpty(matchedPostDeal)) {

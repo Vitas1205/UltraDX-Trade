@@ -164,7 +164,7 @@ public class ContractTest {
 
     @Test
     public void testAdl(){
-        String str="{\"amount\":1015.0000000000000000,\"contractId\":1204,\"contractName\":\"BTC0906\",\"direction\":2,\"id\":778462355243926549,\"matchedList\":[],\"orderId\":261025075226541,\"time\":1541149924778,\"unfilled\":1015.0000000000000000,\"userId\":1015}";
+        String str="{\"amount\":0.00127,\"contractId\":1005,\"contractName\":\"ETH1811\",\"direction\":2,\"id\":778529849991758848,\"matchedList\":[{\"direction\":1,\"fee\":0.0005,\"filledPrice\":205,\"id\":880205821685829,\"matchedAmount\":0.00030,\"orderType\":1,\"price\":205,\"unfilledAmount\":0.00213,\"userId\":405},{\"direction\":1,\"fee\":0.0005,\"filledPrice\":204.5,\"id\":74036845692954,\"matchedAmount\":0.00097,\"orderType\":1,\"price\":204.5,\"unfilledAmount\":0.00000,\"userId\":406}],\"orderId\":97292531769992,\"price\":216.53006200000000190413196321514988085255026817321777343750,\"time\":1541664868838,\"unfilled\":0.00000,\"userId\":8}";
         ContractADLMatchDTO contractADLMatchDTO = JSON.parseObject(str, ContractADLMatchDTO.class);
         Result result = adlManager.adl(contractADLMatchDTO);
         assert result.isSuccess();
