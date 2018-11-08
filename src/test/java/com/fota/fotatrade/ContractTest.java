@@ -164,10 +164,12 @@ public class ContractTest {
 
     @Test
     public void testAdl(){
-        String str="{\"amount\":0.00127,\"contractId\":1005,\"contractName\":\"ETH1811\",\"direction\":2,\"id\":778529849991758848,\"matchedList\":[{\"direction\":1,\"fee\":0.0005,\"filledPrice\":205,\"id\":880205821685829,\"matchedAmount\":0.00030,\"orderType\":1,\"price\":205,\"unfilledAmount\":0.00213,\"userId\":405},{\"direction\":1,\"fee\":0.0005,\"filledPrice\":204.5,\"id\":74036845692954,\"matchedAmount\":0.00097,\"orderType\":1,\"price\":204.5,\"unfilledAmount\":0.00000,\"userId\":406}],\"orderId\":97292531769992,\"price\":216.53006200000000190413196321514988085255026817321777343750,\"time\":1541664868838,\"unfilled\":0.00000,\"userId\":8}";
-        ContractADLMatchDTO contractADLMatchDTO = JSON.parseObject(str, ContractADLMatchDTO.class);
-        Result result = adlManager.adl(contractADLMatchDTO);
-        assert result.isSuccess();
+        String str="{\"amount\":0.00124,\"contractId\":1005,\"contractName\":\"ETH1811\",\"direction\":2,\"id\":778530085724750848,\"matchedList\":[{\"direction\":1,\"fee\":0.0005,\"filledPrice\":205,\"id\":880205821685829,\"matchedAmount\":0.00124,\"orderType\":1,\"price\":205,\"unfilledAmount\":0.00089,\"userId\":405}],\"orderId\":158589249110067,\"price\":216.38694500000000190287341439443480339832603931427001953125,\"time\":1541666667338,\"unfilled\":0.00000,\"userId\":8}" ;
+        String str1="{\"amount\":0.00124,\"contractId\":1005,\"contractName\":\"ETH1811\",\"direction\":2,\"id\":778530085816632320,\"matchedList\":[{\"direction\":1,\"fee\":0.0005,\"filledPrice\":208,\"id\":388647496670778,\"matchedAmount\":0.00035,\"orderType\":1,\"price\":208,\"unfilledAmount\":0.00445,\"userId\":402},{\"direction\":1,\"fee\":0.0005,\"filledPrice\":205,\"id\":880205821685829,\"matchedAmount\":0.00089,\"orderType\":1,\"price\":205,\"unfilledAmount\":0.00000,\"userId\":405}],\"orderId\":696202187523784,\"price\":216.38522800000000190285831536129990126937627792358398437500,\"time\":1541666668039,\"unfilled\":0.00000,\"userId\":8}";
+
+        Result result = adlManager.adl(JSON.parseObject(str, ContractADLMatchDTO.class));
+        Result result1 = adlManager.adl(JSON.parseObject(str1, ContractADLMatchDTO.class));
+        assert result.isSuccess() && result1.isSuccess();
     }
 
 }

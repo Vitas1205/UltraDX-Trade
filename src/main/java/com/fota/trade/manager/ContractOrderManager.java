@@ -849,10 +849,11 @@ public class ContractOrderManager {
 
         //市场单
         if (orderType == MARKET_PRICE.getCode()) {
-            if (orderDeriction == ASK.getCode()) {
-                return Result.suc(sellMinPrice);
+            orderPrice = orderDeriction == ASK.getCode() ? sellMinPrice : buyMaxPrice;
+            if (orderPrice.compareTo(BigDecimal.ZERO) <=0) {
+                return Result.fail(AMOUNT_ILLEGAL.getCode(), AMOUNT_ILLEGAL.getMessage());
             }
-            return Result.suc(buyMaxPrice);
+            return Result.suc(orderPrice);
         }
 
         //对手价
