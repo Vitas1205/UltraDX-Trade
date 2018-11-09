@@ -152,9 +152,7 @@ public class UsdkOrderManager {
             usdkOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
         }
         if (usdkOrderDO.getOrderType() != OrderTypeEnum.ENFORCE.getCode()){
-            BigDecimal price = usdkOrderDO.getPrice();
             BigDecimal totalAmount = usdkOrderDO.getTotalAmount();
-            BigDecimal orderValue = totalAmount.multiply(price);
             Result<BigDecimal> checkPriceRes = computeAndCheckOrderPrice(usdkOrderDO.getPrice(), usdkOrderDO.getOrderType(), usdkOrderDO.getOrderDirection(), usdkOrderDO.getAssetId());
             if (usdkOrderDO.getOrderType() == RIVAL.getCode()) {
                 usdkOrderDO.setOrderType(LIMIT.getCode());
@@ -163,6 +161,8 @@ public class UsdkOrderManager {
                 return Result.fail(checkPriceRes.getCode(), checkPriceRes.getMessage());
             }
             usdkOrderDO.setPrice(checkPriceRes.getData());
+            BigDecimal price = usdkOrderDO.getPrice();
+            BigDecimal orderValue = totalAmount.multiply(price);
             //插入委托订单记录
             int ret = insertUsdkOrder(usdkOrderDO);
             profiler.complelete("insertUsdkOrder");
@@ -209,6 +209,7 @@ public class UsdkOrderManager {
                             throw new RuntimeException("placeOrder getCapitalService().updateLockedAmount exception");
                         }
                     }else {
+                        log.error("totalAmount:{}, entrustValue:{}, availableAmount:{}", amount, entrustValue, availableAmount);
                         throw new BusinessException(errorCode, errorMsg);
                     }
                 }
