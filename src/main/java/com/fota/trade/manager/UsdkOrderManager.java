@@ -7,7 +7,10 @@ import com.fota.asset.domain.UserCapitalDTO;
 import com.fota.asset.domain.enums.AssetTypeEnum;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.service.CapitalService;
+import com.fota.common.Result;
 import com.fota.match.service.UsdkMatchedOrderService;
+import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
+import com.fota.trade.PriceTypeEnum;
 import com.fota.trade.client.CancelTypeEnum;
 import com.fota.trade.client.ToCancelMessage;
 import com.fota.trade.client.constants.DealedMessage;
@@ -21,12 +24,13 @@ import com.fota.trade.domain.enums.OrderTypeEnum;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkOrderMapper;
+import com.fota.trade.msg.*;
 import com.fota.trade.util.BasicUtils;
 import com.fota.trade.util.ContractUtils;
+import com.fota.trade.util.Profiler;
 import com.fota.trade.util.ThreadContextUtil;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -40,12 +44,22 @@ import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
+import static com.fota.trade.PriceTypeEnum.MARKET_PRICE;
+import static com.fota.trade.PriceTypeEnum.SPECIFIED_PRICE;
 import static com.fota.trade.client.constants.Constants.DEALED_TOPIC;
 import static com.fota.trade.client.constants.Constants.DEALED_USDT_TAG;
-import static com.fota.trade.common.ResultCodeEnum.BIZ_ERROR;
+import static com.fota.trade.common.ResultCodeEnum.*;
+import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
+import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
 import static com.fota.trade.domain.enums.OrderStatusEnum.*;
+import static com.fota.trade.domain.enums.OrderTypeEnum.LIMIT;
+import static com.fota.trade.domain.enums.OrderTypeEnum.RIVAL;
+import static com.fota.trade.msg.TopicConstants.TRD_COIN_CANCELED;
+import static com.fota.trade.msg.TopicConstants.TRD_COIN_CANCEL_REQ;
+import static com.fota.trade.msg.TopicConstants.TRD_COIN_DEAL;
 import static java.util.stream.Collectors.toList;
 
 
@@ -90,6 +104,10 @@ public class UsdkOrderManager {
 
     @Autowired
     private UsdkMatchedOrderMapper usdkMatchedOrder;
+    @Autowired
+    private RealTimeEntrustManager realTimeEntrustManager;
+    @Autowired
+    private CurrentPriceManager currentPriceManager;
 
     private CapitalService getCapitalService() {
         return capitalService;
@@ -102,9 +120,14 @@ public class UsdkOrderManager {
     //TODO 优化: 先更新账户，再insert订单，而不是先insert订单再更新账户
     @Transactional(rollbackFor={Throwable.class})
     public com.fota.common.Result<Long> placeOrder(UsdkOrderDTO usdkOrderDTO, Map<String, String> userInfoMap)throws Exception {
+        Profiler profiler = new Profiler("UsdkOrderManager.placeOrder");
+        ThreadContextUtil.setPrifiler(profiler);
         String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
         String ipAddress = StringUtils.isEmpty(userInfoMap.get("ipAddress")) ? "" : userInfoMap.get("ipAddress");
         com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
+        Long orderId = BasicUtils.generateId();
+        usdkOrderDTO.setId(orderId);
+
         UsdkOrderDO usdkOrderDO = com.fota.trade.common.BeanUtils.copy(usdkOrderDTO);
         Map<String, Object> newMap = new HashMap<>();
         if (usdkOrderDTO.getOrderContext() !=null){
@@ -113,12 +136,12 @@ public class UsdkOrderManager {
         newMap.put("username", username);
         usdkOrderDTO.setOrderContext(newMap);
         usdkOrderDO.setOrderContext(JSONObject.toJSONString(usdkOrderDTO.getOrderContext()));
-        Long orderId = usdkOrderDO.getId();
         ResultCode resultCode = new ResultCode();
         Integer assetId = usdkOrderDO.getAssetId();
         Long userId = usdkOrderDO.getUserId();
         Integer orderDirection = usdkOrderDO.getOrderDirection();
         List<UserCapitalDTO> list = getAssetService().getUserCapital(userId);
+        profiler.complelete("getUserCapital");
         usdkOrderDO.setFee(usdkFee);
         usdkOrderDO.setStatus(COMMIT.getCode());
         usdkOrderDO.setUnfilledAmount(usdkOrderDO.getTotalAmount());
@@ -132,9 +155,17 @@ public class UsdkOrderManager {
             BigDecimal price = usdkOrderDO.getPrice();
             BigDecimal totalAmount = usdkOrderDO.getTotalAmount();
             BigDecimal orderValue = totalAmount.multiply(price);
-            usdkOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
+            Result<BigDecimal> checkPriceRes = computeAndCheckOrderPrice(usdkOrderDO.getPrice(), usdkOrderDO.getOrderType(), usdkOrderDO.getOrderDirection(), usdkOrderDO.getAssetId());
+            if (usdkOrderDO.getOrderType() == RIVAL.getCode()) {
+                usdkOrderDO.setOrderType(LIMIT.getCode());
+            }
+            if (!checkPriceRes.isSuccess()) {
+                return Result.fail(checkPriceRes.getCode(), checkPriceRes.getMessage());
+            }
+            usdkOrderDO.setPrice(checkPriceRes.getData());
             //插入委托订单记录
             int ret = insertUsdkOrder(usdkOrderDO);
+            profiler.complelete("insertUsdkOrder");
             if (ret <= 0){
                 log.error("insert contractOrder failed");
                 throw new RuntimeException("insert contractOrder failed");
@@ -146,10 +177,10 @@ public class UsdkOrderManager {
             int errorCode = 0;
             String errorMsg;
             if (orderDirection == OrderDirectionEnum.BID.getCode()){
-                assetTypeId = AssetTypeEnum.USDT.getCode();
+                assetTypeId = AssetTypeEnum.BTC.getCode();
                 entrustValue = orderValue;
-                errorCode = ResultCodeEnum.USDT_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode();
-                errorMsg = ResultCodeEnum.USDT_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage();
+                errorCode = ResultCodeEnum.CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode();
+                errorMsg = ResultCodeEnum.CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage();
             }else {
                 assetTypeId = assetId;
                 entrustValue = usdkOrderDO.getTotalAmount();
@@ -168,6 +199,7 @@ public class UsdkOrderManager {
                         try{
                             Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,
                                     userCapitalDTO.getAssetId(), String.valueOf(entrustValue), gmtModified.getTime());
+                            profiler.complelete("updateLockedAmount");
                             if (!updateLockedAmountRet){
                                 log.error("placeOrder getCapitalService().updateLockedAmount failed usdkOrderDO:{}", usdkOrderDO);
                                 throw new BusinessException(errorCode, errorMsg);
@@ -198,20 +230,8 @@ public class UsdkOrderManager {
         usdkOrderDTO.setCompleteAmount(BigDecimal.ZERO);
         //消息一定要在事务外发，不然会出现收到下单消息，db还没有这个订单
        Runnable postTask = () -> {
-           OrderMessage orderMessage = new OrderMessage();
-           orderMessage.setOrderId(usdkOrderDO.getId());
-           orderMessage.setEvent(OrderOperateTypeEnum.PLACE_ORDER.getCode());
-           orderMessage.setUserId(usdkOrderDTO.getUserId());
-           orderMessage.setSubjectId(usdkOrderDTO.getAssetId().longValue());
-           orderMessage.setSubjectName(usdkOrderDTO.getAssetName());
-           orderMessage.setAmount(usdkOrderDO.getTotalAmount());
-           orderMessage.setOrderDirection(usdkOrderDO.getOrderDirection());
-           orderMessage.setOrderType(usdkOrderDO.getOrderType());
-           if (!usdkOrderDO.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
-               orderMessage.setPrice(usdkOrderDO.getPrice());
-           }
-           orderMessage.setTransferTime(transferTime);
-           Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", String.valueOf(usdkOrderDO.getId()), orderMessage);
+           CoinPlaceOrderMessage placeOrderMessage = toCoinPlaceOrderMessage(usdkOrderDO);
+           Boolean sendRet = rocketMqManager.sendMessage(TopicConstants.TRD_COIN_ORDER, placeOrderMessage.getSubjectId()+"", placeOrderMessage.getOrderId()+"", placeOrderMessage);
            if (!sendRet){
                log.error("Send RocketMQ Message Failed ");
            }
@@ -223,8 +243,59 @@ public class UsdkOrderManager {
         return result;
     }
 
+    public CoinPlaceOrderMessage toCoinPlaceOrderMessage(UsdkOrderDO usdkOrderDO){
+        CoinPlaceOrderMessage placeOrderMessage = new CoinPlaceOrderMessage();
+        placeOrderMessage.setOrderId(usdkOrderDO.getId());
+        placeOrderMessage.setUserId(usdkOrderDO.getUserId());
+        placeOrderMessage.setSubjectId(usdkOrderDO.getAssetId().longValue());
+        placeOrderMessage.setSubjectName(usdkOrderDO.getAssetName());
+        placeOrderMessage.setTotalAmount(usdkOrderDO.getTotalAmount());
+        placeOrderMessage.setOrderDirection(usdkOrderDO.getOrderDirection());
+        placeOrderMessage.setOrderType(usdkOrderDO.getOrderType());
+        placeOrderMessage.setPrice(usdkOrderDO.getPrice());
+        return placeOrderMessage;
+    }
+
+    private Result<BigDecimal> computeAndCheckOrderPrice(BigDecimal orderPrice, int orderType, int orderDirection, int assetId){
+
+        Integer scale = AssetTypeEnum.getUsdkPricePrecisionByAssetId(assetId);
+
+        if (orderType == PriceTypeEnum.RIVAL_PRICE.getCode()){
+
+            List<CompetitorsPriceDTO> competitorsPriceList = realTimeEntrustManager.getUsdtCompetitorsPriceOrder();
+            Integer opDirection = ASK.getCode() + BID.getCode() - orderDirection;
+
+            CompetitorsPriceDTO competitorsPriceDTO = competitorsPriceList.stream().filter(competitorsPrice-> competitorsPrice.getOrderDirection() == opDirection &&
+                    competitorsPrice.getId() == assetId).findFirst().orElse(null);
+
+            if (null == competitorsPriceDTO || null == competitorsPriceDTO.getPrice() || BigDecimal.ZERO.compareTo(competitorsPriceDTO.getPrice()) >= 0){
+                return Result.fail(NO_COMPETITORS_PRICE.getCode(), NO_COMPETITORS_PRICE.getMessage());
+            }
+            return Result.suc(competitorsPriceDTO.getPrice().setScale(scale, BigDecimal.ROUND_DOWN));
+        }
+
+        //市场单
+        if (orderType == MARKET_PRICE.getCode()) {
+            //如果是fota，获取最新成交价
+            BigDecimal curPrice = realTimeEntrustManager.getUsdtLatestPrice(assetId).setScale(scale, BigDecimal.ROUND_DOWN);
+            BigDecimal buyMaxPrice = curPrice.multiply(new BigDecimal("1.9")).setScale(scale, RoundingMode.UP);
+            BigDecimal sellMinPrice = curPrice.multiply(new BigDecimal("0.1")).setScale(scale, BigDecimal.ROUND_DOWN);
+
+            orderPrice = orderDirection == ASK.getCode() ? sellMinPrice : buyMaxPrice;
+            if (orderPrice.compareTo(BigDecimal.ZERO) <=0) {
+                return Result.fail(AMOUNT_ILLEGAL.getCode(), AMOUNT_ILLEGAL.getMessage());
+            }
+            return Result.suc(orderPrice);
+        }
+        if (orderType != SPECIFIED_PRICE.getCode()){
+            return Result.fail(PRICE_TYPE_ILLEGAL.getCode(), PRICE_TYPE_ILLEGAL.getMessage());
+        }
+        if (null == orderPrice || orderPrice.compareTo(BigDecimal.ZERO) <= 0 || orderPrice.scale() > scale){
+            return Result.fail(AMOUNT_ILLEGAL.getCode(), AMOUNT_ILLEGAL.getMessage());
+        }
+        return Result.suc(orderPrice);
+    }
     private int insertUsdkOrder(UsdkOrderDO usdkOrderDO) {
-        usdkOrderDO.setId(BasicUtils.generateId());
         return usdkOrderMapper.insert(usdkOrderDO);
     }
 
@@ -243,39 +314,32 @@ public class UsdkOrderManager {
         }
         List<Long> orderIdList = new ArrayList<Long>();
         orderIdList.add(orderId);
-        sendCancelMessage(orderIdList, userId);
+        sendCancelReq(orderIdList, userId);
         return resultCode;
     }
 
     /**
      * 根据撮合发出的MQ消息撤单
-     * @param orderId 委托单ID
      */
     @Transactional(rollbackFor = Exception.class)
-    public ResultCode cancelOrderByMessage(long userId, long orderId, @NonNull BigDecimal unfilledAmount) {
+    public ResultCode cancelOrderByMessage(BaseCanceledMessage baseCanceledMessage) {
         ResultCode resultCode;
 
+        Integer toStatus = baseCanceledMessage.getStatus();
+        long userId=baseCanceledMessage.getUserId();
+        long orderId = baseCanceledMessage.getOrderId();
+        BigDecimal unfilledAmount = baseCanceledMessage.getUnfilledAmount();
         UsdkOrderDO usdkOrderDO = usdkOrderMapper.selectByUserIdAndId(userId, orderId);
-        Integer status = usdkOrderDO.getStatus();
-
-        if (Objects.isNull(usdkOrderDO)) {
-            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), "usdk order does not exist, id={}"+orderId);
-        }
-
-        if (status != COMMIT.getCode() && status != PART_MATCH.getCode()) {
-            return ResultCode.error(BIZ_ERROR.getCode(),"illegal order status, id="+usdkOrderDO.getId() + ", status="+ usdkOrderDO.getStatus());
-        }
-        Integer toStatus = unfilledAmount.compareTo(usdkOrderDO.getTotalAmount()) < 0 ? PART_CANCEL.getCode() : CANCEL.getCode();
 
         //更新usdk委托表
-        int ret = usdkOrderMapper.cancel(userId, usdkOrderDO.getId(), toStatus);
+        int ret = usdkOrderMapper.cancel(userId, orderId, toStatus);
         Long transferTime = System.currentTimeMillis();
         if (ret > 0){
             Integer orderDirection = usdkOrderDO.getOrderDirection();
             Integer assetId = 0;
             BigDecimal unlockAmount ;
             if (orderDirection == OrderDirectionEnum.BID.getCode()){
-                assetId = AssetTypeEnum.USDT.getCode();
+                assetId = AssetTypeEnum.BTC.getCode();
                 BigDecimal price = usdkOrderDO.getPrice();
                 unlockAmount = unfilledAmount.multiply(price);
             }else {
@@ -302,21 +366,7 @@ public class UsdkOrderManager {
             String ipAddress = "";
             tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                     1, usdkOrderDO.getAssetName(), username, ipAddress, unfilledAmount, System.currentTimeMillis(), 1,  usdkOrderDO.getOrderDirection(), usdkOrderDO.getUserId(), 1);
-            OrderMessage orderMessage = new OrderMessage();
-            orderMessage.setOrderId(usdkOrderDO.getId());
-            orderMessage.setEvent(OrderOperateTypeEnum.CANCLE_ORDER.getCode());
-            orderMessage.setUserId(usdkOrderDO.getUserId());
-            orderMessage.setSubjectId(usdkOrderDO.getAssetId().longValue());
-            orderMessage.setSubjectName(usdkOrderDO.getAssetName());
-            orderMessage.setAmount(unfilledAmount);
-            orderMessage.setPrice(usdkOrderDO.getPrice());
-            orderMessage.setOrderType(usdkOrderDO.getOrderType());
-            orderMessage.setTransferTime(transferTime);
-            orderMessage.setOrderDirection(orderDirection);
-            Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkOrder", "usdk_doCanceled_"+ orderId, orderMessage);
-            if (!sendRet){
-                log.error("Send RocketMQ Message Failed ");
-            }
+            sendCanceledMessage(usdkOrderDO, unfilledAmount);
             resultCode = ResultCode.success();
         }else {
             return ResultCode.error(ResultCodeEnum.BIZ_ERROR.getCode(), "usdkOrderMapper.updateByOpLock failed" + usdkOrderDO.getId());
@@ -324,7 +374,20 @@ public class UsdkOrderManager {
         return resultCode;
     }
 
-    public void sendCancelMessage(List<Long> orderIdList, Long userId) {
+    public void sendCanceledMessage(UsdkOrderDO usdkOrderDO, BigDecimal unfilledAmount){
+        BaseCanceledMessage orderMessage = new BaseCanceledMessage();
+        orderMessage.setOrderId(usdkOrderDO.getId());
+        orderMessage.setUserId(usdkOrderDO.getUserId());
+        orderMessage.setSubjectId(usdkOrderDO.getAssetId().longValue());
+        orderMessage.setTotalAmount(usdkOrderDO.getTotalAmount());
+        orderMessage.setUnfilledAmount(unfilledAmount);
+        Boolean sendRet = rocketMqManager.sendMessage(TRD_COIN_CANCELED, orderMessage.getSubjectId()+"", orderMessage.getOrderId()+"", orderMessage);
+        if (!sendRet){
+            log.error("Send RocketMQ Message Failed ");
+        }
+    }
+
+    public void sendCancelReq(List<Long> orderIdList, Long userId) {
         if (CollectionUtils.isEmpty(orderIdList)) {
             return;
         }
@@ -332,12 +395,12 @@ public class UsdkOrderManager {
 
         List<List<Long>> splitList = Lists.partition(orderIdList, 50);
         splitList.forEach(subList -> {
-            ToCancelMessage toCancelMessage = new ToCancelMessage();
-            toCancelMessage.setUserId(userId);
-            toCancelMessage.setCancelType(CancelTypeEnum.CANCEL_BY_ORDERID);
-            toCancelMessage.setIdList(subList);
-            Boolean sendRet = rocketMqManager.sendMessage("order", "UsdkCancel",
-                    "to_cancel_usdt_"+Joiner.on("_").join(subList), toCancelMessage);
+            BaseCancelReqMessage cancelReqMessage = new BaseCancelReqMessage();
+            cancelReqMessage.setUserId(userId);
+            cancelReqMessage.setCancelType(CancelTypeEnum.CANCEL_BY_ORDERID);
+            cancelReqMessage.setIdList(subList);
+            Boolean sendRet = rocketMqManager.sendMessage(TRD_COIN_CANCEL_REQ, "coin",
+                    "to_cancel_usdt_"+Joiner.on("_").join(subList), cancelReqMessage);
             if (BooleanUtils.isNotTrue(sendRet)){
                 log.error("failed to send cancel usdk mq, {}", userId);
             }
@@ -357,7 +420,7 @@ public class UsdkOrderManager {
                     .filter(usdkOrderDO -> usdkOrderDO.getOrderType() != OrderTypeEnum.ENFORCE.getCode())
                     .map(UsdkOrderDO::getId)
                     .collect(toList());
-            sendCancelMessage(orderIdList, userId);
+            sendCancelReq(orderIdList, userId);
         }
 
         return ResultCode.success();
@@ -365,6 +428,7 @@ public class UsdkOrderManager {
 
     @Transactional(rollbackFor = Throwable.class)
     public ResultCode updateOrderByMatch(UsdkMatchedOrderDTO usdkMatchedOrderDTO) throws Exception {
+        Profiler profiler =  null == ThreadContextUtil.getPrifiler() ? new Profiler("UsdkOrderManager.updateOrderByMatch", usdkMatchedOrderDTO.getId().toString()) : ThreadContextUtil.getPrifiler();
         if (usdkMatchedOrderDTO == null) {
             log.error(ResultCodeEnum.ILLEGAL_PARAM.getMessage());
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), "illegal usdkMatchedOrderDTO" + usdkMatchedOrderDTO);
@@ -373,6 +437,15 @@ public class UsdkOrderManager {
 
         UsdkOrderDO askUsdkOrder = usdkOrderMapper.selectByUserIdAndId(usdkMatchedOrderDTO.getAskUserId(), usdkMatchedOrderDTO.getAskOrderId());
         UsdkOrderDO bidUsdkOrder = usdkOrderMapper.selectByUserIdAndId(usdkMatchedOrderDTO.getBidUserId(), usdkMatchedOrderDTO.getBidOrderId());
+        profiler.complelete("select order");
+        if (null == askUsdkOrder ) {
+            return ResultCode.error(ILLEGAL_PARAM.getCode(), "null askOrder!!! ");
+        }
+        if (null == bidUsdkOrder) {
+            return ResultCode.error(ILLEGAL_PARAM.getCode(), "null bidOrder!!! ");
+        }
+        List<UsdkOrderDO> usdkOrderDOS = Arrays.asList(askUsdkOrder, bidUsdkOrder);
+        usdkOrderDOS.sort((a, b) -> a.getId().compareTo(b.getId()));
 
         BigDecimal filledAmount = new BigDecimal(usdkMatchedOrderDTO.getFilledAmount());
         if (BasicUtils.gt(filledAmount, askUsdkOrder.getUnfilledAmount())){
@@ -384,14 +457,13 @@ public class UsdkOrderManager {
 
         BigDecimal filledPrice = new BigDecimal(usdkMatchedOrderDTO.getFilledPrice());
 
-        int updateAskOrderRet = doUpdateUsdkOrder(usdkMatchedOrderDTO.getAskUserId(), askUsdkOrder.getId(),  filledAmount, filledPrice, new Date(transferTime));
-        if (updateAskOrderRet <= 0){
-            throw new BizException(ResultCodeEnum.BIZ_ERROR.getCode(), "update askOrder failed, order=" + askUsdkOrder);
+        for (UsdkOrderDO usdkOrderDO : usdkOrderDOS) {
+            int updateAskOrderRet = doUpdateUsdkOrder(usdkOrderDO.getUserId(), usdkOrderDO.getId(),  filledAmount, filledPrice, new Date(transferTime));
+            if (updateAskOrderRet <= 0) {
+                throw new BizException(ResultCodeEnum.BIZ_ERROR.getCode(), "update askOrder failed, order=" + usdkOrderDO);
+            }
         }
-        int updateBIdOrderRet = doUpdateUsdkOrder(usdkMatchedOrderDTO.getBidUserId(), bidUsdkOrder.getId(), filledAmount, filledPrice, new Date(transferTime));
-        if (updateBIdOrderRet <= 0){
-            throw new BizException(ResultCodeEnum.BIZ_ERROR.getCode(), "update bidOrder failed, order=" + bidUsdkOrder);
-        }
+        profiler.complelete("update usdt order");
 
 
 
@@ -401,13 +473,13 @@ public class UsdkOrderManager {
         // 卖币 ask +totalUsdk = filledAmount * filledPrice - filledAmount * filledPrice * feeRate
         // 卖币 ask -lockedAsset = filledAmount
         // 卖币 ask -totalAsset = filledAmount
-        BigDecimal addLockedUsdk = BigDecimal.ZERO;
+        BigDecimal addLockedBTC = BigDecimal.ZERO;
         BigDecimal addBidTotalAsset = filledAmount.subtract(BigDecimal.ZERO);
-        BigDecimal addTotalUsdk = filledAmount.multiply(filledPrice);
+        BigDecimal addTotalBTC = filledAmount.multiply(filledPrice);
         if (usdkMatchedOrderDTO.getBidOrderPrice() != null){
-            addLockedUsdk = filledAmount.multiply(new BigDecimal(usdkMatchedOrderDTO.getBidOrderPrice()));
+            addLockedBTC = filledAmount.multiply(new BigDecimal(usdkMatchedOrderDTO.getBidOrderPrice()));
         }
-        BigDecimal addAskTotalUsdk = filledAmount.multiply(filledPrice);
+        BigDecimal addAskTotalBTC = filledAmount.multiply(filledPrice);
         BigDecimal addLockedAsset = filledAmount;
         BigDecimal addTotalAsset = filledAmount;
         BalanceTransferDTO balanceTransferDTO = new BalanceTransferDTO();
@@ -418,7 +490,7 @@ public class UsdkOrderManager {
             balanceTransferDTO.setAskLockedAsset("0");
             balanceTransferDTO.setAskTotalAsset("0");
         }else {
-            balanceTransferDTO.setAskTotalUsdk(addAskTotalUsdk.toString());
+            balanceTransferDTO.setAskTotalUsdk(addAskTotalBTC.toString());
             balanceTransferDTO.setAskLockedAsset(addLockedAsset.toString());
             balanceTransferDTO.setAskTotalAsset(addTotalAsset.toString());
         }
@@ -428,13 +500,14 @@ public class UsdkOrderManager {
             balanceTransferDTO.setBidLockedUsdk("0");
         }else {
             balanceTransferDTO.setBidTotalAsset(addBidTotalAsset.toString());
-            balanceTransferDTO.setBidTotalUsdk(addTotalUsdk.toString());
-            balanceTransferDTO.setBidLockedUsdk(addLockedUsdk.toString());
+            balanceTransferDTO.setBidTotalUsdk(addTotalBTC.toString());
+            balanceTransferDTO.setBidLockedUsdk(addLockedBTC.toString());
         }
         balanceTransferDTO.setAssetId(usdkMatchedOrderDTO.getAssetId());
         boolean updateRet = false;
         try {
             updateRet = getCapitalService().updateBalance(balanceTransferDTO);
+            profiler.complelete("updateBalance");
         }catch (Exception e){
             log.error("Asset RPC Error!, getCapitalService().updateBalance exception, balanceTransferDTO:{}", balanceTransferDTO, e);
             throw new BizException(BIZ_ERROR.getCode(), "getCapitalService().updateBalance exception, balanceTransferDTO:{}" + balanceTransferDTO);
@@ -448,6 +521,7 @@ public class UsdkOrderManager {
         // 保存订单数据到数据库
         try {
             int ret = usdkMatchedOrder.insert(Arrays.asList(askMatchRecordDO, bidMatchRecordDO));
+            profiler.complelete("insert match record");
             if (ret < 2){
                 throw new RuntimeException("usdkMatchedOrder.insert failed{}");
             }
@@ -469,37 +543,6 @@ public class UsdkOrderManager {
             postProcessOrder(askUsdkOrder, filledAmount, matchId);
             postProcessOrder(bidUsdkOrder, filledAmount, matchId);
 
-            // 向MQ推送消息
-            OrderMessage orderMessage = new OrderMessage();
-            orderMessage.setSubjectId(usdkMatchedOrderDTO.getAssetId().longValue());
-            orderMessage.setSubjectName(usdkMatchedOrderDTO.getAssetName());
-            orderMessage.setTransferTime(transferTime);
-            orderMessage.setPrice(new BigDecimal(usdkMatchedOrderDTO.getFilledPrice()));
-            orderMessage.setAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
-            orderMessage.setEvent(OrderOperateTypeEnum.DEAL_ORDER.getCode());
-            orderMessage.setAskOrderId(usdkMatchedOrderDTO.getAskOrderId());
-            orderMessage.setBidOrderId(usdkMatchedOrderDTO.getBidOrderId());
-            orderMessage.setAskOrderContext(askOrderContext);
-            orderMessage.setBidOrderContext(bidOrderContext);
-            orderMessage.setAskOrderType(askUsdkOrder.getOrderType());
-            orderMessage.setBidOrderType(bidUsdkOrder.getOrderType());
-            orderMessage.setAskOrderUnfilledAmount(usdkMatchedOrderDTO.getAskOrderUnfilledAmount());
-            orderMessage.setBidOrderUnfilledAmount(usdkMatchedOrderDTO.getBidOrderUnfilledAmount());
-            orderMessage.setMatchType(usdkMatchedOrderDTO.getMatchType());
-            if (askUsdkOrder.getPrice() != null){
-                orderMessage.setAskOrderEntrustPrice(askUsdkOrder.getPrice());
-            }
-            if (bidUsdkOrder.getPrice() != null){
-                orderMessage.setBidOrderEntrustPrice(bidUsdkOrder.getPrice());
-            }
-            orderMessage.setAskUserId(askUsdkOrder.getUserId());
-            orderMessage.setBidUserId(bidUsdkOrder.getUserId());
-            orderMessage.setMatchOrderId(matchId);
-            Boolean sendRet = rocketMqManager.sendMessage("match", "usdk", String.valueOf(matchId), orderMessage);
-            if (!sendRet){
-                log.error("Send RocketMQ Message Failed ");
-            }
-
         };
         ThreadContextUtil.setPostTask(runnable);
 
@@ -514,11 +557,18 @@ public class UsdkOrderManager {
         tradeLog.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                 1, usdkOrderDO.getAssetName(), userName,filledAmount, System.currentTimeMillis(), 4,  usdkOrderDO.getOrderDirection(), usdkOrderDO.getUserId(), 1);
 
-        DealedMessage dealedMessage = new DealedMessage();
-        dealedMessage.setSubjectId(usdkOrderDO.getAssetId())
-                .setSubjectType(DealedMessage.USDT_TYPE)
-                .setUserId(usdkOrderDO.getUserId());
-        rocketMqManager.sendMessage(DEALED_TOPIC, DEALED_USDT_TAG, matchId + "_" + usdkOrderDO.getId(), dealedMessage);
+        CoinDealedMessage coinDealedMessage = new CoinDealedMessage();
+        coinDealedMessage.setUserId(usdkOrderDO.getUserId());
+        coinDealedMessage.setOrderId(usdkOrderDO.getId());
+        coinDealedMessage.setSubjectId(usdkOrderDO.getAssetId());
+        coinDealedMessage.setSubjectName(usdkOrderDO.getAssetName());
+        coinDealedMessage.setOrderDirection(usdkOrderDO.getOrderDirection());
+        coinDealedMessage.setOrderType(usdkOrderDO.getOrderType());
+        coinDealedMessage.setFilledAmount(filledAmount);
+        coinDealedMessage.setFilledPrice(usdkOrderDO.getPrice());
+        coinDealedMessage.setMatchId(matchId);
+
+        rocketMqManager.sendMessage(TRD_COIN_DEAL, usdkOrderDO.getAssetId()+"", matchId + "_" + usdkOrderDO.getId(), coinDealedMessage);
     }
 
 

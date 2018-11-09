@@ -32,7 +32,8 @@ public class BasicUtils {
         }
         return null;
     }
-    public static void exeWhitoutError(Runnable runnable) {
+
+    public static void exeWhitoutError(RunnableWithException runnable) {
         try {
             runnable.run();
         }catch (Throwable t){

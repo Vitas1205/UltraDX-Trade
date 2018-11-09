@@ -1,7 +1,9 @@
 package com.fota.trade;
 
+import com.fota.trade.client.FailedRecord;
 import com.fota.trade.domain.ContractOrderDO;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -47,5 +49,13 @@ public class BasicFunctionTest {
                 .distinct()
                 .collect(Collectors.toList());
         System.out.println(locks);
+    }
+    @Test
+    public void testFastJson(){
+        MessageExt messageExt = new MessageExt();
+        messageExt.setBody("hello".getBytes());
+        messageExt.setKeys("a");
+        messageExt.setTags("b");
+        System.out.println(new FailedRecord(1, "1", messageExt));
     }
 }

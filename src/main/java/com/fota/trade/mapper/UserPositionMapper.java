@@ -53,6 +53,9 @@ public interface UserPositionMapper {
     @ResultMap("BaseResultMap")
     UserPositionDO selectByUserIdAndId(@Param("userId") Long userId, @Param("contractId") Long contractId);
 
+
+    List<UserPositionDO> selectByContractIdAndUserIds(@Param("userIds") List<Long> userIds, @Param("contractId") Long contractId);
+
     @Select({
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, locked_amount, ",

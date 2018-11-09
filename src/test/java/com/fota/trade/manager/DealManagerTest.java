@@ -62,10 +62,10 @@ public class DealManagerTest {
             contractOrderDO.setContractId(contractId);
             contractOrderDO.setUserId(userId);
             contractOrderDO.setFee(rate);
-            postDealMessage.setContractOrderDO(contractOrderDO);
-
-            postDealMessage.setContractOrderDO(contractOrderDO);
-            dealManager.postDeal(Arrays.asList(postDealMessage));
+//            postDealMessage.setContractOrderDO(contractOrderDO);
+//
+//            postDealMessage.setContractOrderDO(contractOrderDO);
+//            dealManager.postDeal(Arrays.asList(postDealMessage));
             BigDecimal newBalance = new BigDecimal(assetService.getContractAccount(userId).getAmount());
 
             BigDecimal expectBalance = oldBalance.add(ContractUtils.computeClosePL(rate, filledAmount, filledPrice,oldPosition,

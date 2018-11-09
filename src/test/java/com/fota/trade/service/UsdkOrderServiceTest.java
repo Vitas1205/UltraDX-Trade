@@ -26,6 +26,7 @@ import java.math.BigDecimal;
 import java.util.*;
 
 import static com.fota.trade.common.TestConfig.userId;
+import static com.fota.trade.domain.enums.OrderTypeEnum.MARKET;
 
 /**
  * @author Gavin Shen
@@ -33,7 +34,7 @@ import static com.fota.trade.common.TestConfig.userId;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
-@Transactional
+//@Transactional
 public class UsdkOrderServiceTest {
 
     @Resource
@@ -123,14 +124,22 @@ public class UsdkOrderServiceTest {
         usdkOrderDTO.setAveragePrice(new BigDecimal(0));
         usdkOrderDTO.setFee(new BigDecimal(0.01));
         usdkOrderDTO.setOrderDirection(OrderDirectionEnum.BID.getCode());
-        usdkOrderDTO.setOrderType(OrderTypeEnum.ENFORCE.getCode());
+        usdkOrderDTO.setOrderType(OrderTypeEnum.LIMIT.getCode());
         usdkOrderDTO.setPrice(new BigDecimal(6000));
         usdkOrderDTO.setTotalAmount(new BigDecimal(2));
         Map<String, Object> map = new HashMap();
         usdkOrderDTO.setOrderContext(map);
         Map<String, String> map2 =  new HashMap<String, String>();
         map2.put("username", "harry");
-        //com.fota.trade.domain.ResultCode result = usdkOrderService.order(usdkOrderDTO, map2);
+        com.fota.trade.domain.ResultCode result = usdkOrderService.order(usdkOrderDTO, map2);
+        assert result.isSuccess();
+
+        //市场单
+        usdkOrderDTO.setOrderType(MARKET.getCode());
+        result = usdkOrderService.order(usdkOrderDTO);
+        assert result.isSuccess();
+
+
     }
 
     @Test
@@ -172,16 +181,30 @@ public class UsdkOrderServiceTest {
         int aff1 = usdkOrderMapper.insert(bidOrder);
         assert aff == 1 && aff1 ==1;
 
+        BigDecimal filledAmount = new BigDecimal("0.01");
+
         UsdkMatchedOrderDTO usdkMatchedOrderDTO = new UsdkMatchedOrderDTO();
         usdkMatchedOrderDTO.setAskOrderId(askOrderDO.getId());
+        usdkMatchedOrderDTO.setAskUserId(askOrderDO.getUserId());
+        usdkMatchedOrderDTO.setAskOrderPrice(askOrderDO.getPrice().toString());
+        usdkMatchedOrderDTO.setAskOrderStatus(askOrderDO.getStatus());
+        usdkMatchedOrderDTO.setAskOrderUnfilledAmount(askOrderDO.getTotalAmount().subtract(filledAmount));
+
         usdkMatchedOrderDTO.setBidOrderId(bidOrder.getId());
-        usdkMatchedOrderDTO.setFilledAmount(askOrderDO.getTotalAmount().toString());
+        usdkMatchedOrderDTO.setBidUserId(bidOrder.getUserId());
+        usdkMatchedOrderDTO.setBidOrderPrice(bidOrder.getPrice().toString());
+        usdkMatchedOrderDTO.setBidOrderStatus(bidOrder.getStatus());
+        usdkMatchedOrderDTO.setBidOrderUnfilledAmount(bidOrder.getTotalAmount().subtract(filledAmount));
+
+        usdkMatchedOrderDTO.setFilledAmount(filledAmount.toString());
         usdkMatchedOrderDTO.setFilledPrice(askOrderDO.getPrice().toString());
         usdkMatchedOrderDTO.setAssetId(askOrderDO.getAssetId());
         usdkMatchedOrderDTO.setAskOrderPrice(askOrderDO.getPrice().toString());
         usdkMatchedOrderDTO.setBidOrderPrice(bidOrder.getPrice().toString());
+
         usdkMatchedOrderDTO.setMatchType(1);
         usdkMatchedOrderDTO.setAssetName("BTC");
+        usdkMatchedOrderDTO.setId(BasicUtils.generateId());
 
         com.fota.trade.domain.ResultCode resultCode = usdkOrderService.updateOrderByMatch(usdkMatchedOrderDTO);
 
@@ -202,18 +225,6 @@ public class UsdkOrderServiceTest {
                 usdkOrderService.getUsdkMatchRecord(null, assetIds, pageNo, pageSize, startTime, endTime);
     }
 
-    @Test
-    public void testCountByQuery() {
-        BaseQuery usdkOrderQuery = new BaseQuery();
-        usdkOrderQuery.setPageSize(50);
-        usdkOrderQuery.setPageNo(1);
-        List<Integer> orderStatus = new ArrayList<>();
-        orderStatus.add(OrderStatusEnum.COMMIT.getCode());
-        orderStatus.add(OrderStatusEnum.PART_MATCH.getCode());
-        usdkOrderQuery.setOrderStatus(orderStatus);
-        Integer total = usdkOrderService.countUsdkOrderByQuery4Recovery(usdkOrderQuery);
-        Assert.assertTrue(total > 0);
-    }
 
     @Test
     public void testGetMaxGmtCreate(){

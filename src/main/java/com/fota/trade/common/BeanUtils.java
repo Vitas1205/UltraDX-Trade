@@ -1,8 +1,8 @@
 package com.fota.trade.common;
 
 import com.alibaba.fastjson.JSONObject;
+import com.fota.asset.domain.enums.AssetTypeEnum;
 import com.fota.trade.domain.*;
-import com.fota.trade.domain.enums.OrderCloseTypeEnum;
 import org.springframework.beans.BeansException;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -112,9 +112,7 @@ public class BeanUtils {
 
     public static UsdkOrderDO copy(UsdkOrderDTO usdkOrderDTO) {
         UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
-        if (usdkOrderDTO.getId() != null) {
-            usdkOrderDO.setId(usdkOrderDTO.getId());
-        }
+        usdkOrderDO.setId(usdkOrderDTO.getId());
         if (usdkOrderDTO.getGmtCreate() != null) {
             usdkOrderDO.setGmtCreate(usdkOrderDTO.getGmtCreate());
         }
@@ -190,8 +188,8 @@ public class BeanUtils {
         if (null == contractOrderDO.getOrderType()) {
             contractOrderDO.setOrderType(LIMIT.getCode());
         }
-        if (contractOrderDO.getCloseType() == null){
-            contractOrderDO.setCloseType(OrderCloseTypeEnum.MANUAL.getCode());
+        if (null == contractOrderDO.getCloseType()) {
+            contractOrderDO.setCloseType(contractOrderDO.getOrderType());
         }
 
         return contractOrderDO;
@@ -274,7 +272,7 @@ public class BeanUtils {
             usdkMatchedOrderDO.setMatchUserId(usdkMatchedOrderDTO.getAskUserId());
         }
 
-        usdkMatchedOrderDO.setAssetName(usdkMatchedOrderDTO.getAssetName());
+        usdkMatchedOrderDO.setAssetName(AssetTypeEnum.getAssetNameByAssetId(usdkMatchedOrderDTO.getAssetId()));
         usdkMatchedOrderDO.setAssetId(usdkMatchedOrderDTO.getAssetId());
 
         usdkMatchedOrderDO.setFilledAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));

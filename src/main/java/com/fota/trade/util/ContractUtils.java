@@ -1,15 +1,11 @@
 package com.fota.trade.util;
 
-import com.fota.asset.domain.ContractDealer;
-import com.fota.trade.common.UpdatePositionResult;
-import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.domain.UserPositionDO;
 import com.fota.trade.domain.enums.PositionTypeEnum;
+import com.fota.trade.msg.ContractDealedMessage;
 
 import java.math.BigDecimal;
 import java.util.Objects;
-
-import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
 
 /**
  * Created by Swifree on 2018/8/22.
@@ -20,16 +16,17 @@ public class ContractUtils {
     private static int roundingMode = BigDecimal.ROUND_HALF_UP;
     public static final BigDecimal NEG_ONE = BigDecimal.ONE.negate();
 
-    public static UserPositionDO buildPosition(ContractOrderDO contractOrderDO) {
+    public static UserPositionDO buildPosition(ContractDealedMessage postDealMessage) {
         UserPositionDO userPositionDO = new UserPositionDO();
-        userPositionDO.setPositionType(contractOrderDO.getOrderDirection());
+        userPositionDO.setPositionType(postDealMessage.getOrderDirection());
         userPositionDO.setAveragePrice(null);
         userPositionDO.setUnfilledAmount(BigDecimal.ZERO);
         userPositionDO.setStatus(1);
-        userPositionDO.setUserId(contractOrderDO.getUserId());
-        userPositionDO.setContractName(contractOrderDO.getContractName());
-        userPositionDO.setContractId(contractOrderDO.getContractId());
-        userPositionDO.setLever(contractOrderDO.getLever());
+        userPositionDO.setUserId(postDealMessage.getUserId());
+        userPositionDO.setContractName(postDealMessage.getSubjectName());
+        userPositionDO.setContractId(postDealMessage.getSubjectId());
+        userPositionDO.setLever(postDealMessage.getLever());
+        userPositionDO.setFeeRate(postDealMessage.getFeeRate());
         return userPositionDO;
     }
 
