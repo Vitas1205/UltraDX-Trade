@@ -233,7 +233,7 @@ public class ADLManager {
         ContractDealedMessage postDealMessage = new ContractDealedMessage(adlMatchDTO.getContractId(), adlMatchDTO.getUserId(),
                 adlMatchDTO.getDirection(), BigDecimal.ZERO);
         postDealMessage.setMatchId(adlMatchDTO.getId());
-        postDealMessage.setFilledAmount(adlMatchDTO.getUnfilled());
+        postDealMessage.setFilledAmount(adlMatchDTO.getAmount());
         postDealMessage.setFilledPrice(adlMatchDTO.getPrice());
         postDealMessage.setMsgKey(adlMatchDTO.getId()+"_"+adlMatchDTO.getOrderId());
         return postDealMessage;
@@ -274,6 +274,9 @@ public class ADLManager {
     public boolean checkADLParam(ContractADLMatchDTO adlMatchDTO) {
         if (null == adlMatchDTO || null == adlMatchDTO.getId() || null == adlMatchDTO.getOrderId() || null == adlMatchDTO.getUserId() ||
                 null == adlMatchDTO.getAmount() || null == adlMatchDTO.getDirection()) {
+            return false;
+        }
+        if (adlMatchDTO.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
             return false;
         }
         return true;

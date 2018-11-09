@@ -414,6 +414,7 @@ public class DealManager {
             int aff = userPositionMapper.insert(userPositionDO);
             if (1 != aff) {
                 log.error("insert userPositionDO failed, userPositionDO={}", userPositionDO);
+                return null;
             }
         }else {
             boolean suc = doUpdatePosition(userPositionDO);

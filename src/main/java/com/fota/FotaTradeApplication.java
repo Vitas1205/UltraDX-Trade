@@ -1,10 +1,7 @@
 package com.fota;
 
-import com.fota.trade.MatchedConsumer;
-import com.fota.trade.CanceledConsumer;
 import com.fota.trade.config.MarketAccountListConfig;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -22,11 +19,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 public class FotaTradeApplication {
 
-    @Autowired
-    private MatchedConsumer consumer;
-
-    @Autowired
-    private CanceledConsumer orderConsumer;
 
     public static void main(String[] args) {
         SpringApplication.run(FotaTradeApplication.class, args);
