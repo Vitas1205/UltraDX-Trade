@@ -26,6 +26,7 @@ import java.math.BigDecimal;
 import java.util.*;
 
 import static com.fota.trade.common.TestConfig.userId;
+import static com.fota.trade.domain.enums.OrderTypeEnum.MARKET;
 
 /**
  * @author Gavin Shen
@@ -131,6 +132,14 @@ public class UsdkOrderServiceTest {
         Map<String, String> map2 =  new HashMap<String, String>();
         map2.put("username", "harry");
         com.fota.trade.domain.ResultCode result = usdkOrderService.order(usdkOrderDTO, map2);
+        assert result.isSuccess();
+
+        //市场单
+        usdkOrderDTO.setOrderType(MARKET.getCode());
+        result = usdkOrderService.order(usdkOrderDTO);
+        assert result.isSuccess();
+
+
     }
 
     @Test
@@ -216,18 +225,6 @@ public class UsdkOrderServiceTest {
                 usdkOrderService.getUsdkMatchRecord(null, assetIds, pageNo, pageSize, startTime, endTime);
     }
 
-    @Test
-    public void testCountByQuery() {
-        BaseQuery usdkOrderQuery = new BaseQuery();
-        usdkOrderQuery.setPageSize(50);
-        usdkOrderQuery.setPageNo(1);
-        List<Integer> orderStatus = new ArrayList<>();
-        orderStatus.add(OrderStatusEnum.COMMIT.getCode());
-        orderStatus.add(OrderStatusEnum.PART_MATCH.getCode());
-        usdkOrderQuery.setOrderStatus(orderStatus);
-        Integer total = usdkOrderService.countUsdkOrderByQuery4Recovery(usdkOrderQuery);
-        Assert.assertTrue(total > 0);
-    }
 
     @Test
     public void testGetMaxGmtCreate(){

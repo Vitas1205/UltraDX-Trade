@@ -1,7 +1,9 @@
 package com.fota.trade.mapper;
 
 import com.fota.common.Page;
+import com.fota.trade.UpdateOrderItem;
 import com.fota.trade.common.ParamUtil;
+import com.fota.trade.common.TestConfig;
 import com.fota.trade.domain.BaseQuery;
 import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.domain.ContractOrderDTO;
@@ -10,7 +12,9 @@ import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.domain.query.ContractOrderQuery;
 import com.fota.trade.service.ContractOrderService;
 import com.fota.trade.util.BasicUtils;
+import com.fota.trade.util.MockUtils;
 import com.fota.trade.util.PriceUtil;
+import com.fota.trade.util.Profiler;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
 import org.junit.Before;
@@ -26,8 +30,11 @@ import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
+import static com.fota.trade.common.TestConfig.userId;
 import static com.fota.trade.domain.enums.OrderStatusEnum.CANCEL;
 import static com.fota.trade.domain.enums.OrderStatusEnum.MATCH;
 
@@ -45,28 +52,11 @@ public class ContractOrderMapperTest {
     @Resource
     private ContractOrderMapper contractOrderMapper;
 
-    private Long userId = 282L;
-
     private ContractOrderDO contractOrderDO;
 
     @Before
     public void init() {
-        // 准备数据
-        contractOrderDO = new ContractOrderDO();
-        contractOrderDO.setId(BasicUtils.generateId());
-        contractOrderDO.setCloseType(1);
-        contractOrderDO.setContractId(1L);
-        contractOrderDO.setContractName("BTC0930");
-        contractOrderDO.setFee(new BigDecimal("0.01"));
-        contractOrderDO.setLever(10);
-        contractOrderDO.setOrderDirection(OrderDirectionEnum.BID.getCode());
-        contractOrderDO.setPrice(new BigDecimal("6000.1"));
-        contractOrderDO.setTotalAmount(BigDecimal.valueOf(100L));
-        contractOrderDO.setUnfilledAmount(BigDecimal.valueOf(100L));
-        contractOrderDO.setUserId(userId);
-        contractOrderDO.setStatus(OrderStatusEnum.COMMIT.getCode());
-        contractOrderDO.setGmtCreate(new Date());
-        contractOrderDO.setOrderType(1);
+        contractOrderDO = MockUtils.mockContractOrder();
         int insertRet = contractOrderMapper.insert(contractOrderDO);
         Assert.assertTrue(insertRet > 0);
     }
@@ -150,4 +140,29 @@ public class ContractOrderMapperTest {
        assert 1 == aff;
     }
 
+//    @Test
+//    public void testBatchUpdate() {
+//        List<ContractOrderDO> contractOrderDOS = new LinkedList<>();
+//        for (int i =0; i< 100;i++) {
+//            ContractOrderDO temp = MockUtils.mockContractOrder();
+//            contractOrderDOS.add(temp);
+//            assert 1 == contractOrderMapper.insert(temp);
+//        }
+//        List<UpdateOrderItem> updateOrderItems = contractOrderDOS.stream().map(x -> {
+//            UpdateOrderItem updateOrderItem = new UpdateOrderItem();
+//            updateOrderItem.setUserId(x.getUserId())
+//                    .setId(x.getId())
+//                    .setFilledPrice(new BigDecimal("0.1"))
+//                    .setFilledAmount(new BigDecimal("0.1"));
+//            return updateOrderItem;
+//        }).collect(Collectors.toList());
+//
+//        long st = System.currentTimeMillis();
+//
+//        int aff = contractOrderMapper.batchUpdateAmountAndStatus(updateOrderItems);
+//        log.info("aff = {}, cost={}",aff,  System.currentTimeMillis() - st);
+//
+//        assert aff == contractOrderDOS.size();
+//
+//    }
 }

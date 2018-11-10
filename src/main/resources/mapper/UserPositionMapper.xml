@@ -193,5 +193,22 @@
     and position_type = 1
     and contract_id = #{contractId, jdbcType=BIGINT}
   </select>
+  
+  <select id="selectByContractIdAndUserIds" resultMap="BaseResultMap">
+    select * from trade_user_position where contract_id=#{contractId}
+    and user_id in
+    <foreach collection="userIds" item="item" open="(" close=")" separator=",">
+      #{item}
+    </foreach>
+  </select>
+
+  <select id="selectByUserId" resultType="com.fota.trade.domain.UserPositionDO">
+    select <include refid="Base_Column_List"/>
+    from trade_user_position
+    where user_id = #{userId,jdbcType=BIGINT}
+      and status = #{status}
+      and unfilled_amount > 0
+    order by gmt_create desc
+  </select>
 
 </mapper>

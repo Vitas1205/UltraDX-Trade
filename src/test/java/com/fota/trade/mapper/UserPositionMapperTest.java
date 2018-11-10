@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,7 +31,7 @@ public class UserPositionMapperTest {
     private UserPositionMapper userPositionMapper;
 
     private Long userId = 9528L;
-    @Before
+//    @Before
     public void Insert() throws Exception {
         UserPositionDO userPositionDO = new UserPositionDO();
         userPositionDO.setUserId(userId);
@@ -91,5 +92,11 @@ public class UserPositionMapperTest {
     public void test_countTotalPosition() {
         BigDecimal result = userPositionMapper.countTotalPosition(1000L);
         System.out.println("result : "+ result);
+    }
+
+    @Test
+    public void testBatchSelect(){
+        List<UserPositionDO> userPositionDOS = userPositionMapper.selectByContractIdAndUserIds(Arrays.asList(userId),1218L );
+        System.out.println(userPositionDOS);
     }
 }

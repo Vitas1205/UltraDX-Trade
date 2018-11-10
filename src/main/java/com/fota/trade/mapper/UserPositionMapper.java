@@ -53,6 +53,9 @@ public interface UserPositionMapper {
     @ResultMap("BaseResultMap")
     UserPositionDO selectByUserIdAndId(@Param("userId") Long userId, @Param("contractId") Long contractId);
 
+
+    List<UserPositionDO> selectByContractIdAndUserIds(@Param("userIds") List<Long> userIds, @Param("contractId") Long contractId);
+
     @Select({
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, locked_amount, ",
@@ -73,14 +76,6 @@ public interface UserPositionMapper {
     @ResultMap("BaseResultMap")
     UserPositionDO selectForUpdateByUserId(@Param("userId") Long userId, @Param("contractId") Long contractId);
 
-    @Select({
-            "select",
-            "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, locked_amount, ",
-            "unfilled_amount, position_type, average_price, status, lever, fee_rate",
-            "from trade_user_position",
-            "where  user_id = #{userId,jdbcType=BIGINT} and status = #{status} and unfilled_amount > 0"
-    })
-    @ResultMap("BaseResultMap")
     List<UserPositionDO> selectByUserId(@Param("userId") Long userId, @Param("status") Integer status);
 
     @Select({
