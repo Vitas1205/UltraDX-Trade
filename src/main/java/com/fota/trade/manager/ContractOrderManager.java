@@ -10,7 +10,6 @@ import com.fota.risk.client.domain.UserPositionQuantileDTO;
 import com.fota.risk.client.manager.RelativeRiskLevelManager;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
 import com.fota.trade.PriceTypeEnum;
-import com.fota.trade.client.AssetExtraProperties;
 import com.fota.trade.client.CancelTypeEnum;
 import com.fota.trade.client.OrderResult;
 import com.fota.trade.client.ToCancelMessage;
@@ -60,7 +59,6 @@ import static com.fota.trade.client.MQConstants.ORDER_TOPIC;
 import static com.fota.trade.client.MQConstants.TO_CANCEL_CONTRACT_TAG;
 import static com.fota.trade.common.Constant.DEFAULT_LEVER;
 import static com.fota.trade.common.ResultCodeEnum.*;
-import static com.fota.trade.domain.enums.ContractStatusEnum.DELIVERYING;
 import static com.fota.trade.domain.enums.ContractStatusEnum.PROCESSING;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
@@ -107,7 +105,7 @@ public class ContractOrderManager {
     private RealTimeEntrustManager realTimeEntrustManager;
 
     @Autowired
-    private CurrentPriceManager currentPriceManager;
+    private CurrentPriceService currentPriceService;
 
     @Autowired
     private MarketAccountListService marketAccountListService;
@@ -447,7 +445,7 @@ public class ContractOrderManager {
         //todo 获取简单交割指数列表
         List<TickerDTO> list = new ArrayList<>();
         try{
-            list = currentPriceManager.getSpotIndexes();
+            list = currentPriceService.getSpotIndexes();
         }catch (Exception e){
             log.error("get simpleIndexList failed", e);
         }
@@ -840,7 +838,7 @@ public class ContractOrderManager {
         }
 
         //无论如何都要获取交割指数
-        BigDecimal indexes = currentPriceManager.getSpotIndexByAssetId(assetId);
+        BigDecimal indexes = currentPriceService.getSpotIndexByAssetId(assetId);
         Integer scale = AssetTypeEnum.getContractPricePrecisionByAssetId(assetId);
         int roundingMode = ASK.getCode() == orderDeriction ? BigDecimal.ROUND_UP : BigDecimal.ROUND_DOWN;
 

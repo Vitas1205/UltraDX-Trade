@@ -9,7 +9,6 @@ import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.domain.ContractADLMatchDTO;
 import com.fota.trade.domain.ContractMatchedOrderDO;
 import com.fota.trade.domain.UserPositionDO;
-import com.fota.trade.domain.enums.OrderCloseType;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
@@ -54,7 +53,7 @@ public class ADLManager {
     private DealManager dealManager;
 
     @Autowired
-    private CurrentPriceManager currentPriceManager;
+    private CurrentPriceService currentPriceService;
 
     @Autowired
     private ContractMatchedOrderMapper contractMatchedOrderMapper;
@@ -86,7 +85,7 @@ public class ADLManager {
         int pageSize = 100;
         int needPositionDirection = adlMatchDTO.getDirection();
         //获取当前价格
-        BigDecimal currentPrice = currentPriceManager.getSpotIndexByContractName(adlMatchDTO.getContractName());
+        BigDecimal currentPrice = currentPriceService.getSpotIndexByContractName(adlMatchDTO.getContractName());
         //降杠杆和强平单成交记录
         List<ContractMatchedOrderDO> contractMatchedOrderDOS = new LinkedList<>();
 
