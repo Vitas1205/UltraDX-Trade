@@ -12,14 +12,11 @@ import com.fota.match.service.UsdkMatchedOrderService;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
 import com.fota.trade.PriceTypeEnum;
 import com.fota.trade.client.CancelTypeEnum;
-import com.fota.trade.client.ToCancelMessage;
-import com.fota.trade.client.constants.DealedMessage;
 import com.fota.trade.common.BizException;
 import com.fota.trade.common.BusinessException;
 import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
-import com.fota.trade.domain.enums.OrderOperateTypeEnum;
 import com.fota.trade.domain.enums.OrderTypeEnum;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkMatchedOrderMapper;
@@ -49,17 +46,13 @@ import java.util.*;
 
 import static com.fota.trade.PriceTypeEnum.MARKET_PRICE;
 import static com.fota.trade.PriceTypeEnum.SPECIFIED_PRICE;
-import static com.fota.trade.client.constants.Constants.DEALED_TOPIC;
-import static com.fota.trade.client.constants.Constants.DEALED_USDT_TAG;
 import static com.fota.trade.common.ResultCodeEnum.*;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
-import static com.fota.trade.domain.enums.OrderStatusEnum.*;
+import static com.fota.trade.domain.enums.OrderStatusEnum.COMMIT;
 import static com.fota.trade.domain.enums.OrderTypeEnum.LIMIT;
 import static com.fota.trade.domain.enums.OrderTypeEnum.RIVAL;
-import static com.fota.trade.msg.TopicConstants.TRD_COIN_CANCELED;
-import static com.fota.trade.msg.TopicConstants.TRD_COIN_CANCEL_REQ;
-import static com.fota.trade.msg.TopicConstants.TRD_COIN_DEAL;
+import static com.fota.trade.msg.TopicConstants.*;
 import static java.util.stream.Collectors.toList;
 
 
@@ -154,6 +147,7 @@ public class UsdkOrderManager {
         if (usdkOrderDO.getOrderType() != OrderTypeEnum.ENFORCE.getCode()){
             BigDecimal totalAmount = usdkOrderDO.getTotalAmount();
             Result<BigDecimal> checkPriceRes = computeAndCheckOrderPrice(usdkOrderDO.getPrice(), usdkOrderDO.getOrderType(), usdkOrderDO.getOrderDirection(), usdkOrderDO.getAssetId());
+            profiler.complelete("computeAndCheckOrderPrice");
             if (usdkOrderDO.getOrderType() == RIVAL.getCode()) {
                 usdkOrderDO.setOrderType(LIMIT.getCode());
             }
