@@ -56,7 +56,7 @@ public class CurrentPriceManager {
 
 
 
-    @Cacheable("spotIndexes")
+    @Cacheable(value = "spotIndexes", sync = true)
     public List<TickerDTO> getSpotIndexes(){
         Profiler profiler = ThreadContextUtil.getPrifiler();
         List<TickerDTO> ret = spotIndexService.listCurrentTicker();
