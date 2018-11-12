@@ -56,7 +56,7 @@ public class CurrentPriceManager {
 
 
 
-    @Cacheable("spotIndexes")
+    @Cacheable(value = "spotIndexes", sync = true)
     public List<TickerDTO> getSpotIndexes(){
         Profiler profiler = ThreadContextUtil.getPrifiler();
         List<TickerDTO> ret = spotIndexService.listCurrentTicker();
@@ -73,41 +73,7 @@ public class CurrentPriceManager {
 
     }
 
-    public BigDecimal getSpotIndexByContractName(String contractName){
-        String assetName = AssetExtraProperties.getAssetNameByContractName(contractName);
-        if (null == assetName) {
-            return null;
-        }
-        return getSpotIndexByAssetName(assetName);
-    }
 
-    public BigDecimal getSpotIndexByAssetId(long assetId){
-        List<TickerDTO> tickerDTOS = getSpotIndexes();
-        if (CollectionUtils.isEmpty(tickerDTOS)) {
-            log.error("empty spotIndexes");
-            return null;
-        }
-        String assetName = AssetExtraProperties.getNameByAssetId(assetId);
-        return getSpotIndexByAssetName(assetName);
-    }
-
-
-    public BigDecimal getSpotIndexByAssetName(String assetName){
-        List<TickerDTO> tickerDTOS = getSpotIndexes();
-        if (null == assetName) {
-            log.error("no such asset");
-            return null;
-        }
-        TickerDTO tickerDTO = tickerDTOS.stream()
-                .filter(x -> assetName.equals(x.getSymbol()))
-                .findFirst().orElse(null);
-        if (null == tickerDTO || null == tickerDTO.getSymbol()) {
-            log.error("null spotIndex, assetId={}, symbol={}", assetName);
-            return null;
-        }
-
-        return tickerDTO.getPrice();
-    }
 
 
 
