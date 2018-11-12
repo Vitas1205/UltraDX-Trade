@@ -171,9 +171,13 @@ public class ContractOrderManager {
 
         long contractId = contractOrderDTO.getContractId();
         //检查合约
-        ContractCategoryDTO contractCategoryDO = contractCategoryService.getContractById(contractId);
+//        ContractCategoryDTO contractCategoryDO = contractCategoryService.getContractById(contractId);
+        List<ContractCategoryDTO> categoryList = contractCategoryService.listActiveContract();
+        ContractCategoryDTO contractCategoryDTO = categoryList.stream().filter(x -> x.getId().equals(contractOrderDTO.getContractId())).findFirst()
+                .orElse(null);
+
         profiler.complelete("select contract category");
-        Result checkContractRest = checkConctractCategory(contractCategoryDO, contractId);
+        Result checkContractRest = checkConctractCategory(contractCategoryDTO, contractId);
         if (!checkContractRest.isSuccess()) {
             return Result.fail(checkContractRest.getCode(), checkContractRest.getMessage());
         }
@@ -197,7 +201,7 @@ public class ContractOrderManager {
         if (contractOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()) {
             insertOrderRecord(contractOrderDO);
         } else {
-            Result<OrderResult> judgeRet = judgeOrderAvailable(contractOrderDO.getUserId(), contractOrderDO, contractOrderDTO.getEntrustValue());
+            Result<OrderResult> judgeRet = judgeOrderAvailable(contractOrderDO.getUserId(), contractOrderDO, contractOrderDTO.getEntrustValue(), categoryList);
             profiler.complelete("judge order available");
 
             if (!judgeRet.isSuccess()) {
@@ -230,7 +234,7 @@ public class ContractOrderManager {
                     System.currentTimeMillis(), 2, contractOrderDO.getOrderDirection(), contractOrderDO.getUserId(), 1);
         }
         Runnable runnable = () -> {
-            sendPlaceOrderMessage(contractOrderDO, contractCategoryDO.getContractType(), contractCategoryDO.getAssetName());
+            sendPlaceOrderMessage(contractOrderDO, contractCategoryDTO.getContractType(), contractCategoryDTO.getAssetName());
             String userContractPositionExtraKey = RedisKey.getUserContractPositionExtraKey(contractOrderDO.getUserId());
             redisManager.hPutAll(userContractPositionExtraKey, entrustInternalValues);
             profiler.complelete("send MQ message");
@@ -894,7 +898,7 @@ public class ContractOrderManager {
      * @param newContractOrderDO
      * @return
      */
-    public Result<OrderResult> judgeOrderAvailable(long userId, ContractOrderDO newContractOrderDO, BigDecimal entrustValue) {
+    public Result<OrderResult> judgeOrderAvailable(long userId, ContractOrderDO newContractOrderDO, BigDecimal entrustValue, List<ContractCategoryDTO> categoryList) {
         Profiler profiler = (null == ThreadContextUtil.getPrifiler()) ? new Profiler("judgeOrderAvailable") : ThreadContextUtil.getPrifiler();
         ContractAccount contractAccount = new ContractAccount();
         contractAccount.setMarginCallRequirement(BigDecimal.ZERO)
@@ -915,9 +919,9 @@ public class ContractOrderManager {
         }
 
 
-        List<ContractCategoryDTO> categoryList = contractCategoryService.listActiveContract();
-        profiler.complelete("listActiveContract");
-        //校验合约有效性
+//        List<ContractCategoryDTO> categoryList = contractCategoryService.listActiveContract();
+//        profiler.complelete("listActiveContract");
+        //        校验合约有效性
         if (CollectionUtils.isEmpty(categoryList)) {
             log.error("empty categoryList, userId={}", userId);
             return Result.fail( ResultCodeEnum.ILLEGAL_CONTRACT.getCode(), ILLEGAL_CONTRACT.getMessage());
