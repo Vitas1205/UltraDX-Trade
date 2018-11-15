@@ -2,6 +2,7 @@ package com.fota.trade.manager;
 
 import com.fota.data.domain.DeliveryIndexDTO;
 import com.fota.data.domain.TickerDTO;
+import com.fota.data.manager.IndexCacheManager;
 import com.fota.data.service.SpotIndexService;
 import com.fota.trade.client.AssetExtraProperties;
 import com.fota.trade.util.Profiler;
@@ -25,7 +26,7 @@ import java.util.List;
 @Slf4j
 public class CurrentPriceManager {
     @Autowired
-    private SpotIndexService spotIndexService;
+    private IndexCacheManager indexCacheManager;
 //    @Autowired
 //    private DeliveryIndexService deliveryIndexService;
 
@@ -56,10 +57,11 @@ public class CurrentPriceManager {
 
 
 
+
     @Cacheable("spotIndexes")
     public List<TickerDTO> getSpotIndexes(){
         Profiler profiler = ThreadContextUtil.getPrifiler();
-        List<TickerDTO> ret = spotIndexService.listCurrentTicker();
+        List<TickerDTO> ret = indexCacheManager.listCurrentSpotIndex();
         if (null != profiler) {
             profiler.complelete("getDeliveryIndex");
         }
