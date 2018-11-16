@@ -170,6 +170,7 @@ public class ADLManager {
         Map<String, Object> map = new HashMap<>();
         map.put("platformProfit", platformProfit);
         map.put("adlMatchDTO", adlMatchDTO);
+        map.put("currentPrice", currentPrice);
         map.put("adlUserIds", contractMatchedOrderDOS.stream().map(ContractMatchedOrderDO::getUserId).collect(Collectors.toList()));
         ADL_EXTEA_LOG.info("{}", JSON.toJSONString(map));
         return Result.suc(null);
