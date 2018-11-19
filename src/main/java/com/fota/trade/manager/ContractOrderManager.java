@@ -835,7 +835,7 @@ public class ContractOrderManager {
         if (null == orderType) {
             return Result.fail(PRICE_TYPE_ILLEGAL.getCode(), PRICE_TYPE_ILLEGAL.getMessage());
         }
-        if (RIVAL_PRICE.getCode() != orderType && MARKET_PRICE.getCode() != orderType && SPECIFIED_PRICE.getCode() != orderType){
+        if (RIVAL_PRICE.getCode() != orderType && MARKET_PRICE.getCode() != orderType && SPECIFIED_PRICE.getCode() != orderType && OrderTypeEnum.PASSIVE.getCode() != orderType){
             return Result.fail(PRICE_TYPE_ILLEGAL.getCode(), PRICE_TYPE_ILLEGAL.getMessage());
         }
 
