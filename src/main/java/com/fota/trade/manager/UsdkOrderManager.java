@@ -395,7 +395,7 @@ public class UsdkOrderManager {
             cancelReqMessage.setCancelType(CancelTypeEnum.CANCEL_BY_ORDERID);
             cancelReqMessage.setIdList(subList);
             Boolean sendRet = rocketMqManager.sendMessage(TRD_COIN_CANCEL_REQ, "coin",
-                    "to_cancel_usdt_"+Joiner.on("_").join(subList), cancelReqMessage);
+                    Joiner.on("_").join(subList), cancelReqMessage);
             if (BooleanUtils.isNotTrue(sendRet)){
                 log.error("failed to send cancel usdk mq, {}", userId);
             }

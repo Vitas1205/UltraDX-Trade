@@ -186,7 +186,7 @@
 		<dependency>
 			<groupId>com.fota</groupId>
 			<artifactId>common-client</artifactId>
-			<version>1.0.3-SNAPSHOT</version>
+			<version>1.0.6-SNAPSHOT</version>
 		</dependency>
 
 		<dependency>

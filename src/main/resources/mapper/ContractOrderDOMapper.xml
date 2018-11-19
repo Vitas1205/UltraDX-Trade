@@ -43,6 +43,22 @@
     </sql>
 
 
+    <insert id="batchInsert">
+         insert into trade_contract_order (id, gmt_create,
+            gmt_modified, user_id, contract_id, contract_name, order_direction,
+            total_amount, unfilled_amount, price, fee,
+            status, average_price, order_type, close_type, order_context)
+            values
+            <foreach collection="items" item="item" separator=",">
+                (#{id}, now(3),
+                now(3), #{userId},
+                #{contractId}, #{contractName},
+                #{orderDirection},
+                #{totalAmount}, #{unfilledAmount},
+                #{price}, #{fee},
+                #{status}, #{averagePrice}, #{orderType}, #{closeType}, #{orderContext})
+            </foreach>
+    </insert>
 
     <select id="countByQuery" resultType="java.lang.Integer">
         select count(*)

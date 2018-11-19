@@ -36,6 +36,8 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
     int insert(ContractOrderDO record);
 
 
+    int batchInsert(List<ContractOrderDO> contractOrderDOS);
+
 
 
     @Select({

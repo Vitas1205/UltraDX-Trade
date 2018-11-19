@@ -2,19 +2,29 @@ package com.fota.trade.util;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.fota.common.enums.FotaApplicationEnum;
 import com.fota.trade.UpdateOrderItem;
+import com.fota.trade.client.PlaceContractOrderDTO;
+import com.fota.trade.client.PlaceOrderRequest;
+import com.fota.trade.client.UserLevelEnum;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.OrderCloseType;
 import com.fota.trade.domain.enums.OrderTypeEnum;
 import com.fota.trade.msg.ContractDealedMessage;
+import com.fota.trade.msg.ContractPlaceOrderMessage;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
+import static com.fota.trade.domain.enums.OrderStatusEnum.COMMIT;
+import static com.fota.trade.domain.enums.OrderTypeEnum.LIMIT;
 
 /**
  * Created by Swifree on 2018/9/17.
@@ -108,5 +118,88 @@ public class ConvertUtils {
                 .setId(adlMatchedDTO.getId())
                 .setUserId(adlMatchedDTO.getUserId());
         return updateOrderItem;
+    }
+
+    public static ContractPlaceOrderMessage toContractPlaceOrderMessage(ContractOrderDO contractOrderDO){
+        ContractPlaceOrderMessage placeOrderMessage = new ContractPlaceOrderMessage();
+        placeOrderMessage.setTotalAmount(contractOrderDO.getTotalAmount());
+        if (contractOrderDO.getPrice() != null){
+            placeOrderMessage.setPrice(contractOrderDO.getPrice());
+        }
+        placeOrderMessage.setOrderDirection(contractOrderDO.getOrderDirection());
+        placeOrderMessage.setOrderType(contractOrderDO.getOrderType());
+        placeOrderMessage.setOrderId(contractOrderDO.getId());
+        placeOrderMessage.setUserId(contractOrderDO.getUserId());
+        placeOrderMessage.setSubjectId(contractOrderDO.getContractId());
+        placeOrderMessage.setSubjectName(contractOrderDO.getContractName());
+        placeOrderMessage.setFee(contractOrderDO.getFee());
+        return placeOrderMessage;
+    }
+
+    public static List<ContractOrderDO> extractContractOrderDOS(PlaceOrderRequest<PlaceContractOrderDTO> placeOrderRequest) {
+
+        BigDecimal feeRate = placeOrderRequest.getUserLevel().getFeeRate();
+        return placeOrderRequest.getPlaceOrderDTOS().stream().map(x -> extractContractOrderDO(x, placeOrderRequest.getUserId(),
+                feeRate, placeOrderRequest.getUserName(), placeOrderRequest.getIp())).collect(Collectors.toList());
+
+    }
+
+    public static PlaceOrderRequest toPlaceOrderRequest(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap, UserLevelEnum userLevel, FotaApplicationEnum caller){
+        PlaceOrderRequest<PlaceContractOrderDTO>  placeOrderRequest = new PlaceOrderRequest();
+        PlaceContractOrderDTO placeContractOrderDTO = new PlaceContractOrderDTO();
+
+        placeOrderRequest.setUserId(contractOrderDTO.getUserId());
+        placeContractOrderDTO.setOrderDirection(contractOrderDTO.getOrderDirection());
+        placeContractOrderDTO.setOrderType(contractOrderDTO.getOrderType());
+        placeContractOrderDTO.setTotalAmount(contractOrderDTO.getTotalAmount());
+        placeContractOrderDTO.setSubjectId(contractOrderDTO.getContractId());
+        placeContractOrderDTO.setSubjectName(contractOrderDTO.getContractName());
+        placeContractOrderDTO.setPrice(contractOrderDTO.getPrice());
+
+        if (null != userInfoMap) {
+            String userName = userInfoMap.get("userName");
+            String ip = userInfoMap.get("ip");
+            placeOrderRequest.setUserName(userName);
+            placeOrderRequest.setIp(ip);
+        }
+        placeOrderRequest.setCaller(caller);
+        placeOrderRequest.setUserLevel(userLevel);
+        if (null == placeContractOrderDTO.getOrderType()) {
+            placeContractOrderDTO.setOrderType(LIMIT.getCode());
+        }
+
+        return placeOrderRequest;
+    }
+
+    public static ContractOrderDO extractContractOrderDO(PlaceContractOrderDTO x, long userId, BigDecimal feeRate, String userName, String ip){
+        ContractOrderDO contractOrderDO = new ContractOrderDO();
+        contractOrderDO.setId(BasicUtils.generateId());
+        contractOrderDO.setUserId(userId);
+        contractOrderDO.setOrderDirection(x.getOrderDirection());
+        contractOrderDO.setOrderType(x.getOrderType());
+        contractOrderDO.setTotalAmount(x.getTotalAmount());
+        contractOrderDO.setContractId(x.getSubjectId());
+        contractOrderDO.setContractName(x.getSubjectName());
+        contractOrderDO.setPrice(x.getPrice());
+        contractOrderDO.setUnfilledAmount(contractOrderDO.getTotalAmount());
+
+        Map<String, Object> newMap = new HashMap<>();
+        if (null != userName) {
+            newMap.put("username", userName);
+        }
+        if (null != ip) {
+            newMap.put("ip", ip);
+        }
+
+        contractOrderDO.setOrderContext(JSON.toJSONString(newMap));
+        contractOrderDO.setStatus(COMMIT.getCode());
+        contractOrderDO.setFee(feeRate);
+        if (null == contractOrderDO.getOrderType()) {
+            contractOrderDO.setOrderType(LIMIT.getCode());
+        }
+        if (null == contractOrderDO.getCloseType()) {
+            contractOrderDO.setCloseType(contractOrderDO.getOrderType());
+        }
+        return contractOrderDO;
     }
 }

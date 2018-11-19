@@ -61,6 +61,7 @@ public enum ResultCodeEnum {
     TOO_MUCH_ORDERS(120024, "too much orders"),
     POSITION_EXCEEDS(120025, "position exceeds"),
     NETWORK_ERROR(120026, "网络异常"),
+    SIZE_TOO_LARGE(120027, "batch size exceed");
 
 
     ;

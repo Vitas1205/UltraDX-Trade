@@ -2,6 +2,7 @@ package com.fota.trade.service.impl;
 
 import com.fota.common.Page;
 import com.fota.common.Result;
+import com.fota.common.enums.FotaApplicationEnum;
 import com.fota.trade.client.*;
 import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
@@ -14,6 +15,7 @@ import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.service.ContractOrderService;
 import com.fota.trade.service.internal.MarketAccountListService;
+import com.fota.trade.util.ConvertUtils;
 import com.fota.trade.util.DateUtil;
 
 import com.fota.trade.util.Profiler;
@@ -182,7 +184,9 @@ public class ContractOrderServiceImpl implements ContractOrderService {
 
     @Override
     public ResultCode order(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
-        com.fota.common.Result<Long> result = orderReturnId(contractOrderDTO, userInfoMap);
+        PlaceOrderRequest placeOrderRequest = ConvertUtils.toPlaceOrderRequest(contractOrderDTO, userInfoMap, UserLevelEnum.FREE, FotaApplicationEnum.TRADING_API);
+        Result<List<PlaceOrderResult>> result = batchOrder(placeOrderRequest);
+
         ResultCode resultCode = new ResultCode();
         resultCode.setCode(result.getCode());
         resultCode.setMessage(result.getMessage());
@@ -191,18 +195,32 @@ public class ContractOrderServiceImpl implements ContractOrderService {
 
     @Override
     public Result<Long> orderWithEnforce(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
-        return null;
+        PlaceOrderRequest placeOrderRequest = ConvertUtils.toPlaceOrderRequest(contractOrderDTO, userInfoMap, UserLevelEnum.DEFAULT, FotaApplicationEnum.MARGIN);
+        Result<List<PlaceOrderResult>> result = batchOrder(placeOrderRequest);
+        if (!result.isSuccess()) {
+            return Result.fail(result.getCode(), result.getMessage());
+        }
+        return Result.suc(result.getData().get(0).getOrderId());
     }
 
     @Override
     public com.fota.common.Result<Long> orderReturnId(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
-        com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
+        PlaceOrderRequest placeOrderRequest = ConvertUtils.toPlaceOrderRequest(contractOrderDTO, userInfoMap, UserLevelEnum.FREE, FotaApplicationEnum.TRADING_API);
+        Result<List<PlaceOrderResult>> result = batchOrder(placeOrderRequest);
+        if (!result.isSuccess()) {
+            return Result.fail(result.getCode(), result.getMessage());
+        }
+        return Result.suc(result.getData().get(0).getOrderId());
+    }
+
+    @Override
+    public Result<List<PlaceOrderResult>> batchOrder(PlaceOrderRequest<PlaceContractOrderDTO> placeOrderRequest) {
+        com.fota.common.Result<List<PlaceOrderResult>> result = new com.fota.common.Result<>();
         Profiler profiler = new Profiler("ContractOrderManager.placeOrder");
         ThreadContextUtil.setPrifiler(profiler);
         try {
-            result = contractOrderManager.placeOrder(contractOrderDTO, userInfoMap);
+            result = contractOrderManager.placeOrder(placeOrderRequest, false);
             if (result.isSuccess()) {
-                tradeLog.info("下单@@@" + contractOrderDTO);
                 profiler.setTraceId(result.getData()+"");
                 //redisManager.contractOrderSaveForMatch(contractOrderDTO);
                 Runnable postTask = ThreadContextUtil.getPostTask();
@@ -216,13 +234,11 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         }catch (Exception e){
             if (e instanceof BizException){
                 BizException bizException = (BizException) e;
-                log.error("place order failed, code={}, msg={}", bizException.getCode(), bizException.getMessage());
-                result.setCode(bizException.getCode());
-                result.setMessage(bizException.getMessage());
-                result.setData(0L);
+                log.error("place order({}) failed, code={}, msg={}", placeOrderRequest, bizException.getCode(), bizException.getMessage());
+                result.fail(bizException.getCode(), bizException.getMessage());
                 return result;
             }else {
-                log.error("Contract order() failed", e);
+                log.error("Contract order({}) failed", placeOrderRequest,  e);
             }
         }finally {
             profiler.log();
@@ -230,13 +246,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         }
         result.setCode(ResultCodeEnum.ORDER_FAILED.getCode());
         result.setMessage(ResultCodeEnum.ORDER_FAILED.getMessage());
-        result.setData(0L);
         return result;
-    }
-
-    @Override
-    public Result<List<PlaceOrderResult>> batchOrder(PlaceOrderRequest<PlaceContractOrderDTO> placeOrderRequest) {
-        return null;
     }
 
     @Override
