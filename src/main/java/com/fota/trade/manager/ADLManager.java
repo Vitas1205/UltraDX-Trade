@@ -89,7 +89,9 @@ public class ADLManager {
         int pageSize = 100;
         int needPositionDirection = adlMatchDTO.getDirection();
         //获取当前价格
-        BigDecimal adlPrice = getAdlPrice(adlMatchDTO.getContractName(), adlMatchDTO.getPrice(), needPositionDirection);
+        BigDecimal currentPrice = currentPriceManager.getSpotIndexByContractName(adlMatchDTO.getContractName());
+
+        BigDecimal adlPrice = getAdlPrice( adlMatchDTO.getPrice(), currentPrice, needPositionDirection);
 
         //降杠杆和强平单成交记录
         List<ContractMatchedOrderDO> contractMatchedOrderDOS = new LinkedList<>();
@@ -174,6 +176,7 @@ public class ADLManager {
         Map<String, Object> map = new HashMap<>();
         map.put("platformProfit", platformProfit);
         map.put("adlMatchDTO", adlMatchDTO);
+        map.put("currentPrice", currentPrice);
         map.put("adlPrice", adlPrice);
         map.put("adlUserIds", contractMatchedOrderDOS.stream().map(ContractMatchedOrderDO::getUserId).collect(Collectors.toList()));
         ADL_EXTEA_LOG.info("{}", JSON.toJSONString(map));
@@ -183,13 +186,11 @@ public class ADLManager {
 
     /**
      *
-     * @param contractName
      * @param targetPrice
      * @param adlPositionType 被减仓仓位
      * @return
      */
-    private BigDecimal getAdlPrice(String contractName, BigDecimal targetPrice, Integer adlPositionType) {
-        BigDecimal currentPrice = currentPriceManager.getSpotIndexByContractName(contractName);
+    private BigDecimal getAdlPrice( BigDecimal targetPrice, BigDecimal currentPrice, Integer adlPositionType) {
         if (adlPositionType == OVER.getCode()) {
             return targetPrice.min(currentPrice);
         }
