@@ -136,7 +136,7 @@ public class UsdkOrderServiceTest {
 
         //市场单
         usdkOrderDTO.setOrderType(MARKET.getCode());
-        result = usdkOrderService.order(usdkOrderDTO);
+//        result = usdkOrderService.order(usdkOrderDTO);
         assert result.isSuccess();
 
 

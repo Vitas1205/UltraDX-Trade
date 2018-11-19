@@ -3,8 +3,7 @@ package com.fota.trade.service.impl;
 import com.fota.asset.service.CapitalService;
 import com.fota.common.Page;
 import com.fota.common.Result;
-import com.fota.trade.client.RecoveryMetaData;
-import com.fota.trade.client.RecoveryQuery;
+import com.fota.trade.client.*;
 import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.ResultCode;
@@ -199,9 +198,15 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     }
 
     @Override
-    public ResultCode order(UsdkOrderDTO usdkOrderDTO) {
+    public Result<List<PlaceOrderResult>> batchOrder(PlaceOrderRequest<PlaceCoinOrderDTO> placeOrderRequest) {
         return null;
     }
+
+    @Override
+    public Result batchCancel(CancelOrderRequest cancelOrderRequest) {
+        return null;
+    }
+
 
 
     @Override
@@ -226,10 +231,6 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         return resultCode;
     }
 
-    @Override
-    public ResultCode cancelOrder(long l, long l1) {
-        return null;
-    }
 
     @Override
     public ResultCode cancelAllOrder(long userId, Map<String, String> userInfoMap) {
@@ -249,10 +250,6 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         return resultCode;
     }
 
-    @Override
-    public ResultCode cancelAllOrder(long l) {
-        return null;
-    }
 
     @Override
     public ResultCode updateOrderByMatch(UsdkMatchedOrderDTO usdkMatchedOrderDTO) {
@@ -381,20 +378,5 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
 
 
 
-
-    @Override
-    public Long getLatestMatchedUsdk (Integer type) {
-        return null;
-    }
-
-    @Override
-    public List<UsdkMatchedOrderTradeDTO> getLatestUsdkMatchedList (Long id ,Integer assetId) {
-        return null;
-    }
-
-    @Override
-    public List<ContractMatchedOrderTradeDTO> getLatestContractMatchedList (Long id ,Long contractId){
-        return null;
-    }
 
 }

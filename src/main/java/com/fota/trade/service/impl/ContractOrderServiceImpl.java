@@ -2,8 +2,7 @@ package com.fota.trade.service.impl;
 
 import com.fota.common.Page;
 import com.fota.common.Result;
-import com.fota.trade.client.RecoveryMetaData;
-import com.fota.trade.client.RecoveryQuery;
+import com.fota.trade.client.*;
 import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.ResultCode;
@@ -191,6 +190,11 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     }
 
     @Override
+    public Result<Long> orderWithEnforce(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
+        return null;
+    }
+
+    @Override
     public com.fota.common.Result<Long> orderReturnId(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
         com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
         Profiler profiler = new Profiler("ContractOrderManager.placeOrder");
@@ -231,7 +235,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     }
 
     @Override
-    public ResultCode order(ContractOrderDTO contractOrderDTO) {
+    public Result<List<PlaceOrderResult>> batchOrder(PlaceOrderRequest<PlaceContractOrderDTO> placeOrderRequest) {
         return null;
     }
 
@@ -255,9 +259,10 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     }
 
     @Override
-    public ResultCode cancelOrder(long l, long l1) {
+    public Result batchCancel(CancelOrderRequest cancelOrderRequest) {
         return null;
     }
+
 
     @Override
     public ResultCode cancelAllOrder(long userId, Map<String, String> userInfoMap) {
@@ -278,10 +283,6 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         return resultCode;
     }
 
-    @Override
-    public ResultCode cancelAllOrder(long l) {
-        return null;
-    }
 
     /**
      * 撤销用户非强平单
@@ -308,15 +309,6 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         return resultCode;
     }
 
-    @Override
-    public ResultCode cancelOrderByOrderType(long l, int i) {
-        return null;
-    }
-
-    @Override
-    public ResultCode cancelOrderByContractId(long l) {
-        return null;
-    }
 
     /**
      * 撤销该合约的所有委托订单
