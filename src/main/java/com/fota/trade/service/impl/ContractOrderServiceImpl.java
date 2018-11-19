@@ -184,7 +184,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
 
     @Override
     public ResultCode order(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
-        PlaceOrderRequest placeOrderRequest = ConvertUtils.toPlaceOrderRequest(contractOrderDTO, userInfoMap, UserLevelEnum.FREE, FotaApplicationEnum.TRADING_API);
+        PlaceOrderRequest placeOrderRequest = ConvertUtils.toPlaceOrderRequest(contractOrderDTO, userInfoMap, UserLevelEnum.DEFAULT, FotaApplicationEnum.WEB);
         Result<List<PlaceOrderResult>> result = batchOrder(placeOrderRequest);
 
         ResultCode resultCode = new ResultCode();
