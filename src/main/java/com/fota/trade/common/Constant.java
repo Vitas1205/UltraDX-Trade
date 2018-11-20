@@ -35,6 +35,7 @@ public class Constant {
     public static final BigDecimal DEFAULT_LEVER = new BigDecimal(10);
     public static final String MARKET_MAKER_ACCOUNT_TAG = "1";
     public static final Long DEFAULT_POSITION_QUANTILE = 1L;
+    public static final String ENTRUST_VALUE_KEY = "entrustValue";
 
 
     //-------------------Redis-------------------//

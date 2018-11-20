@@ -565,6 +565,8 @@ public class ContractOrderManager {
         }
         BigDecimal totalPositionMarginByIndex = BigDecimal.ZERO;
         BigDecimal totalPositionValueByIndex = BigDecimal.ZERO;
+        BigDecimal totalPositionValue = BigDecimal.ZERO;
+        BigDecimal totalEntrustValue = BigDecimal.ZERO;
         BigDecimal totalFloatingPLByIndex = BigDecimal.ZERO;
         BigDecimal totalEntrustMarginByIndex = BigDecimal.ZERO;
         //todo 获取简单交割指数列表
@@ -593,12 +595,13 @@ public class ContractOrderManager {
             BigDecimal lever = contractLeverManager.findLever(leverMap, contractCategoryDO.getAssetId());
             BigDecimal positionMargin = BigDecimal.ZERO;
             BigDecimal floatingPL = BigDecimal.ZERO;
-            BigDecimal entrustMargin = BigDecimal.ZERO;
-            BigDecimal entrustMarginByIndex = BigDecimal.ZERO;
+            BigDecimal entrustMargin;
+            BigDecimal entrustMarginByIndex;
             BigDecimal positionUnfilledAmount= BigDecimal.ZERO;
             BigDecimal positionMarginByIndex = BigDecimal.ZERO;
             BigDecimal floatingPLByIndex = BigDecimal.ZERO;
             BigDecimal positionValueByIndex = BigDecimal.ZERO;
+            BigDecimal positionValue = BigDecimal.ZERO;
             int positionType = PositionTypeEnum.EMPTY.getCode();
             Optional<UserPositionDO> userPositionDOOptional = allPositions.stream()
                     .filter(userPosition -> userPosition.getContractId().equals(contractCategoryDO.getId()))
@@ -629,6 +632,7 @@ public class ContractOrderManager {
                         positionUnfilledAmount.multiply(index).divide(lever, scale, BigDecimal.ROUND_UP);
                 positionValueByIndex = index.compareTo(BigDecimal.ZERO) == 0 ? positionUnfilledAmount.multiply(price) :
                         positionUnfilledAmount.multiply(index);
+                positionValue = positionUnfilledAmount.multiply(price);
                 UserPositionDTO userPositionDTO = com.fota.trade.common.BeanUtils.copy(userPositionDO);
                 userPositionDTO.setLever(lever.intValue());
                 userPositionDTO.setAveragePrice(positionAveragePrice.toPlainString());
@@ -646,19 +650,27 @@ public class ContractOrderManager {
 
             //计算委托额外保证金
             String contraryKey = "", sameKey = "";
+            String contraryEntrustKey = "", sameEntrustKey = "";
             if (positionType == PositionTypeEnum.OVER.getCode()) {
                 contraryKey = contractId + "-" + PositionTypeEnum.EMPTY.name();
                 sameKey = contractId + "-" + PositionTypeEnum.OVER.name();
+                contraryEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + PositionTypeEnum.EMPTY.name();
+                sameEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + PositionTypeEnum.OVER.name();
             } else if (positionType == PositionTypeEnum.EMPTY.getCode()) {
                 contraryKey = contractId + "-" + PositionTypeEnum.OVER.name();
                 sameKey = contractId + "-" + PositionTypeEnum.EMPTY.name();
+                contraryEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + PositionTypeEnum.OVER.name();
+                sameEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + PositionTypeEnum.EMPTY.name();
             }
 
             Object contraryValue = userContractPositions.get(contraryKey);
             Object sameValue = userContractPositions.get(sameKey);
-            EntrustMarginDO entrustMarginDO = new EntrustMarginDO();
-            if (Objects.nonNull(contraryValue) && Objects.nonNull(sameValue)) {
-                entrustMarginDO = cal(new BigDecimal(contraryValue.toString()), new BigDecimal(sameValue.toString()), positionMargin, positionMarginByIndex);
+            Object contraryEntrustValue = userContractPositions.get(contraryEntrustKey);
+            Object sameEntrustValue = userContractPositions.get(sameEntrustKey);
+            EntrustMarginDO entrustMarginDO;
+            if (!Objects.nonNull(contraryValue) && !Objects.nonNull(sameValue)) {
+                entrustMarginDO = cal(new BigDecimal(contraryValue.toString()), new BigDecimal(sameValue.toString()), positionMargin, positionMarginByIndex,
+                        new BigDecimal(contraryEntrustValue.toString()), new BigDecimal(sameEntrustValue.toString()), positionValue);
             } else {
                 List<ContractOrderDO> orderList =  contractOrderMapper.selectNotEnforceOrderByUserIdAndContractId(userId, contractId);
                 if (CollectionUtils.isEmpty(orderList)) {
@@ -670,7 +682,7 @@ public class ContractOrderManager {
                 List<ContractOrderDO> askList = orderList.stream()
                         .filter(order -> order.getOrderDirection() == ASK.getCode())
                         .collect(toList());
-                entrustMarginDO = getExtraEntrustAmount(userId, contractId, bidList, askList, positionType, positionUnfilledAmount, positionMargin, positionMarginByIndex, lever);
+                entrustMarginDO = getExtraEntrustAmount(userId, contractId, bidList, askList, positionType, positionUnfilledAmount, positionMargin, positionMarginByIndex, lever, positionValue);
                 Pair<BigDecimal, Map<String, Object>> pair = entrustMarginDO.getPair();
                 map.putAll(pair.getRight());
             }
@@ -682,7 +694,9 @@ public class ContractOrderManager {
             totalPositionMarginByIndex = totalPositionMarginByIndex.add(positionMarginByIndex);
             totalFloatingPLByIndex = totalFloatingPLByIndex.add(floatingPLByIndex);
             totalPositionValueByIndex = totalPositionValueByIndex.add(positionValueByIndex);
+            totalPositionValue = totalPositionValue.add(positionValue);
             totalEntrustMarginByIndex = totalEntrustMarginByIndex.add(entrustMarginByIndex);
+            totalEntrustValue = totalEntrustValue.add(entrustMarginDO.getEntrustValue());
         }
         BigDecimal amount = new BigDecimal(userContractDTO.getAmount());
         contractAccount.setAvailableAmount(amount.add(contractAccount.getFloatingPL())
@@ -704,8 +718,9 @@ public class ContractOrderManager {
         BigDecimal btcSpotIndex = getIndex(AssetTypeEnum.BTC.getDesc(), list);
         contractAccount.setAccountValuation(contractAccount.getAccountEquity().multiply(btcSpotIndex));
         contractAccount.setAccountMargin(contractAccount.getFrozenAmount().add(contractAccount.getMarginCallRequirement()));
-        contractAccount.setSuggestedAddAmount(totalPositionValueByIndex.add(totalEntrustMarginByIndex).subtract(contractAccount.getAccountEquity()).max(BigDecimal.ZERO));
+        contractAccount.setSuggestedAddAmount(contractAccount.getAvailableAmount().negate().max(BigDecimal.ZERO));
         contractAccount.setUserPositionDTOS(userPositionDTOS);
+        contractAccount.setEffectiveLever(totalPositionValue.add(totalEntrustValue).divide(contractAccount.getAccountEquity(), 3, BigDecimal.ROUND_DOWN));
         redisManager.hPutAll(userContractPositionExtraKey, map);
         return contractAccount;
 
@@ -794,7 +809,8 @@ public class ContractOrderManager {
     public EntrustMarginDO getExtraEntrustAmount(Long userId, Long contractId,
                                             List<ContractOrderDO> bidList, List<ContractOrderDO> askList,
                                             Integer positionType, BigDecimal positionUnfilledAmount,
-                                            BigDecimal positionEntrustAmount,BigDecimal positionMarginByIndex, BigDecimal lever) {
+                                            BigDecimal positionEntrustAmount,BigDecimal positionMarginByIndex,
+                                            BigDecimal lever, BigDecimal positionValue) {
         if (null == positionUnfilledAmount) {
             log.error("null positionUnfilledAmount");
             positionUnfilledAmount = BigDecimal.ZERO;
@@ -802,21 +818,28 @@ public class ContractOrderManager {
 
         BigDecimal fee = BigDecimal.ZERO;
         BigDecimal entrustAmount = BigDecimal.ZERO;
+        BigDecimal entrustValue = BigDecimal.ZERO;
         BigDecimal totalContraryEntrustAmount = BigDecimal.ZERO;
         BigDecimal totalSameEntrustAmount = BigDecimal.ZERO;
+        BigDecimal contraryEntrustValue = BigDecimal.ZERO;
+        BigDecimal sameEntrustValue = BigDecimal.ZERO;
         String contraryKey = "", sameKey = "";
-
+        String contraryEntrustKey = "", sameEntrustKey = "";
         List<ContractOrderDO> contrarySortedList, sameList;
         if (positionType == PositionTypeEnum.OVER.getCode()) {
             contrarySortedList = sortListAsc(askList);
             sameList = bidList;
             contraryKey = contractId + "-" + PositionTypeEnum.EMPTY.name();
             sameKey = contractId + "-" + PositionTypeEnum.OVER.name();
+            contraryEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + PositionTypeEnum.EMPTY.name();
+            sameEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + PositionTypeEnum.OVER.name();
         } else if (positionType == PositionTypeEnum.EMPTY.getCode()) {
             contrarySortedList = sortListDesc(bidList);
             sameList = askList;
             contraryKey = contractId + "-" + PositionTypeEnum.OVER.name();
             sameKey = contractId + "-" + PositionTypeEnum.EMPTY.name();
+            contraryEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + PositionTypeEnum.OVER.name();
+            sameEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + PositionTypeEnum.EMPTY.name();
         } else {
             throw new RuntimeException("positionType illegal");
         }
@@ -829,16 +852,17 @@ public class ContractOrderManager {
             positionUnfilledAmount = positionUnfilledAmount.subtract(contrarySortedList.get(i).getUnfilledAmount());
             if (positionUnfilledAmount.compareTo(BigDecimal.ZERO) < 0 && flag == 0) {
                 flag = 1;
-                BigDecimal restAmount = positionUnfilledAmount.negate()
-                        .multiply(contrarySortedList.get(i).getPrice())
-                        .divide(lever, 8, BigDecimal.ROUND_DOWN);
+                BigDecimal restValue = positionUnfilledAmount.negate().multiply(contrarySortedList.get(i).getPrice());
+                BigDecimal restAmount = restValue.divide(lever, 8, BigDecimal.ROUND_DOWN);
                 for (int j = i + 1; j < contrarySortedList.size(); j++) {
-                    BigDecimal orderAmount = contrarySortedList.get(j).getPrice()
-                            .multiply(contrarySortedList.get(j).getUnfilledAmount())
-                            .divide(lever, 8, BigDecimal.ROUND_DOWN);
+                    BigDecimal orderValue = contrarySortedList.get(j).getPrice()
+                            .multiply(contrarySortedList.get(j).getUnfilledAmount());
+                    BigDecimal orderAmount = orderValue.divide(lever, 8, BigDecimal.ROUND_DOWN);
                     entrustAmount = entrustAmount.add(orderAmount);
+                    entrustValue = entrustValue.add(orderValue);
                 }
                 totalContraryEntrustAmount = restAmount.add(entrustAmount);
+                contraryEntrustValue = restValue.add(entrustValue);
             }
         }
         totalContraryEntrustAmount = totalContraryEntrustAmount.add(fee);
@@ -849,20 +873,32 @@ public class ContractOrderManager {
                     .divide(lever, 8, BigDecimal.ROUND_DOWN);
             BigDecimal orderFee = orderAmount.multiply(lever).multiply(contractOrderDO.getFee());
             totalSameEntrustAmount = totalSameEntrustAmount.add(orderAmount.add(orderFee));
+            sameEntrustValue = sameEntrustValue.add(contractOrderDO.getPrice()
+                    .multiply(contractOrderDO.getUnfilledAmount()));
         }
 
         Map<String, Object> map = new HashMap<>();
         map.put(contraryKey, totalContraryEntrustAmount.toPlainString());
         map.put(sameKey, totalSameEntrustAmount.toPlainString());
-        EntrustMarginDO entrustMarginDO =  new EntrustMarginDO();
-        entrustMarginDO =  cal(totalContraryEntrustAmount, totalSameEntrustAmount, positionEntrustAmount, positionMarginByIndex);
+        map.put(contraryEntrustKey, contraryEntrustValue);
+        map.put(sameEntrustKey, sameEntrustValue);
+        EntrustMarginDO entrustMarginDO =  cal(totalContraryEntrustAmount, totalSameEntrustAmount,
+                                               positionEntrustAmount, positionMarginByIndex,
+                                               contraryEntrustValue, sameEntrustValue, positionValue);
         BigDecimal entrustMargin = entrustMarginDO.getEntrustMargin();
         entrustMarginDO.setPair(Pair.of(entrustMargin, map));
+        entrustMarginDO.setEntrustValue(entrustValue);
         return entrustMarginDO;
     }
 
-    private EntrustMarginDO cal(BigDecimal totalContraryEntrustAmount, BigDecimal totalSameEntrustAmount, BigDecimal positionEntrustAmount, BigDecimal positionMarginByIndex) {
+    private EntrustMarginDO cal(BigDecimal totalContraryEntrustAmount, BigDecimal totalSameEntrustAmount,
+                                BigDecimal positionEntrustAmount, BigDecimal positionMarginByIndex,
+                                BigDecimal contraryEntrustValue, BigDecimal sameEntrustValue,
+                                BigDecimal positionValue) {
         EntrustMarginDO entrustMarginDO = new EntrustMarginDO();
+        contraryEntrustValue = contraryEntrustValue == null ? BigDecimal.ZERO : contraryEntrustValue;
+        sameEntrustValue = sameEntrustValue == null ? BigDecimal.ZERO : sameEntrustValue;
+        positionValue = positionValue == null ? BigDecimal.ZERO : positionValue;
         BigDecimal max1 = totalContraryEntrustAmount.subtract(positionEntrustAmount).max(BigDecimal.ZERO);
         max1 = totalSameEntrustAmount.max(max1);
         BigDecimal max2 = BigDecimal.ZERO;
@@ -870,8 +906,12 @@ public class ContractOrderManager {
             max2 = totalContraryEntrustAmount.subtract(positionEntrustAmount).max(BigDecimal.ZERO);
             max2 = totalSameEntrustAmount.max(max2);
         }
+        BigDecimal max3 = contraryEntrustValue.subtract(positionValue).max(BigDecimal.ZERO);
+        max3 = sameEntrustValue.max(max3);
+
         entrustMarginDO.setEntrustMargin(max1);
         entrustMarginDO.setEntrustMarginByIndex(max2);
+        entrustMarginDO.setEntrustValue(max3);
         return entrustMarginDO;
     }
 
@@ -1093,7 +1133,7 @@ public class ContractOrderManager {
             //计算委托额外保证金
             List<ContractOrderDO> bidList = orderList.stream().filter(order -> order.getOrderDirection() == OrderDirectionEnum.BID.getCode()).collect(toList());
             List<ContractOrderDO> askList = orderList.stream().filter(order -> order.getOrderDirection() == ASK.getCode()).collect(toList());
-            Pair<BigDecimal, Map<String, Object>> pair = getExtraEntrustAmount(userId, contractId, bidList, askList, positionType, positionUnfilledAmount, positionMargin, BigDecimal.ZERO, lever).getPair();
+            Pair<BigDecimal, Map<String, Object>> pair = getExtraEntrustAmount(userId, contractId, bidList, askList, positionType, positionUnfilledAmount, positionMargin, BigDecimal.ZERO, lever, null).getPair();
             entrustMargin = pair.getLeft();
             map.putAll(pair.getRight());
 
@@ -1146,7 +1186,7 @@ public class ContractOrderManager {
 
         log.info("user position: {}", userPositionDO);
         EntrustMarginDO entrustMarginDO = new EntrustMarginDO();
-        entrustMarginDO = getExtraEntrustAmount(userId, contractId, bidList, askList, positionType, unfilledAmount, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.valueOf(lever));
+        entrustMarginDO = getExtraEntrustAmount(userId, contractId, bidList, askList, positionType, unfilledAmount, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.valueOf(lever), null);
         Pair<BigDecimal, Map<String, Object>> pair = entrustMarginDO.getPair();
         Map<String, Object> map = pair.getRight();
         String userContractPositionExtraKey = RedisKey.getUserContractPositionExtraKey(userId);
