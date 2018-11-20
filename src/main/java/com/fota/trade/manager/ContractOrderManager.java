@@ -218,7 +218,10 @@ public class ContractOrderManager {
             for (PlaceContractOrderDTO placeOrderDTO : placeOrderRequest.getPlaceOrderDTOS()) {
                 ContractOrderDO contractOrderDO = ConvertUtils.extractContractOrderDO(placeOrderDTO, placeOrderRequest.getUserId(),
                         placeOrderRequest.getUserLevel().getFeeRate(), placeOrderRequest.getUserName(), placeOrderRequest.getIp());
-                checkAndfillProperties(contractOrderDO, competitorsPrices, placeOrderDTO.getEntrustValue());
+                Result checkRes = checkAndfillProperties(contractOrderDO, competitorsPrices, placeOrderDTO.getEntrustValue());
+                if(!checkRes.isSuccess()) {
+                    return checkRes;
+                }
                 contractOrderDOS.add(contractOrderDO);
 
                 PlaceOrderResult placeOrderResult = new PlaceOrderResult();

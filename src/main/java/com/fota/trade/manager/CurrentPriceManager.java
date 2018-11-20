@@ -2,6 +2,7 @@ package com.fota.trade.manager;
 
 import com.fota.data.domain.DeliveryIndexDTO;
 import com.fota.data.domain.TickerDTO;
+import com.fota.data.manager.IndexCacheManager;
 import com.fota.data.service.SpotIndexService;
 import com.fota.trade.client.AssetExtraProperties;
 import com.fota.trade.util.Profiler;
@@ -25,41 +26,11 @@ import java.util.List;
 @Slf4j
 public class CurrentPriceManager {
     @Autowired
-    private SpotIndexService spotIndexService;
-//    @Autowired
-//    private DeliveryIndexService deliveryIndexService;
+    private IndexCacheManager indexCacheManager;
 
-
-//    public BigDecimal getDeliveryPrice(long assetId){
-//        List<DeliveryIndexDTO> deliveryIndexDTOS = getAllDeliveryIndexes();
-//        if (CollectionUtils.isEmpty(deliveryIndexDTOS)) {
-//            log.error("empty deliveryIndexDTOS");
-//            return null;
-//        }
-//        Integer symbol = AssetExtraProperties.getSymbolByAssetId(assetId);
-//        if (null == symbol) {
-//            log.error("no such asset");
-//            return null;
-//        }
-//        DeliveryIndexDTO deliveryIndexDTO = deliveryIndexDTOS.stream()
-//                .filter(x -> symbol.equals(x.getSymbol()))
-//                .findFirst().orElse(null);
-//        if (null == deliveryIndexDTO || null == deliveryIndexDTO.getSymbol()) {
-//            log.error("null delivery index, assetId={}, symbol={}", assetId, symbol);
-//            return null;
-//        }
-//
-//        return deliveryIndexDTO.getIndex();
-//    }
-//
-//
-
-
-
-    @Cacheable(value = "spotIndexes", sync = true)
     public List<TickerDTO> getSpotIndexes(){
         Profiler profiler = ThreadContextUtil.getPrifiler();
-        List<TickerDTO> ret = spotIndexService.listCurrentTicker();
+        List<TickerDTO> ret = indexCacheManager.listCurrentSpotIndex();
         if (null != profiler) {
             profiler.complelete("getDeliveryIndex");
         }
@@ -67,11 +38,7 @@ public class CurrentPriceManager {
     }
 
 
-    @CacheEvict("spotIndexes")
-    @Scheduled(fixedRate = 1000)
-    public void deleteSpotIndexes() {
 
-    }
 
 
 

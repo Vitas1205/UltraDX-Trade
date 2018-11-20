@@ -1,5 +1,6 @@
 package com.fota.trade.service;
 
+import com.alibaba.fastjson.JSON;
 import com.fota.data.domain.TickerDTO;
 import com.fota.data.service.SpotIndexService;
 import com.fota.trade.manager.CurrentPriceManager;
@@ -23,23 +24,15 @@ import java.util.Optional;
 @SpringBootTest
 @Slf4j
 public class SpotIndexServiceTest {
-    @Autowired
-    private SpotIndexService spotIndexService;
+
 
     @Autowired
     private CurrentPriceManager currentPriceManager;
 
     @Test
-    public void getIndexTest(){
-        List<TickerDTO> list = spotIndexService.listCurrentTicker();
-        Optional<TickerDTO> op = list.stream().filter(x->x.getSymbol().equals("sss")).findFirst();
-        assert list.size() > 0;
-    }
-
-    @Test
     public void getIndexByCurrentPriceManagerTest(){
         List<TickerDTO> list = currentPriceManager.getSpotIndexes();
-        Optional<TickerDTO> op = list.stream().filter(x->x.getSymbol().equals("sss")).findFirst();
-        assert list.size() > 0;
+        TickerDTO tickerDTO = list.stream().filter(x->x.getSymbol().equals("ETH")).findFirst().get();
+        log.info("list={}", JSON.toJSONString(list));
     }
 }
