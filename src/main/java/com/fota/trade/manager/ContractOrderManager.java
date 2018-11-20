@@ -657,13 +657,13 @@ public class ContractOrderManager {
             if (positionType == PositionTypeEnum.OVER.getCode()) {
                 contraryKey = contractId + "-" + PositionTypeEnum.EMPTY.name();
                 sameKey = contractId + "-" + PositionTypeEnum.OVER.name();
-                contraryEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + PositionTypeEnum.EMPTY.name();
-                sameEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + PositionTypeEnum.OVER.name();
+                contraryEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + "-" + PositionTypeEnum.EMPTY.name();
+                sameEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + "-" + PositionTypeEnum.OVER.name();
             } else if (positionType == PositionTypeEnum.EMPTY.getCode()) {
                 contraryKey = contractId + "-" + PositionTypeEnum.OVER.name();
                 sameKey = contractId + "-" + PositionTypeEnum.EMPTY.name();
-                contraryEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + PositionTypeEnum.OVER.name();
-                sameEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + PositionTypeEnum.EMPTY.name();
+                contraryEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + "-" + PositionTypeEnum.OVER.name();
+                sameEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + "-" + PositionTypeEnum.EMPTY.name();
             }
 
             Object contraryValue = userContractPositions.get(contraryKey);
@@ -671,7 +671,7 @@ public class ContractOrderManager {
             Object contraryEntrustValue = userContractPositions.get(contraryEntrustKey);
             Object sameEntrustValue = userContractPositions.get(sameEntrustKey);
             EntrustMarginDO entrustMarginDO;
-            if (!Objects.nonNull(contraryValue) && !Objects.nonNull(sameValue)) {
+            if (Objects.nonNull(contraryValue) && Objects.nonNull(sameValue)) {
                 entrustMarginDO = cal(new BigDecimal(contraryValue.toString()), new BigDecimal(sameValue.toString()), positionMargin, positionMarginByIndex,
                         new BigDecimal(contraryEntrustValue.toString()), new BigDecimal(sameEntrustValue.toString()), positionValue);
             } else {
@@ -834,15 +834,15 @@ public class ContractOrderManager {
             sameList = bidList;
             contraryKey = contractId + "-" + PositionTypeEnum.EMPTY.name();
             sameKey = contractId + "-" + PositionTypeEnum.OVER.name();
-            contraryEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + PositionTypeEnum.EMPTY.name();
-            sameEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + PositionTypeEnum.OVER.name();
+            contraryEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + "-" + PositionTypeEnum.EMPTY.name();
+            sameEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + "-" + PositionTypeEnum.OVER.name();
         } else if (positionType == PositionTypeEnum.EMPTY.getCode()) {
             contrarySortedList = sortListDesc(bidList);
             sameList = askList;
             contraryKey = contractId + "-" + PositionTypeEnum.OVER.name();
             sameKey = contractId + "-" + PositionTypeEnum.EMPTY.name();
-            contraryEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + PositionTypeEnum.OVER.name();
-            sameEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + PositionTypeEnum.EMPTY.name();
+            contraryEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + "-" + PositionTypeEnum.OVER.name();
+            sameEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + "-" + PositionTypeEnum.EMPTY.name();
         } else {
             throw new RuntimeException("positionType illegal");
         }
@@ -890,7 +890,6 @@ public class ContractOrderManager {
                                                contraryEntrustValue, sameEntrustValue, positionValue);
         BigDecimal entrustMargin = entrustMarginDO.getEntrustMargin();
         entrustMarginDO.setPair(Pair.of(entrustMargin, map));
-        entrustMarginDO.setEntrustValue(entrustValue);
         return entrustMarginDO;
     }
 
