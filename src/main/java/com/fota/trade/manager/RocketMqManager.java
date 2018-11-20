@@ -1,32 +1,22 @@
 package com.fota.trade.manager;
 
 import com.alibaba.fastjson.JSON;
+import com.fota.trade.common.ListSplitter;
 import com.fota.trade.domain.MQMessage;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.rocketmq.client.exception.MQBrokerException;
-import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
-
-import javax.annotation.Resource;
-
 import java.util.List;
-import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
-
-import static com.fota.trade.client.constants.Constants.DEFAULT_TAG;
 import static org.apache.rocketmq.client.producer.SendStatus.SEND_OK;
 
 
@@ -137,16 +127,19 @@ public class RocketMqManager {
             message.setKeys(msg.getKey());
             return message;
         }).collect(Collectors.toList());
+        ListSplitter splitter = new ListSplitter(messageList);
         try {
-            SendResult ret = null; // 消息在1S内没有发送成功，就会重试
-            ret = producer.send(messageList);
-            if (SEND_OK == ret.getSendStatus()) {
-                log.info("send message success, mqMessage={}, ret={}", mqMessages, ret);
-                return true;
-            }else {
-                log.error("send message failed, mqMessage={}, ret={}", mqMessages, JSON.toJSONString(ret));
-                return false;
+            while (splitter.hasNext()) {
+                List<Message>  listItem = splitter.next();
+                SendResult ret = null; // 消息在3S内没有发送成功，就会重试
+                ret = producer.send(listItem);
+                if (SEND_OK == ret.getSendStatus()) {
+                    log.info("send message success, mqMessage={}, ret={}", listItem, ret);
+                }else {
+                    log.error("send message failed, mqMessage={}, ret={}", listItem, JSON.toJSONString(ret));
+                }
             }
+            return true;
         } catch (Exception e) {
             log.error("send message failed, mqMessage={}, exceptionMsg={}", mqMessages, e.getMessage());
             return false;
