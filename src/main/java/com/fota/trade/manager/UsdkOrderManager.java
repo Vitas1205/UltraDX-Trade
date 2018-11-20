@@ -249,7 +249,6 @@ public class UsdkOrderManager {
 
         Result<List<PlaceOrderResult>> result = new Result<>();
         List<PlaceOrderResult> respList = new ArrayList<>();
-        PlaceOrderResult placeOrderResult = new PlaceOrderResult();
         List<PlaceCoinOrderDTO> reqList = placeOrderRequest.getPlaceOrderDTOS();
         List<UsdkOrderDO> usdkOrderDOList = new ArrayList<>();
         if (CollectionUtils.isEmpty(reqList) || reqList.size() > Constant.BATCH_ORDER_MAX_SIZE){
@@ -264,8 +263,10 @@ public class UsdkOrderManager {
 
         for(PlaceCoinOrderDTO placeCoinOrderDTO : reqList){
             Long orederId = BasicUtils.generateId();
+            PlaceOrderResult placeOrderResult = new PlaceOrderResult();
             placeOrderResult.setExtOrderId(placeCoinOrderDTO.getExtOrderId());
             placeOrderResult.setOrderId(orederId);
+            respList.add(placeOrderResult);
             long transferTime = System.currentTimeMillis();
             Map<String, Object> newMap = new HashMap<>();
             newMap.put("username", username);
@@ -306,9 +307,7 @@ public class UsdkOrderManager {
                 BigDecimal price = usdkOrderDTO.getPrice();
                 BigDecimal orderValue = totalAmount.multiply(price);
                 int assetTypeId = 0;
-                BigDecimal entrustValue = BigDecimal.ZERO;
-                int errorCode = 0;
-                String errorMsg;
+                BigDecimal entrustValue;
                 if (usdkOrderDTO.getOrderDirection() == OrderDirectionEnum.BID.getCode()){
                     assetTypeId = AssetTypeEnum.BTC.getCode();
                     entrustValue = orderValue;
@@ -328,7 +327,7 @@ public class UsdkOrderManager {
             }
         }
 
-        //todo 插入委托订单记录
+        //插入委托订单记录
         int ret = batchInsertUsdkOrder(usdkOrderDOList);
         profiler.complelete("insertUsdkOrder");
         if (ret <= 0){
@@ -336,7 +335,7 @@ public class UsdkOrderManager {
             throw new RuntimeException("insert contractOrder failed");
         }
 
-        //todo 非强平单委托冻结
+        //非强平单委托冻结
         if (map.size() > 0){
             CoinExchangeOrderBatchLock coinExchangeOrderBatchLock = new CoinExchangeOrderBatchLock();
             List<CoinExchangeOrderBatchLock.CoinExchangeOrderLockAmount> coinExchangeOrderLockAmountList = new ArrayList<>();
@@ -359,7 +358,7 @@ public class UsdkOrderManager {
                 throw new Exception("CapitalService().batchUpdateLockedAmount exception");
             }
         }
-        //todo 批量发送mq消息一定要在事务外发，不然会出现收到下单消息，db还没有这个订单
+        //批量发送mq消息一定要在事务外发，不然会出现收到下单消息，db还没有这个订单
         Runnable postTask = () -> {
             List<CoinPlaceOrderMessage> placeOrderMessages = new ArrayList<>();
             for (UsdkOrderDO usdkOrderDO : usdkOrderDOList){
