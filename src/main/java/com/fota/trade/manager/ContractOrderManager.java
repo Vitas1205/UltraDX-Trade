@@ -194,6 +194,7 @@ public class ContractOrderManager {
                 contractOrderDOS.add(contractOrderDO);
                 PlaceOrderResult placeOrderResult = new PlaceOrderResult();
                 placeOrderResult.setOrderId(contractOrderDO.getId());
+                placeOrderResults.add(placeOrderResult);
             }
             boolean suc = batchInsert(contractOrderDOS);
             if (!suc) {
@@ -764,14 +765,14 @@ public class ContractOrderManager {
             }
             Integer flag = 0;
             for (int i = 0; i < sortedList.size(); i++) {
-                listFee = listFee.add(sortedList.get(i).getPrice().multiply(sortedList.get(i).getUnfilledAmount()).multiply(Constant.FEE_RATE));
+                listFee = listFee.add(sortedList.get(i).getPrice().multiply(sortedList.get(i).getUnfilledAmount()).multiply(sortedList.get(i).getFee()));
                 positionUnfilledAmount = positionUnfilledAmount.subtract(sortedList.get(i).getUnfilledAmount());
                 if (positionUnfilledAmount.compareTo(BigDecimal.ZERO) < 0 && flag.equals(0)) {
                     flag = 1;
                     BigDecimal restAmount = positionUnfilledAmount.negate().multiply(sortedList.get(i).getPrice()).divide(lever, 8, BigDecimal.ROUND_DOWN);
                     for (int j = i + 1; j < sortedList.size(); j++) {
                         BigDecimal orderAmount = sortedList.get(j).getPrice().multiply(sortedList.get(j).getUnfilledAmount()).divide(lever, 8, BigDecimal.ROUND_DOWN);
-                        BigDecimal orderFee = orderAmount.multiply(lever).multiply(Constant.FEE_RATE);
+                        BigDecimal orderFee = orderAmount.multiply(lever).multiply(sortedList.get(j).getFee());
                         entrustAmount = entrustAmount.add(orderAmount.add(orderFee));
                     }
                     totalEntrustAmount = restAmount.add(entrustAmount);
@@ -824,7 +825,7 @@ public class ContractOrderManager {
         for (int i = 0; i < contrarySortedList.size(); i++) {
             fee = fee.add(contrarySortedList.get(i).getPrice()
                     .multiply(contrarySortedList.get(i).getUnfilledAmount())
-                    .multiply(Constant.FEE_RATE));
+                    .multiply(contrarySortedList.get(i).getFee()));
             positionUnfilledAmount = positionUnfilledAmount.subtract(contrarySortedList.get(i).getUnfilledAmount());
             if (positionUnfilledAmount.compareTo(BigDecimal.ZERO) < 0 && flag == 0) {
                 flag = 1;
@@ -846,7 +847,7 @@ public class ContractOrderManager {
             BigDecimal orderAmount = contractOrderDO.getPrice()
                     .multiply(contractOrderDO.getUnfilledAmount())
                     .divide(lever, 8, BigDecimal.ROUND_DOWN);
-            BigDecimal orderFee = orderAmount.multiply(lever).multiply(Constant.FEE_RATE);
+            BigDecimal orderFee = orderAmount.multiply(lever).multiply(contractOrderDO.getFee());
             totalSameEntrustAmount = totalSameEntrustAmount.add(orderAmount.add(orderFee));
         }
 
@@ -898,16 +899,6 @@ public class ContractOrderManager {
                 .collect(toList());
         return sortedList;
     }
-
-
-    public BigDecimal getTotalLockAmount(ContractOrderDO contractOrderDO) {
-        Integer lever = contractLeverManager.getLeverByContractId(contractOrderDO.getUserId(), contractOrderDO.getContractId());
-        BigDecimal totalValue = contractOrderDO.getPrice().multiply(contractOrderDO.getTotalAmount())
-                .multiply(new BigDecimal(0.01)).divide(new BigDecimal(lever), 8, BigDecimal.ROUND_DOWN);
-        BigDecimal fee = totalValue.multiply(Constant.FEE_RATE).multiply(new BigDecimal(lever));
-        return totalValue.add(fee);
-    }
-
 
 
 
