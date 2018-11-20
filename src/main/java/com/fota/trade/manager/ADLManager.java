@@ -4,11 +4,14 @@ import com.alibaba.fastjson.JSON;
 import com.fota.common.Result;
 import com.fota.risk.client.domain.UserRRLDTO;
 import com.fota.risk.client.manager.RelativeRiskLevelManager;
+import com.fota.trade.PriceTypeEnum;
 import com.fota.trade.common.BizException;
 import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.domain.ContractADLMatchDTO;
 import com.fota.trade.domain.ContractMatchedOrderDO;
 import com.fota.trade.domain.UserPositionDO;
+import com.fota.trade.domain.enums.OrderCloseType;
+import com.fota.trade.domain.enums.PositionTypeEnum;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
@@ -33,6 +36,7 @@ import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
 import static com.fota.trade.common.ResultCodeEnum.BIZ_ERROR;
 import static com.fota.trade.domain.enums.OrderCloseType.DECREASE_LEVERAGE;
 import static com.fota.trade.domain.enums.OrderCloseType.ENFORCE;
+import static com.fota.trade.domain.enums.PositionTypeEnum.OVER;
 
 /**
  * Created by lds on 2018/10/24.
@@ -86,6 +90,8 @@ public class ADLManager {
         int needPositionDirection = adlMatchDTO.getDirection();
         //获取当前价格
         BigDecimal currentPrice = currentPriceService.getSpotIndexByContractName(adlMatchDTO.getContractName());
+        BigDecimal adlPrice = getAdlPrice( adlMatchDTO.getPrice(), currentPrice, needPositionDirection);
+
         //降杠杆和强平单成交记录
         List<ContractMatchedOrderDO> contractMatchedOrderDOS = new LinkedList<>();
 
@@ -121,12 +127,12 @@ public class ADLManager {
                         ConvertUtils.opDirection(adlMatchDTO.getDirection()), BigDecimal.ZERO);
                 postDealMessage.setMatchId(adlMatchDTO.getId());
                 postDealMessage.setFilledAmount(subAmount);
-                postDealMessage.setFilledPrice(currentPrice);
+                postDealMessage.setFilledPrice(adlPrice);
                 postDealMessage.setMsgKey(adlMatchDTO.getId()+"_"+BasicUtils.generateId());
                 postDealMessage.setSubjectName(adlMatchDTO.getContractName());
                 postDealMessages.add(postDealMessage);
                 contractMatchedOrderDOS.add(ConvertUtils.toMatchedOrderDO(postDealMessage,
-                        currentPrice, DECREASE_LEVERAGE.getCode(), adlMatchDTO.getUserId(), ConvertUtils.opDirection(adlMatchDTO.getDirection())
+                        adlPrice, DECREASE_LEVERAGE.getCode(), adlMatchDTO.getUserId(), ConvertUtils.opDirection(adlMatchDTO.getDirection())
                 ));
                 unfilledAmount = unfilledAmount.subtract(subAmount);
                 if (unfilledAmount.compareTo(BigDecimal.ZERO) == 0) {
@@ -142,7 +148,7 @@ public class ADLManager {
             ", unfilled=" + unfilledAmount);
         }
 
-        BigDecimal platformProfit = calPlatformProfit(adlMatchDTO, currentPrice);
+        BigDecimal platformProfit = calPlatformProfit(adlMatchDTO, adlPrice);
         ContractMatchedOrderDO forceddMatchRecord = getMatchRecordForEnforceOrder(adlMatchDTO, platformProfit);
         contractMatchedOrderDOS.add(forceddMatchRecord);
         if (!CollectionUtils.isEmpty(contractMatchedOrderDOS)) {
@@ -170,10 +176,24 @@ public class ADLManager {
         map.put("platformProfit", platformProfit);
         map.put("adlMatchDTO", adlMatchDTO);
         map.put("currentPrice", currentPrice);
+        map.put("adlPrice", adlPrice);
         map.put("adlUserIds", contractMatchedOrderDOS.stream().map(ContractMatchedOrderDO::getUserId).collect(Collectors.toList()));
         ADL_EXTEA_LOG.info("{}", JSON.toJSONString(map));
         return Result.suc(null);
 
+    }
+
+    /**
+     *
+     * @param targetPrice
+     * @param adlPositionType 被减仓仓位
+     * @return
+     */
+    private BigDecimal getAdlPrice( BigDecimal targetPrice, BigDecimal currentPrice, Integer adlPositionType) {
+        if (adlPositionType == OVER.getCode()) {
+            return targetPrice.min(currentPrice);
+        }
+        return targetPrice.max(currentPrice);
     }
 
     /**
