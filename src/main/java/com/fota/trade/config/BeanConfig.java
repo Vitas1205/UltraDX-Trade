@@ -20,7 +20,7 @@ public class BeanConfig {
     @Autowired
     private SpotIndexService spotIndexService;
     @Autowired
-    private RedisTemplate redisTemplate;
+    private RedisTemplate indexRedisTemplate;
     @Bean
     public RelativeRiskLevelManager relativeRiskLevelManager(RedisTemplate<String, Object> redisTemplate){
         RelativeRiskLevelManager relativeRiskLevelManager = new RelativeRiskLevelManager();
@@ -29,6 +29,6 @@ public class BeanConfig {
     }
     @Bean
     public IndexCacheManager indexCacheManager() {
-        return new IndexCacheManager(redisTemplate, spotIndexService);
+        return new IndexCacheManager(indexRedisTemplate, spotIndexService);
     }
 }

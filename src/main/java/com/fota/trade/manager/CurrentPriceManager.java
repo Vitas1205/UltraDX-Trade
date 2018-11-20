@@ -58,7 +58,6 @@ public class CurrentPriceManager {
 
 
 
-    @Cacheable("spotIndexes")
     public List<TickerDTO> getSpotIndexes(){
         Profiler profiler = ThreadContextUtil.getPrifiler();
         List<TickerDTO> ret = indexCacheManager.listCurrentSpotIndex();
@@ -69,11 +68,7 @@ public class CurrentPriceManager {
     }
 
 
-    @CacheEvict("spotIndexes")
-    @Scheduled(fixedRate = 1000)
-    public void deleteSpotIndexes() {
 
-    }
 
     public BigDecimal getSpotIndexByContractName(String contractName){
         String assetName = AssetExtraProperties.getAssetNameByContractName(contractName);
