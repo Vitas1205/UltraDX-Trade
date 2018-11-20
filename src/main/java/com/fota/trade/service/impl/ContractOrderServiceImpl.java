@@ -9,6 +9,7 @@ import com.fota.trade.domain.*;
 import com.fota.trade.domain.ResultCode;
 
 
+import com.fota.trade.domain.enums.OrderTypeEnum;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.DealManager;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
@@ -35,8 +36,10 @@ import java.util.stream.Collectors;
 import static com.fota.trade.client.constants.Constants.TABLE_NUMBER;
 import static com.fota.trade.common.ResultCodeEnum.DATABASE_EXCEPTION;
 
+import static com.fota.trade.common.ResultCodeEnum.ILLEGAL_PARAM;
 import static com.fota.trade.common.ResultCodeEnum.SYSTEM_ERROR;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
+import static com.fota.trade.domain.enums.OrderTypeEnum.ENFORCE;
 
 /**
  * @Author: JianLi.Gao
@@ -184,9 +187,13 @@ public class ContractOrderServiceImpl implements ContractOrderService {
 
     @Override
     public ResultCode order(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
+        if (null == contractOrderDTO || null == contractOrderDTO.getOrderType()) {
+            return ResultCode.error(ILLEGAL_PARAM.getCode(), ILLEGAL_PARAM.getMessage());
+        }
         PlaceOrderRequest placeOrderRequest = ConvertUtils.toPlaceOrderRequest(contractOrderDTO, userInfoMap, UserLevelEnum.DEFAULT, FotaApplicationEnum.WEB);
-        Result<List<PlaceOrderResult>> result = batchOrder(placeOrderRequest);
-
+        //TODO 不允许下强平单，暂时兼容以前逻辑
+        boolean isEnforce = ENFORCE.getCode() == contractOrderDTO.getOrderType();
+        Result<List<PlaceOrderResult>> result = internalBatchOrder(placeOrderRequest, isEnforce);
         ResultCode resultCode = new ResultCode();
         resultCode.setCode(result.getCode());
         resultCode.setMessage(result.getMessage());
@@ -196,7 +203,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     @Override
     public Result<Long> orderWithEnforce(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
         PlaceOrderRequest placeOrderRequest = ConvertUtils.toPlaceOrderRequest(contractOrderDTO, userInfoMap, UserLevelEnum.DEFAULT, FotaApplicationEnum.MARGIN);
-        Result<List<PlaceOrderResult>> result = batchOrder(placeOrderRequest);
+        Result<List<PlaceOrderResult>> result = internalBatchOrder(placeOrderRequest, true);
         if (!result.isSuccess()) {
             return Result.fail(result.getCode(), result.getMessage());
         }
@@ -206,7 +213,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     @Override
     public com.fota.common.Result<Long> orderReturnId(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
         PlaceOrderRequest placeOrderRequest = ConvertUtils.toPlaceOrderRequest(contractOrderDTO, userInfoMap, UserLevelEnum.FREE, FotaApplicationEnum.TRADING_API);
-        Result<List<PlaceOrderResult>> result = batchOrder(placeOrderRequest);
+        Result<List<PlaceOrderResult>> result = internalBatchOrder(placeOrderRequest, false);
         if (!result.isSuccess()) {
             return Result.fail(result.getCode(), result.getMessage());
         }
@@ -215,11 +222,15 @@ public class ContractOrderServiceImpl implements ContractOrderService {
 
     @Override
     public Result<List<PlaceOrderResult>> batchOrder(PlaceOrderRequest<PlaceContractOrderDTO> placeOrderRequest) {
+        return internalBatchOrder(placeOrderRequest, false);
+    }
+
+    private Result<List<PlaceOrderResult>> internalBatchOrder(PlaceOrderRequest<PlaceContractOrderDTO> placeOrderRequest, boolean isEnforce){
         com.fota.common.Result<List<PlaceOrderResult>> result = new com.fota.common.Result<>();
         Profiler profiler = new Profiler("ContractOrderManager.placeOrder");
         ThreadContextUtil.setPrifiler(profiler);
         try {
-            result = contractOrderManager.placeOrder(placeOrderRequest, false);
+            result = contractOrderManager.placeOrder(placeOrderRequest, isEnforce);
             if (result.isSuccess()) {
                 profiler.setTraceId(result.getData()+"");
                 //redisManager.contractOrderSaveForMatch(contractOrderDTO);

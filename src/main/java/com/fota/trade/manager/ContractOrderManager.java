@@ -194,6 +194,7 @@ public class ContractOrderManager {
                 contractOrderDOS.add(contractOrderDO);
                 PlaceOrderResult placeOrderResult = new PlaceOrderResult();
                 placeOrderResult.setOrderId(contractOrderDO.getId());
+                placeOrderResults.add(placeOrderResult);
             }
             boolean suc = batchInsert(contractOrderDOS);
             if (!suc) {
