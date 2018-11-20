@@ -270,7 +270,15 @@ public class ContractOrderServiceImpl implements ContractOrderService {
 
     @Override
     public Result batchCancel(CancelOrderRequest cancelOrderRequest) {
-        return null;
+        try {
+            if (null == cancelOrderRequest || !cancelOrderRequest.checkParam()) {
+                return Result.fail(com.fota.common.ResultCodeEnum.ILLEGAL_PARAM);
+            }
+            contractOrderManager.sendCancelReq( cancelOrderRequest.getOrderIds(), cancelOrderRequest.getUserId());
+            return Result.suc(null);
+        }catch (Throwable t) {
+            return Result.fail(SYSTEM_ERROR.getCode(), SYSTEM_ERROR.getMessage());
+        }
     }
 
 

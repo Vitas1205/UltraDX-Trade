@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 import static com.fota.trade.common.TestConfig.userId;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
 import static com.fota.trade.domain.enums.OrderTypeEnum.ENFORCE;
+import static com.fota.trade.domain.enums.OrderTypeEnum.LIMIT;
 
 /**
  * @Author: Harry Wang
@@ -84,7 +85,7 @@ public class ContractTest {
             contractOrderDTO.setUserId(userId);
             contractOrderDTO.setOrderDirection(ASK.getCode());
             contractOrderDTO.setOperateType(0);
-            contractOrderDTO.setOrderType(ENFORCE.getCode());
+            contractOrderDTO.setOrderType(LIMIT.getCode());
             contractOrderDTO.setTotalAmount(new BigDecimal("0.02"));
             contractOrderDTO.setPrice(new BigDecimal("6604"));
             Map<String, String> map = new HashMap<>();

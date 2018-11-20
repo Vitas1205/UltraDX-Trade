@@ -195,7 +195,10 @@ public class ContractOrderManager {
                 PlaceOrderResult placeOrderResult = new PlaceOrderResult();
                 placeOrderResult.setOrderId(contractOrderDO.getId());
             }
-            batchInsert(contractOrderDOS);
+            boolean suc = batchInsert(contractOrderDOS);
+            if (!suc) {
+                return Result.fail(ORDER_FAILED.getCode(), ORDER_FAILED.getMessage());
+            }
         } else {
             UserContractDTO userContractDTO = assetService.getContractAccount(userId);
             profiler.complelete("getContractAccount");
@@ -216,6 +219,11 @@ public class ContractOrderManager {
                         placeOrderRequest.getUserLevel().getFeeRate(), placeOrderRequest.getUserName(), placeOrderRequest.getIp());
                 checkAndfillProperties(contractOrderDO, competitorsPrices, placeOrderDTO.getEntrustValue());
                 contractOrderDOS.add(contractOrderDO);
+
+                PlaceOrderResult placeOrderResult = new PlaceOrderResult();
+                placeOrderResult.setOrderId(contractOrderDO.getId());
+                placeOrderResult.setExtOrderId(placeOrderDTO.getExtOrderId());
+                placeOrderResults.add(placeOrderResult);
             }
 
             Result<OrderResult> judgeRet = judgeOrderAvailable(userId, new BigDecimal(userContractDTO.getAmount()), contractOrderDOS,
@@ -228,7 +236,10 @@ public class ContractOrderManager {
             if (null != judgeRet.getData().getEntrustInternalValues()) {
                 entrustInternalValues.putAll(judgeRet.getData().getEntrustInternalValues());
             }
-            batchInsert(contractOrderDOS);
+            boolean suc = batchInsert(contractOrderDOS);
+            if (!suc) {
+                return Result.fail(ORDER_FAILED.getCode(), ORDER_FAILED.getMessage());
+            }
             profiler.complelete("insert record");
         }
 
@@ -325,8 +336,9 @@ public class ContractOrderManager {
                 BigDecimal oneDirectionOrderSum = oneDirectionOrders.stream()
                         .map(ContractOrderDO::getUnfilledAmount)
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
-                BigDecimal owned = oneDirectionOrderSum
-                        .add(signedPositionAmount);
+                BigDecimal ownedAbs = ContractUtils.computeSignAmount(oneDirectionOrderSum, direction)
+                        .add(signedPositionAmount)
+                        .abs();
                 BigDecimal limit = BigDecimal.ZERO;
                 if (assetId == AssetTypeEnum.EOS.getCode()) {
                     limit = POSITION_LIMIT_EOS;
@@ -335,7 +347,7 @@ public class ContractOrderManager {
                 } else if (assetId == AssetTypeEnum.ETH.getCode()) {
                     limit = POSITION_LIMIT_ETH;
                 }
-                if (owned.compareTo(limit) >= 0) {
+                if (ownedAbs.compareTo(limit) >= 0) {
                    return Result.fail(POSITION_EXCEEDS.getCode(), POSITION_EXCEEDS.getMessage());
                 }
             }
@@ -468,13 +480,13 @@ public class ContractOrderManager {
     }
 
     public void sendCancelReq(List<Long> orderIdList, Long userId) {
-        if (CollectionUtils.isEmpty(orderIdList)) {
+        if (CollectionUtils.isEmpty(orderIdList) || null == userId) {
             log.error("empty orderList");
             return;
         }
         //批量发送MQ消息到match
         int i = 0;
-        int batchSize = 10;
+        int batchSize = 20;
         while (i < orderIdList.size()) {
             int temp =  i + batchSize;
             temp = temp < orderIdList.size() ? temp : orderIdList.size();
@@ -862,13 +874,14 @@ public class ContractOrderManager {
         return entrustMarginDO;
     }
 
-    public void batchInsert(List<ContractOrderDO> contractOrderDOS){
+    public boolean batchInsert(List<ContractOrderDO> contractOrderDOS){
 
         int insertContractOrderRet = contractOrderMapper.batchInsert(contractOrderDOS);
-        if (insertContractOrderRet <= contractOrderDOS.size()) {
+        if (insertContractOrderRet < contractOrderDOS.size()) {
             log.error("insert contractOrder failed");
-            throw new RuntimeException("insert contractOrder failed");
+            return false;
         }
+        return true;
     }
 
     //升序排列
@@ -1035,7 +1048,7 @@ public class ContractOrderManager {
             BigDecimal floatingPL = BigDecimal.ZERO;
             BigDecimal entrustMargin = BigDecimal.ZERO;
             BigDecimal positionUnfilledAmount= BigDecimal.ZERO;
-            int positionType = PositionTypeEnum.EMPTY.getCode();
+            Integer positionType = PositionTypeEnum.EMPTY.getCode();
 
             List<ContractOrderDO>  orderList = allContractOrders.stream()
                     .filter(contractOrder -> contractOrder.getContractId().equals(contractId))

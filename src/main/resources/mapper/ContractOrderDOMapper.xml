@@ -50,13 +50,13 @@
             status, average_price, order_type, close_type, order_context)
             values
             <foreach collection="items" item="item" separator=",">
-                (#{id}, now(3),
-                now(3), #{userId},
-                #{contractId}, #{contractName},
-                #{orderDirection},
-                #{totalAmount}, #{unfilledAmount},
-                #{price}, #{fee},
-                #{status}, #{averagePrice}, #{orderType}, #{closeType}, #{orderContext})
+                (#{item.id}, now(3),
+                now(3), #{item.userId},
+                #{item.contractId}, #{item.contractName},
+                #{item.orderDirection},
+                #{item.totalAmount}, #{item.unfilledAmount},
+                #{item.price}, #{item.fee},
+                #{item.status}, #{item.averagePrice}, #{item.orderType}, #{item.closeType}, #{item.orderContext})
             </foreach>
     </insert>
 

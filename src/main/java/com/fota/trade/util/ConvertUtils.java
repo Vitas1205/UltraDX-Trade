@@ -7,6 +7,7 @@ import com.fota.trade.UpdateOrderItem;
 import com.fota.trade.client.PlaceContractOrderDTO;
 import com.fota.trade.client.PlaceOrderRequest;
 import com.fota.trade.client.UserLevelEnum;
+import com.fota.trade.common.BeanUtils;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.OrderCloseType;
 import com.fota.trade.domain.enums.OrderTypeEnum;
@@ -14,10 +15,7 @@ import com.fota.trade.msg.ContractDealedMessage;
 import com.fota.trade.msg.ContractPlaceOrderMessage;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
@@ -147,14 +145,13 @@ public class ConvertUtils {
     public static PlaceOrderRequest toPlaceOrderRequest(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap, UserLevelEnum userLevel, FotaApplicationEnum caller){
         PlaceOrderRequest<PlaceContractOrderDTO>  placeOrderRequest = new PlaceOrderRequest();
         PlaceContractOrderDTO placeContractOrderDTO = new PlaceContractOrderDTO();
-
+        placeOrderRequest.setPlaceOrderDTOS(Arrays.asList(placeContractOrderDTO));
         placeOrderRequest.setUserId(contractOrderDTO.getUserId());
-        placeContractOrderDTO.setOrderDirection(contractOrderDTO.getOrderDirection());
-        placeContractOrderDTO.setOrderType(contractOrderDTO.getOrderType());
-        placeContractOrderDTO.setTotalAmount(contractOrderDTO.getTotalAmount());
+
         placeContractOrderDTO.setSubjectId(contractOrderDTO.getContractId());
         placeContractOrderDTO.setSubjectName(contractOrderDTO.getContractName());
-        placeContractOrderDTO.setPrice(contractOrderDTO.getPrice());
+        placeContractOrderDTO.setExtOrderId("0");
+        BeanUtils.copy(contractOrderDTO, placeContractOrderDTO);
 
         if (null != userInfoMap) {
             String userName = userInfoMap.get("userName");
