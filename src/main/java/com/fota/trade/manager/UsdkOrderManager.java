@@ -239,7 +239,7 @@ public class UsdkOrderManager {
         return result;
     }
 
-    //@Transactional(rollbackFor={Throwable.class})
+    @Transactional(rollbackFor={Throwable.class})
     public Result<List<PlaceOrderResult>> batchOrder(PlaceOrderRequest<PlaceCoinOrderDTO> placeOrderRequest) throws Exception{
         if (!placeOrderRequest.checkParam()){
             log.error("checkParam failed, placOrderRequest");
@@ -263,9 +263,8 @@ public class UsdkOrderManager {
         BigDecimal fee = placeOrderRequest.getUserLevel().getFeeRate();
 
         for(PlaceCoinOrderDTO placeCoinOrderDTO : reqList){
-            Long extOrderId = Long.valueOf(placeCoinOrderDTO.getExtOrderId());
             Long orederId = BasicUtils.generateId();
-            placeOrderResult.setExtOrderId(String.valueOf(extOrderId));
+            placeOrderResult.setExtOrderId(placeCoinOrderDTO.getExtOrderId());
             placeOrderResult.setOrderId(orederId);
             long transferTime = System.currentTimeMillis();
             Map<String, Object> newMap = new HashMap<>();
