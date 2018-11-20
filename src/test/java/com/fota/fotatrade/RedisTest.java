@@ -1,5 +1,8 @@
 package com.fota.fotatrade;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fota.risk.client.domain.UserRRLDTO;
 import com.fota.risk.client.manager.RelativeRiskLevelManager;
 import com.fota.ticker.entrust.RealTimeEntrust;
@@ -22,6 +25,8 @@ import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.SessionCallback;
+import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -56,7 +61,7 @@ public class RedisTest {
     private RealTimeEntrust realTimeEntrust;
 
     @Resource
-    private RedisTemplate<String, String> redisTemplate;
+    private RedisTemplate<String, Object> redisTemplate;
     @Autowired
         private RelativeRiskLevelManager riskLevelManager;
 
@@ -72,6 +77,23 @@ public class RedisTest {
         for (int i = 0;i <= 10;i++){
             long count = redisTemplate.opsForValue().increment(redisKey, 1);
         }
+    }
+    @Test
+    public void testSerializable(){
+        redisTemplate.setHashValueSerializer(new StringRedisSerializer());
+        String val = "testVal";
+        String haskKey = "test_haskKey";
+        String key = "test_key";
+        redisTemplate.opsForHash().put(key, haskKey, val);
+
+        Jackson2JsonRedisSerializer jackson2JsonRedisSerializer = new Jackson2JsonRedisSerializer(Object.class);
+        ObjectMapper om = new ObjectMapper();
+        om.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
+        om.enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL);
+        jackson2JsonRedisSerializer.setObjectMapper(om);
+
+        redisTemplate.setHashValueSerializer(jackson2JsonRedisSerializer);
+        assert val.equals(redisTemplate.opsForHash().get(key, haskKey));
     }
     @Test
     public void testGetRRL(){
@@ -131,8 +153,8 @@ public class RedisTest {
 
     @Test
     public void mgetTest(){
-        List<String> result = redisTemplate.opsForValue().multiGet(Arrays.asList("57547_716254555967251", "57547_716254555967252"));
-        log.info("result={}", result);
+//        List<String> result = redisTemplate.opsForValue().multiGet(Arrays.asList("57547_716254555967251", "57547_716254555967252"));
+//        log.info("result={}", result);
     }
     @Test
     public void mset(){
