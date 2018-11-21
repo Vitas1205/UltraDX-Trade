@@ -723,7 +723,11 @@ public class ContractOrderManager {
         contractAccount.setAccountMargin(contractAccount.getFrozenAmount().add(contractAccount.getMarginCallRequirement()));
         contractAccount.setSuggestedAddAmount(contractAccount.getAvailableAmount().negate().max(BigDecimal.ZERO));
         contractAccount.setUserPositionDTOS(userPositionDTOS);
-        contractAccount.setEffectiveLever(totalPositionValue.add(totalEntrustValue).divide(contractAccount.getAccountEquity(), 3, BigDecimal.ROUND_DOWN));
+        if (contractAccount.getAccountEquity().compareTo(BigDecimal.ZERO) <= 0){
+            contractAccount.setEffectiveLever(null);
+        }else {
+            contractAccount.setEffectiveLever(totalPositionValue.add(totalEntrustValue).divide(contractAccount.getAccountEquity(), 3, BigDecimal.ROUND_DOWN));
+        }
         redisManager.hPutAll(userContractPositionExtraKey, map);
         return contractAccount;
 
