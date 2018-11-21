@@ -671,7 +671,7 @@ public class ContractOrderManager {
             Object contraryEntrustValue = userContractPositions.get(contraryEntrustKey);
             Object sameEntrustValue = userContractPositions.get(sameEntrustKey);
             EntrustMarginDO entrustMarginDO;
-            if (Objects.nonNull(contraryValue) && Objects.nonNull(sameValue)) {
+            if (Objects.nonNull(contraryValue) && Objects.nonNull(sameValue) && Objects.nonNull(contraryEntrustValue) && Objects.nonNull(sameEntrustValue)) {
                 entrustMarginDO = cal(new BigDecimal(contraryValue.toString()), new BigDecimal(sameValue.toString()), positionMargin, positionMarginByIndex,
                         new BigDecimal(contraryEntrustValue.toString()), new BigDecimal(sameEntrustValue.toString()), positionValue);
             } else {
@@ -887,8 +887,8 @@ public class ContractOrderManager {
         Map<String, Object> map = new HashMap<>();
         map.put(contraryKey, totalContraryEntrustAmount.toPlainString());
         map.put(sameKey, totalSameEntrustAmount.toPlainString());
-        map.put(contraryEntrustKey, contraryEntrustValue);
-        map.put(sameEntrustKey, sameEntrustValue);
+        map.put(contraryEntrustKey, contraryEntrustValue.toPlainString());
+        map.put(sameEntrustKey, sameEntrustValue.toPlainString());
         EntrustMarginDO entrustMarginDO =  cal(totalContraryEntrustAmount, totalSameEntrustAmount,
                                                positionEntrustAmount, positionMarginByIndex,
                                                contraryEntrustValue, sameEntrustValue, positionValue);

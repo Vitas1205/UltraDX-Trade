@@ -374,9 +374,6 @@ public class UsdkOrderManager {
         return result;
     }
 
-    public void dealOrderList(List<PlaceCoinOrderDTO> list, Long userId, BigDecimal fee, String username, Profiler profiler){
-
-    }
 
     public CoinPlaceOrderMessage toCoinPlaceOrderMessage(UsdkOrderDO usdkOrderDO){
         CoinPlaceOrderMessage placeOrderMessage = new CoinPlaceOrderMessage();
