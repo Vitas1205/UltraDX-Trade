@@ -348,8 +348,8 @@ public class UsdkOrderManager {
             coinExchangeOrderBatchLock.setCoinExchangeOrderLockAmount(coinExchangeOrderLockAmountList);
             coinExchangeOrderBatchLock.setUserId(userId);
             try {
-                Boolean updateLockedAmountRet = getCapitalService().batchUpdateLockedAmount(coinExchangeOrderBatchLock).getData();
-                if (!updateLockedAmountRet){
+                Result<Boolean> updateLockedAmountRet = getCapitalService().batchUpdateLockedAmount(coinExchangeOrderBatchLock);
+                if (!updateLockedAmountRet.getData() || !updateLockedAmountRet.isSuccess()){
                     log.error("CapitalService().batchUpdateLockedAmount failed, coinExchangeOrderBatchLock = ", coinExchangeOrderBatchLock);
                     throw new Exception("CapitalService().batchUpdateLockedAmount failed");
                 }
