@@ -70,6 +70,20 @@
     limit #{startRow,jdbcType=INTEGER}, #{endRow,jdbcType=INTEGER}
   </select>
 
+  <select id="listByUserIdAndIds" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List"/>
+    from trade_usdt_order
+    where user_id=#{userId}
+    <if test="idList != null and idList.size != 0" >
+      and id in
+      <foreach item="item" index="index" collection="idList" open="(" separator="," close=")">
+        #{item,jdbcType=INTEGER}
+      </foreach>
+    </if>
+    order by gmt_create desc
+  </select>
+
 
   <update id="updateByFilledAmount">
     update trade_usdt_order
@@ -82,6 +96,17 @@
     , unfilled_amount = unfilled_amount - #{filledAmount}
     where user_id=#{userId} and id = #{id} and unfilled_amount >= #{filledAmount}
   </update>
+
+  <insert id="batchInsert" parameterType="com.fota.trade.domain.UsdkOrderDO">
+    insert into trade_usdt_order (id, gmt_create, gmt_modified, user_id, asset_id, asset_name, order_direction, order_type,
+    total_amount, unfilled_amount, price, fee, status, order_context)
+    values
+    <foreach collection="list" item="item" separator=",">
+      (#{item.id}, #{item.gmtCreate}, #{item.gmtModified},
+      #{item.userId}, #{item.assetId}, #{item.assetName}, #{item.orderDirection}, #{item.orderType}, #{item.totalAmount},
+      #{item.unfilledAmount}, #{item.price}, #{item.fee},  #{item.status}, #{item.orderContext})
+    </foreach>
+  </insert>
 
 
 </mapper>

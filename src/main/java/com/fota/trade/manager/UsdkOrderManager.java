@@ -3,6 +3,7 @@ package com.fota.trade.manager;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.fota.asset.domain.BalanceTransferDTO;
+import com.fota.asset.domain.CoinExchangeOrderBatchLock;
 import com.fota.asset.domain.UserCapitalDTO;
 import com.fota.asset.domain.enums.AssetTypeEnum;
 import com.fota.asset.service.AssetService;
@@ -11,15 +12,13 @@ import com.fota.common.Result;
 import com.fota.match.service.UsdkMatchedOrderService;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
 import com.fota.trade.PriceTypeEnum;
-import com.fota.trade.client.CancelTypeEnum;
-import com.fota.trade.client.ToCancelMessage;
-import com.fota.trade.client.constants.DealedMessage;
+import com.fota.trade.client.*;
 import com.fota.trade.common.BizException;
 import com.fota.trade.common.BusinessException;
+import com.fota.trade.common.Constant;
 import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
-import com.fota.trade.domain.enums.OrderOperateTypeEnum;
 import com.fota.trade.domain.enums.OrderTypeEnum;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkMatchedOrderMapper;
@@ -49,17 +48,13 @@ import java.util.*;
 
 import static com.fota.trade.PriceTypeEnum.MARKET_PRICE;
 import static com.fota.trade.PriceTypeEnum.SPECIFIED_PRICE;
-import static com.fota.trade.client.constants.Constants.DEALED_TOPIC;
-import static com.fota.trade.client.constants.Constants.DEALED_USDT_TAG;
 import static com.fota.trade.common.ResultCodeEnum.*;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
-import static com.fota.trade.domain.enums.OrderStatusEnum.*;
+import static com.fota.trade.domain.enums.OrderStatusEnum.COMMIT;
 import static com.fota.trade.domain.enums.OrderTypeEnum.LIMIT;
 import static com.fota.trade.domain.enums.OrderTypeEnum.RIVAL;
-import static com.fota.trade.msg.TopicConstants.TRD_COIN_CANCELED;
-import static com.fota.trade.msg.TopicConstants.TRD_COIN_CANCEL_REQ;
-import static com.fota.trade.msg.TopicConstants.TRD_COIN_DEAL;
+import static com.fota.trade.msg.TopicConstants.*;
 import static java.util.stream.Collectors.toList;
 
 
@@ -136,7 +131,6 @@ public class UsdkOrderManager {
         newMap.put("username", username);
         usdkOrderDTO.setOrderContext(newMap);
         usdkOrderDO.setOrderContext(JSONObject.toJSONString(usdkOrderDTO.getOrderContext()));
-        ResultCode resultCode = new ResultCode();
         Integer assetId = usdkOrderDO.getAssetId();
         Long userId = usdkOrderDO.getUserId();
         Integer orderDirection = usdkOrderDO.getOrderDirection();
@@ -154,6 +148,7 @@ public class UsdkOrderManager {
         if (usdkOrderDO.getOrderType() != OrderTypeEnum.ENFORCE.getCode()){
             BigDecimal totalAmount = usdkOrderDO.getTotalAmount();
             Result<BigDecimal> checkPriceRes = computeAndCheckOrderPrice(usdkOrderDO.getPrice(), usdkOrderDO.getOrderType(), usdkOrderDO.getOrderDirection(), usdkOrderDO.getAssetId());
+            profiler.complelete("computeAndCheckOrderPrice");
             if (usdkOrderDO.getOrderType() == RIVAL.getCode()) {
                 usdkOrderDO.setOrderType(LIMIT.getCode());
             }
@@ -244,6 +239,142 @@ public class UsdkOrderManager {
         return result;
     }
 
+    @Transactional(rollbackFor={Throwable.class})
+    public Result<List<PlaceOrderResult>> batchOrder(PlaceOrderRequest<PlaceCoinOrderDTO> placeOrderRequest) throws Exception{
+        if (!placeOrderRequest.checkParam()){
+            log.error("checkParam failed, placOrderRequest");
+            return Result.fail(-1, "checkParam failed");
+        }
+        Profiler profiler = new Profiler("UsdkOrderManager.batchOrder");
+
+        Result<List<PlaceOrderResult>> result = new Result<>();
+        List<PlaceOrderResult> respList = new ArrayList<>();
+        List<PlaceCoinOrderDTO> reqList = placeOrderRequest.getPlaceOrderDTOS();
+        List<UsdkOrderDO> usdkOrderDOList = new ArrayList<>();
+        if (CollectionUtils.isEmpty(reqList) || reqList.size() > Constant.BATCH_ORDER_MAX_SIZE){
+            log.error("out of max order size");
+            return result.error(ResultCodeEnum.BATCH_SIZE_OUT_OF_LIMIT.getCode(),ResultCodeEnum.BATCH_SIZE_OUT_OF_LIMIT.getMessage());
+        }
+        Map<Integer, BigDecimal> map = new HashMap<>();
+        Long userId = placeOrderRequest.getUserId();
+        String username = placeOrderRequest.getUserName();
+        String ipAddress = placeOrderRequest.getIp();
+        BigDecimal fee = placeOrderRequest.getUserLevel().getFeeRate();
+
+        for(PlaceCoinOrderDTO placeCoinOrderDTO : reqList){
+            Long orederId = BasicUtils.generateId();
+            PlaceOrderResult placeOrderResult = new PlaceOrderResult();
+            placeOrderResult.setExtOrderId(placeCoinOrderDTO.getExtOrderId());
+            placeOrderResult.setOrderId(orederId);
+            respList.add(placeOrderResult);
+            long transferTime = System.currentTimeMillis();
+            Map<String, Object> newMap = new HashMap<>();
+            newMap.put("username", username);
+
+            UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
+            usdkOrderDTO.setId(orederId);
+            usdkOrderDTO.setUserId(userId);
+            usdkOrderDTO.setAssetId(Integer.valueOf(String.valueOf(placeCoinOrderDTO.getSubjectId())));
+            usdkOrderDTO.setAssetName(placeCoinOrderDTO.getSubjectName());
+            usdkOrderDTO.setOrderDirection(placeCoinOrderDTO.getOrderDirection());
+            usdkOrderDTO.setOrderType(placeCoinOrderDTO.getOrderType());
+            usdkOrderDTO.setFee(fee);
+            usdkOrderDTO.setStatus(COMMIT.getCode());
+            usdkOrderDTO.setTotalAmount(placeCoinOrderDTO.getTotalAmount());
+            usdkOrderDTO.setUnfilledAmount(placeCoinOrderDTO.getTotalAmount());
+            usdkOrderDTO.setPrice(placeCoinOrderDTO.getPrice());
+            usdkOrderDTO.setGmtCreate(new Date(transferTime));
+            usdkOrderDTO.setGmtModified(new Date(transferTime));
+            usdkOrderDTO.setOrderContext(newMap);
+            if(usdkOrderDTO.getOrderType() == null){
+                usdkOrderDTO.setOrderType(OrderTypeEnum.LIMIT.getCode());
+            }
+            UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
+            BeanUtils.copyProperties(usdkOrderDTO, usdkOrderDO);
+            usdkOrderDO.setOrderContext(JSONObject.toJSONString(usdkOrderDTO.getOrderContext()));
+            usdkOrderDOList.add(usdkOrderDO);
+            if (usdkOrderDTO.getOrderType() != OrderTypeEnum.ENFORCE.getCode()){
+                BigDecimal totalAmount = usdkOrderDTO.getTotalAmount();
+                Result<BigDecimal> checkPriceRes = computeAndCheckOrderPrice(usdkOrderDTO.getPrice(), usdkOrderDTO.getOrderType(), usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getAssetId());
+                profiler.complelete("computeAndCheckOrderPrice");
+                if (usdkOrderDTO.getOrderType() == RIVAL.getCode()) {
+                    usdkOrderDTO.setOrderType(LIMIT.getCode());
+                }
+                if (!checkPriceRes.isSuccess()) {
+                    return Result.fail(checkPriceRes.getCode(), checkPriceRes.getMessage());
+                }
+                usdkOrderDTO.setPrice(checkPriceRes.getData());
+                BigDecimal price = usdkOrderDTO.getPrice();
+                BigDecimal orderValue = totalAmount.multiply(price);
+                int assetTypeId = 0;
+                BigDecimal entrustValue;
+                if (usdkOrderDTO.getOrderDirection() == OrderDirectionEnum.BID.getCode()){
+                    assetTypeId = AssetTypeEnum.BTC.getCode();
+                    entrustValue = orderValue;
+                }else {
+                    assetTypeId = usdkOrderDTO.getAssetId();
+                    entrustValue = usdkOrderDTO.getTotalAmount();
+                }
+                if (map.get(assetTypeId) == null){
+                    map.put(assetTypeId, BigDecimal.ZERO);
+                }
+                map.put(assetTypeId , map.get(assetTypeId).add(entrustValue));
+                tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
+                        1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getTotalAmount(), transferTime, 2, usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 1);
+            } else if (usdkOrderDTO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()){
+                tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
+                        1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getTotalAmount(), transferTime, 3, usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 2);
+            }
+        }
+
+        //插入委托订单记录
+        int ret = batchInsertUsdkOrder(usdkOrderDOList);
+        profiler.complelete("insertUsdkOrder");
+        if (ret <= 0){
+            log.error("insert contractOrder failed");
+            throw new RuntimeException("insert contractOrder failed");
+        }
+
+        //非强平单委托冻结
+        if (map.size() > 0){
+            CoinExchangeOrderBatchLock coinExchangeOrderBatchLock = new CoinExchangeOrderBatchLock();
+            List<CoinExchangeOrderBatchLock.CoinExchangeOrderLockAmount> coinExchangeOrderLockAmountList = new ArrayList<>();
+            for(Integer key : map.keySet()){
+                CoinExchangeOrderBatchLock.CoinExchangeOrderLockAmount coinExchangeOrderLockAmount = new CoinExchangeOrderBatchLock().new CoinExchangeOrderLockAmount();
+                coinExchangeOrderLockAmount.setAssetId(key);
+                coinExchangeOrderLockAmount.setOrderLockAmount(map.get(key));
+                coinExchangeOrderLockAmountList.add(coinExchangeOrderLockAmount);
+            }
+            coinExchangeOrderBatchLock.setCoinExchangeOrderLockAmount(coinExchangeOrderLockAmountList);
+            coinExchangeOrderBatchLock.setUserId(userId);
+            try {
+                Result<Boolean> updateLockedAmountRet = getCapitalService().batchUpdateLockedAmount(coinExchangeOrderBatchLock);
+                if (!updateLockedAmountRet.getData() || !updateLockedAmountRet.isSuccess()){
+                    log.error("CapitalService().batchUpdateLockedAmount failed, coinExchangeOrderBatchLock = ", coinExchangeOrderBatchLock);
+                    throw new Exception("CapitalService().batchUpdateLockedAmount failed");
+                }
+            }catch (Exception e){
+                log.error("CapitalService().batchUpdateLockedAmount exception, coinExchangeOrderBatchLock = ", coinExchangeOrderBatchLock , e);
+                throw new Exception("CapitalService().batchUpdateLockedAmount exception");
+            }
+        }
+        //批量发送mq消息一定要在事务外发，不然会出现收到下单消息，db还没有这个订单
+        Runnable postTask = () -> {
+            List<CoinPlaceOrderMessage> placeOrderMessages = new ArrayList<>();
+            for (UsdkOrderDO usdkOrderDO : usdkOrderDOList){
+                placeOrderMessages.add(toCoinPlaceOrderMessage(usdkOrderDO));
+            }
+            Boolean sendRet = rocketMqManager.batchSendMessage(TopicConstants.TRD_COIN_ORDER, x -> x.getSubjectId() + "", x -> x.getOrderId()+"", placeOrderMessages);
+            if (!sendRet){
+                log.error("Send RocketMQ Message Failed ");
+            }
+        };
+        ThreadContextUtil.setPostTask(postTask);
+        result.success(respList);
+        return result;
+    }
+
+
     public CoinPlaceOrderMessage toCoinPlaceOrderMessage(UsdkOrderDO usdkOrderDO){
         CoinPlaceOrderMessage placeOrderMessage = new CoinPlaceOrderMessage();
         placeOrderMessage.setOrderId(usdkOrderDO.getId());
@@ -299,6 +430,9 @@ public class UsdkOrderManager {
     private int insertUsdkOrder(UsdkOrderDO usdkOrderDO) {
         return usdkOrderMapper.insert(usdkOrderDO);
     }
+    private int batchInsertUsdkOrder(List<UsdkOrderDO> list) {
+        return usdkOrderMapper.batchInsert(list);
+    }
 
     public ResultCode cancelOrder(Long userId, Long orderId, Map<String, String> userInfoMap) throws Exception{
         ResultCode resultCode = ResultCode.success();
@@ -317,6 +451,28 @@ public class UsdkOrderManager {
         orderIdList.add(orderId);
         sendCancelReq(orderIdList, userId);
         return resultCode;
+    }
+
+    public Result batchCancelOrder(Long userId, List<Long> orderIds) throws Exception{
+        Result result = Result.suc("success");
+        if (Objects.isNull(userId) || CollectionUtils.isEmpty(orderIds)) {
+            return Result.fail(ResultCodeEnum.ILLEGAL_PARAM.getCode(), ResultCodeEnum.ILLEGAL_PARAM.getMessage());
+        }
+        if (orderIds.size() > Constant.BATCH_ORDER_MAX_SIZE){
+            return result.error(ResultCodeEnum.BATCH_SIZE_OUT_OF_LIMIT.getCode(),ResultCodeEnum.BATCH_SIZE_OUT_OF_LIMIT.getMessage());
+        }
+        List<UsdkOrderDO> usdkOrderDOList = usdkOrderMapper.listByUserIdAndIds(userId, orderIds);
+        if (CollectionUtils.isEmpty(usdkOrderDOList) || usdkOrderDOList.size() != orderIds.size()) {
+            return Result.fail(ResultCodeEnum.ILLEGAL_PARAM.getCode(), ResultCodeEnum.ILLEGAL_PARAM.getMessage());
+        }
+        for (UsdkOrderDO usdkOrderDO : usdkOrderDOList){
+            if (usdkOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()) {
+                return Result.fail(ResultCodeEnum.ENFORCE_ORDER_CANNOT_BE_CANCELED.getCode(),
+                        ResultCodeEnum.ENFORCE_ORDER_CANNOT_BE_CANCELED.getMessage());
+            }
+        }
+        sendCancelReq(orderIds, userId);
+        return result;
     }
 
     /**
@@ -401,7 +557,7 @@ public class UsdkOrderManager {
             cancelReqMessage.setCancelType(CancelTypeEnum.CANCEL_BY_ORDERID);
             cancelReqMessage.setIdList(subList);
             Boolean sendRet = rocketMqManager.sendMessage(TRD_COIN_CANCEL_REQ, "coin",
-                    "to_cancel_usdt_"+Joiner.on("_").join(subList), cancelReqMessage);
+                    Joiner.on("_").join(subList), cancelReqMessage);
             if (BooleanUtils.isNotTrue(sendRet)){
                 log.error("failed to send cancel usdk mq, {}", userId);
             }

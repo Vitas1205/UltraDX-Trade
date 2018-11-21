@@ -13,5 +13,4 @@ import java.util.Map;
 @Data
 public class OrderResult implements Serializable {
     Map<String, Object> entrustInternalValues;
-    Integer lever;
 }
