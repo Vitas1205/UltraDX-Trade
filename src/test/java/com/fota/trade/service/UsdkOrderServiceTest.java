@@ -5,6 +5,7 @@ import com.fota.common.Page;
 import com.fota.common.Result;
 import com.fota.common.enums.FotaApplicationEnum;
 import com.fota.trade.client.*;
+import com.fota.trade.common.Constant;
 import com.fota.trade.common.TestConfig;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
@@ -118,15 +119,16 @@ public class UsdkOrderServiceTest {
 
     @Test
     public void testPlaceOrder(){
+        int assetId = 4;
         UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
-        usdkOrderDTO.setUserId(282L);
-        usdkOrderDTO.setAssetId(1);
-        usdkOrderDTO.setAssetName("BTC");
+        usdkOrderDTO.setUserId(userId);
+        usdkOrderDTO.setAssetId(assetId);
+        usdkOrderDTO.setAssetName("FOTA");
         usdkOrderDTO.setAveragePrice(new BigDecimal(0));
-        usdkOrderDTO.setFee(new BigDecimal(0.01));
+        usdkOrderDTO.setFee(Constant.FEE_RATE);
         usdkOrderDTO.setOrderDirection(OrderDirectionEnum.BID.getCode());
-        usdkOrderDTO.setOrderType(OrderTypeEnum.LIMIT.getCode());
-        usdkOrderDTO.setPrice(new BigDecimal(6000));
+        usdkOrderDTO.setOrderType(OrderTypeEnum.PASSIVE.getCode());
+        usdkOrderDTO.setPrice(new BigDecimal(0.00001).setScale(AssetTypeEnum.getUsdkPricePrecisionByAssetId(usdkOrderDTO.getAssetId())));
         usdkOrderDTO.setTotalAmount(new BigDecimal(2));
         Map<String, Object> map = new HashMap();
         usdkOrderDTO.setOrderContext(map);
