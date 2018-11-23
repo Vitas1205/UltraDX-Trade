@@ -922,7 +922,6 @@ public class ContractOrderManager {
     }
 
     public boolean batchInsert(List<ContractOrderDO> contractOrderDOS){
-
         int insertContractOrderRet = contractOrderMapper.batchInsert(contractOrderDOS);
         if (insertContractOrderRet < contractOrderDOS.size()) {
             log.error("insert contractOrder failed");

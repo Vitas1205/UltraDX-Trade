@@ -53,6 +53,7 @@ import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
 import static com.fota.trade.domain.enums.OrderStatusEnum.COMMIT;
 import static com.fota.trade.domain.enums.OrderTypeEnum.LIMIT;
+import static com.fota.trade.domain.enums.OrderTypeEnum.PASSIVE;
 import static com.fota.trade.domain.enums.OrderTypeEnum.RIVAL;
 import static com.fota.trade.msg.TopicConstants.*;
 import static java.util.stream.Collectors.toList;
@@ -159,7 +160,7 @@ public class UsdkOrderManager {
             BigDecimal price = usdkOrderDO.getPrice();
             BigDecimal orderValue = totalAmount.multiply(price);
             //插入委托订单记录
-            int ret = insertUsdkOrder(usdkOrderDO);
+            int ret = batchInsertUsdkOrder(Arrays.asList(usdkOrderDO));
             profiler.complelete("insertUsdkOrder");
             if (ret <= 0){
                 log.error("insert contractOrder failed");
@@ -243,7 +244,7 @@ public class UsdkOrderManager {
     public Result<List<PlaceOrderResult>> batchOrder(PlaceOrderRequest<PlaceCoinOrderDTO> placeOrderRequest) throws Exception{
         if (!placeOrderRequest.checkParam()){
             log.error("checkParam failed, placOrderRequest");
-            return Result.fail(-1, "checkParam failed");
+            return Result.fail(ILLEGAL_PARAM.getCode(), ILLEGAL_PARAM.getMessage());
         }
         Profiler profiler = new Profiler("UsdkOrderManager.batchOrder");
 
@@ -419,7 +420,7 @@ public class UsdkOrderManager {
             }
             return Result.suc(orderPrice);
         }
-        if (orderType != SPECIFIED_PRICE.getCode()){
+        if (orderType != SPECIFIED_PRICE.getCode() && orderType != PASSIVE.getCode()){
             return Result.fail(PRICE_TYPE_ILLEGAL.getCode(), PRICE_TYPE_ILLEGAL.getMessage());
         }
         if (null == orderPrice || orderPrice.compareTo(BigDecimal.ZERO) <= 0 || orderPrice.scale() > scale){
