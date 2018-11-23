@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
 import static com.fota.trade.common.TestConfig.userId;
@@ -128,7 +129,8 @@ public class UsdkOrderServiceTest {
         usdkOrderDTO.setFee(Constant.FEE_RATE);
         usdkOrderDTO.setOrderDirection(OrderDirectionEnum.BID.getCode());
         usdkOrderDTO.setOrderType(OrderTypeEnum.PASSIVE.getCode());
-        usdkOrderDTO.setPrice(new BigDecimal(0.00001).setScale(AssetTypeEnum.getUsdkPricePrecisionByAssetId(usdkOrderDTO.getAssetId())));
+        int scale =AssetTypeEnum.getUsdkPricePrecisionByAssetId(usdkOrderDTO.getAssetId());
+        usdkOrderDTO.setPrice(new BigDecimal(0.05).setScale(scale, RoundingMode.DOWN));
         usdkOrderDTO.setTotalAmount(new BigDecimal(2));
         Map<String, Object> map = new HashMap();
         usdkOrderDTO.setOrderContext(map);
@@ -137,10 +139,6 @@ public class UsdkOrderServiceTest {
         com.fota.trade.domain.ResultCode result = usdkOrderService.order(usdkOrderDTO, map2);
         assert result.isSuccess();
 
-        //市场单
-        usdkOrderDTO.setOrderType(MARKET.getCode());
-//        result = usdkOrderService.order(usdkOrderDTO);
-        assert result.isSuccess();
 
 
     }
