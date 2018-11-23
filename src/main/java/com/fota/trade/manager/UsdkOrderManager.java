@@ -429,27 +429,10 @@ public class UsdkOrderManager {
         return Result.suc(orderPrice);
     }
     private int insertUsdkOrder(UsdkOrderDO usdkOrderDO) {
-        if (usdkOrderDO.getOrderType().equals(OrderTypeEnum.PASSIVE.getCode())){
-            UsdkOrderDO usdkOrderDO1 = new UsdkOrderDO();
-            BeanUtils.copyProperties(usdkOrderDO, usdkOrderDO1);
-            usdkOrderDO1.setOrderType(OrderTypeEnum.LIMIT.getCode());
-            return usdkOrderMapper.insert(usdkOrderDO1);
-        }
         return usdkOrderMapper.insert(usdkOrderDO);
     }
     private int batchInsertUsdkOrder(List<UsdkOrderDO> list) {
-        List<UsdkOrderDO> insertList = new ArrayList<>();
-        for (UsdkOrderDO temp : list){
-            if (temp.getOrderType().equals(OrderTypeEnum.PASSIVE.getCode())){
-                UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
-                BeanUtils.copyProperties(temp, usdkOrderDO);
-                usdkOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
-                insertList.add(usdkOrderDO);
-                continue;
-            }
-            insertList.add(temp);
-        }
-        return usdkOrderMapper.batchInsert(insertList);
+        return usdkOrderMapper.batchInsert(list);
     }
 
     public ResultCode cancelOrder(Long userId, Long orderId, Map<String, String> userInfoMap) throws Exception{
