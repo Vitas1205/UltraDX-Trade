@@ -922,8 +922,18 @@ public class ContractOrderManager {
     }
 
     public boolean batchInsert(List<ContractOrderDO> contractOrderDOS){
-
-        int insertContractOrderRet = contractOrderMapper.batchInsert(contractOrderDOS);
+        List<ContractOrderDO> list = new ArrayList<>();
+        for (ContractOrderDO temp : contractOrderDOS){
+            if (temp.getOrderType().equals(OrderTypeEnum.PASSIVE.getCode())){
+                ContractOrderDO contractOrderDO = new ContractOrderDO();
+                BeanUtils.copyProperties(temp, contractOrderDO);
+                contractOrderDO.setOrderType(OrderTypeEnum.LIMIT.getCode());
+                list.add(contractOrderDO);
+                continue;
+            }
+            list.add(temp);
+        }
+        int insertContractOrderRet = contractOrderMapper.batchInsert(list);
         if (insertContractOrderRet < contractOrderDOS.size()) {
             log.error("insert contractOrder failed");
             return false;
