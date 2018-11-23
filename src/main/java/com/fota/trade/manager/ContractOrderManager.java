@@ -12,9 +12,10 @@ import com.fota.risk.client.manager.RelativeRiskLevelManager;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
 import com.fota.trade.PriceTypeEnum;
 import com.fota.trade.client.*;
-import com.fota.trade.common.*;
+import com.fota.trade.common.Constant;
+import com.fota.trade.common.RedisKey;
+import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.domain.*;
-import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.enums.*;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
@@ -24,7 +25,10 @@ import com.fota.trade.msg.ContractPlaceOrderMessage;
 import com.fota.trade.msg.TopicConstants;
 import com.fota.trade.service.ContractCategoryService;
 import com.fota.trade.service.internal.MarketAccountListService;
-import com.fota.trade.util.*;
+import com.fota.trade.util.ContractUtils;
+import com.fota.trade.util.ConvertUtils;
+import com.fota.trade.util.Profiler;
+import com.fota.trade.util.ThreadContextUtil;
 import com.google.common.base.Joiner;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -48,8 +52,6 @@ import java.util.stream.Collectors;
 import static com.fota.asset.domain.enums.UserContractStatus.LIMIT;
 import static com.fota.common.utils.CommonUtils.scale;
 import static com.fota.trade.PriceTypeEnum.*;
-import static com.fota.trade.client.MQConstants.ORDER_TOPIC;
-import static com.fota.trade.client.MQConstants.TO_CANCEL_CONTRACT_TAG;
 import static com.fota.trade.client.constants.Constants.MAX_BATCH_SIZE;
 import static com.fota.trade.common.ResultCodeEnum.*;
 import static com.fota.trade.domain.enums.ContractStatusEnum.PROCESSING;
@@ -118,10 +120,10 @@ public class ContractOrderManager {
         }
 
         ResultCode resultCode = ResultCode.success();
-        ToCancelMessage toCancelMessage = new ToCancelMessage();
+        BaseCancelReqMessage toCancelMessage = new BaseCancelReqMessage();
         toCancelMessage.setCancelType(CancelTypeEnum.CANCEL_BY_CONTRACTID);
-        toCancelMessage.setContractId(contractId);
-        rocketMqManager.sendMessage(ORDER_TOPIC, TO_CANCEL_CONTRACT_TAG, "to_cancelByContractId_"+contractId, toCancelMessage);
+        toCancelMessage.setSubjectId(contractId);
+        rocketMqManager.sendMessage(TopicConstants.TRD_CONTRACT_CANCEL_REQ, contractId+"", contractId+"", toCancelMessage);
         return resultCode;
     }
 
@@ -770,7 +772,7 @@ public class ContractOrderManager {
 
     //todo 判断持仓反方向的"仓加挂"大于是否该合约持仓保证金
     public Boolean judgeOrderResult(List<ContractOrderDO> filterOrderList,Integer positionType,
-                                            BigDecimal positionUnfilledAmount, BigDecimal positionEntrustAmount, BigDecimal lever) {
+                                    BigDecimal positionUnfilledAmount, BigDecimal positionEntrustAmount, BigDecimal lever) {
         if (null == positionUnfilledAmount) {
             log.error("null positionUnfilledAmount");
             positionUnfilledAmount = BigDecimal.ZERO;
