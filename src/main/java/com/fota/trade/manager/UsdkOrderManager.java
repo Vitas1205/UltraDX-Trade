@@ -53,6 +53,7 @@ import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
 import static com.fota.trade.domain.enums.OrderStatusEnum.COMMIT;
 import static com.fota.trade.domain.enums.OrderTypeEnum.LIMIT;
+import static com.fota.trade.domain.enums.OrderTypeEnum.PASSIVE;
 import static com.fota.trade.domain.enums.OrderTypeEnum.RIVAL;
 import static com.fota.trade.msg.TopicConstants.*;
 import static java.util.stream.Collectors.toList;
@@ -419,7 +420,7 @@ public class UsdkOrderManager {
             }
             return Result.suc(orderPrice);
         }
-        if (orderType != SPECIFIED_PRICE.getCode()){
+        if (orderType != SPECIFIED_PRICE.getCode() && orderType != PASSIVE.getCode()){
             return Result.fail(PRICE_TYPE_ILLEGAL.getCode(), PRICE_TYPE_ILLEGAL.getMessage());
         }
         if (null == orderPrice || orderPrice.compareTo(BigDecimal.ZERO) <= 0 || orderPrice.scale() > scale){
