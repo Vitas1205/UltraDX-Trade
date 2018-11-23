@@ -2,6 +2,7 @@ package com.fota.trade.common;
 
 import com.alibaba.fastjson.JSONObject;
 import com.fota.asset.domain.enums.AssetTypeEnum;
+import com.fota.trade.client.PlaceOrderRequest;
 import com.fota.trade.domain.*;
 import org.springframework.beans.BeansException;
 import org.springframework.util.CollectionUtils;
@@ -157,43 +158,7 @@ public class BeanUtils {
         return contractOrderDTO;
     }
 
-    public static ContractOrderDO extractContractOrderDO(long id, ContractOrderDTO contractOrderDTO, String username, BigDecimal feeRate) {
 
-        ContractOrderDO contractOrderDO = new ContractOrderDO();
-        contractOrderDO.setId(id);
-
-        contractOrderDO.setUserId(contractOrderDTO.getUserId());
-        contractOrderDO.setOrderDirection(contractOrderDTO.getOrderDirection());
-        contractOrderDO.setOrderType(contractOrderDTO.getOrderType());
-        contractOrderDO.setOperateType(contractOrderDTO.getOperateType());
-        contractOrderDO.setOperateDirection(contractOrderDTO.getOperateDirection());
-        contractOrderDO.setCloseType(contractOrderDTO.getCloseType());
-        contractOrderDO.setAveragePrice(contractOrderDTO.getAveragePrice());
-        contractOrderDO.setTotalAmount(contractOrderDTO.getTotalAmount());
-        contractOrderDO.setContractId(contractOrderDTO.getContractId());
-        contractOrderDO.setContractName(contractOrderDTO.getContractName());
-        contractOrderDO.setPrice(contractOrderDTO.getPrice());
-
-        contractOrderDO.setUnfilledAmount(contractOrderDO.getTotalAmount());
-
-        Map<String, Object> newMap = new HashMap<>();
-        if (contractOrderDTO.getOrderContext() !=null){
-            newMap = contractOrderDTO.getOrderContext();
-        }
-        newMap.put("username", username);
-
-        contractOrderDO.setOrderContext(JSONObject.toJSONString(contractOrderDTO.getOrderContext()));
-        contractOrderDO.setStatus(COMMIT.getCode());
-        contractOrderDO.setFee(feeRate);
-        if (null == contractOrderDO.getOrderType()) {
-            contractOrderDO.setOrderType(LIMIT.getCode());
-        }
-        if (null == contractOrderDO.getCloseType()) {
-            contractOrderDO.setCloseType(contractOrderDO.getOrderType());
-        }
-
-        return contractOrderDO;
-    }
 
     public static UserPositionDTO copy(UserPositionDO userPositionDO) {
         UserPositionDTO userPositionDTO = new UserPositionDTO();
@@ -207,11 +172,7 @@ public class BeanUtils {
         userPositionDTO.setAveragePrice(userPositionDO.getAveragePrice().toPlainString());
         userPositionDTO.setAmount(userPositionDO.getUnfilledAmount());
         userPositionDTO.setContractSize(BigDecimal.ONE);
-        if (userPositionDO.getFeeRate() != null){
-            userPositionDTO.setFeeRate(userPositionDO.getFeeRate());
-        }else {
-            userPositionDTO.setFeeRate(Constant.FEE_RATE);
-        }
+        userPositionDTO.setFeeRate(userPositionDO.getFeeRate());
         return userPositionDTO;
     }
 

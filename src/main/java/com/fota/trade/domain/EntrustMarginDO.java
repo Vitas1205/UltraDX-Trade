@@ -24,6 +24,11 @@ public class EntrustMarginDO {
      */
     private BigDecimal entrustMarginByIndex;
 
+    /**
+     * 挂单价值
+     */
+    private BigDecimal entrustValue;
+
 
     private Pair<BigDecimal, Map<String, Object>> pair;
 

@@ -1,9 +1,11 @@
 package com.fota.trade.service;
 
+import com.fota.asset.domain.enums.AssetTypeEnum;
 import com.fota.common.Page;
 import com.fota.common.Result;
-import com.fota.trade.client.RecoveryMetaData;
-import com.fota.trade.client.RecoveryQuery;
+import com.fota.common.enums.FotaApplicationEnum;
+import com.fota.trade.client.*;
+import com.fota.trade.common.Constant;
 import com.fota.trade.common.TestConfig;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
@@ -23,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
 import static com.fota.trade.common.TestConfig.userId;
@@ -42,7 +45,7 @@ public class UsdkOrderServiceTest {
     @Resource
     private UsdkOrderMapper usdkOrderMapper;
     UsdkOrderDO usdkOrderDO = new UsdkOrderDO();
-    @Before
+    //@Before
     public void init(){
         usdkOrderDO.setId(BasicUtils.generateId());
         usdkOrderDO.setAssetId(2);
@@ -117,15 +120,17 @@ public class UsdkOrderServiceTest {
 
     @Test
     public void testPlaceOrder(){
+        int assetId = 4;
         UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
-        usdkOrderDTO.setUserId(282L);
-        usdkOrderDTO.setAssetId(1);
-        usdkOrderDTO.setAssetName("BTC");
+        usdkOrderDTO.setUserId(userId);
+        usdkOrderDTO.setAssetId(assetId);
+        usdkOrderDTO.setAssetName("FOTA");
         usdkOrderDTO.setAveragePrice(new BigDecimal(0));
-        usdkOrderDTO.setFee(new BigDecimal(0.01));
+        usdkOrderDTO.setFee(Constant.FEE_RATE);
         usdkOrderDTO.setOrderDirection(OrderDirectionEnum.BID.getCode());
-        usdkOrderDTO.setOrderType(OrderTypeEnum.LIMIT.getCode());
-        usdkOrderDTO.setPrice(new BigDecimal(6000));
+        usdkOrderDTO.setOrderType(OrderTypeEnum.PASSIVE.getCode());
+        int scale =AssetTypeEnum.getUsdkPricePrecisionByAssetId(usdkOrderDTO.getAssetId());
+        usdkOrderDTO.setPrice(new BigDecimal(0.05).setScale(scale, RoundingMode.DOWN));
         usdkOrderDTO.setTotalAmount(new BigDecimal(2));
         Map<String, Object> map = new HashMap();
         usdkOrderDTO.setOrderContext(map);
@@ -134,10 +139,6 @@ public class UsdkOrderServiceTest {
         com.fota.trade.domain.ResultCode result = usdkOrderService.order(usdkOrderDTO, map2);
         assert result.isSuccess();
 
-        //市场单
-        usdkOrderDTO.setOrderType(MARKET.getCode());
-        result = usdkOrderService.order(usdkOrderDTO);
-        assert result.isSuccess();
 
 
     }
@@ -247,6 +248,55 @@ public class UsdkOrderServiceTest {
     public void test_send_cancel_msg() {
         ResultCode resultCode = usdkOrderService.cancelAllOrder(274L, new HashMap<>());
         assert resultCode.isSuccess();
+    }
+
+    @Test
+    public void batchOrderTest() {
+        PlaceOrderRequest<PlaceCoinOrderDTO> placeOrderRequest = new PlaceOrderRequest<PlaceCoinOrderDTO>();
+        List<PlaceCoinOrderDTO> list = new ArrayList<PlaceCoinOrderDTO>();
+        Long userId = 282L;
+        String userName = "testName";
+        String ip = "testIp";
+        UserLevelEnum userLevel = UserLevelEnum.DEFAULT;
+        PlaceCoinOrderDTO placeCoinOrderDTO1 = new PlaceCoinOrderDTO();
+        placeCoinOrderDTO1.setExtOrderId("000001");
+        placeCoinOrderDTO1.setOrderType(OrderTypeEnum.LIMIT.getCode());
+        placeCoinOrderDTO1.setOrderDirection(OrderDirectionEnum.ASK.getCode());
+        placeCoinOrderDTO1.setPrice(new BigDecimal("0.005"));
+        placeCoinOrderDTO1.setSubjectId(Long.valueOf(AssetTypeEnum.FOTA.getCode()));
+        placeCoinOrderDTO1.setSubjectName(AssetTypeEnum.FOTA.getDesc());
+        placeCoinOrderDTO1.setTotalAmount(new BigDecimal("20"));
+        PlaceCoinOrderDTO placeCoinOrderDTO2 = new PlaceCoinOrderDTO();
+        placeCoinOrderDTO2.setExtOrderId("000002");
+        placeCoinOrderDTO2.setOrderType(OrderTypeEnum.LIMIT.getCode());
+        placeCoinOrderDTO2.setOrderDirection(OrderDirectionEnum.ASK.getCode());
+        placeCoinOrderDTO2.setPrice(new BigDecimal("200"));
+        placeCoinOrderDTO2.setSubjectId(Long.valueOf(AssetTypeEnum.ETH.getCode()));
+        placeCoinOrderDTO2.setSubjectName(AssetTypeEnum.ETH.getDesc());
+        placeCoinOrderDTO2.setTotalAmount(new BigDecimal("2"));
+        list.add(placeCoinOrderDTO1);
+        list.add(placeCoinOrderDTO2);
+
+        placeOrderRequest.setIp(ip);
+        placeOrderRequest.setCaller(FotaApplicationEnum.TRADE);
+        placeOrderRequest.setUserId(userId);
+        placeOrderRequest.setPlaceOrderDTOS(list);
+        placeOrderRequest.setUserLevel(userLevel);
+        placeOrderRequest.setUserName(userName);
+        Result<List<PlaceOrderResult>> resultCode = usdkOrderService.batchOrder(placeOrderRequest);
+        assert resultCode.isSuccess();
+    }
+
+    @Test
+    public void batchCancelTest(){
+        CancelOrderRequest cancelOrderRequest = new CancelOrderRequest();
+        cancelOrderRequest.setUserId(282L);
+        List<Long> orderList = new ArrayList<>();
+        orderList.add(368368540702474L);
+        orderList.add(453904378046418L);
+        cancelOrderRequest.setOrderIds(orderList);
+        Result result =  usdkOrderService.batchCancel(cancelOrderRequest);
+        assert result.isSuccess();
     }
 
 

@@ -3,12 +3,13 @@ package com.fota.trade.service.impl;
 import com.fota.asset.service.CapitalService;
 import com.fota.common.Page;
 import com.fota.common.Result;
-import com.fota.trade.client.RecoveryMetaData;
-import com.fota.trade.client.RecoveryQuery;
+import com.fota.common.enums.FotaApplicationEnum;
+import com.fota.trade.client.*;
 import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
+import com.fota.trade.domain.enums.OrderTypeEnum;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.manager.UsdkOrderManager;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
@@ -199,9 +200,58 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     }
 
     @Override
-    public ResultCode order(UsdkOrderDTO usdkOrderDTO) {
-        return null;
+    public Result<List<PlaceOrderResult>> batchOrder(PlaceOrderRequest<PlaceCoinOrderDTO> placeOrderRequest) {
+        Result<List<PlaceOrderResult>> result = new Result<>();
+        if (placeOrderRequest.getCaller() == null){
+            placeOrderRequest.setCaller(FotaApplicationEnum.TRADE);
+        }
+        List<PlaceCoinOrderDTO> reqList = placeOrderRequest.getPlaceOrderDTOS();
+        for (PlaceCoinOrderDTO placeCoinOrderDTO : reqList){
+            if (placeCoinOrderDTO.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
+                return result.error(ResultCodeEnum.ORDER_TYPE_ERROR.getCode(), ResultCodeEnum.ORDER_TYPE_ERROR.getMessage());
+            }
+        }
+        try{
+            result = usdkOrderManager.batchOrder(placeOrderRequest);
+            if (result.isSuccess()) {
+                Runnable postTask = ThreadContextUtil.getPostTask();
+                if (null != postTask) {
+                    executorService.submit(postTask);
+                }
+            }
+        }catch (Exception e){
+            log.error("batchOrder exception, placeOrderRequest = ", placeOrderRequest, e);
+            return result.error(ResultCodeEnum.ORDER_FAILED.getCode(),ResultCodeEnum.ORDER_FAILED.getMessage());
+        }
+        return result;
     }
+
+    @Override
+    public Result batchCancel(CancelOrderRequest cancelOrderRequest) {
+        Result result = new Result();
+        Long userId = cancelOrderRequest.getUserId();
+        List<Long> orderIds = cancelOrderRequest.getOrderIds();
+        try {
+            result = usdkOrderManager.batchCancelOrder(userId, orderIds);
+            if (result.isSuccess()) {
+                for (Long orderId : orderIds){
+                    tradeLog.info("撤销@@@" + userId+ "@@@" + orderId);
+                }
+            }
+            return result;
+        }catch (Exception e){
+            log.error("USDK batchCancel() failed", e);
+            if (e instanceof BusinessException){
+                BusinessException businessException = (BusinessException) e;
+                result.setCode(businessException.getCode());
+                result.setMessage(businessException.getMessage());
+                return result;
+            }
+        }
+        result = Result.fail(ResultCodeEnum.BATCH_CANCEL_ORDER_FAILED.getCode(), ResultCodeEnum.BATCH_CANCEL_ORDER_FAILED.getMessage());
+        return result;
+    }
+
 
 
     @Override
@@ -226,10 +276,6 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         return resultCode;
     }
 
-    @Override
-    public ResultCode cancelOrder(long l, long l1) {
-        return null;
-    }
 
     @Override
     public ResultCode cancelAllOrder(long userId, Map<String, String> userInfoMap) {
@@ -249,10 +295,6 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         return resultCode;
     }
 
-    @Override
-    public ResultCode cancelAllOrder(long l) {
-        return null;
-    }
 
     @Override
     public ResultCode updateOrderByMatch(UsdkMatchedOrderDTO usdkMatchedOrderDTO) {
@@ -380,21 +422,5 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     }
 
 
-
-
-    @Override
-    public Long getLatestMatchedUsdk (Integer type) {
-        return null;
-    }
-
-    @Override
-    public List<UsdkMatchedOrderTradeDTO> getLatestUsdkMatchedList (Long id ,Integer assetId) {
-        return null;
-    }
-
-    @Override
-    public List<ContractMatchedOrderTradeDTO> getLatestContractMatchedList (Long id ,Long contractId){
-        return null;
-    }
 
 }

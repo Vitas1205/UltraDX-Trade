@@ -7,8 +7,14 @@ import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserContractLeverMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
+import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @author Gavin Shen
@@ -43,6 +49,24 @@ public class ContractLeverManager {
             log.error("getLeverByContractId({}, {})", userId, contractId, e);
         }
         return DEFAULT_LEVER;
+    }
+    public Map<Integer, Integer> getLeverMapByUserId(long userId) {
+        List<UserContractLeverDO> contractLeverDOList =  userContractLeverMapper.listUserContractLever(userId);
+        if (CollectionUtils.isEmpty(contractLeverDOList)) {
+            return new HashMap<>();
+        }
+        return contractLeverDOList.stream().collect(Collectors.toMap(UserContractLeverDO::getAssetId, UserContractLeverDO::getLever));
+    }
+
+    public BigDecimal findLever(Map<Integer, Integer> leverMap, Integer assetId) {
+        return new BigDecimal(doFindLever(leverMap, assetId));
+    }
+    public Integer doFindLever(Map<Integer, Integer> leverMap, Integer assetId){
+        Integer lever = leverMap.get(assetId);
+        if (null == lever) {
+            return DEFAULT_LEVER;
+        }
+        return lever;
     }
 
 }

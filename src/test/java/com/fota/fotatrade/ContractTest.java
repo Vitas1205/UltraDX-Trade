@@ -2,6 +2,10 @@ package com.fota.fotatrade;
 
 import com.alibaba.fastjson.JSON;
 import com.fota.common.Result;
+import com.fota.common.enums.FotaApplicationEnum;
+import com.fota.trade.client.PlaceContractOrderDTO;
+import com.fota.trade.client.PlaceOrderRequest;
+import com.fota.trade.client.UserLevelEnum;
 import com.fota.trade.common.Constant;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.PositionStatusEnum;
@@ -15,20 +19,21 @@ import com.fota.trade.service.impl.ContractOrderServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.fota.trade.common.TestConfig.userId;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
+import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
 import static com.fota.trade.domain.enums.OrderTypeEnum.ENFORCE;
+import static com.fota.trade.domain.enums.OrderTypeEnum.LIMIT;
+import static com.fota.trade.domain.enums.OrderTypeEnum.PASSIVE;
 
 /**
  * @Author: Harry Wang
@@ -65,35 +70,50 @@ public class ContractTest {
 
     @Test
     public void placeOrder(){
-        for (int i = 0;i < 1;i++){
-            /*List<CompetitorsPriceDTO> list = new ArrayList<>();
-            CompetitorsPriceDTO competitorsPriceDTO1 = new CompetitorsPriceDTO();
-            competitorsPriceDTO1.setId(1000);
-            competitorsPriceDTO1.setOrderDirection(1);
-            competitorsPriceDTO1.setPrice(new BigDecimal("5600.22"));
-            CompetitorsPriceDTO competitorsPriceDTO2 = new CompetitorsPriceDTO();
-            competitorsPriceDTO2.setId(1000);
-            competitorsPriceDTO2.setOrderDirection(2);
-            competitorsPriceDTO2.setPrice(new BigDecimal("6600.22"));
-            list.add(competitorsPriceDTO1);
-            list.add(competitorsPriceDTO2);*/
+        ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
+        contractOrderDTO.setContractName("BTC0304");
+        contractOrderDTO.setContractId(1217L);
+        contractOrderDTO.setUserId(userId);
+        contractOrderDTO.setOrderDirection(ASK.getCode());
+        contractOrderDTO.setOrderType(PASSIVE.getCode());
+        contractOrderDTO.setTotalAmount(new BigDecimal("0.02"));
+        contractOrderDTO.setPrice(new BigDecimal("6604"));
+        Map<String, String> map = new HashMap<>();
+        map.put("usernmae", "123");
+        map.put("ip", "192.169.1.1");
+        ResultCode result = contractOrderService.order(contractOrderDTO,map);
+        assert result.isSuccess();
+        log.info("result={}", result);
+    }
 
-            ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
-            contractOrderDTO.setContractName("BTC0304");
-            contractOrderDTO.setContractId(1217L);
-            contractOrderDTO.setUserId(userId);
-            contractOrderDTO.setOrderDirection(ASK.getCode());
-            contractOrderDTO.setOperateType(0);
-            contractOrderDTO.setOrderType(ENFORCE.getCode());
-            contractOrderDTO.setTotalAmount(new BigDecimal("0.02"));
-            contractOrderDTO.setPrice(new BigDecimal("6604"));
-            Map<String, String> map = new HashMap<>();
-            map.put("usernmae", "123");
-            map.put("ip", "192.169.1.1");
-            ResultCode result = contractOrderService.order(contractOrderDTO,map);
-            log.info("result={}", result);
-        }
-//        int insertContractOrderRet = contractOrderMapper.insertSelective(BeanUtils.copy(contractOrderDTO));
+    @Test
+    public void batchPlaceOrder(){
+
+        PlaceOrderRequest<PlaceContractOrderDTO> placeOrderRequest = new PlaceOrderRequest();
+        placeOrderRequest.setUserId(userId);
+        placeOrderRequest.setUserLevel(UserLevelEnum.DEFAULT);
+        placeOrderRequest.setCaller(FotaApplicationEnum.TRADE);
+        PlaceContractOrderDTO placeContractOrderDTO = new PlaceContractOrderDTO();
+        placeContractOrderDTO.setExtOrderId("1");
+        placeContractOrderDTO.setSubjectName("BTC0304");
+        placeContractOrderDTO.setSubjectId(1217L);
+        placeContractOrderDTO.setOrderDirection(BID.getCode());
+        placeContractOrderDTO.setOrderType(PASSIVE.getCode());
+        placeContractOrderDTO.setTotalAmount(new BigDecimal("0.02"));
+        placeContractOrderDTO.setPrice(new BigDecimal("1"));
+
+        PlaceContractOrderDTO placeContractOrderDTO1 = new PlaceContractOrderDTO();
+        BeanUtils.copyProperties(placeContractOrderDTO, placeContractOrderDTO1);
+        placeContractOrderDTO1.setOrderType(LIMIT.getCode());
+
+        placeOrderRequest.setPlaceOrderDTOS(Arrays.asList(placeContractOrderDTO,placeContractOrderDTO1));
+
+        Result result = contractOrderService.batchOrder(placeOrderRequest);
+
+        log.info("res=", result);
+        assert result.isSuccess();
+
+
     }
 
     @Test

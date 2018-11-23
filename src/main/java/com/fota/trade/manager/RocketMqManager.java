@@ -1,28 +1,22 @@
 package com.fota.trade.manager;
 
 import com.alibaba.fastjson.JSON;
+import com.fota.trade.common.ListSplitter;
 import com.fota.trade.domain.MQMessage;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.rocketmq.client.exception.MQBrokerException;
-import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import javax.annotation.Resource;
-
+import org.springframework.util.CollectionUtils;
 import java.util.List;
-import java.util.concurrent.ConcurrentMap;
-
-import static com.fota.trade.client.constants.Constants.DEFAULT_TAG;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import static org.apache.rocketmq.client.producer.SendStatus.SEND_OK;
 
 
@@ -39,8 +33,6 @@ public class RocketMqManager {
     @Autowired
     private DefaultMQProducer producer;
 
-//    @Resource
-//    private ConcurrentMap<String, String> failedMQMap;
     private long timeout = 1000;
 
     private static final Logger LOGGER = LoggerFactory.getLogger("sendMQMessageFailed");
@@ -99,6 +91,57 @@ public class RocketMqManager {
             }
         } catch (Exception e) {
             log.error("send message failed, mqMessage={}, exceptionMsg={}", mqMessage, e.getMessage());
+            return false;
+        }
+    }
+
+    public <T>  boolean  batchSendMessage(String topic, Function<T, String> tagSupplier, Function<T, String> keySupplier, List<T> msgs) {
+        if (CollectionUtils.isEmpty(msgs)) {
+            return true;
+        }
+        List<MQMessage> mqMessages = msgs.stream().map(msg -> {
+            MQMessage message = new MQMessage();
+            message.setTopic(topic);
+            message.setMessage(msg);
+            message.setTag(tagSupplier.apply(msg));
+            message.setKey(keySupplier.apply(msg));
+            return message;
+        }).collect(Collectors.toList());
+        boolean suc = doSendMessage(mqMessages);
+        if (!suc) {
+            LOGGER.error(JSON.toJSONString(mqMessages));
+        }
+        return suc;
+    }
+
+    public boolean doSendMessage(@NonNull List<MQMessage> mqMessages){
+
+        if (CollectionUtils.isEmpty(mqMessages)) {
+            return true;
+        }
+        List<Message> messageList = mqMessages.stream().map(msg -> {
+            Message message = new Message();
+            message.setTopic(msg.getTopic());
+            message.setBody(JSON.toJSONBytes(msg.getMessage()));
+            message.setTags(msg.getTag());
+            message.setKeys(msg.getKey());
+            return message;
+        }).collect(Collectors.toList());
+        ListSplitter splitter = new ListSplitter(messageList);
+        try {
+            while (splitter.hasNext()) {
+                List<Message>  listItem = splitter.next();
+                SendResult ret = null; // 消息在3S内没有发送成功，就会重试
+                ret = producer.send(listItem);
+                if (SEND_OK == ret.getSendStatus()) {
+                    log.info("send message success, mqMessage={}, ret={}", listItem, ret);
+                }else {
+                    log.error("send message failed, mqMessage={}, ret={}", listItem, JSON.toJSONString(ret));
+                }
+            }
+            return true;
+        } catch (Exception e) {
+            log.error("send message failed, mqMessage={}, exceptionMsg={}", mqMessages, e.getMessage());
             return false;
         }
     }

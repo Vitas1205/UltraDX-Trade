@@ -35,6 +35,8 @@ public interface UsdkOrderMapper {
     })
     int insert(UsdkOrderDO record);
 
+    int batchInsert(List<UsdkOrderDO> list);
+
 
     @Select({
             "select",
@@ -45,6 +47,8 @@ public interface UsdkOrderMapper {
     })
     @ResultMap("BaseResultMap")
     UsdkOrderDO selectByUserIdAndId(@Param("userId") long userId, @Param("id") Long id);
+
+    List<UsdkOrderDO> listByUserIdAndIds(@Param("userId") long userId, @Param("idList") List<Long> idList);
 
     @Select({
             "select",

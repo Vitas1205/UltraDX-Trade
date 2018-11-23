@@ -30,7 +30,7 @@ public class RealTimeEntrustManager {
      * @return
      */
 
-    @Cacheable("competitorsPriceOrder")
+    @Cacheable(value = "competitorsPriceOrder", sync = true)
     public List<CompetitorsPriceDTO> getContractCompetitorsPriceOrder() {
         return realTimeEntrust.getContractCompetitorsPriceOrder();
     }
@@ -40,7 +40,7 @@ public class RealTimeEntrustManager {
     public void deleteContractCompetitorsPriceOrder() {
     }
 
-    @Cacheable("usdtPriceOrder")
+    @Cacheable(value = "usdtPriceOrder", sync = true)
     public List<CompetitorsPriceDTO> getUsdtCompetitorsPriceOrder() {
         return realTimeEntrust.getUsdtCompetitorsPriceOrder();
     }
@@ -51,7 +51,7 @@ public class RealTimeEntrustManager {
 
     }
 
-    @Cacheable(value = "usdtLatestPrice")
+    @Cacheable(value = "usdtLatestPrice", sync = true)
     public BigDecimal getUsdtLatestPrice (Integer id) {
         Object object = redisTemplate.opsForValue().get(EntrustCacheConstants.FOTA_LATEST_USDT_MATCHED_ORDER + id);
         if (object == null) {
