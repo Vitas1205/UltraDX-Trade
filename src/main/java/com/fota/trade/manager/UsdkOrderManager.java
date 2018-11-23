@@ -160,7 +160,7 @@ public class UsdkOrderManager {
             BigDecimal price = usdkOrderDO.getPrice();
             BigDecimal orderValue = totalAmount.multiply(price);
             //插入委托订单记录
-            int ret = insertUsdkOrder(usdkOrderDO);
+            int ret = batchInsertUsdkOrder(Arrays.asList(usdkOrderDO));
             profiler.complelete("insertUsdkOrder");
             if (ret <= 0){
                 log.error("insert contractOrder failed");
@@ -244,7 +244,7 @@ public class UsdkOrderManager {
     public Result<List<PlaceOrderResult>> batchOrder(PlaceOrderRequest<PlaceCoinOrderDTO> placeOrderRequest) throws Exception{
         if (!placeOrderRequest.checkParam()){
             log.error("checkParam failed, placOrderRequest");
-            return Result.fail(-1, "checkParam failed");
+            return Result.fail(ILLEGAL_PARAM.getCode(), ILLEGAL_PARAM.getMessage());
         }
         Profiler profiler = new Profiler("UsdkOrderManager.batchOrder");
 

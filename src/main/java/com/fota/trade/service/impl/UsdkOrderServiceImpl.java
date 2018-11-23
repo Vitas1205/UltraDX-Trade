@@ -220,8 +220,8 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
                 }
             }
         }catch (Exception e){
-            log.error("batchOrder failed, placeOrderRequest = ", placeOrderRequest);
-            return result.error(-1,"");
+            log.error("batchOrder exception, placeOrderRequest = ", placeOrderRequest, e);
+            return result.error(ResultCodeEnum.ORDER_FAILED.getCode(),ResultCodeEnum.ORDER_FAILED.getMessage());
         }
         return result;
     }
