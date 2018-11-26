@@ -166,13 +166,14 @@ public class DealManager {
 
         ContractMatchedOrderDO bidMatchedRecord = com.fota.trade.common.BeanUtils.extractContractMatchedRecord(contractMatchedOrderDTO, BID.getCode(),
                 bidFee, bidContractOrder.getOrderType());
+        int ret;
         try {
-            int ret = contractMatchedOrderMapper.insert(Arrays.asList(askMatchedRecord, bidMatchedRecord));
-            if (ret != 2) {
-                throw new RuntimeException("contractMatchedOrderMapper.insert failed{}");
-            }
+            ret = contractMatchedOrderMapper.insert(Arrays.asList(askMatchedRecord, bidMatchedRecord));
         } catch (Exception e) {
             throw new RuntimeException("contractMatchedOrderMapper.insert exception{}", e);
+        }
+        if (ret != 2) {
+            throw new RuntimeException("contractMatchedOrderMapper.insert failed{}");
         }
         profiler.complelete("persistMatch");
 

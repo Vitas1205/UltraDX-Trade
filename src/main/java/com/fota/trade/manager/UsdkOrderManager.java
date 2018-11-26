@@ -192,17 +192,18 @@ public class UsdkOrderManager {
                     //判断账户可用余额是否大于orderValue
                     if (availableAmount.compareTo(entrustValue) >= 0){
                         Date gmtModified = userCapitalDTO.getGmtModified();
+                        Boolean updateLockedAmountRet;
                         try{
-                            Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,
+                            updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,
                                     userCapitalDTO.getAssetId(), String.valueOf(entrustValue), gmtModified.getTime());
                             profiler.complelete("updateLockedAmount");
-                            if (!updateLockedAmountRet){
-                                log.error("placeOrder getCapitalService().updateLockedAmount failed usdkOrderDO:{}", usdkOrderDO);
-                                throw new BusinessException(errorCode, errorMsg);
-                            }
                         }catch (Exception e){
                             log.error("Asset RPC Error!, placeOrder getCapitalService().updateLockedAmount exception usdkOrderDO:{}", usdkOrderDO, e);
                             throw new RuntimeException("placeOrder getCapitalService().updateLockedAmount exception");
+                        }
+                        if (!updateLockedAmountRet){
+                            log.error("placeOrder getCapitalService().updateLockedAmount failed usdkOrderDO:{}", usdkOrderDO);
+                            throw new BusinessException(errorCode, errorMsg);
                         }
                     }else {
                         log.error("totalAmount:{}, entrustValue:{}, availableAmount:{}", amount, entrustValue, availableAmount);
@@ -348,15 +349,16 @@ public class UsdkOrderManager {
             }
             coinExchangeOrderBatchLock.setCoinExchangeOrderLockAmount(coinExchangeOrderLockAmountList);
             coinExchangeOrderBatchLock.setUserId(userId);
+            Result<Boolean> updateLockedAmountRet;
             try {
-                Result<Boolean> updateLockedAmountRet = getCapitalService().batchUpdateLockedAmount(coinExchangeOrderBatchLock);
-                if (!updateLockedAmountRet.getData() || !updateLockedAmountRet.isSuccess()){
-                    log.error("CapitalService().batchUpdateLockedAmount failed, coinExchangeOrderBatchLock = ", coinExchangeOrderBatchLock);
-                    throw new Exception("CapitalService().batchUpdateLockedAmount failed");
-                }
+                updateLockedAmountRet = getCapitalService().batchUpdateLockedAmount(coinExchangeOrderBatchLock);
             }catch (Exception e){
                 log.error("CapitalService().batchUpdateLockedAmount exception, coinExchangeOrderBatchLock = ", coinExchangeOrderBatchLock , e);
                 throw new Exception("CapitalService().batchUpdateLockedAmount exception");
+            }
+            if (!updateLockedAmountRet.getData() || !updateLockedAmountRet.isSuccess()){
+                log.error("CapitalService().batchUpdateLockedAmount failed, coinExchangeOrderBatchLock = ", coinExchangeOrderBatchLock);
+                throw new Exception("CapitalService().batchUpdateLockedAmount failed");
             }
         }
         //批量发送mq消息一定要在事务外发，不然会出现收到下单消息，db还没有这个订单
@@ -505,17 +507,17 @@ public class UsdkOrderManager {
                 unlockAmount = unfilledAmount;
             }
             //解冻Coin钱包账户
+            Boolean updateLockedAmountRet;
             try{
-                Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(usdkOrderDO.getUserId(),assetId,unlockAmount.negate().toString(), 0L);
-                if (!updateLockedAmountRet){
-                    log.error("cancelOrder getCapitalService().updateLockedAmount failed usdkOrderDO:{}", usdkOrderDO);
-                    throw new BizException(BIZ_ERROR.getCode(),"cancelOrder getCapitalService().updateLockedAmount failed");
-                }
+                updateLockedAmountRet = getCapitalService().updateLockedAmount(usdkOrderDO.getUserId(),assetId,unlockAmount.negate().toString(), 0L);
             }catch (Exception e){
                 log.error("Asset RPC Error!, cancelOrder getCapitalService().updateLockedAmount exception usdkOrderDO:{}", usdkOrderDO, e);
                 throw new BizException(BIZ_ERROR.getCode(),"cancelOrder getCapitalService().updateLockedAmount exception");
             }
-
+            if (!updateLockedAmountRet){
+                log.error("cancelOrder getCapitalService().updateLockedAmount failed usdkOrderDO:{}", usdkOrderDO);
+                throw new BizException(BIZ_ERROR.getCode(),"cancelOrder getCapitalService().updateLockedAmount failed");
+            }
             JSONObject jsonObject = JSONObject.parseObject(usdkOrderDO.getOrderContext());
             String username = "";
             if (jsonObject != null && !jsonObject.isEmpty()) {
@@ -677,16 +679,16 @@ public class UsdkOrderManager {
         UsdkMatchedOrderDO askMatchRecordDO = com.fota.trade.common.BeanUtils.extractUsdtRecord(usdkMatchedOrderDTO, OrderDirectionEnum.ASK.getCode());
         UsdkMatchedOrderDO bidMatchRecordDO = com.fota.trade.common.BeanUtils.extractUsdtRecord(usdkMatchedOrderDTO, OrderDirectionEnum.BID.getCode());
         // 保存订单数据到数据库
+        int ret;
         try {
-            int ret = usdkMatchedOrder.insert(Arrays.asList(askMatchRecordDO, bidMatchRecordDO));
+            ret = usdkMatchedOrder.insert(Arrays.asList(askMatchRecordDO, bidMatchRecordDO));
             profiler.complelete("insert match record");
-            if (ret < 2){
-                throw new RuntimeException("usdkMatchedOrder.insert failed{}");
-            }
         } catch (Exception e) {
             throw new RuntimeException("usdkMatchedOrder.insert exception{}",e);
         }
-
+        if (ret < 2){
+            throw new RuntimeException("usdkMatchedOrder.insert failed{}");
+        }
         long matchId = usdkMatchedOrderDTO.getId();
         Runnable runnable = () -> {
             Map<String, Object> askOrderContext = new HashMap<>();
