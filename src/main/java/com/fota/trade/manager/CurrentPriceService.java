@@ -39,7 +39,7 @@ public class CurrentPriceService {
     public BigDecimal getSpotIndexByAssetName(String assetName){
         List<TickerDTO> tickerDTOS = currentPriceManager.getSpotIndexes();
         if (null == assetName) {
-            log.error("no such asset");
+            log.error("no such asset, assetName={}", assetName);
             return null;
         }
         TickerDTO tickerDTO = tickerDTOS.stream()

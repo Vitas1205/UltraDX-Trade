@@ -3,6 +3,7 @@ package com.fota.trade.service.impl;
 import com.fota.common.Page;
 import com.fota.common.Result;
 import com.fota.common.enums.FotaApplicationEnum;
+import com.fota.common.utils.LogUtil;
 import com.fota.trade.client.*;
 import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
@@ -38,6 +39,8 @@ import static com.fota.trade.common.ResultCodeEnum.DATABASE_EXCEPTION;
 
 import static com.fota.trade.common.ResultCodeEnum.ILLEGAL_PARAM;
 import static com.fota.trade.common.ResultCodeEnum.SYSTEM_ERROR;
+import static com.fota.trade.common.TradeBizTypeEnum.CONTRACT_DEAL;
+import static com.fota.trade.common.TradeBizTypeEnum.CONTRACT_ORDER;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
 import static com.fota.trade.domain.enums.OrderTypeEnum.ENFORCE;
 
@@ -233,7 +236,6 @@ public class ContractOrderServiceImpl implements ContractOrderService {
             result = contractOrderManager.placeOrder(placeOrderRequest, isEnforce);
             if (result.isSuccess()) {
                 profiler.setTraceId(result.getData()+"");
-                //redisManager.contractOrderSaveForMatch(contractOrderDTO);
                 Runnable postTask = ThreadContextUtil.getPostTask();
                 if (null == postTask) {
                     log.error("null postTask");
@@ -245,11 +247,11 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         }catch (Exception e){
             if (e instanceof BizException){
                 BizException bizException = (BizException) e;
-                log.error("place order({}) failed, code={}, msg={}", placeOrderRequest, bizException.getCode(), bizException.getMessage());
+                LogUtil.error( CONTRACT_ORDER.name(), null, placeOrderRequest, bizException.getMessage());
                 result.fail(bizException.getCode(), bizException.getMessage());
                 return result;
             }else {
-                log.error("Contract order({}) failed", placeOrderRequest,  e);
+                LogUtil.error( CONTRACT_ORDER,  null, placeOrderRequest,  e);
             }
         }finally {
             profiler.log();
@@ -389,6 +391,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
                 return ResultCode.error(bE.getCode(), bE.getMessage());
             }else {
                 log.error("updateOrderByMatch exception, match_order={}", contractMatchedOrderDTO, e);
+                LogUtil.error(CONTRACT_DEAL, contractMatchedOrderDTO.getId()+"", contractMatchedOrderDTO,  e);
                 return ResultCode.error(SYSTEM_ERROR.getCode(), SYSTEM_ERROR.getMessage());
             }
         }finally {

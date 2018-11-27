@@ -87,7 +87,14 @@ public class Profiler {
         return String.format(format, method, traceId, total, detail);
     }
 
+    public static boolean enable(){
+        return false;
+    }
+
     public void log() {
+        if (!Profiler.enable()) {
+            return;
+        }
         log.info(this.toString());
     }
 }

@@ -56,6 +56,10 @@ public class RocketMqManager {
         return suc;
     }
 
+    public static boolean enableSendMQInfo(){
+        return false;
+    }
+
 
     public boolean sendMessage(String topic, String tag, String key, Object message,  MessageQueueSelector selector, Object args) {
         MQMessage mqMessage = new MQMessage(topic, tag, key, message, selector, args);
@@ -83,7 +87,9 @@ public class RocketMqManager {
                 ret = producer.send(message, mqMessage.getQueueSelector(), mqMessage.getQueueSelectorArg(), timeout);
             }
             if (SEND_OK == ret.getSendStatus()) {
-                log.info("send message success, mqMessage={}, ret={}", mqMessage, ret);
+                if (enableSendMQInfo()) {
+                    log.info("send message success, mqMessage={}, ret={}", mqMessage, ret);
+                }
                 return true;
             }else {
                 log.error("send message failed, mqMessage={}, ret={}", message, JSON.toJSONString(ret));
@@ -134,7 +140,9 @@ public class RocketMqManager {
                 SendResult ret = null; // 消息在3S内没有发送成功，就会重试
                 ret = producer.send(listItem);
                 if (SEND_OK == ret.getSendStatus()) {
-                    log.info("send message success, mqMessage={}, ret={}", listItem, ret);
+                    if (enableSendMQInfo()) {
+                        log.info("send message success, mqMessage={}, ret={}", listItem, ret);
+                    }
                 }else {
                     log.error("send message failed, mqMessage={}, ret={}", listItem, JSON.toJSONString(ret));
                 }

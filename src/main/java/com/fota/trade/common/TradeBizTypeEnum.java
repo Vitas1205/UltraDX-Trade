@@ -5,10 +5,11 @@ package com.fota.trade.common;
  * Code is the law
  */
 public enum  TradeBizTypeEnum {
+    COMMON,
     COIN_ORDER,
     COIN_CANCEL_ORDER,
-    COIN_MATCH,
+    COIN_DEAL,
     CONTRACT_ORDER,
     CONTRACT_CANCEL_ORDER,
-    CONTRACT_MATCH
+    CONTRACT_DEAL
 }

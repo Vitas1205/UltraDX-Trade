@@ -8,13 +8,11 @@ import com.fota.asset.domain.enums.AssetOperationTypeEnum;
 import com.fota.asset.service.AssetWriteService;
 import com.fota.asset.service.ContractService;
 import com.fota.common.Result;
+import com.fota.common.utils.LogUtil;
 import com.fota.trade.UpdateOrderItem;
 import com.fota.trade.client.FailedRecord;
 import com.fota.trade.client.constants.DealedMessage;
-import com.fota.trade.common.BizException;
-import com.fota.trade.common.Constant;
-import com.fota.trade.common.ResultCodeEnum;
-import com.fota.trade.common.UpdatePositionResult;
+import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
@@ -300,7 +298,7 @@ public class DealManager {
      */
     public Result postDeal(List<ContractDealedMessage> postDealMessages, boolean rollback) {
         if (CollectionUtils.isEmpty(postDealMessages)) {
-            log.error("empty postDealMessages in postDeal");
+            LogUtil.error(TradeBizTypeEnum.CONTRACT_DEAL, null, postDealMessages, "empty postDealMessages");
             return Result.fail(ILLEGAL_PARAM.getCode(), "empty postDealMessages in postDeal");
         }
         ContractDealedMessage sample = postDealMessages.get(0);
@@ -329,7 +327,7 @@ public class DealManager {
                 }
             }catch (Exception e){
                 log.error("update balance exception, params={}", contractAccountAddAmountDTO, e);
-                if (e instanceof TimeoutException) {
+                if (e.getCause() instanceof TimeoutException) {
                     UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedRecord(NOT_SURE, UPDATE_BALANCE.name(), contractAccountAddAmountDTO));
                 }else{
                     UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedRecord(RETRY, UPDATE_BALANCE.name(), contractAccountAddAmountDTO));
@@ -582,28 +580,26 @@ public class DealManager {
 
     private ResultCode checkParam(ContractOrderDO askContractOrder, ContractOrderDO bidContractOrder, ContractMatchedOrderDTO contractMatchedOrderDTO) {
         if (askContractOrder == null) {
-            log.error("askContractOrder not exist, matchOrder={}", contractMatchedOrderDTO);
+            LogUtil.error(TradeBizTypeEnum.CONTRACT_DEAL,  contractMatchedOrderDTO.getId()+"", contractMatchedOrderDTO, "null askContractOrder");
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
         }
         if (bidContractOrder == null) {
-            log.error("bidOrderContext not exist, matchOrder={}", contractMatchedOrderDTO);
+            LogUtil.error(TradeBizTypeEnum.CONTRACT_DEAL,  contractMatchedOrderDTO.getId()+"", contractMatchedOrderDTO, "null bidContractOrder");
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
         }
 
-        String messageKey = Joiner.on("-").join(contractMatchedOrderDTO.getAskOrderId().toString(),
-                contractMatchedOrderDTO.getAskOrderStatus(), contractMatchedOrderDTO.getBidOrderId(),
-                contractMatchedOrderDTO.getBidOrderStatus());
-
+        Integer problemDirection = null;
         BigDecimal filledAmount = contractMatchedOrderDTO.getFilledAmount();
         if (BasicUtils.gt(filledAmount, askContractOrder.getUnfilledAmount())) {
-            log.error("ask unfilledAmount not enough.order={}, messageKey={}", askContractOrder, messageKey);
-            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
+            problemDirection = askContractOrder.getOrderDirection();
         }
         if (BasicUtils.gt(filledAmount, bidContractOrder.getUnfilledAmount())) {
-            log.error("bid unfilledAmount not enough.order={}, messageKey={}", bidContractOrder, messageKey);
+            problemDirection = bidContractOrder.getOrderDirection();
+        }
+        if (null != problemDirection) {
+            LogUtil.error(TradeBizTypeEnum.CONTRACT_DEAL,  contractMatchedOrderDTO.getId()+"", contractMatchedOrderDTO, "unfilledAmount not enough, problemDirection="+problemDirection);
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
         }
-
         return ResultCode.success();
     }
 
