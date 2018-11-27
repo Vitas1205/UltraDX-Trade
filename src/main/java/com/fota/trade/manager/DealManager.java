@@ -2,7 +2,10 @@ package com.fota.trade.manager;
 
 import com.alibaba.dubbo.remoting.TimeoutException;
 import com.alibaba.fastjson.JSON;
+import com.fota.asset.domain.ContractAccountAddAmountDTO;
 import com.fota.asset.domain.ContractDealer;
+import com.fota.asset.domain.enums.AssetOperationTypeEnum;
+import com.fota.asset.service.AssetWriteService;
 import com.fota.asset.service.ContractService;
 import com.fota.common.Result;
 import com.fota.trade.UpdateOrderItem;
@@ -95,6 +98,9 @@ public class DealManager {
 
     @Autowired
     private ContractMatchedOrderMapper contractMatchedOrderMapper;
+
+    @Autowired
+    private AssetWriteService assetWriteService;
 
 
     private static final Logger UPDATE_POSITION_FAILED_LOGGER = LoggerFactory.getLogger("updatePositionFailed");
@@ -310,30 +316,23 @@ public class DealManager {
             }
             return Result.fail(BIZ_ERROR.getCode(), "update position failed");
         }
-        DealedMessage dealedMessage = new DealedMessage()
-                .setSubjectId(contractId)
-                .setSubjectType(CONTRACT_TYPE)
-                .setUserId(userId);
-
-
         if (positionResult.getClosePL().compareTo(ZERO) != 0) {
-            ContractDealer dealer = new ContractDealer()
-                    .setUserId(userId)
-                    .setAddedTotalAmount(positionResult.getClosePL())
-                    .setTotalLockAmount(ZERO);
-            dealer.setDealType(ContractDealer.DealType.FORCE);
+            ContractAccountAddAmountDTO contractAccountAddAmountDTO = new ContractAccountAddAmountDTO();
+            contractAccountAddAmountDTO.setAddAmount(positionResult.getClosePL());
+            contractAccountAddAmountDTO.setUserId(userId);
             try {
-                com.fota.common.Result result = contractService.updateBalances(dealer);
-                if (!result.isSuccess()) {
-                    log.error("update balance failed, params={}", dealer);
-                    UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedRecord(RETRY, UPDATE_BALANCE.name(), dealer));
+                Boolean ret = assetWriteService.addContractAmount(contractAccountAddAmountDTO, sample.getMsgKey(), AssetOperationTypeEnum.CONTRACT_DEAL.getCode()).getData();
+
+                if (!ret) {
+                    log.error("update balance failed, params={}", contractAccountAddAmountDTO);
+                    UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedRecord(RETRY, UPDATE_BALANCE.name(), contractAccountAddAmountDTO));
                 }
             }catch (Exception e){
-                log.error("update balance exception, params={}", dealer, e);
+                log.error("update balance exception, params={}", contractAccountAddAmountDTO, e);
                 if (e instanceof TimeoutException) {
-                    UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedRecord(NOT_SURE, UPDATE_BALANCE.name(), dealer));
+                    UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedRecord(NOT_SURE, UPDATE_BALANCE.name(), contractAccountAddAmountDTO));
                 }else{
-                    UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedRecord(RETRY, UPDATE_BALANCE.name(), dealer));
+                    UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedRecord(RETRY, UPDATE_BALANCE.name(), contractAccountAddAmountDTO));
                 }
             }
         }
