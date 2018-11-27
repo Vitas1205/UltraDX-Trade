@@ -122,11 +122,11 @@ public class MatchedConsumer {
                 log.error("get mq message failed", e);
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
-            if (COIN.equals(bizType)) {
+            if (COIN_DEAL.equals(bizType)) {
                 UsdkMatchedOrderDTO usdkMatchedOrderDTO = JSON.parseObject(bodyStr, UsdkMatchedOrderDTO.class);
                 resultCode = usdkOrderService.updateOrderByMatch(usdkMatchedOrderDTO);
 
-            } else if (CONTRACT.equals(bizType)) {
+            } else if (CONTRACT_DEAL.equals(bizType)) {
                 ContractMatchedOrderDTO contractMatchedOrderDTO = JSON.parseObject(bodyStr, ContractMatchedOrderDTO.class);
                 resultCode = contractOrderService.updateOrderByMatch(contractMatchedOrderDTO);
             }

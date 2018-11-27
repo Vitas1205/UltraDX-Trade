@@ -390,7 +390,6 @@ public class ContractOrderServiceImpl implements ContractOrderService {
                 BizException bE = (BizException) e;
                 return ResultCode.error(bE.getCode(), bE.getMessage());
             }else {
-                log.error("updateOrderByMatch exception, match_order={}", contractMatchedOrderDTO, e);
                 LogUtil.error(CONTRACT_DEAL, contractMatchedOrderDTO.getId()+"", contractMatchedOrderDTO,  e);
                 return ResultCode.error(SYSTEM_ERROR.getCode(), SYSTEM_ERROR.getMessage());
             }

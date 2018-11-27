@@ -77,7 +77,7 @@ public class CanceledConsumer {
         });
 
         contractCanceledConsumer = initCancelConsumer(MCH_CONTRACT_CANCEL_RST,  (msgs, context) -> {
-            return consumerCancelMessage(msgs, context, TradeBizTypeEnum.COIN_CANCEL_ORDER);
+            return consumerCancelMessage(msgs, context, TradeBizTypeEnum.CONTRACT_CANCEL_ORDER);
         });
     }
 
