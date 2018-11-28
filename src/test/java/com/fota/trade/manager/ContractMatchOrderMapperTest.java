@@ -3,14 +3,12 @@ package com.fota.trade.manager;
 import com.fota.trade.domain.ContractMatchedOrderDO;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -30,7 +28,7 @@ public class ContractMatchOrderMapperTest {
     @Autowired
     private ContractMatchedOrderMapper contractMatchedOrderMapper;
 
-    @Test
+//    @Test
     public void listByUserIdTest(){
         Long userId = 285L;
         List<Long> contractIds = new ArrayList<>();
@@ -40,7 +38,7 @@ public class ContractMatchOrderMapperTest {
         log.info("_____"+list);
     }
 
-    @Test
+//    @Test
     public void countByUserIdTest(){
         Long userId = 285L;
         List<Long> contractIds = new ArrayList<>();
@@ -49,7 +47,7 @@ public class ContractMatchOrderMapperTest {
         log.info("----"+ret);
     }
 
-    @Test
+//    @Test
     public void getAllFeeTest(){
         Date end = new Date();
         Date start = new Date(14000000000L);

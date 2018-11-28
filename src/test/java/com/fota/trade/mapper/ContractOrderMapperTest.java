@@ -1,38 +1,22 @@
 package com.fota.trade.mapper;
 
-import com.fota.common.Page;
-import com.fota.trade.UpdateOrderItem;
 import com.fota.trade.common.ParamUtil;
-import com.fota.trade.common.TestConfig;
-import com.fota.trade.domain.BaseQuery;
 import com.fota.trade.domain.ContractOrderDO;
-import com.fota.trade.domain.ContractOrderDTO;
-import com.fota.trade.domain.enums.OrderDirectionEnum;
-import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.domain.query.ContractOrderQuery;
-import com.fota.trade.service.ContractOrderService;
-import com.fota.trade.util.BasicUtils;
 import com.fota.trade.util.MockUtils;
 import com.fota.trade.util.PriceUtil;
-import com.fota.trade.util.Profiler;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static com.fota.trade.common.TestConfig.userId;
 import static com.fota.trade.domain.enums.OrderStatusEnum.CANCEL;
@@ -42,8 +26,8 @@ import static com.fota.trade.domain.enums.OrderStatusEnum.MATCH;
  * @author Gavin Shen
  * @Date 2018/7/8
  */
-@RunWith(SpringRunner.class)
-@SpringBootTest
+//@RunWith(SpringRunner.class)
+//@SpringBootTest
 @Slf4j
 @ContextConfiguration(classes = MapperTestConfig.class)
 @Transactional

@@ -6,11 +6,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fota.risk.client.domain.UserRRLDTO;
 import com.fota.risk.client.manager.RelativeRiskLevelManager;
 import com.fota.ticker.entrust.RealTimeEntrust;
-import com.fota.ticker.entrust.entity.BuyPriceSellPriceDTO;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
 import com.fota.trade.common.Constant;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
-import com.fota.trade.domain.enums.PositionTypeEnum;
 import com.fota.trade.manager.RedisManager;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Before;
@@ -18,21 +16,13 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.dao.DataAccessException;
-import org.springframework.data.redis.connection.RedisConnection;
-import org.springframework.data.redis.connection.StringRedisConnection;
-import org.springframework.data.redis.core.RedisCallback;
-import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.SessionCallback;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
-import javax.ws.rs.HEAD;
-import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
@@ -92,7 +82,6 @@ public class RedisTest {
         om.enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL);
         jackson2JsonRedisSerializer.setObjectMapper(om);
 
-        redisTemplate.setHashValueSerializer(jackson2JsonRedisSerializer);
         assert val.equals(redisTemplate.opsForHash().get(key, haskKey));
     }
     @Test
@@ -116,9 +105,12 @@ public class RedisTest {
         calendar.setTime(date);
         calendar.add(Calendar.DATE, 1);
         String dateStr = hours < 18 ? sdf1.format(date) : sdf1.format(calendar.getTime());
-        BigDecimal totalFee =  BigDecimal.valueOf((Double)redisManager.get(Constant.REDIS_TODAY_FEE + dateStr));
-        if (totalFee == null){
+        Double fee = redisManager.get(Constant.REDIS_TODAY_FEE + dateStr);
+        BigDecimal totalFee;
+        if (fee == null){
             totalFee = BigDecimal.ZERO;
+        } else {
+            totalFee = BigDecimal.valueOf(fee);
         }
         assert totalFee.compareTo(BigDecimal.ZERO) >= 0;
     }
@@ -130,11 +122,21 @@ public class RedisTest {
         BigDecimal bidCurrentPrice = BigDecimal.ZERO;
         long contractId = 1002L;
         List<CompetitorsPriceDTO> competitorsPriceList = realTimeEntrust.getContractCompetitorsPrice();
-            bidCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
-                    competitorsPrice.getId() == contractId).findFirst().get().getPrice();
+            bidCurrentPrice = competitorsPriceList.stream()
+                    .filter(competitorsPrice ->
+                            competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
+                                    competitorsPrice.getId() == contractId)
+                    .findFirst()
+                    .orElse(new CompetitorsPriceDTO())
+                    .getPrice();
             BigDecimal bidPositionEntrustAmount;
-            askCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
-                    competitorsPrice.getId() == contractId).findFirst().get().getPrice();
+            askCurrentPrice = competitorsPriceList.stream()
+                    .filter(competitorsPrice ->
+                            competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
+                                    competitorsPrice.getId() == contractId)
+                    .findFirst()
+                    .orElse(new CompetitorsPriceDTO())
+                    .getPrice();
             BigDecimal askPositionEntrustAmount;
     }
     @Test

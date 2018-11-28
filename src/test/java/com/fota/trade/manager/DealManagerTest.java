@@ -1,6 +1,5 @@
 package com.fota.trade.manager;
 
-import com.alibaba.fastjson.JSON;
 import com.fota.asset.domain.UserContractDTO;
 import com.fota.asset.service.AssetService;
 import com.fota.trade.client.PostDealMessage;
@@ -10,7 +9,6 @@ import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.util.BasicUtils;
 import com.fota.trade.util.ContractUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -18,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
-import java.util.Arrays;
 
 import static java.math.BigDecimal.ZERO;
 
@@ -42,7 +39,7 @@ public class DealManagerTest {
     private long contractId = 1007;
 
     BigDecimal rate = new BigDecimal("0.0005");
-    @Test
+//    @Test
     public void testClosePosition(){
         UserPositionDO userPositionDO = userPositionMapper.selectByUserIdAndContractId(userId, contractId);
         UserContractDTO userContractDTO = assetService.getContractAccount(userId);
