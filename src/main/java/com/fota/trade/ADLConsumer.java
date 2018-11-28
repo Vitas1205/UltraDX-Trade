@@ -119,7 +119,7 @@ public class ADLConsumer {
                         .map(x -> {
                             ContractADLMatchDTO message = BasicUtils.exeWhitoutError(()->JSON.parseObject(x.getBody(), ContractADLMatchDTO.class));
                             if (null == message) {
-                                ADL_FAILED_LOGGER.error("{}", new FailedRecord(NOT_RETRY, PARSE.name(), x));
+                                ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(NOT_RETRY, PARSE.name(), x));
                                 return null;
                             }
                             return message;
@@ -136,16 +136,15 @@ public class ADLConsumer {
                     try {
                         Result result = adlManager.adl(adlMessage);
                         if (!result.isSuccess()) {
-                            ADL_FAILED_LOGGER.error("{}", new FailedRecord(NOT_RETRY, UNKNOW.name(), adlMessage, result.getCode()+"", result.getMessage()));
+                            ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(NOT_RETRY, UNKNOW.name(), adlMessage, result.getCode()+"", result.getMessage()));
                         }
                     }catch (Throwable t) {
-                        ADL_FAILED_LOGGER.error("{}", new FailedRecord(RETRY, START.name(), adlMessage, t.getClass().getSimpleName(),
-                                t.getMessage()));
+                        ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(RETRY, START.name(), adlMessage), t);
                     }
                 });
 
             } catch (Throwable t) {
-                ADL_FAILED_LOGGER.error("{}", new FailedRecord(NOT_SURE, UNKNOW.name(), msgs), t);
+                ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(NOT_SURE, UNKNOW.name(), msgs), t);
             }
             return ConsumeOrderlyStatus.SUCCESS;
         }

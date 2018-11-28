@@ -2,13 +2,14 @@ package com.fota.trade.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.fota.asset.domain.BalanceTransferDTO;
-import com.fota.asset.domain.CoinExchangeOrderBatchLock;
+import com.fota.asset.domain.CapitalAccountAddAmountDTO;
 import com.fota.asset.domain.UserCapitalDTO;
+import com.fota.asset.domain.enums.AssetOperationTypeEnum;
 import com.fota.asset.domain.enums.AssetTypeEnum;
 import com.fota.asset.service.AssetService;
-import com.fota.asset.service.CapitalService;
+import com.fota.asset.service.AssetWriteService;
 import com.fota.common.Result;
+import com.fota.common.utils.LogUtil;
 import com.fota.match.service.UsdkMatchedOrderService;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
 import com.fota.trade.PriceTypeEnum;
@@ -19,7 +20,7 @@ import com.fota.trade.client.PlaceOrderResult;
 import com.fota.trade.common.BizException;
 import com.fota.trade.common.BusinessException;
 import com.fota.trade.common.Constant;
-import com.fota.trade.common.ResultCodeEnum;
+import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderTypeEnum;
@@ -43,12 +44,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
-
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
-
 import static com.fota.trade.PriceTypeEnum.MARKET_PRICE;
 import static com.fota.trade.PriceTypeEnum.SPECIFIED_PRICE;
 import static com.fota.trade.common.ResultCodeEnum.*;
@@ -92,7 +91,7 @@ public class UsdkOrderManager {
     private RocketMqManager rocketMqManager;
 
     @Autowired
-    private CapitalService capitalService;
+    private AssetWriteService assetWriteService;
 
     @Autowired
     private AssetService assetService;
@@ -107,9 +106,6 @@ public class UsdkOrderManager {
     @Autowired
     private CurrentPriceManager currentPriceManager;
 
-    private CapitalService getCapitalService() {
-        return capitalService;
-    }
     private AssetService getAssetService() {
         return assetService;
     }
@@ -176,14 +172,14 @@ public class UsdkOrderManager {
             int ret = batchInsertUsdkOrder(Arrays.asList(usdkOrderDO));
             profiler.complelete("insertUsdkOrder");
             if (ret <= 0){
-                log.error("insert contractOrder failed");
+                LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), String.valueOf(usdkOrderDO.getId()), usdkOrderDO,  "insert contractOrder failed");
                 throw new RuntimeException("insert contractOrder failed");
             }
             orderId = usdkOrderDO.getId();
             BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
-            int assetTypeId = 0;
-            BigDecimal entrustValue = BigDecimal.ZERO;
-            int errorCode = 0;
+            int assetTypeId;
+            BigDecimal entrustValue;
+            int errorCode;
             String errorMsg;
             if (orderDirection == OrderDirectionEnum.BID.getCode()){
                 assetTypeId = AssetTypeEnum.BTC.getCode();
@@ -203,22 +199,39 @@ public class UsdkOrderManager {
                     BigDecimal lockedAmount = new BigDecimal(userCapitalDTO.getLockedAmount());
                     BigDecimal availableAmount = amount.subtract(lockedAmount);
                     //判断账户可用余额是否大于orderValue
+                    Map<String, Object> param = new HashMap<>();
                     if (availableAmount.compareTo(entrustValue) >= 0){
-                        Date gmtModified = userCapitalDTO.getGmtModified();
+                        Result<Boolean> updateLockedAmountRet;
                         try{
-                            Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(userId,
-                                    userCapitalDTO.getAssetId(), String.valueOf(entrustValue), gmtModified.getTime());
-                            profiler.complelete("updateLockedAmount");
-                            if (!updateLockedAmountRet){
-                                log.error("placeOrder getCapitalService().updateLockedAmount failed usdkOrderDO:{}", usdkOrderDO);
-                                throw new BusinessException(errorCode, errorMsg);
-                            }
+                            CapitalAccountAddAmountDTO capitalAccountAddAmountDTO = new CapitalAccountAddAmountDTO();
+                            capitalAccountAddAmountDTO.setAddOrderLocked(entrustValue);
+                            capitalAccountAddAmountDTO.setUserId(userId);
+                            capitalAccountAddAmountDTO.setAssetId(userCapitalDTO.getAssetId());
+                            updateLockedAmountRet = assetWriteService.addCapitalAmount(capitalAccountAddAmountDTO, orderId.toString(), AssetOperationTypeEnum.USDT_EXCHANGE_PLACE_ORDER.getCode());
+                            profiler.complelete("addCapitalAmount");
                         }catch (Exception e){
-                            log.error("Asset RPC Error!, placeOrder getCapitalService().updateLockedAmount exception usdkOrderDO:{}", usdkOrderDO, e);
-                            throw new RuntimeException("placeOrder getCapitalService().updateLockedAmount exception");
+                            param.put("userId", userId);
+                            param.put("assetId", userCapitalDTO.getAssetId());
+                            param.put("entrustValue", entrustValue);
+                            LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), orderId.toString(), param, "Asset RPC Error!, placeOrder assetWriteService.addCapitalAmount exception", e);
+                            throw new RuntimeException("placeOrder assetWriteService.addCapitalAmount exception");
+                        }
+                        if (!updateLockedAmountRet.isSuccess() || !updateLockedAmountRet.getData()){
+                            param.put("userId", userId);
+                            param.put("assetId", userCapitalDTO.getAssetId());
+                            param.put("entrustValue", entrustValue);
+                            param.put("totalAmount", amount);
+                            param.put("availableAmount", availableAmount);
+                            LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), orderId.toString(), param, "errorCode:"+ updateLockedAmountRet.getCode() + ", errorMsg:"+ updateLockedAmountRet.getMessage());
+                            throw new BusinessException(errorCode, errorMsg);
                         }
                     }else {
-                        log.error("totalAmount:{}, entrustValue:{}, availableAmount:{}", amount, entrustValue, availableAmount);
+                        param.put("userId", userId);
+                        param.put("assetId", userCapitalDTO.getAssetId());
+                        param.put("entrustValue", entrustValue);
+                        param.put("totalAmount", amount);
+                        param.put("availableAmount", availableAmount);
+                        LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), orderId.toString(), param, errorMsg);
                         throw new BusinessException(errorCode, errorMsg);
                     }
                 }
@@ -229,10 +242,9 @@ public class UsdkOrderManager {
             //强平单处理
             int ret = insertUsdkOrder(usdkOrderDO);
             if (ret <= 0){
-                log.error("insert contractOrder failed");
+                LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), orderId.toString(), usdkOrderDO, "insert contractOrder failed");
                 throw new RuntimeException("insert contractOrder failed");
             }
-            orderId = usdkOrderDO.getId();
             BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
             tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                     1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getTotalAmount(), transferTime, 3, usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 2);
@@ -243,7 +255,7 @@ public class UsdkOrderManager {
            CoinPlaceOrderMessage placeOrderMessage = toCoinPlaceOrderMessage(usdkOrderDO);
            Boolean sendRet = rocketMqManager.sendMessage(TopicConstants.TRD_COIN_ORDER, placeOrderMessage.getSubjectId()+"", placeOrderMessage.getOrderId()+"", placeOrderMessage);
            if (!sendRet){
-               log.error("Send RocketMQ Message Failed ");
+               LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), String.valueOf(usdkOrderDO.getId()), placeOrderMessage, "Send RocketMQ Message Failed, placeOrderMessage={}");
            }
        };
        ThreadContextUtil.setPostTask(postTask);
@@ -255,8 +267,9 @@ public class UsdkOrderManager {
 
     @Transactional(rollbackFor={Throwable.class})
     public Result<List<PlaceOrderResult>> batchOrder(PlaceOrderRequest<PlaceCoinOrderDTO> placeOrderRequest) throws Exception{
+        Long batchOrderId = BasicUtils.generateId();
         if (!placeOrderRequest.checkParam()){
-            log.error("checkParam failed, placOrderRequest");
+            LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), batchOrderId.toString(), placeOrderRequest, "checkParam failed, placOrderRequest");
             return Result.fail(ILLEGAL_PARAM.getCode(), ILLEGAL_PARAM.getMessage());
         }
         Profiler profiler = new Profiler("UsdkOrderManager.batchOrder");
@@ -267,6 +280,7 @@ public class UsdkOrderManager {
         List<UsdkOrderDO> usdkOrderDOList = new ArrayList<>();
         if (CollectionUtils.isEmpty(reqList) || reqList.size() > Constant.BATCH_ORDER_MAX_SIZE){
             log.error("out of max order size");
+            LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), batchOrderId.toString(), reqList, "out of max order size");
             return result.error(ResultCodeEnum.BATCH_SIZE_OUT_OF_LIMIT.getCode(),ResultCodeEnum.BATCH_SIZE_OUT_OF_LIMIT.getMessage());
         }
         Map<Integer, BigDecimal> map = new HashMap<>();
@@ -344,32 +358,31 @@ public class UsdkOrderManager {
         //插入委托订单记录
         int ret = batchInsertUsdkOrder(usdkOrderDOList);
         profiler.complelete("insertUsdkOrder");
-        if (ret <= 0){
-            log.error("insert contractOrder failed");
-            throw new RuntimeException("insert contractOrder failed");
+        if (ret < usdkOrderDOList.size()){
+            LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), batchOrderId.toString(), usdkOrderDOList, "batchInsertUsdkOrder failed");
+            throw new RuntimeException("batchInsertUsdkOrder failed");
         }
 
         //非强平单委托冻结
         if (map.size() > 0){
-            CoinExchangeOrderBatchLock coinExchangeOrderBatchLock = new CoinExchangeOrderBatchLock();
-            List<CoinExchangeOrderBatchLock.CoinExchangeOrderLockAmount> coinExchangeOrderLockAmountList = new ArrayList<>();
+            List<CapitalAccountAddAmountDTO> capitalAccountAddAmountDTOS = new ArrayList<>();
             for(Integer key : map.keySet()){
-                CoinExchangeOrderBatchLock.CoinExchangeOrderLockAmount coinExchangeOrderLockAmount = new CoinExchangeOrderBatchLock().new CoinExchangeOrderLockAmount();
-                coinExchangeOrderLockAmount.setAssetId(key);
-                coinExchangeOrderLockAmount.setOrderLockAmount(map.get(key));
-                coinExchangeOrderLockAmountList.add(coinExchangeOrderLockAmount);
+                CapitalAccountAddAmountDTO capitalAccountAddAmountDTO = new CapitalAccountAddAmountDTO();
+                capitalAccountAddAmountDTO.setAssetId(key);
+                capitalAccountAddAmountDTO.setAddOrderLocked(map.get(key));
+                capitalAccountAddAmountDTO.setUserId(userId);
+                capitalAccountAddAmountDTOS.add(capitalAccountAddAmountDTO);
             }
-            coinExchangeOrderBatchLock.setCoinExchangeOrderLockAmount(coinExchangeOrderLockAmountList);
-            coinExchangeOrderBatchLock.setUserId(userId);
+            Result<Boolean> updateLockedAmountRet;
             try {
-                Result<Boolean> updateLockedAmountRet = getCapitalService().batchUpdateLockedAmount(coinExchangeOrderBatchLock);
-                if (!updateLockedAmountRet.getData() || !updateLockedAmountRet.isSuccess()){
-                    log.error("CapitalService().batchUpdateLockedAmount failed, coinExchangeOrderBatchLock = ", coinExchangeOrderBatchLock);
-                    throw new Exception("CapitalService().batchUpdateLockedAmount failed");
-                }
+                updateLockedAmountRet = assetWriteService.batchAddCapitalAmount(capitalAccountAddAmountDTOS, batchOrderId.toString(), AssetOperationTypeEnum.USDT_EXCHANGE_BATCH_PLACE_ORDER.getCode());
             }catch (Exception e){
-                log.error("CapitalService().batchUpdateLockedAmount exception, coinExchangeOrderBatchLock = ", coinExchangeOrderBatchLock , e);
-                throw new Exception("CapitalService().batchUpdateLockedAmount exception");
+                LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), batchOrderId.toString(), capitalAccountAddAmountDTOS, "assetWriteService.batchAddCapitalAmount exception", e);
+                throw new Exception("assetWriteService.batchAddCapitalAmount exception");
+            }
+            if (!updateLockedAmountRet.getData() || !updateLockedAmountRet.isSuccess()){
+                LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), batchOrderId.toString(), capitalAccountAddAmountDTOS, "errorCode:"+ updateLockedAmountRet.getCode() + ", errorMsg:"+ updateLockedAmountRet.getMessage());
+                throw new Exception("assetWriteService.batchAddCapitalAmount failed");
             }
         }
         //批量发送mq消息一定要在事务外发，不然会出现收到下单消息，db还没有这个订单
@@ -380,7 +393,7 @@ public class UsdkOrderManager {
             }
             Boolean sendRet = rocketMqManager.batchSendMessage(TopicConstants.TRD_COIN_ORDER, x -> x.getSubjectId() + "", x -> x.getOrderId()+"", placeOrderMessages);
             if (!sendRet){
-                log.error("Send RocketMQ Message Failed ");
+                LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), batchOrderId.toString(), placeOrderMessages, "batchSendMessage Failed");
             }
         };
         ThreadContextUtil.setPostTask(postTask);
@@ -415,6 +428,7 @@ public class UsdkOrderManager {
                     competitorsPrice.getId() == assetId).findFirst().orElse(null);
 
             if (null == competitorsPriceDTO || null == competitorsPriceDTO.getPrice() || BigDecimal.ZERO.compareTo(competitorsPriceDTO.getPrice()) >= 0){
+                LogUtil.error( "computeAndCheckOrderPrice", null, competitorsPriceDTO, NO_COMPETITORS_PRICE.getMessage());
                 return Result.fail(NO_COMPETITORS_PRICE.getCode(), NO_COMPETITORS_PRICE.getMessage());
             }
             return Result.suc(competitorsPriceDTO.getPrice().setScale(scale, BigDecimal.ROUND_DOWN));
@@ -429,6 +443,7 @@ public class UsdkOrderManager {
             orderPrice = orderDirection == ASK.getCode() ? sellMinPrice : buyMaxPrice;
             if (orderPrice.compareTo(BigDecimal.ZERO) <=0) {
                 log.error("=== assetId:{}, scale:{}, curPrice:{}, buyMaxPrice:{}, sellMinPrice:{}", assetId, scale, curPrice, buyMaxPrice, sellMinPrice);
+                LogUtil.error( "computeAndCheckOrderPrice", null, orderPrice, AMOUNT_ILLEGAL.getMessage());
                 return Result.fail(AMOUNT_ILLEGAL.getCode(), AMOUNT_ILLEGAL.getMessage());
             }
             return Result.suc(orderPrice);
@@ -451,13 +466,16 @@ public class UsdkOrderManager {
     public ResultCode cancelOrder(Long userId, Long orderId, Map<String, String> userInfoMap) throws Exception{
         ResultCode resultCode = ResultCode.success();
         if (Objects.isNull(userId) || Objects.isNull(orderId)) {
+            LogUtil.error( TradeBizTypeEnum.COIN_CANCEL_ORDER.toString(), String.valueOf(orderId), orderId, ResultCodeEnum.ILLEGAL_PARAM.getMessage());
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), ResultCodeEnum.ILLEGAL_PARAM.getMessage());
         }
         UsdkOrderDO usdkOrderDO = usdkOrderMapper.selectByUserIdAndId(userId, orderId);
         if (Objects.isNull(usdkOrderDO)) {
+            LogUtil.error( TradeBizTypeEnum.COIN_CANCEL_ORDER.toString(), String.valueOf(orderId), usdkOrderDO, ResultCodeEnum.ILLEGAL_PARAM.getMessage());
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), ResultCodeEnum.ILLEGAL_PARAM.getMessage());
         }
         if (usdkOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()) {
+            LogUtil.error( TradeBizTypeEnum.COIN_CANCEL_ORDER.toString(), String.valueOf(orderId), orderId, ResultCodeEnum.ENFORCE_ORDER_CANNOT_BE_CANCELED.getMessage());
             return ResultCode.error(ResultCodeEnum.ENFORCE_ORDER_CANNOT_BE_CANCELED.getCode(),
                     ResultCodeEnum.ENFORCE_ORDER_CANNOT_BE_CANCELED.getMessage());
         }
@@ -470,17 +488,21 @@ public class UsdkOrderManager {
     public Result batchCancelOrder(Long userId, List<Long> orderIds) throws Exception{
         Result result = Result.suc("success");
         if (Objects.isNull(userId) || CollectionUtils.isEmpty(orderIds)) {
+            LogUtil.error( TradeBizTypeEnum.COIN_CANCEL_ORDER.toString(), null, orderIds, ResultCodeEnum.ILLEGAL_PARAM.getMessage());
             return Result.fail(ResultCodeEnum.ILLEGAL_PARAM.getCode(), ResultCodeEnum.ILLEGAL_PARAM.getMessage());
         }
         if (orderIds.size() > Constant.BATCH_ORDER_MAX_SIZE){
+            LogUtil.error( TradeBizTypeEnum.COIN_CANCEL_ORDER.toString(), null, orderIds, ResultCodeEnum.BATCH_SIZE_OUT_OF_LIMIT.getMessage());
             return result.error(ResultCodeEnum.BATCH_SIZE_OUT_OF_LIMIT.getCode(),ResultCodeEnum.BATCH_SIZE_OUT_OF_LIMIT.getMessage());
         }
         List<UsdkOrderDO> usdkOrderDOList = usdkOrderMapper.listByUserIdAndIds(userId, orderIds);
         if (CollectionUtils.isEmpty(usdkOrderDOList) || usdkOrderDOList.size() != orderIds.size()) {
+            LogUtil.error( TradeBizTypeEnum.COIN_CANCEL_ORDER.toString(), null, orderIds, ResultCodeEnum.ILLEGAL_PARAM.getMessage());
             return Result.fail(ResultCodeEnum.ILLEGAL_PARAM.getCode(), ResultCodeEnum.ILLEGAL_PARAM.getMessage());
         }
         for (UsdkOrderDO usdkOrderDO : usdkOrderDOList){
             if (usdkOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()) {
+                LogUtil.error( TradeBizTypeEnum.COIN_CANCEL_ORDER.toString(), String.valueOf(usdkOrderDO.getId()), usdkOrderDO, ResultCodeEnum.ENFORCE_ORDER_CANNOT_BE_CANCELED.getMessage());
                 return Result.fail(ResultCodeEnum.ENFORCE_ORDER_CANNOT_BE_CANCELED.getCode(),
                         ResultCodeEnum.ENFORCE_ORDER_CANNOT_BE_CANCELED.getMessage());
             }
@@ -495,7 +517,6 @@ public class UsdkOrderManager {
     @Transactional(rollbackFor = Exception.class)
     public ResultCode cancelOrderByMessage(BaseCanceledMessage baseCanceledMessage) {
         ResultCode resultCode;
-
         Integer toStatus = baseCanceledMessage.getStatus();
         long userId=baseCanceledMessage.getUserId();
         long orderId = baseCanceledMessage.getOrderId();
@@ -504,7 +525,7 @@ public class UsdkOrderManager {
 
         //更新usdk委托表
         int ret = usdkOrderMapper.cancel(userId, orderId, toStatus);
-        Long transferTime = System.currentTimeMillis();
+        Map<String, Object> parameter = new HashMap<>();
         if (ret > 0){
             Integer orderDirection = usdkOrderDO.getOrderDirection();
             Integer assetId = 0;
@@ -518,17 +539,25 @@ public class UsdkOrderManager {
                 unlockAmount = unfilledAmount;
             }
             //解冻Coin钱包账户
+            Result<Boolean> updateLockedAmountRet;
             try{
-                Boolean updateLockedAmountRet = getCapitalService().updateLockedAmount(usdkOrderDO.getUserId(),assetId,unlockAmount.negate().toString(), 0L);
-                if (!updateLockedAmountRet){
-                    log.error("cancelOrder getCapitalService().updateLockedAmount failed usdkOrderDO:{}", usdkOrderDO);
-                    throw new BizException(BIZ_ERROR.getCode(),"cancelOrder getCapitalService().updateLockedAmount failed");
-                }
+                CapitalAccountAddAmountDTO capitalAccountAddAmountDTO = new CapitalAccountAddAmountDTO();
+                capitalAccountAddAmountDTO.setAddOrderLocked(unlockAmount.negate());
+                capitalAccountAddAmountDTO.setUserId(userId);
+                capitalAccountAddAmountDTO.setAssetId(assetId);
+                updateLockedAmountRet = assetWriteService.addCapitalAmount(capitalAccountAddAmountDTO, String.valueOf(orderId), AssetOperationTypeEnum.USDT_EXCHANGE_CANCLE_ORDER.getCode());
             }catch (Exception e){
-                log.error("Asset RPC Error!, cancelOrder getCapitalService().updateLockedAmount exception usdkOrderDO:{}", usdkOrderDO, e);
-                throw new BizException(BIZ_ERROR.getCode(),"cancelOrder getCapitalService().updateLockedAmount exception");
+                parameter.put("assetId", assetId);
+                parameter.put("lockedAmount", unlockAmount.negate().toString());
+                LogUtil.error( TradeBizTypeEnum.COIN_CANCEL_ORDER.toString(), String.valueOf(orderId), parameter, "Asset RPC Error!, assetWriteService.addCapitalAmount.updateLockedAmount exception", e);
+                throw new BizException(BIZ_ERROR.getCode(),"cancelOrder assetWriteService.addCapitalAmount exception");
             }
-
+            if (!updateLockedAmountRet.isSuccess() || !updateLockedAmountRet.getData()){
+                parameter.put("assetId", assetId);
+                parameter.put("lockedAmount", unlockAmount.negate().toString());
+                LogUtil.error( TradeBizTypeEnum.COIN_CANCEL_ORDER.toString(), String.valueOf(orderId), parameter, "errorCode:"+ updateLockedAmountRet.getCode() + ", errorMsg:"+ updateLockedAmountRet.getMessage());
+                throw new BizException(BIZ_ERROR.getCode(),"cancelOrder assetWriteService.addCapitalAmount failed");
+            }
             JSONObject jsonObject = JSONObject.parseObject(usdkOrderDO.getOrderContext());
             String username = "";
             if (jsonObject != null && !jsonObject.isEmpty()) {
@@ -540,7 +569,10 @@ public class UsdkOrderManager {
             sendCanceledMessage(usdkOrderDO, unfilledAmount);
             resultCode = ResultCode.success();
         }else {
-            return ResultCode.error(ResultCodeEnum.BIZ_ERROR.getCode(), "usdkOrderMapper.updateByOpLock failed" + usdkOrderDO.getId());
+            parameter.put("userId", userId);
+            parameter.put("toStatus", toStatus);
+            LogUtil.error( TradeBizTypeEnum.COIN_CANCEL_ORDER.toString(), String.valueOf(orderId), parameter, "usdkOrderMapper.cancel failed");
+            return ResultCode.error(ResultCodeEnum.BIZ_ERROR.getCode(), "usdkOrderMapper.cancel failed" + usdkOrderDO.getId());
         }
         return resultCode;
     }
@@ -554,7 +586,7 @@ public class UsdkOrderManager {
         orderMessage.setUnfilledAmount(unfilledAmount);
         Boolean sendRet = rocketMqManager.sendMessage(TRD_COIN_CANCELED, orderMessage.getSubjectId()+"", orderMessage.getOrderId()+"", orderMessage);
         if (!sendRet){
-            log.error("Send RocketMQ Message Failed ");
+            LogUtil.error( TradeBizTypeEnum.COIN_CANCEL_ORDER.toString(), String.valueOf(usdkOrderDO.getId()), orderMessage, "Send RocketMQ Message Failed");
         }
     }
 
@@ -573,7 +605,7 @@ public class UsdkOrderManager {
             Boolean sendRet = rocketMqManager.sendMessage(TRD_COIN_CANCEL_REQ, "coin",
                     Joiner.on("_").join(subList), cancelReqMessage);
             if (BooleanUtils.isNotTrue(sendRet)){
-                log.error("failed to send cancel usdk mq, {}", userId);
+                LogUtil.error( TradeBizTypeEnum.COIN_CANCEL_ORDER.toString(), null, cancelReqMessage, "failed to send cancel usdk mq");
             }
         });
 
@@ -601,7 +633,7 @@ public class UsdkOrderManager {
     public ResultCode updateOrderByMatch(UsdkMatchedOrderDTO usdkMatchedOrderDTO) throws Exception {
         Profiler profiler =  null == ThreadContextUtil.getPrifiler() ? new Profiler("UsdkOrderManager.updateOrderByMatch", usdkMatchedOrderDTO.getId().toString()) : ThreadContextUtil.getPrifiler();
         if (usdkMatchedOrderDTO == null) {
-            log.error(ResultCodeEnum.ILLEGAL_PARAM.getMessage());
+            LogUtil.error( TradeBizTypeEnum.CONTRACT_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), usdkMatchedOrderDTO, ResultCodeEnum.ILLEGAL_PARAM.getMessage());
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), "illegal usdkMatchedOrderDTO" + usdkMatchedOrderDTO);
         }
         Long transferTime = System.currentTimeMillis();
@@ -610,19 +642,28 @@ public class UsdkOrderManager {
         UsdkOrderDO bidUsdkOrder = usdkOrderMapper.selectByUserIdAndId(usdkMatchedOrderDTO.getBidUserId(), usdkMatchedOrderDTO.getBidOrderId());
         profiler.complelete("select order");
         if (null == askUsdkOrder ) {
+            LogUtil.error( TradeBizTypeEnum.CONTRACT_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), askUsdkOrder, "null askOrder!!! ");
             return ResultCode.error(ILLEGAL_PARAM.getCode(), "null askOrder!!! ");
         }
         if (null == bidUsdkOrder) {
+            LogUtil.error( TradeBizTypeEnum.CONTRACT_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), bidUsdkOrder, "null bidOrder!!! ");
             return ResultCode.error(ILLEGAL_PARAM.getCode(), "null bidOrder!!! ");
         }
         List<UsdkOrderDO> usdkOrderDOS = Arrays.asList(askUsdkOrder, bidUsdkOrder);
         usdkOrderDOS.sort((a, b) -> a.getId().compareTo(b.getId()));
 
         BigDecimal filledAmount = new BigDecimal(usdkMatchedOrderDTO.getFilledAmount());
+        Map<String, Object> parameter = new HashMap<>();
         if (BasicUtils.gt(filledAmount, askUsdkOrder.getUnfilledAmount())){
+            parameter.put("filledAmount", filledAmount);
+            parameter.put("askUnfilledAmount", askUsdkOrder.getUnfilledAmount());
+            LogUtil.error( TradeBizTypeEnum.CONTRACT_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), parameter, "askOrder unfilledAmount not enough");
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), "askOrder unfilledAmount not enough. order="+askUsdkOrder);
         }
         if (BasicUtils.gt(filledAmount, bidUsdkOrder.getUnfilledAmount())){
+            parameter.put("filledAmount", filledAmount);
+            parameter.put("bidUnfilledAmount", bidUsdkOrder.getUnfilledAmount());
+            LogUtil.error( TradeBizTypeEnum.CONTRACT_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), parameter, "bidOrder unfilledAmount not enough");
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), "bidOrder unfilledAmount not enough. order="+bidUsdkOrder);
         }
 
@@ -631,7 +672,12 @@ public class UsdkOrderManager {
         for (UsdkOrderDO usdkOrderDO : usdkOrderDOS) {
             int updateAskOrderRet = doUpdateUsdkOrder(usdkOrderDO.getUserId(), usdkOrderDO.getId(),  filledAmount, filledPrice, new Date(transferTime));
             if (updateAskOrderRet <= 0) {
-                throw new BizException(ResultCodeEnum.BIZ_ERROR.getCode(), "update askOrder failed, order=" + usdkOrderDO);
+                parameter.put("userId", usdkOrderDO.getUserId());
+                parameter.put("orderId", usdkOrderDO.getId());
+                parameter.put("filledAmount", filledAmount);
+                parameter.put("filledPrice", filledPrice);
+                LogUtil.error( TradeBizTypeEnum.CONTRACT_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), parameter, "doUpdateUsdkOrder failed");
+                throw new BizException(ResultCodeEnum.BIZ_ERROR.getCode(), "doUpdateUsdkOrder failed, order=" + usdkOrderDO);
             }
         }
         profiler.complelete("update usdt order");
@@ -653,53 +699,58 @@ public class UsdkOrderManager {
         BigDecimal addAskTotalBTC = filledAmount.multiply(filledPrice);
         BigDecimal addLockedAsset = filledAmount;
         BigDecimal addTotalAsset = filledAmount;
-        BalanceTransferDTO balanceTransferDTO = new BalanceTransferDTO();
-        balanceTransferDTO.setAskUserId(askUsdkOrder.getUserId());
-        balanceTransferDTO.setBidUserId(bidUsdkOrder.getUserId());
-        if (askUsdkOrder.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
-            balanceTransferDTO.setAskTotalUsdk("0");
-            balanceTransferDTO.setAskLockedAsset("0");
-            balanceTransferDTO.setAskTotalAsset("0");
-        }else {
-            balanceTransferDTO.setAskTotalUsdk(addAskTotalBTC.toString());
-            balanceTransferDTO.setAskLockedAsset(addLockedAsset.toString());
-            balanceTransferDTO.setAskTotalAsset(addTotalAsset.toString());
+        List<CapitalAccountAddAmountDTO> updateList = new ArrayList<>();
+        if (!askUsdkOrder.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
+            //卖方BTC账户增加
+            CapitalAccountAddAmountDTO askBtcCapital = new CapitalAccountAddAmountDTO();
+            askBtcCapital.setUserId(askUsdkOrder.getUserId());
+            askBtcCapital.setAssetId(AssetTypeEnum.BTC.getCode());
+            askBtcCapital.setAddTotal(addAskTotalBTC);
+            updateList.add(askBtcCapital);
+            //卖方对应资产账户的冻结和总金额减少
+            CapitalAccountAddAmountDTO askMatchAssetCapital = new CapitalAccountAddAmountDTO();
+            askMatchAssetCapital.setUserId(askUsdkOrder.getUserId());
+            askMatchAssetCapital.setAssetId(usdkMatchedOrderDTO.getAssetId());
+            askMatchAssetCapital.setAddTotal(addTotalAsset.negate());
+            askMatchAssetCapital.setAddOrderLocked(addLockedAsset.negate());
+            updateList.add(askMatchAssetCapital);
         }
-        if (bidUsdkOrder.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
-            balanceTransferDTO.setBidTotalAsset("0");
-            balanceTransferDTO.setBidTotalUsdk("0");
-            balanceTransferDTO.setBidLockedUsdk("0");
-        }else {
-            balanceTransferDTO.setBidTotalAsset(addBidTotalAsset.toString());
-            balanceTransferDTO.setBidTotalUsdk(addTotalBTC.toString());
-            balanceTransferDTO.setBidLockedUsdk(addLockedBTC.toString());
+        if (!bidUsdkOrder.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
+            //买方BTC账户总金额和冻结减少
+            CapitalAccountAddAmountDTO bidBtcCapital = new CapitalAccountAddAmountDTO();
+            bidBtcCapital.setUserId(bidUsdkOrder.getUserId());
+            bidBtcCapital.setAssetId(AssetTypeEnum.BTC.getCode());
+            bidBtcCapital.setAddTotal(addTotalBTC.negate());
+            bidBtcCapital.setAddOrderLocked(addLockedBTC.negate());
+            updateList.add(bidBtcCapital);
+            //买方对应资产账户总金额增加
+            CapitalAccountAddAmountDTO bidMatchAssetCapital = new CapitalAccountAddAmountDTO();
+            bidMatchAssetCapital.setUserId(bidUsdkOrder.getUserId());
+            bidMatchAssetCapital.setAssetId(usdkMatchedOrderDTO.getAssetId());
+            bidMatchAssetCapital.setAddTotal(addBidTotalAsset);
+            updateList.add(bidMatchAssetCapital);
         }
-        balanceTransferDTO.setAssetId(usdkMatchedOrderDTO.getAssetId());
-        boolean updateRet = false;
+        Result<Boolean> updateRet;
         try {
-            updateRet = getCapitalService().updateBalance(balanceTransferDTO);
+            updateRet = assetWriteService.batchAddCapitalAmount(updateList, String.valueOf(usdkMatchedOrderDTO.getId()), AssetOperationTypeEnum.USDT_EXCHANGE_ORDER_DEALED.getCode());
             profiler.complelete("updateBalance");
         }catch (Exception e){
-            log.error("Asset RPC Error!, getCapitalService().updateBalance exception, balanceTransferDTO:{}", balanceTransferDTO, e);
-            throw new BizException(BIZ_ERROR.getCode(), "getCapitalService().updateBalance exception, balanceTransferDTO:{}" + balanceTransferDTO);
+            LogUtil.error( TradeBizTypeEnum.CONTRACT_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), updateList, "Asset RPC Error!, assetWriteService.batchAddCapitalAmount exception", e);
+            throw new BizException(BIZ_ERROR.getCode(), "assetWriteService.batchAddCapitalAmount exception, updateList:{}" + updateList);
         }
-        if (!updateRet) {
-            log.error("getCapitalService().updateBalance failed, balanceTransferDTO:{}", balanceTransferDTO);
-            throw new BizException(BIZ_ERROR.getCode(), "getCapitalService().updateBalance failed, balanceTransferDTO:{}" + balanceTransferDTO);
+        if (!updateRet.isSuccess() || !updateRet.getData()) {
+            LogUtil.error( TradeBizTypeEnum.CONTRACT_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), updateList, "errorCode:"+ updateRet.getCode() + ", errorMsg:"+ updateRet.getMessage());
+            throw new BizException(BIZ_ERROR.getCode(), "assetWriteService.batchAddCapitalAmount failed, updateList:{}" + updateList);
         }
         UsdkMatchedOrderDO askMatchRecordDO = com.fota.trade.common.BeanUtils.extractUsdtRecord(usdkMatchedOrderDTO, OrderDirectionEnum.ASK.getCode());
         UsdkMatchedOrderDO bidMatchRecordDO = com.fota.trade.common.BeanUtils.extractUsdtRecord(usdkMatchedOrderDTO, OrderDirectionEnum.BID.getCode());
         // 保存订单数据到数据库
-        try {
-            int ret = usdkMatchedOrder.insert(Arrays.asList(askMatchRecordDO, bidMatchRecordDO));
+        int ret = usdkMatchedOrder.insert(Arrays.asList(askMatchRecordDO, bidMatchRecordDO));
             profiler.complelete("insert match record");
-            if (ret < 2){
-                throw new RuntimeException("usdkMatchedOrder.insert failed{}");
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("usdkMatchedOrder.insert exception{}",e);
+        if (ret < 2){
+            LogUtil.error( TradeBizTypeEnum.CONTRACT_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), Arrays.asList(askMatchRecordDO, bidMatchRecordDO), "usdkMatchedOrder.insert failed");
+            throw new RuntimeException("usdkMatchedOrder.insert failed");
         }
-
         long matchId = usdkMatchedOrderDTO.getId();
         Runnable runnable = () -> {
             Map<String, Object> askOrderContext = new HashMap<>();

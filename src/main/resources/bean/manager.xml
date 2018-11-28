@@ -35,6 +35,7 @@
     <dubbo:reference interface="com.fota.asset.service.AssetService" id="AssetService"/>
     <dubbo:reference interface="com.fota.asset.service.CapitalService" id="capitalService"  />
     <dubbo:reference interface="com.fota.asset.service.ContractService" id="contractService" />
+    <dubbo:reference interface="com.fota.asset.service.AssetWriteService" id="assetWriteService" />
 
     <dubbo:reference interface="com.fota.match.service.UsdkMatchedOrderService" id="usdkMatchedOrderService" />
     <dubbo:reference interface="com.fota.match.service.ContractMatchedOrderService" id="contractMatchedOrderService" />

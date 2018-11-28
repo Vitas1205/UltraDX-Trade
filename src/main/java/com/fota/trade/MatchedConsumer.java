@@ -1,8 +1,10 @@
 package com.fota.trade;
 
 import com.alibaba.fastjson.JSON;
-import com.fota.trade.client.BizTypeEnum;
+import com.fota.common.utils.LogUtil;
+import com.fota.trade.common.TradeBizTypeEnum;
 import com.fota.trade.domain.ContractMatchedOrderDTO;
+import com.fota.trade.domain.MQMessage;
 import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.UsdkMatchedOrderDTO;
 import com.fota.trade.manager.RedisManager;
@@ -32,6 +34,7 @@ import static com.fota.trade.client.BizTypeEnum.COIN;
 import static com.fota.trade.client.BizTypeEnum.CONTRACT;
 import static com.fota.trade.common.Constant.MQ_REPET_JUDGE_KEY_MATCH;
 import static com.fota.trade.common.ResultCodeEnum.ILLEGAL_PARAM;
+import static com.fota.trade.common.TradeBizTypeEnum.*;
 
 /**
  * @Author: Harry Wang
@@ -63,11 +66,11 @@ public class MatchedConsumer {
     public void init() throws InterruptedException, MQClientException {
 
         coinMatchedConsumer = initMatchedConsumer(TopicConstants.MCH_COIN_MATCH,
-                (List<MessageExt> msgs, ConsumeConcurrentlyContext context) ->  consumeMatchedMessage(msgs, context, COIN)
+                (List<MessageExt> msgs, ConsumeConcurrentlyContext context) ->  consumeMatchedMessage(msgs, context, COIN_DEAL)
         );
 
         contractMatchedConsumer = initMatchedConsumer(TopicConstants.MCH_CONTRACT_MATCH,
-                (List<MessageExt> msgs, ConsumeConcurrentlyContext context) ->  consumeMatchedMessage(msgs, context, CONTRACT)
+                (List<MessageExt> msgs, ConsumeConcurrentlyContext context) ->  consumeMatchedMessage(msgs, context, CONTRACT_DEAL)
         );
 
 
@@ -92,7 +95,7 @@ public class MatchedConsumer {
         return consumer;
     }
 
-    public ConsumeConcurrentlyStatus consumeMatchedMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context, BizTypeEnum bizType){
+    public ConsumeConcurrentlyStatus consumeMatchedMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context, TradeBizTypeEnum bizType){
         if (CollectionUtils.isEmpty(msgs)) {
             log.error("message error!");
             return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
@@ -104,11 +107,11 @@ public class MatchedConsumer {
 
         ResultCode resultCode = null;
 
-        String existKey = MQ_REPET_JUDGE_KEY_MATCH  + messageExt.getTags() + "_" + mqKey;
+        String existKey = MQ_REPET_JUDGE_KEY_MATCH  + mqKey;
         //判断是否已经成交
         boolean locked = redisManager.tryLock(existKey, Duration.ofHours(1));
         if (!locked) {
-            logSuccessMsg(messageExt, "already consumed, not retry");
+            logErrorMsg(bizType, "already consumed, not retry", messageExt);
             return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
         }
 
@@ -121,17 +124,17 @@ public class MatchedConsumer {
                 log.error("get mq message failed", e);
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
-            if (COIN.equals(bizType)) {
+            if (COIN_DEAL.equals(bizType)) {
                 UsdkMatchedOrderDTO usdkMatchedOrderDTO = JSON.parseObject(bodyStr, UsdkMatchedOrderDTO.class);
                 resultCode = usdkOrderService.updateOrderByMatch(usdkMatchedOrderDTO);
 
-            } else if (CONTRACT.equals(bizType)) {
+            } else if (CONTRACT_DEAL.equals(bizType)) {
                 ContractMatchedOrderDTO contractMatchedOrderDTO = JSON.parseObject(bodyStr, ContractMatchedOrderDTO.class);
                 resultCode = contractOrderService.updateOrderByMatch(contractMatchedOrderDTO);
             }
 
             if (!resultCode.isSuccess()) {
-                logFailMsg("resultCode="+resultCode, messageExt);
+                logErrorMsg(bizType, "resultCode="+resultCode, messageExt);
                 if (resultCode.getCode() == ILLEGAL_PARAM.getCode()) {
                     return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
                 }
@@ -142,43 +145,24 @@ public class MatchedConsumer {
             redisManager.set(existKey, "1", Duration.ofDays(1));
             return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
         } catch (Exception e) {
-            logFailMsg(messageExt, e);
+            logErrorMsg(bizType, messageExt, e);
             redisManager.del(existKey);
             return ConsumeConcurrentlyStatus.RECONSUME_LATER;
         }
     }
 
-    private void logSuccessMsg(MessageExt messageExt, String extInfo) {
-        String body = null;
-        try {
-            body = new String(messageExt.getBody(), "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            log.error("get mq message failed", e);
-        }
-        log.info("consume message success, extInfo={}, msgId={}, msgKey={}, tag={},  body={}, reconsumeTimes={}",extInfo,  messageExt.getMsgId(), messageExt.getKeys(), messageExt.getTags(),
-                body, messageExt.getReconsumeTimes());
+    public static void logErrorMsg(TradeBizTypeEnum bizType, MessageExt messageExt, Throwable t) {
+        String errorMsg = String.format("consumeTimes:%s ",  messageExt.getReconsumeTimes());
+        LogUtil.error( bizType, messageExt.getKeys(), MQMessage.of(messageExt),
+                errorMsg, t);
     }
-    private void logFailMsg(MessageExt messageExt, Throwable t) {
-        String body = null;
-        try {
-            body = new String(messageExt.getBody(), "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            log.error("get mq message failed", e);
-        }
-        log.error("consume message exception, msgId={}, msgKey={}, tag={},  body={}, reconsumeTimes={}", messageExt.getMsgId(), messageExt.getKeys(), messageExt.getTags(),
-                body, messageExt.getReconsumeTimes(), t);
+
+    public static void logErrorMsg(TradeBizTypeEnum bizType, String cause, MessageExt messageExt) {
+        String errorMsg = String.format("cause:%s, consumeTimes:%s ", cause, messageExt.getReconsumeTimes());
+        LogUtil.error( bizType, messageExt.getKeys(), MQMessage.of(messageExt),
+                errorMsg);
     }
-    private void logFailMsg(String cause, MessageExt messageExt) {
-        String body = null;
-        try {
-            body = new String(messageExt.getBody(), "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            log.error("get mq message failed", e);
-        }
-        log.error("consume message failed, cause={}, msgId={}, msgKey={}, tag={},  body={}, reconsumeTimes={}",
-                cause, messageExt.getMsgId(), messageExt.getKeys(), messageExt.getTags(),
-                body, messageExt.getReconsumeTimes());
-    }
+
 
     @PreDestroy
     public void destory(){

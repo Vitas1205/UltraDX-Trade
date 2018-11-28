@@ -1,8 +1,16 @@
 package com.fota.trade.domain;
 
+import com.fota.common.utils.LogUtil;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
+import org.apache.rocketmq.common.message.MessageExt;
+
+import java.io.UnsupportedEncodingException;
+
+import static com.fota.trade.client.constants.Constants.UTF8;
+import static com.fota.trade.common.TradeBizTypeEnum.COMMON;
 
 /**
  * Created by Swifree on 2018/9/20.
@@ -10,6 +18,7 @@ import org.apache.rocketmq.client.producer.MessageQueueSelector;
  */
 @Data
 @NoArgsConstructor
+@Slf4j
 public class MQMessage {
 
     private String topic;
@@ -38,5 +47,15 @@ public class MQMessage {
         this.message = message;
         this.queueSelector = queueSelector;
         this.queueSelectorArg = queueSelectorArg;
+    }
+    public static MQMessage of(MessageExt messageExt) {
+        String body;
+        try {
+            body = new String(messageExt.getBody(), UTF8);
+        } catch (UnsupportedEncodingException e) {
+            LogUtil.error( COMMON, null, messageExt.getBody(), "UnsupportedEncodingException "+UTF8);
+            return null;
+        }
+        return new MQMessage(messageExt.getTopic(), messageExt.getTags(), messageExt.getKeys(), body);
     }
 }

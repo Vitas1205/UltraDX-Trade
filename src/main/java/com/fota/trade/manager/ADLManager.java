@@ -7,6 +7,7 @@ import com.fota.risk.client.manager.RelativeRiskLevelManager;
 import com.fota.trade.PriceTypeEnum;
 import com.fota.trade.common.BizException;
 import com.fota.trade.common.ResultCodeEnum;
+import com.fota.trade.common.UpdatePositionResult;
 import com.fota.trade.domain.ContractADLMatchDTO;
 import com.fota.trade.domain.ContractMatchedOrderDO;
 import com.fota.trade.domain.UserPositionDO;
@@ -29,6 +30,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 import static com.fota.common.ResultCodeEnum.ILLEGAL_PARAM;
@@ -64,7 +66,7 @@ public class ADLManager {
 
     private static final Logger ADL_EXTEA_LOG = LoggerFactory.getLogger("adlExtraInfo");
 
-//    private static final ExecutorService executorService = new ThreadPoolExecutor(1, 10, 10, TimeUnit.MINUTES, new LinkedBlockingDeque<>());
+    private static final ExecutorService executorService = new ThreadPoolExecutor(4, 10, 3, TimeUnit.MINUTES, new LinkedBlockingDeque<>());
     /**
      * 自动减仓
      *
@@ -80,7 +82,7 @@ public class ADLManager {
         if (1 != aff) {
             return Result.fail(ILLEGAL_PARAM.getCode(), "duplicate message or concurrency problem");
         }
-        List<ContractDealedMessage> postDealMessages = new LinkedList<>();
+        List<ContractDealedMessage> allPostDealTasks = new LinkedList<>();
 
 
         List<ContractDealedMessage> matchedPostDeal = dealManager.processNoEnforceMatchedOrders(adlMatchDTO);
@@ -130,7 +132,7 @@ public class ADLManager {
                 postDealMessage.setFilledPrice(adlPrice);
                 postDealMessage.setMsgKey(adlMatchDTO.getId()+"_"+BasicUtils.generateId());
                 postDealMessage.setSubjectName(adlMatchDTO.getContractName());
-                postDealMessages.add(postDealMessage);
+                allPostDealTasks.add(postDealMessage);
                 contractMatchedOrderDOS.add(ConvertUtils.toMatchedOrderDO(postDealMessage,
                         adlPrice, DECREASE_LEVERAGE.getCode(), adlMatchDTO.getUserId(), ConvertUtils.opDirection(adlMatchDTO.getDirection())
                 ));
@@ -163,21 +165,27 @@ public class ADLManager {
         //更新持仓,账户余额
         if (!CollectionUtils.isEmpty(matchedPostDeal)) {
             //处理已经撮合的非强平单
-            postDealMessages.addAll(matchedPostDeal);
+            allPostDealTasks.addAll(matchedPostDeal);
         }
-        postDealMessages.add(getContractDealedMessage4EnforceOrder(adlMatchDTO));
-        for (ContractDealedMessage postDealMessage : postDealMessages) {
-            Result result = dealManager.postDeal(Arrays.asList(postDealMessage), true);
-            if (!result.isSuccess()) {
+        allPostDealTasks.add(getContractDealedMessage4EnforceOrder(adlMatchDTO));
+        List<UpdatePositionResult> updatePositionResults = new LinkedList<>();
+        for (ContractDealedMessage postDealMessage : allPostDealTasks) {
+            List<ContractDealedMessage> curUserPostDealTasks =  Arrays.asList(postDealMessage);
+            UpdatePositionResult positionResult = dealManager.updatePosition(postDealMessage.getUserId(),postDealMessage.getSubjectId(), curUserPostDealTasks);
+            if (null == positionResult) {
                 throw new BizException(BIZ_ERROR.getCode(), "update position failed");
             }
+            updatePositionResults.add(positionResult);
+            Runnable task = () -> dealManager.processAfterPositionUpdated(positionResult, curUserPostDealTasks);
+            executorService.submit(task);
         }
+
         Map<String, Object> map = new HashMap<>();
         map.put("platformProfit", platformProfit);
         map.put("adlMatchDTO", adlMatchDTO);
         map.put("currentPrice", currentPrice);
+        map.put("updatePositionResults", updatePositionResults);
         map.put("adlPrice", adlPrice);
-        map.put("adlUserIds", contractMatchedOrderDOS.stream().map(ContractMatchedOrderDO::getUserId).collect(Collectors.toList()));
         ADL_EXTEA_LOG.info("{}", JSON.toJSONString(map));
         return Result.suc(null);
 
