@@ -13,7 +13,13 @@ import com.fota.common.utils.LogUtil;
 import com.fota.match.service.UsdkMatchedOrderService;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
 import com.fota.trade.PriceTypeEnum;
-import com.fota.trade.client.*;
+import com.fota.trade.client.CancelTypeEnum;
+import com.fota.trade.client.PlaceCoinOrderDTO;
+import com.fota.trade.client.PlaceOrderRequest;
+import com.fota.trade.client.PlaceOrderResult;
+import com.fota.trade.common.BizException;
+import com.fota.trade.common.BusinessException;
+import com.fota.trade.common.Constant;
 import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
@@ -48,9 +54,8 @@ import static com.fota.trade.common.ResultCodeEnum.*;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
 import static com.fota.trade.domain.enums.OrderStatusEnum.COMMIT;
-import static com.fota.trade.domain.enums.OrderTypeEnum.LIMIT;
-import static com.fota.trade.domain.enums.OrderTypeEnum.PASSIVE;
-import static com.fota.trade.domain.enums.OrderTypeEnum.RIVAL;
+import static com.fota.trade.domain.enums.OrderStatusEnum.PART_MATCH;
+import static com.fota.trade.domain.enums.OrderTypeEnum.*;
 import static com.fota.trade.msg.TopicConstants.*;
 import static java.util.stream.Collectors.toList;
 
@@ -116,6 +121,16 @@ public class UsdkOrderManager {
         com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
         Long orderId = BasicUtils.generateId();
         usdkOrderDTO.setId(orderId);
+
+        Map<String, Object> criteriaMap = new HashMap<>();
+        criteriaMap.put("userId", usdkOrderDTO.getUserId());
+        criteriaMap.put("assetId", usdkOrderDTO.getAssetId());
+        criteriaMap.put("orderStatus", Arrays.asList(COMMIT.getCode(), PART_MATCH.getCode()));
+        int count = usdkOrderMapper.countByQuery(criteriaMap);
+        if (count >= 200) {
+            profiler.complelete("too much orders");
+            return Result.fail(TOO_MUCH_ORDERS.getCode(), TOO_MUCH_ORDERS.getMessage());
+        }
 
         UsdkOrderDO usdkOrderDO = com.fota.trade.common.BeanUtils.copy(usdkOrderDTO);
         Map<String, Object> newMap = new HashMap<>();

@@ -13,10 +13,10 @@ spring:
   redis:
     lettuce:
       pool:
-        max-active: 1000
-        max-wait: 1000ms
-        max-idle: 50
-        min-idle: 10
+        max-active: 4000
+        max-wait: 100ms
+        max-idle: 1000
+        min-idle: 100
 
 service-group:  ${SPRING_SERVICE:dev}
 reference-group: ${SPRING_REFERENCE:daily}
