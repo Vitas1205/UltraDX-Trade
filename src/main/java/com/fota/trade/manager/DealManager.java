@@ -314,7 +314,9 @@ public class DealManager {
             UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedRecord(RETRY, UPDATE_POSITION.name(), postDealMessages));
             return Result.fail(BIZ_ERROR.getCode(), "update position failed");
         }
-        return processAfterPositionUpdated(positionResult, postDealMessages);
+        //更新账户余额，失败打日志 任然返回成功
+        processAfterPositionUpdated(positionResult, postDealMessages);
+        return Result.suc(null);
     }
 
     /**

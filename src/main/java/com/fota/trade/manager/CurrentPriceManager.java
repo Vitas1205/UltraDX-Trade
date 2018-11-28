@@ -28,6 +28,7 @@ public class CurrentPriceManager {
     @Autowired
     private IndexCacheManager indexCacheManager;
 
+    @Cacheable(value = "spotIndexes", sync = true)
     public List<TickerDTO> getSpotIndexes(){
         Profiler profiler = ThreadContextUtil.getPrifiler();
         List<TickerDTO> ret = indexCacheManager.listCurrentSpotIndex();
@@ -35,6 +36,15 @@ public class CurrentPriceManager {
             profiler.complelete("getDeliveryIndex");
         }
         return ret;
+    }
+
+
+
+
+    @CacheEvict("spotIndexes")
+    @Scheduled(fixedRate = 500)
+    public void deleteSpotIndexes() {
+
     }
 
 
