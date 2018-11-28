@@ -162,7 +162,7 @@
         <dependency>
 			<groupId>com.fota</groupId>
 			<artifactId>asset-client</artifactId>
-			<version>1.0.7-SNAPSHOT</version>
+			<version>1.0.7</version>
             <exclusions>
                 <exclusion>
                     <artifactId>lombok</artifactId>
