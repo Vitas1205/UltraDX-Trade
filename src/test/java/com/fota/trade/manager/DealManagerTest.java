@@ -9,9 +9,6 @@ import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.util.BasicUtils;
 import com.fota.trade.util.ContractUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.runner.RunWith;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
@@ -23,8 +20,8 @@ import static java.math.BigDecimal.ZERO;
  * Created by Swifree on 2018/9/23.
  * Code is the law
  */
-@RunWith(SpringRunner.class)
-@SpringBootTest
+//@RunWith(SpringRunner.class)
+//@SpringBootTest
 @Transactional
 @Slf4j
 public class DealManagerTest {

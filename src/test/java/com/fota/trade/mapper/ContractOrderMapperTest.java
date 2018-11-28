@@ -8,8 +8,6 @@ import com.fota.trade.util.PriceUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Test;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
@@ -29,7 +27,7 @@ import static com.fota.trade.domain.enums.OrderStatusEnum.MATCH;
 //@RunWith(SpringRunner.class)
 //@SpringBootTest
 @Slf4j
-@ContextConfiguration(classes = MapperTestConfig.class)
+//@ContextConfiguration(classes = MapperTestConfig.class)
 @Transactional
 public class ContractOrderMapperTest {
 
@@ -46,7 +44,7 @@ public class ContractOrderMapperTest {
     }
 
 
-    @Test
+//    @Test
     public void testCountByQuery() throws Exception {
         ContractOrderQuery contractOrderQuery = new ContractOrderQuery();
         contractOrderQuery.setUserId(userId);
@@ -56,7 +54,7 @@ public class ContractOrderMapperTest {
         log.info("countByQuery result={}", count);
     }
 
-    @Test
+//    @Test
     public void testListByQuery() throws Exception {
         ContractOrderQuery contractOrderQuery = new ContractOrderQuery();
         contractOrderQuery.setUserId(userId);
@@ -67,24 +65,24 @@ public class ContractOrderMapperTest {
     }
 
 
-    @Test
+//    @Test
     public void testSelectUnfinishedOrder() throws Exception {
         List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByUserId(userId);
         log.info("----------------------------" + list.size());
     }
 
-    @Test
+//    @Test
     public void testSelectNotEnforceOrderByUserId() throws Exception {
         List<ContractOrderDO> list = contractOrderMapper.selectNotEnforceOrderByUserId(userId);
         log.info("----------------------------" + list.size());
     }
-    @Test
+//    @Test
     public void testSelectNotEnforceOrderByUserIdAndContractId(){
         Object obj = contractOrderMapper.selectNotEnforceOrderByUserIdAndContractId(userId, contractOrderDO.getContractId());
         log.info("result={}", obj);
     }
 
-    @Test
+//    @Test
     public void testUpdateAmountAndStatus() throws Exception {
 
         BigDecimal filledAmount = BigDecimal.valueOf(100L);
@@ -103,13 +101,13 @@ public class ContractOrderMapperTest {
     }
 
 
-    @Test
+//    @Test
     public void selectTest() throws Exception {
         ContractOrderDO temp = contractOrderMapper.selectByIdAndUserId(userId, contractOrderDO.getId());
         log.info("----------------------------"+temp);
     }
 
-    @Test
+//    @Test
     public void listByUserIdAndOrderTypeTest() throws Exception {
         List<Integer> orderTypes = new ArrayList<>();
         orderTypes.add(0);
@@ -118,7 +116,7 @@ public class ContractOrderMapperTest {
         List<ContractOrderDO> list = contractOrderMapper.listByUserIdAndOrderType(userId,orderTypes);
         log.info("----------------------------"+list.size());
     }
-    @Test
+//    @Test
     public void testCancel(){
        int aff = contractOrderMapper.cancel(userId, contractOrderDO.getId(), CANCEL.getCode());
        assert 1 == aff;

@@ -342,7 +342,7 @@ public class ContractOrderServiceTest {
         log.info(result.toString());
     }
 
-    @Test
+//    @Test
     public void getAccountMsgTest(){
         ContractAccount contractAccount = contractOrderManager.computeContractAccount(282L);
         log.info(contractAccount.toString());
