@@ -3,7 +3,6 @@ package com.fota.trade.manager;
 import com.alibaba.dubbo.remoting.TimeoutException;
 import com.alibaba.fastjson.JSON;
 import com.fota.asset.domain.ContractAccountAddAmountDTO;
-import com.fota.asset.domain.ContractDealer;
 import com.fota.asset.domain.enums.AssetOperationTypeEnum;
 import com.fota.asset.service.AssetWriteService;
 import com.fota.asset.service.ContractService;
@@ -11,7 +10,7 @@ import com.fota.common.Result;
 import com.fota.common.utils.LogUtil;
 import com.fota.trade.UpdateOrderItem;
 import com.fota.trade.client.FailedRecord;
-import com.fota.trade.client.constants.DealedMessage;
+import com.fota.trade.client.PostDealPhaseEnum;
 import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
@@ -22,7 +21,6 @@ import com.fota.trade.msg.ContractDealedMessage;
 import com.fota.trade.msg.TopicConstants;
 import com.fota.trade.service.ContractCategoryService;
 import com.fota.trade.util.*;
-import com.google.common.base.Joiner;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.common.message.Message;
@@ -40,18 +38,20 @@ import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.fota.trade.client.FailedRecord.NOT_SURE;
 import static com.fota.trade.client.FailedRecord.RETRY;
 import static com.fota.trade.client.PostDealPhaseEnum.UPDATE_BALANCE;
 import static com.fota.trade.client.PostDealPhaseEnum.UPDATE_POSITION;
-import static com.fota.trade.client.constants.Constants.*;
-import static com.fota.trade.client.constants.DealedMessage.CONTRACT_TYPE;
 import static com.fota.trade.common.ResultCodeEnum.BIZ_ERROR;
 import static com.fota.trade.common.ResultCodeEnum.ILLEGAL_PARAM;
-import static com.fota.trade.domain.enums.ContractStatusEnum.PROCESSING;
-import static com.fota.trade.domain.enums.OrderDirectionEnum.*;
+import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
+import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
 import static com.fota.trade.domain.enums.PositionTypeEnum.EMPTY;
 import static com.fota.trade.domain.enums.PositionTypeEnum.OVER;
 import static java.math.BigDecimal.ZERO;
@@ -102,6 +102,9 @@ public class DealManager {
 
 
     private static final Logger UPDATE_POSITION_FAILED_LOGGER = LoggerFactory.getLogger("updatePositionFailed");
+    private static final Logger UPDATE_POSITION_EXTRA_LOGGER = LoggerFactory.getLogger("updatePositionExtraInfo");
+
+    private static final ExecutorService executorService = new ThreadPoolExecutor(4, 10, 3, TimeUnit.MINUTES, new LinkedBlockingDeque<>());
 
 
     /**
@@ -293,10 +296,9 @@ public class DealManager {
     /**
      *
      * @param postDealMessages
-     * @param rollback 是否回滚， rollback=true, 更新持仓失败会回滚事务，否则打日志
-     * @return 只要更新完持仓就返回成功，后续失败打日志
+     * @return 更新同一用户，同一合约。只要更新完持仓就返回成功，后续失败打日志
      */
-    public Result postDeal(List<ContractDealedMessage> postDealMessages, boolean rollback) {
+    public Result postDealOneUserOneContract(List<ContractDealedMessage> postDealMessages) {
         if (CollectionUtils.isEmpty(postDealMessages)) {
             LogUtil.error(TradeBizTypeEnum.CONTRACT_DEAL, null, postDealMessages, "empty postDealMessages");
             return Result.fail(ILLEGAL_PARAM.getCode(), "empty postDealMessages in postDeal");
@@ -306,37 +308,60 @@ public class DealManager {
         long contractId = sample.getSubjectId();
 
                 //更新持仓
-        UpdatePositionResult positionResult = updatePosition(postDealMessages);
+        UpdatePositionResult positionResult = updatePosition(userId, contractId, postDealMessages);
         if (null == positionResult) {
             //不回滚则打日志
-            if (!rollback) {
-                UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedRecord(RETRY, UPDATE_POSITION.name(), postDealMessages));
-            }
+            UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedRecord(RETRY, UPDATE_POSITION.name(), postDealMessages));
             return Result.fail(BIZ_ERROR.getCode(), "update position failed");
         }
-        if (positionResult.getClosePL().compareTo(ZERO) != 0) {
-            ContractAccountAddAmountDTO contractAccountAddAmountDTO = new ContractAccountAddAmountDTO();
-            contractAccountAddAmountDTO.setAddAmount(positionResult.getClosePL());
-            contractAccountAddAmountDTO.setUserId(userId);
-            try {
-                Boolean ret = assetWriteService.addContractAmount(contractAccountAddAmountDTO, sample.getMsgKey(), AssetOperationTypeEnum.CONTRACT_DEAL.getCode()).getData();
+        return processAfterPositionUpdated(positionResult, postDealMessages);
+    }
 
-                if (!ret) {
-                    log.error("update balance failed, params={}", contractAccountAddAmountDTO);
-                    UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedRecord(RETRY, UPDATE_BALANCE.name(), contractAccountAddAmountDTO));
-                }
-            }catch (Exception e){
-                log.error("update balance exception, params={}", contractAccountAddAmountDTO, e);
-                if (e.getCause() instanceof TimeoutException) {
-                    UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedRecord(NOT_SURE, UPDATE_BALANCE.name(), contractAccountAddAmountDTO));
-                }else{
-                    UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedRecord(RETRY, UPDATE_BALANCE.name(), contractAccountAddAmountDTO));
-                }
-            }
+    /**
+     * must be same user
+     * @param positionResult
+     * @param postDealMessages
+     * @return
+     */
+    public Result processAfterPositionUpdated(UpdatePositionResult positionResult, List<ContractDealedMessage> postDealMessages){
+        long userId = positionResult.getUserId();
+        long contractId = positionResult.getContractId();
+        if (CollectionUtils.isEmpty(postDealMessages)) {
+            LogUtil.error(TradeBizTypeEnum.CONTRACT_DEAL, null, postDealMessages, "empty postDealMessages");
+            return Result.fail(ILLEGAL_PARAM.getCode(), "empty postDealMessages in postDeal");
         }
-        //防止异常抛出
-        BasicUtils.exeWhitoutError(() -> updateTotalPosition(contractId, positionResult));
-        BasicUtils.exeWhitoutError(() -> updateTodayFee(postDealMessages));
+        if (0 == positionResult.getClosePL().compareTo(ZERO)) {
+            positionResult.setPostDealPhaseEnum(PostDealPhaseEnum.UPDATE_BALANCE);
+            UPDATE_POSITION_EXTRA_LOGGER.info("positionResult:{}", JSON.toJSONString(positionResult));
+            return Result.suc(null);
+        }
+        ContractAccountAddAmountDTO contractAccountAddAmountDTO = new ContractAccountAddAmountDTO();
+        contractAccountAddAmountDTO.setAddAmount(positionResult.getClosePL());
+        contractAccountAddAmountDTO.setUserId(userId);
+
+
+        try {
+            Boolean ret = assetWriteService.addContractAmount(contractAccountAddAmountDTO,
+                    positionResult.getRequestId(), AssetOperationTypeEnum.CONTRACT_DEAL.getCode()).getData();
+            if (!ret) {
+                UPDATE_POSITION_FAILED_LOGGER.error("{}\037", new FailedRecord(RETRY, UPDATE_BALANCE.name(), positionResult));
+            }
+        }catch (Throwable t){
+            if (t.getCause() instanceof TimeoutException) {
+                UPDATE_POSITION_FAILED_LOGGER.error("{}\037", new FailedRecord(NOT_SURE, UPDATE_BALANCE.name(), positionResult), t);
+            }else{
+                UPDATE_POSITION_FAILED_LOGGER.error("{}\037", new FailedRecord(RETRY, UPDATE_BALANCE.name(), positionResult), t);
+            }
+            return Result.fail(null);
+        }
+        positionResult.setPostDealPhaseEnum(UPDATE_BALANCE);
+        UPDATE_POSITION_EXTRA_LOGGER.info("positionResult:{}", JSON.toJSONString(positionResult));
+        executorService.submit(() -> {
+            //防止异常抛出
+            BasicUtils.exeWhitoutError(() -> updateTotalPosition(contractId, positionResult));
+            BasicUtils.exeWhitoutError(() -> updateTodayFee(postDealMessages));
+        });
+
         return Result.suc(null);
     }
 
@@ -355,13 +380,16 @@ public class DealManager {
         }
     }
 
-    public UpdatePositionResult updatePosition(List<ContractDealedMessage> postDealMessages) {
+    public UpdatePositionResult updatePosition(long userId, long contractId, List<ContractDealedMessage> postDealMessages) {
+
+        String requestId = postDealMessages.stream().map(ContractDealedMessage::getMsgKey).collect(Collectors.joining());
 
         ContractDealedMessage sample = postDealMessages.get(0);
-        long userId = sample.getUserId();
-        long contractId = sample.getSubjectId();
-
         UpdatePositionResult result = new UpdatePositionResult();
+        result.setUserId(userId)
+                .setContractId(contractId)
+                .setRequestId(requestId)
+                .setPostDealPhaseEnum(PostDealPhaseEnum.UPDATE_POSITION);
         UserPositionDO userPositionDO = userPositionMapper.selectByUserIdAndContractId(userId, contractId);
         boolean shouldInsert = false;
         // db没有持仓记录，新建
@@ -562,7 +590,7 @@ public class DealManager {
         postMatchMessage.setFilledAmount(filledAmount);
         postMatchMessage.setFilledPrice(filledPrice);
         postMatchMessage.setMatchId(matchId);
-        postMatchMessage.setMsgKey(matchId + "_" + contractOrderDO.getId());
+        postMatchMessage.setMsgKey(matchId + "_" + contractOrderDO.getUserId());
         return postMatchMessage;
     }
     private void sendDealMessage(long matchId, ContractOrderDO contractOrderDO, BigDecimal filledAmount, BigDecimal filledPrice) {

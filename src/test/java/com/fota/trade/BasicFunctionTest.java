@@ -1,6 +1,8 @@
 package com.fota.trade;
 
+import com.fota.common.utils.LogUtil;
 import com.fota.trade.client.FailedRecord;
+import com.fota.trade.common.TradeBizTypeEnum;
 import com.fota.trade.domain.ContractOrderDO;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -57,5 +59,12 @@ public class BasicFunctionTest {
         messageExt.setKeys("a");
         messageExt.setTags("b");
         System.out.println(new FailedRecord(1, "1", messageExt));
+    }
+
+    @Test
+    public void testLogError(){
+        LogUtil.error( TradeBizTypeEnum.COIN_CANCEL_ORDER.toString(), "1", 1, "usdkOrderMapper.cancel failed");
+
+        LogUtil.error(1, "1", 1, new RuntimeException("a"));
     }
 }

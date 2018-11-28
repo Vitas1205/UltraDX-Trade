@@ -9,7 +9,6 @@ import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.DealManager;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.msg.ContractDealedMessage;
-import com.fota.trade.msg.TopicConstants;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
 import com.fota.trade.util.BasicUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +30,6 @@ import org.springframework.util.CollectionUtils;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
-import java.io.UnsupportedEncodingException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -42,8 +40,6 @@ import java.util.stream.Collectors;
 import static com.fota.trade.client.FailedRecord.NOT_SURE;
 import static com.fota.trade.client.FailedRecord.RETRY;
 import static com.fota.trade.client.PostDealPhaseEnum.*;
-import static com.fota.trade.client.constants.Constants.CONTRACT_POSITION_UPDATE_TOPIC;
-import static com.fota.trade.client.constants.Constants.DEFAULT_TAG;
 import static com.fota.trade.msg.TopicConstants.TRD_CONTRACT_DEAL;
 
 /**
@@ -119,7 +115,7 @@ public class PostDealConsumer {
                             .map(x -> {
                                 ContractDealedMessage message = BasicUtils.exeWhitoutError(()->JSON.parseObject(x.getBody(), ContractDealedMessage.class));
                                 if (null == message) {
-                                    UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedRecord(RETRY, PARSE.name(), Arrays.asList(x)));
+                                    UPDATE_POSITION_FAILED_LOGGER.error("{}\037", new FailedRecord(RETRY, PARSE.name(), Arrays.asList(x)));
                                     return null;
                                 }
                                 message.setMsgKey(x.getKeys());
@@ -132,7 +128,7 @@ public class PostDealConsumer {
                     try {
                         postDealMessages = removeDuplicta(postDealMessages);
                     }catch (Throwable t) {
-                        UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedRecord(RETRY, REMOVE_DUPLICATE.name(), postDealMessages));
+                        UPDATE_POSITION_FAILED_LOGGER.error("{}\037", new FailedRecord(RETRY, REMOVE_DUPLICATE.name(), postDealMessages));
                     }
 
                     if (CollectionUtils.isEmpty(postDealMessages)) {
@@ -146,13 +142,12 @@ public class PostDealConsumer {
                     postDealMessageMap.entrySet().parallelStream().forEach(entry -> {
 
                         try {
-                            dealManager.postDeal(entry.getValue(), false);
+                            dealManager.postDealOneUserOneContract(entry.getValue());
                             ContractDealedMessage postDealMessage = entry.getValue().get(0);
                             contractOrderManager.updateExtraEntrustAmountByContract(postDealMessage.getUserId(), postDealMessage.getSubjectId());
                             BasicUtils.exeWhitoutError(() ->  markExist(entry.getValue()));
                         }catch (Throwable t) {
-                            UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedRecord(NOT_SURE, UNKNOWN.name(), entry.getValue()), t.getClass().getSimpleName(),
-                                    t.getMessage());
+                            UPDATE_POSITION_FAILED_LOGGER.error("{}\037", new FailedRecord(NOT_SURE, UNKNOWN.name(), entry.getValue()));
                         }
                     });
                 } catch (Throwable t) {
@@ -163,7 +158,7 @@ public class PostDealConsumer {
                         mqMessage.setMessage(x.getBody());
                         return mqMessage;
                     }).collect(Collectors.toList());
-                    UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedRecord(NOT_SURE, UNKNOWN.name(), mqMessages, t.getClass().getSimpleName(), t.getMessage()));
+                    UPDATE_POSITION_FAILED_LOGGER.error("{}\037", new FailedRecord(NOT_SURE, UNKNOWN.name(), mqMessages), t);
                 }
                 return ConsumeOrderlyStatus.SUCCESS;
             }

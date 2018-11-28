@@ -115,7 +115,7 @@ public class ContractOrderManager {
 
     private static final BigDecimal POSITION_LIMIT_EOS = BigDecimal.valueOf(100_000);
 
-    private static final ExecutorService executorService = new ThreadPoolExecutor(4, 10, 10, TimeUnit.MINUTES, new LinkedBlockingDeque<>());
+    private static final ExecutorService executorService = new ThreadPoolExecutor(4, 10, 3, TimeUnit.MINUTES, new LinkedBlockingDeque<>());
 
     public ResultCode cancelOrderByContractId(Long contractId, Map<String, String> userInfoMap) throws Exception {
         if (Objects.isNull(contractId)) {
@@ -485,9 +485,6 @@ public class ContractOrderManager {
 
     public void sendCanceledMessage(BaseCanceledMessage canceledMessage){
         boolean sendRet = rocketMqManager.sendMessage(TRD_CONTRACT_CANCELED, canceledMessage.getSubjectId()+"", canceledMessage.getOrderId()+"", canceledMessage);
-        if (!sendRet) {
-            log.error("send canceled message failed, message={}", canceledMessage);
-        }
     }
 
     public void sendCancelReq(List<Long> orderIdList, Long userId) {
@@ -497,7 +494,7 @@ public class ContractOrderManager {
         }
         //批量发送MQ消息到match
         int i = 0;
-        int batchSize = 20;
+        int batchSize = 50;
         while (i < orderIdList.size()) {
             int temp =  i + batchSize;
             temp = temp < orderIdList.size() ? temp : orderIdList.size();
@@ -742,7 +739,7 @@ public class ContractOrderManager {
 
     public BigDecimal getIndex(String contractName, List<TickerDTO> list){
         BigDecimal index = BigDecimal.ZERO;
-        String symbol = contractName.substring(0, 3);
+        String symbol = AssetTypeEnum.getAssetNameByAssetId(AssetTypeEnum.getAssetIdByContractName(contractName));
         Optional<TickerDTO> op = list.stream().filter(x->x.getSymbol().equals(symbol)).findFirst();
         if (!op.isPresent()){
            log.error("get simpleIndex faild, contractName{}", contractName);
@@ -1200,7 +1197,6 @@ public class ContractOrderManager {
                 .map(UserPositionDO::getUnfilledAmount)
                 .orElse(BigDecimal.ZERO);
 
-        log.info("user position: {}", userPositionDO);
         EntrustMarginDO entrustMarginDO = new EntrustMarginDO();
         entrustMarginDO = getExtraEntrustAmount(userId, contractId, bidList, askList, positionType, unfilledAmount, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.valueOf(lever), null);
         Pair<BigDecimal, Map<String, Object>> pair = entrustMarginDO.getPair();

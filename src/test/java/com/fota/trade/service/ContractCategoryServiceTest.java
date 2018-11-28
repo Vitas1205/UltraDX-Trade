@@ -25,7 +25,7 @@ import java.util.List;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
-@Transactional
+//@Transactional
 public class ContractCategoryServiceTest {
 
     @Resource
@@ -57,8 +57,8 @@ public class ContractCategoryServiceTest {
 
     @Test
     public void testUpdataStatusById() throws Exception {
-        //int ret = contractCategoryService.updateContractStatus(1056L, ContractStatus.DELETED);
-        //Assert.assertTrue(ret>0);
+        int ret = contractCategoryService.updateContractStatus(1196L, ContractStatus.PROCESSING);
+        Assert.assertTrue(ret>0);
     }
 
     public ContractCategoryDTO testSaveContract() throws Exception {
@@ -80,7 +80,7 @@ public class ContractCategoryServiceTest {
     }
 
 
-//    @Test
+    @Test
     public void testUpdateContract() throws Exception {
         ContractCategoryDTO contractCategoryDTO = new ContractCategoryDTO();
         contractCategoryDTO.setId(2L);
