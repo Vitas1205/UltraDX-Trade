@@ -316,8 +316,6 @@ public class DealManager {
         }
         //更新账户余额，失败打日志 任然返回成功
         processAfterPositionUpdated(positionResult, postDealMessages);
-        UPDATE_POSITION_EXTRA_LOGGER.info("positionResult:{}", JSON.toJSONString(positionResult));
-
         return Result.suc(null);
     }
 
@@ -328,6 +326,12 @@ public class DealManager {
      * @return
      */
     public Result processAfterPositionUpdated(UpdatePositionResult positionResult, List<ContractDealedMessage> postDealMessages){
+        Result result = internalProcessAfterPositionUpdated(positionResult, postDealMessages);
+        UPDATE_POSITION_EXTRA_LOGGER.info("positionResult:{}", JSON.toJSONString(positionResult));
+        return result;
+    }
+
+    public  Result internalProcessAfterPositionUpdated(UpdatePositionResult positionResult, List<ContractDealedMessage> postDealMessages){
         long userId = positionResult.getUserId();
         long contractId = positionResult.getContractId();
         if (CollectionUtils.isEmpty(postDealMessages)) {
@@ -335,7 +339,6 @@ public class DealManager {
             return Result.fail(ILLEGAL_PARAM.getCode(), "empty postDealMessages in postDeal");
         }
         if (0 == positionResult.getClosePL().compareTo(ZERO)) {
-            UPDATE_POSITION_EXTRA_LOGGER.info("positionResult:{}", JSON.toJSONString(positionResult));
             positionResult.setPostDealPhaseEnum(PostDealPhaseEnum.UPDATE_BALANCE);
             return Result.suc(null);
         }
@@ -353,16 +356,13 @@ public class DealManager {
             }else{
                 UPDATE_POSITION_FAILED_LOGGER.error("{}\037", new FailedRecord(RETRY, UPDATE_BALANCE.name(), positionResult), t);
             }
-            UPDATE_POSITION_EXTRA_LOGGER.info("positionResult:{}", JSON.toJSONString(positionResult));
             return Result.fail(null);
         }
         if (!ret.isSuccess() || !ret.getData()) {
-            UPDATE_POSITION_EXTRA_LOGGER.info("positionResult:{}", JSON.toJSONString(positionResult));
             UPDATE_POSITION_FAILED_LOGGER.error("{}\037", new FailedRecord(RETRY, UPDATE_BALANCE.name(), positionResult, String.valueOf(ret.getCode()), String.valueOf(ret.getMessage())));
             return Result.fail(null);
         }
         positionResult.setPostDealPhaseEnum(UPDATE_BALANCE);
-        UPDATE_POSITION_EXTRA_LOGGER.info("positionResult:{}", JSON.toJSONString(positionResult));
         return Result.suc(null);
     }
 

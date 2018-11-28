@@ -147,7 +147,7 @@ public class PostDealConsumer {
                             contractOrderManager.updateExtraEntrustAmountByContract(postDealMessage.getUserId(), postDealMessage.getSubjectId());
                             BasicUtils.exeWhitoutError(() ->  markExist(entry.getValue()));
                         }catch (Throwable t) {
-                            UPDATE_POSITION_FAILED_LOGGER.error("{}\037", new FailedRecord(NOT_SURE, UNKNOWN.name(), entry.getValue()));
+                            UPDATE_POSITION_FAILED_LOGGER.error("{}\037", new FailedRecord(NOT_SURE, UNKNOWN.name(), entry.getValue()), t);
                         }
                     });
                 } catch (Throwable t) {
