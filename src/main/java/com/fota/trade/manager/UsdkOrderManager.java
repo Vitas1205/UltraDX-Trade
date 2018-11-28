@@ -46,6 +46,7 @@ import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.fota.trade.PriceTypeEnum.MARKET_PRICE;
 import static com.fota.trade.PriceTypeEnum.SPECIFIED_PRICE;
@@ -288,9 +289,12 @@ public class UsdkOrderManager {
         String username = placeOrderRequest.getUserName();
         String ipAddress = placeOrderRequest.getIp();
         BigDecimal fee = placeOrderRequest.getUserLevel().getFeeRate();
+        Set<Long> assetIdSet = reqList.stream()
+                .map(PlaceCoinOrderDTO::getSubjectId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
 
-        for(PlaceCoinOrderDTO placeCoinOrderDTO : reqList){
-            Integer assetId = Integer.valueOf(String.valueOf(placeCoinOrderDTO.getSubjectId()));
+        for (Long assetId : assetIdSet) {
             Map<String, Object> criteriaMap = new HashMap<>();
             criteriaMap.put("userId", userId);
             criteriaMap.put("assetId", assetId);
@@ -298,11 +302,13 @@ public class UsdkOrderManager {
             int count = usdkOrderMapper.countByQuery(criteriaMap);
             profiler.complelete("count 8,9 orders");
             if (count >= 200) {
-                log.error("user: {} too much {} orders", userId, AssetTypeEnum.getAssetNameByAssetId(assetId));
+                log.error("user: {} too much {} orders", userId, AssetTypeEnum.getAssetNameByAssetId(assetId.intValue()));
                 return Result.fail(TOO_MUCH_ORDERS.getCode(), TOO_MUCH_ORDERS.getMessage());
             }
+        }
 
-
+        for(PlaceCoinOrderDTO placeCoinOrderDTO : reqList){
+            Integer assetId = Integer.valueOf(String.valueOf(placeCoinOrderDTO.getSubjectId()));
             Long orderId = BasicUtils.generateId();
             PlaceOrderResult placeOrderResult = new PlaceOrderResult();
             placeOrderResult.setExtOrderId(placeCoinOrderDTO.getExtOrderId());
