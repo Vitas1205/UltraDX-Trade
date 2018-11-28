@@ -407,7 +407,7 @@ public class ContractOrderManager {
             return Result.fail(CONTRACT_HAS_DELIVERIED.getCode(), CONTRACT_HAS_DELIVERIED.getMessage());
         }
         if(contractCategoryDO.getStatus() != PROCESSING.getCode()){
-            return Result.fail(CONTRACT_IS_DELIVERYING.getCode(), CONTRACT_IS_DELIVERYING.getMessage());
+            return Result.fail(ILLEGAL_CONTRACT.getCode(), ILLEGAL_CONTRACT.getMessage());
         }
         return Result.suc(null);
     }
