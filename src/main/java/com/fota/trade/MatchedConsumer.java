@@ -85,8 +85,6 @@ public class MatchedConsumer {
         //CONSUME_FROM_TIMESTAMP 从某个时间点开始消费，和setConsumeTimestamp()配合使用，默认是半个小时以前
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.setVipChannelEnabled(false);
-        consumer.setConsumeThreadMax(1000);
-        consumer.setConsumeThreadMin(100);
         consumer.subscribe(topic, "*");
         consumer.setConsumeMessageBatchMaxSize(1);
         consumer.setMessageListener(listenerConcurrently);
