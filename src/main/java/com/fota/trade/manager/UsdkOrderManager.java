@@ -200,14 +200,13 @@ public class UsdkOrderManager {
                     //判断账户可用余额是否大于orderValue
                     Map<String, Object> param = new HashMap<>();
                     if (availableAmount.compareTo(entrustValue) >= 0){
-                        Date gmtModified = userCapitalDTO.getGmtModified();
-                        Boolean updateLockedAmountRet;
+                        Result<Boolean> updateLockedAmountRet;
                         try{
                             CapitalAccountAddAmountDTO capitalAccountAddAmountDTO = new CapitalAccountAddAmountDTO();
                             capitalAccountAddAmountDTO.setAddOrderLocked(entrustValue);
                             capitalAccountAddAmountDTO.setUserId(userId);
                             capitalAccountAddAmountDTO.setAssetId(userCapitalDTO.getAssetId());
-                            updateLockedAmountRet = assetWriteService.addCapitalAmount(capitalAccountAddAmountDTO, orderId.toString(), AssetOperationTypeEnum.USDT_EXCHANGE_PLACE_ORDER.getCode()).getData();
+                            updateLockedAmountRet = assetWriteService.addCapitalAmount(capitalAccountAddAmountDTO, orderId.toString(), AssetOperationTypeEnum.USDT_EXCHANGE_PLACE_ORDER.getCode());
                             profiler.complelete("addCapitalAmount");
                         }catch (Exception e){
                             param.put("userId", userId);
@@ -216,13 +215,13 @@ public class UsdkOrderManager {
                             LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), orderId.toString(), param, "Asset RPC Error!, placeOrder assetWriteService.addCapitalAmount exception", e);
                             throw new RuntimeException("placeOrder assetWriteService.addCapitalAmount exception");
                         }
-                        if (!updateLockedAmountRet){
+                        if (!updateLockedAmountRet.isSuccess() || !updateLockedAmountRet.getData()){
                             param.put("userId", userId);
                             param.put("assetId", userCapitalDTO.getAssetId());
                             param.put("entrustValue", entrustValue);
                             param.put("totalAmount", amount);
                             param.put("availableAmount", availableAmount);
-                            LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), orderId.toString(), param, "placeOrder assetWriteService.addCapitalAmount failed");
+                            LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), orderId.toString(), param, "errorCode:"+ updateLockedAmountRet.getCode() + ", errorMsg:"+ updateLockedAmountRet.getMessage());
                             throw new BusinessException(errorCode, errorMsg);
                         }
                     }else {
@@ -381,7 +380,7 @@ public class UsdkOrderManager {
                 throw new Exception("assetWriteService.batchAddCapitalAmount exception");
             }
             if (!updateLockedAmountRet.getData() || !updateLockedAmountRet.isSuccess()){
-                LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), batchOrderId.toString(), capitalAccountAddAmountDTOS, "assetWriteService.batchAddCapitalAmount failed");
+                LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), batchOrderId.toString(), capitalAccountAddAmountDTOS, "errorCode:"+ updateLockedAmountRet.getCode() + ", errorMsg:"+ updateLockedAmountRet.getMessage());
                 throw new Exception("assetWriteService.batchAddCapitalAmount failed");
             }
         }
@@ -539,23 +538,23 @@ public class UsdkOrderManager {
                 unlockAmount = unfilledAmount;
             }
             //解冻Coin钱包账户
-            Boolean updateLockedAmountRet;
+            Result<Boolean> updateLockedAmountRet;
             try{
                 CapitalAccountAddAmountDTO capitalAccountAddAmountDTO = new CapitalAccountAddAmountDTO();
                 capitalAccountAddAmountDTO.setAddOrderLocked(unlockAmount.negate());
                 capitalAccountAddAmountDTO.setUserId(userId);
                 capitalAccountAddAmountDTO.setAssetId(assetId);
-                updateLockedAmountRet = assetWriteService.addCapitalAmount(capitalAccountAddAmountDTO, String.valueOf(orderId), AssetOperationTypeEnum.USDT_EXCHANGE_CANCLE_ORDER.getCode()).getData();
+                updateLockedAmountRet = assetWriteService.addCapitalAmount(capitalAccountAddAmountDTO, String.valueOf(orderId), AssetOperationTypeEnum.USDT_EXCHANGE_CANCLE_ORDER.getCode());
             }catch (Exception e){
                 parameter.put("assetId", assetId);
                 parameter.put("lockedAmount", unlockAmount.negate().toString());
                 LogUtil.error( TradeBizTypeEnum.COIN_CANCEL_ORDER.toString(), String.valueOf(orderId), parameter, "Asset RPC Error!, assetWriteService.addCapitalAmount.updateLockedAmount exception", e);
                 throw new BizException(BIZ_ERROR.getCode(),"cancelOrder assetWriteService.addCapitalAmount exception");
             }
-            if (!updateLockedAmountRet){
+            if (!updateLockedAmountRet.isSuccess() || !updateLockedAmountRet.getData()){
                 parameter.put("assetId", assetId);
                 parameter.put("lockedAmount", unlockAmount.negate().toString());
-                LogUtil.error( TradeBizTypeEnum.COIN_CANCEL_ORDER.toString(), String.valueOf(orderId), parameter, "cancelOrder assetWriteService.addCapitalAmount failed");
+                LogUtil.error( TradeBizTypeEnum.COIN_CANCEL_ORDER.toString(), String.valueOf(orderId), parameter, "errorCode:"+ updateLockedAmountRet.getCode() + ", errorMsg:"+ updateLockedAmountRet.getMessage());
                 throw new BizException(BIZ_ERROR.getCode(),"cancelOrder assetWriteService.addCapitalAmount failed");
             }
             JSONObject jsonObject = JSONObject.parseObject(usdkOrderDO.getOrderContext());
@@ -730,16 +729,16 @@ public class UsdkOrderManager {
             bidMatchAssetCapital.setAddTotal(addBidTotalAsset);
             updateList.add(bidMatchAssetCapital);
         }
-        Boolean updateRet;
+        Result<Boolean> updateRet;
         try {
-            updateRet = assetWriteService.batchAddCapitalAmount(updateList, String.valueOf(usdkMatchedOrderDTO.getId()), AssetOperationTypeEnum.USDT_EXCHANGE_ORDER_DEALED.getCode()).getData();
+            updateRet = assetWriteService.batchAddCapitalAmount(updateList, String.valueOf(usdkMatchedOrderDTO.getId()), AssetOperationTypeEnum.USDT_EXCHANGE_ORDER_DEALED.getCode());
             profiler.complelete("updateBalance");
         }catch (Exception e){
             LogUtil.error( TradeBizTypeEnum.CONTRACT_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), updateList, "Asset RPC Error!, assetWriteService.batchAddCapitalAmount exception", e);
             throw new BizException(BIZ_ERROR.getCode(), "assetWriteService.batchAddCapitalAmount exception, updateList:{}" + updateList);
         }
-        if (!updateRet) {
-            LogUtil.error( TradeBizTypeEnum.CONTRACT_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), updateList, "assetWriteService.batchAddCapitalAmount failed");
+        if (!updateRet.isSuccess() || !updateRet.getData()) {
+            LogUtil.error( TradeBizTypeEnum.CONTRACT_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), updateList, "errorCode:"+ updateRet.getCode() + ", errorMsg:"+ updateRet.getMessage());
             throw new BizException(BIZ_ERROR.getCode(), "assetWriteService.batchAddCapitalAmount failed, updateList:{}" + updateList);
         }
         UsdkMatchedOrderDO askMatchRecordDO = com.fota.trade.common.BeanUtils.extractUsdtRecord(usdkMatchedOrderDTO, OrderDirectionEnum.ASK.getCode());

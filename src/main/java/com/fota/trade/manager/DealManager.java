@@ -316,6 +316,8 @@ public class DealManager {
         }
         //更新账户余额，失败打日志 任然返回成功
         processAfterPositionUpdated(positionResult, postDealMessages);
+        UPDATE_POSITION_EXTRA_LOGGER.info("positionResult:{}", JSON.toJSONString(positionResult));
+
         return Result.suc(null);
     }
 
@@ -333,37 +335,34 @@ public class DealManager {
             return Result.fail(ILLEGAL_PARAM.getCode(), "empty postDealMessages in postDeal");
         }
         if (0 == positionResult.getClosePL().compareTo(ZERO)) {
-            positionResult.setPostDealPhaseEnum(PostDealPhaseEnum.UPDATE_BALANCE);
             UPDATE_POSITION_EXTRA_LOGGER.info("positionResult:{}", JSON.toJSONString(positionResult));
+            positionResult.setPostDealPhaseEnum(PostDealPhaseEnum.UPDATE_BALANCE);
             return Result.suc(null);
         }
         ContractAccountAddAmountDTO contractAccountAddAmountDTO = new ContractAccountAddAmountDTO();
         contractAccountAddAmountDTO.setAddAmount(positionResult.getClosePL());
         contractAccountAddAmountDTO.setUserId(userId);
 
-
+        Result<Boolean> ret;
         try {
-            Boolean ret = assetWriteService.addContractAmount(contractAccountAddAmountDTO,
-                    positionResult.getRequestId(), AssetOperationTypeEnum.CONTRACT_DEAL.getCode()).getData();
-            if (!ret) {
-                UPDATE_POSITION_FAILED_LOGGER.error("{}\037", new FailedRecord(RETRY, UPDATE_BALANCE.name(), positionResult));
-            }
+            ret = assetWriteService.addContractAmount(contractAccountAddAmountDTO,
+                    positionResult.getRequestId(), AssetOperationTypeEnum.CONTRACT_DEAL.getCode());
         }catch (Throwable t){
             if (t.getCause() instanceof TimeoutException) {
                 UPDATE_POSITION_FAILED_LOGGER.error("{}\037", new FailedRecord(NOT_SURE, UPDATE_BALANCE.name(), positionResult), t);
             }else{
                 UPDATE_POSITION_FAILED_LOGGER.error("{}\037", new FailedRecord(RETRY, UPDATE_BALANCE.name(), positionResult), t);
             }
+            UPDATE_POSITION_EXTRA_LOGGER.info("positionResult:{}", JSON.toJSONString(positionResult));
+            return Result.fail(null);
+        }
+        if (!ret.isSuccess() || !ret.getData()) {
+            UPDATE_POSITION_EXTRA_LOGGER.info("positionResult:{}", JSON.toJSONString(positionResult));
+            UPDATE_POSITION_FAILED_LOGGER.error("{}\037", new FailedRecord(RETRY, UPDATE_BALANCE.name(), positionResult, String.valueOf(ret.getCode()), String.valueOf(ret.getMessage())));
             return Result.fail(null);
         }
         positionResult.setPostDealPhaseEnum(UPDATE_BALANCE);
         UPDATE_POSITION_EXTRA_LOGGER.info("positionResult:{}", JSON.toJSONString(positionResult));
-        executorService.submit(() -> {
-            //防止异常抛出
-            BasicUtils.exeWhitoutError(() -> updateTotalPosition(contractId, positionResult));
-            BasicUtils.exeWhitoutError(() -> updateTodayFee(postDealMessages));
-        });
-
         return Result.suc(null);
     }
 
@@ -450,6 +449,11 @@ public class DealManager {
                 return null;
             }
         }
+        executorService.submit(() -> {
+            //防止异常抛出
+            BasicUtils.exeWhitoutError(() -> updateTotalPosition(contractId, result));
+            BasicUtils.exeWhitoutError(() -> updateTodayFee(postDealMessages));
+        });
         return result;
     }
 
