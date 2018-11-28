@@ -130,7 +130,7 @@ public class ADLManager {
                 postDealMessage.setMatchId(adlMatchDTO.getId());
                 postDealMessage.setFilledAmount(subAmount);
                 postDealMessage.setFilledPrice(adlPrice);
-                postDealMessage.setMsgKey(adlMatchDTO.getId()+"_"+userPositionDO.getUserId());
+                postDealMessage.setMsgKey(adlMatchDTO.getId()+"_"+BasicUtils.generateId());
                 postDealMessage.setSubjectName(adlMatchDTO.getContractName());
                 allPostDealTasks.add(postDealMessage);
                 contractMatchedOrderDOS.add(ConvertUtils.toMatchedOrderDO(postDealMessage,
@@ -263,7 +263,7 @@ public class ADLManager {
         postDealMessage.setMatchId(adlMatchDTO.getId());
         postDealMessage.setFilledAmount(adlMatchDTO.getAmount());
         postDealMessage.setFilledPrice(adlMatchDTO.getPrice());
-        postDealMessage.setMsgKey(adlMatchDTO.getId()+"_"+adlMatchDTO.getUserId());
+        postDealMessage.setMsgKey(adlMatchDTO.getId()+"_"+adlMatchDTO.getOrderId());
         return postDealMessage;
     }
 

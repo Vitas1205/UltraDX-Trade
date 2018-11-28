@@ -592,7 +592,7 @@ public class DealManager {
         postMatchMessage.setFilledAmount(filledAmount);
         postMatchMessage.setFilledPrice(filledPrice);
         postMatchMessage.setMatchId(matchId);
-        postMatchMessage.setMsgKey(matchId + "_" + contractOrderDO.getUserId());
+        postMatchMessage.setMsgKey(matchId + "_" + contractOrderDO.getId());
         return postMatchMessage;
     }
     private void sendDealMessage(long matchId, ContractOrderDO contractOrderDO, BigDecimal filledAmount, BigDecimal filledPrice) {
