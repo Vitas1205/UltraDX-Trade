@@ -127,8 +127,9 @@ public class UsdkOrderManager {
         criteriaMap.put("assetId", usdkOrderDTO.getAssetId());
         criteriaMap.put("orderStatus", Arrays.asList(COMMIT.getCode(), PART_MATCH.getCode()));
         int count = usdkOrderMapper.countByQuery(criteriaMap);
+        profiler.complelete("count 8,9 orders");
         if (count >= 200) {
-            profiler.complelete("too much orders");
+            log.error("user: {} too much orders", usdkOrderDTO.getUserId());
             return Result.fail(TOO_MUCH_ORDERS.getCode(), TOO_MUCH_ORDERS.getMessage());
         }
 
