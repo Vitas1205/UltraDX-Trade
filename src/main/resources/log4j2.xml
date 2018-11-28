@@ -161,7 +161,7 @@
             <AppenderRef ref="sendMQMessageFailed"/>
         </AsyncLogger>
 
-        <AsyncLogger name="updatePositionExtraInfo">
+        <AsyncLogger name="updatePositionExtraInfo" level="info" additivity="false">
             <AppenderRef ref="updatePositionExtraInfo"/>
         </AsyncLogger>
 
