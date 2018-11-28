@@ -46,7 +46,6 @@ import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static com.fota.trade.PriceTypeEnum.MARKET_PRICE;
 import static com.fota.trade.PriceTypeEnum.SPECIFIED_PRICE;
@@ -57,6 +56,7 @@ import static com.fota.trade.domain.enums.OrderStatusEnum.COMMIT;
 import static com.fota.trade.domain.enums.OrderStatusEnum.PART_MATCH;
 import static com.fota.trade.domain.enums.OrderTypeEnum.*;
 import static com.fota.trade.msg.TopicConstants.*;
+import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
 
 
@@ -289,20 +289,18 @@ public class UsdkOrderManager {
         String username = placeOrderRequest.getUserName();
         String ipAddress = placeOrderRequest.getIp();
         BigDecimal fee = placeOrderRequest.getUserLevel().getFeeRate();
-        Set<Long> assetIdSet = reqList.stream()
-                .map(PlaceCoinOrderDTO::getSubjectId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+        Map<Long, List<PlaceCoinOrderDTO>> reqListMap = reqList.stream()
+                .collect(groupingBy(PlaceCoinOrderDTO::getSubjectId));
 
-        for (Long assetId : assetIdSet) {
+        for (Map.Entry<Long, List<PlaceCoinOrderDTO>> entry : reqListMap.entrySet()) {
             Map<String, Object> criteriaMap = new HashMap<>();
             criteriaMap.put("userId", userId);
-            criteriaMap.put("assetId", assetId);
+            criteriaMap.put("assetId", entry.getKey());
             criteriaMap.put("orderStatus", Arrays.asList(COMMIT.getCode(), PART_MATCH.getCode()));
             int count = usdkOrderMapper.countByQuery(criteriaMap);
             profiler.complelete("count 8,9 orders");
-            if (count >= 200) {
-                log.error("user: {} too much {} orders", userId, AssetTypeEnum.getAssetNameByAssetId(assetId.intValue()));
+            if (entry.getValue().size() + count > 200) {
+                log.error("user: {} too much {} orders", userId, AssetTypeEnum.getAssetNameByAssetId(entry.getKey().intValue()));
                 return Result.fail(TOO_MUCH_ORDERS.getCode(), TOO_MUCH_ORDERS.getMessage());
             }
         }
