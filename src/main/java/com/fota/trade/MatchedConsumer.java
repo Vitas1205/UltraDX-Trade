@@ -5,14 +5,15 @@ import com.fota.trade.client.BizTypeEnum;
 import com.fota.trade.domain.ContractMatchedOrderDTO;
 import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.UsdkMatchedOrderDTO;
-import com.fota.trade.domain.enums.TagsTypeEnum;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.msg.TopicConstants;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
 import com.fota.trade.service.impl.UsdkOrderServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.consumer.listener.*;
+import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
+import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
+import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -84,6 +85,8 @@ public class MatchedConsumer {
         //CONSUME_FROM_TIMESTAMP 从某个时间点开始消费，和setConsumeTimestamp()配合使用，默认是半个小时以前
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.setVipChannelEnabled(false);
+        consumer.setConsumeThreadMax(1000);
+        consumer.setConsumeThreadMin(100);
         consumer.subscribe(topic, "*");
         consumer.setConsumeMessageBatchMaxSize(1);
         consumer.setMessageListener(listenerConcurrently);
