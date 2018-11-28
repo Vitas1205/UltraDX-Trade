@@ -1,6 +1,5 @@
 package com.fota.trade.service;
 
-import com.fota.trade.domain.ContractCategoryDO;
 import com.fota.trade.domain.ContractCategoryDTO;
 import com.fota.trade.domain.enums.ContractStatus;
 import com.fota.trade.domain.enums.ContractStatusEnum;
@@ -11,7 +10,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
@@ -43,7 +41,7 @@ public class ContractCategoryServiceTest {
         Assert.assertTrue(list != null);
     }
 
-    @Test
+//    @Test
     public void testGetContractById() throws Exception {
         ContractCategoryDTO contractCategoryDO = contractCategoryService.getContractById(1000L);
         Assert.assertTrue(contractCategoryDO != null);
@@ -89,7 +87,7 @@ public class ContractCategoryServiceTest {
 //        Assert.assertTrue(updateRet != null && updateRet > 0);
     }
 
-    @Test
+//    @Test
     public void testRemoveContract() throws Exception {
         long id = 1000L;
         assert null != contractCategoryService.getContractById(id);
