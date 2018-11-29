@@ -17,9 +17,6 @@ import com.fota.trade.client.CancelTypeEnum;
 import com.fota.trade.client.PlaceCoinOrderDTO;
 import com.fota.trade.client.PlaceOrderRequest;
 import com.fota.trade.client.PlaceOrderResult;
-import com.fota.trade.common.BizException;
-import com.fota.trade.common.BusinessException;
-import com.fota.trade.common.Constant;
 import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
@@ -44,10 +41,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
+
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
+
 import static com.fota.trade.PriceTypeEnum.MARKET_PRICE;
 import static com.fota.trade.PriceTypeEnum.SPECIFIED_PRICE;
 import static com.fota.trade.common.ResultCodeEnum.*;
@@ -57,6 +56,7 @@ import static com.fota.trade.domain.enums.OrderStatusEnum.COMMIT;
 import static com.fota.trade.domain.enums.OrderStatusEnum.PART_MATCH;
 import static com.fota.trade.domain.enums.OrderTypeEnum.*;
 import static com.fota.trade.msg.TopicConstants.*;
+import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
 
 
@@ -129,7 +129,8 @@ public class UsdkOrderManager {
         int count = usdkOrderMapper.countByQuery(criteriaMap);
         profiler.complelete("count 8,9 orders");
         if (count >= 200) {
-            log.error("user: {} too much orders", usdkOrderDTO.getUserId());
+            log.error("user: {} too much {} orders", usdkOrderDTO.getUserId(),
+                    AssetTypeEnum.getAssetNameByAssetId(usdkOrderDTO.getAssetId()));
             return Result.fail(TOO_MUCH_ORDERS.getCode(), TOO_MUCH_ORDERS.getMessage());
         }
 
@@ -288,21 +289,37 @@ public class UsdkOrderManager {
         String username = placeOrderRequest.getUserName();
         String ipAddress = placeOrderRequest.getIp();
         BigDecimal fee = placeOrderRequest.getUserLevel().getFeeRate();
+        Map<Long, List<PlaceCoinOrderDTO>> reqListMap = reqList.stream()
+                .collect(groupingBy(PlaceCoinOrderDTO::getSubjectId));
+
+        for (Map.Entry<Long, List<PlaceCoinOrderDTO>> entry : reqListMap.entrySet()) {
+            Map<String, Object> criteriaMap = new HashMap<>();
+            criteriaMap.put("userId", userId);
+            criteriaMap.put("assetId", entry.getKey());
+            criteriaMap.put("orderStatus", Arrays.asList(COMMIT.getCode(), PART_MATCH.getCode()));
+            int count = usdkOrderMapper.countByQuery(criteriaMap);
+            profiler.complelete("count 8,9 orders");
+            if (entry.getValue().size() + count > 200) {
+                log.error("user: {} too much {} orders", userId, AssetTypeEnum.getAssetNameByAssetId(entry.getKey().intValue()));
+                return Result.fail(TOO_MUCH_ORDERS.getCode(), TOO_MUCH_ORDERS.getMessage());
+            }
+        }
 
         for(PlaceCoinOrderDTO placeCoinOrderDTO : reqList){
-            Long orederId = BasicUtils.generateId();
+            Integer assetId = Integer.valueOf(String.valueOf(placeCoinOrderDTO.getSubjectId()));
+            Long orderId = BasicUtils.generateId();
             PlaceOrderResult placeOrderResult = new PlaceOrderResult();
             placeOrderResult.setExtOrderId(placeCoinOrderDTO.getExtOrderId());
-            placeOrderResult.setOrderId(orederId);
+            placeOrderResult.setOrderId(orderId);
             respList.add(placeOrderResult);
             long transferTime = System.currentTimeMillis();
             Map<String, Object> newMap = new HashMap<>();
             newMap.put("username", username);
 
             UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
-            usdkOrderDTO.setId(orederId);
+            usdkOrderDTO.setId(orderId);
             usdkOrderDTO.setUserId(userId);
-            usdkOrderDTO.setAssetId(Integer.valueOf(String.valueOf(placeCoinOrderDTO.getSubjectId())));
+            usdkOrderDTO.setAssetId(assetId);
             usdkOrderDTO.setAssetName(placeCoinOrderDTO.getSubjectName());
             usdkOrderDTO.setOrderDirection(placeCoinOrderDTO.getOrderDirection());
             usdkOrderDTO.setOrderType(placeCoinOrderDTO.getOrderType());
