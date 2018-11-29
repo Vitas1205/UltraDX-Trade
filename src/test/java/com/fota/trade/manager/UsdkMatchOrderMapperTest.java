@@ -3,14 +3,8 @@ package com.fota.trade.manager;
 import com.fota.trade.mapper.UsdkMatchedOrderMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * @Author: Harry Wang
@@ -18,8 +12,8 @@ import java.util.List;
  * @Date: Create in 2018/8/31 15:27
  * @Modified:
  */
-@RunWith(SpringRunner.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+//@RunWith(SpringRunner.class)
+//@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Slf4j
 @Transactional
 public class UsdkMatchOrderMapperTest {
