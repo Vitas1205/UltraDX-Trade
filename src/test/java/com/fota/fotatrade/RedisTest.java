@@ -79,23 +79,6 @@ public class RedisTest {
         }
     }
     @Test
-    public void testSerializable(){
-        redisTemplate.setHashValueSerializer(new StringRedisSerializer());
-        String val = "testVal";
-        String haskKey = "test_haskKey";
-        String key = "test_key";
-        redisTemplate.opsForHash().put(key, haskKey, val);
-
-        Jackson2JsonRedisSerializer jackson2JsonRedisSerializer = new Jackson2JsonRedisSerializer(Object.class);
-        ObjectMapper om = new ObjectMapper();
-        om.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
-        om.enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL);
-        jackson2JsonRedisSerializer.setObjectMapper(om);
-
-        redisTemplate.setHashValueSerializer(jackson2JsonRedisSerializer);
-        assert val.equals(redisTemplate.opsForHash().get(key, haskKey));
-    }
-    @Test
     public void testGetRRL(){
 
         for (int i=0;i<10;i++) {
