@@ -102,20 +102,18 @@ public class ContractUtils {
                                             BigDecimal oldAmount, BigDecimal newAmount, BigDecimal oldOpenAveragePrice) {
 
         BigDecimal closeAmount = calCloseAmount(oldAmount, newAmount);
-        //没有平仓，不用计算
-        if (null == closeAmount) {
-            return BigDecimal.ZERO;
+        if (closeAmount.compareTo(BigDecimal.ZERO) == 0) {
+            return closeAmount;
         }
         //手续费
-        BigDecimal actualFee = filledPrice.multiply(filledAmount).multiply(rate);
+        BigDecimal actualFee = filledPrice.multiply(closeAmount).multiply(rate);
         BigDecimal dir = oldAmount.compareTo(BigDecimal.ZERO) > 0 ? BigDecimal.ONE : NEG_ONE;
         //计算平仓盈亏
         // (filledPrice-oldOpenAveragePrice)*closeAmount*oldOpenPositionDirection - actualFee
-        BigDecimal closePL = filledPrice.subtract(oldOpenAveragePrice)
+        return filledPrice.subtract(oldOpenAveragePrice)
                 .multiply(closeAmount)
                 .multiply(dir)
                 .subtract(actualFee);
-        return closePL;
     }
 
     /**
@@ -123,19 +121,16 @@ public class ContractUtils {
      */
     public static BigDecimal calCloseAmount(BigDecimal oldAmount, BigDecimal newAmount) {
         if (oldAmount.compareTo(BigDecimal.ZERO) == 0) {
-            return null;
+            return BigDecimal.ZERO;
         }
         if (newAmount.compareTo(BigDecimal.ZERO) == 0) {
             return oldAmount.abs();
         }
         //方向相反
         if (oldAmount.multiply(newAmount).compareTo(BigDecimal.ZERO) < 0) {
-            return oldAmount;
+            return oldAmount.abs();
         }
-        //方向相同,如果数量增加，则没有平仓
-        if (oldAmount.abs().compareTo(newAmount.abs()) < 0) {
-            return null;
-        }
-        return oldAmount.abs().subtract(newAmount.abs());
+        //方向相同
+        return BigDecimal.ZERO.max(oldAmount.abs().subtract(newAmount.abs()));
     }
 }
