@@ -1,24 +1,15 @@
 package com.fota.trade.mapper;
 
 import com.fota.trade.common.BeanUtils;
-import com.fota.trade.common.TestConfig;
 import com.fota.trade.domain.UsdkMatchedOrderDO;
 import com.fota.trade.domain.UsdkMatchedOrderDTO;
 import com.fota.trade.domain.UsdkMatchedOrderTradeDTOPage;
-import com.fota.trade.domain.enums.OrderDirectionEnum;
-import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.service.UsdkOrderService;
-import com.fota.trade.service.impl.UsdkOrderServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -34,8 +25,8 @@ import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
  * @Date: Create in 下午 21:27 2018/8/23 0023
  * @Modified:
  */
-@RunWith(SpringRunner.class)
-@SpringBootTest
+//@RunWith(SpringRunner.class)
+//@SpringBootTest
 @Slf4j
 @Transactional
 public class UsdkMatchedOrderMapperTest {
@@ -65,7 +56,7 @@ public class UsdkMatchedOrderMapperTest {
         int aff = usdkMatchedOrderMapper.insert(Arrays.asList(ask, bid));
         assert 2 == aff;
     }
-    @Test
+//    @Test
     public void testQuery(){
         UsdkMatchedOrderTradeDTOPage usdkMatchedOrderTradeDTOPage = usdkOrderService.getUsdkMatchRecord(userId, Arrays.asList(assetId), 1, 1, 0L, System.currentTimeMillis());
         assert usdkMatchedOrderTradeDTOPage.getData().size() == 1;
