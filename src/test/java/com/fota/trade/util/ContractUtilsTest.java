@@ -1,8 +1,5 @@
 package com.fota.trade.util;
 
-import com.fota.trade.domain.ContractOrderDO;
-import com.fota.trade.domain.UserPositionDO;
-import com.fota.trade.domain.enums.OrderDirectionEnum;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -116,11 +113,11 @@ public class ContractUtilsTest {
     }
     @Test
     public void testComputeClosePL3(){
-        //原有多仓2份,反向成交数量5，(6-6.006)*2 - 6*5*0.001=-0.042
+        //原有多仓2份,反向成交数量5，(6-6.006)*2 - 6*2*0.001=-0.042
         BigDecimal filledAmount =  new BigDecimal(5);
         BigDecimal filledPrice =  new BigDecimal(6);
         BigDecimal oldAmount =  new BigDecimal(2), newAmount = new BigDecimal(-3), oldAveragePrice = new BigDecimal("6.006");
         BigDecimal ret = ContractUtils.computeClosePL(rate, filledAmount, filledPrice, oldAmount, newAmount, oldAveragePrice);
-        assert BasicUtils.equal(ret, new BigDecimal("-0.042"));
+        assert BasicUtils.equal(ret, new BigDecimal("-0.024"));
     }
 }
