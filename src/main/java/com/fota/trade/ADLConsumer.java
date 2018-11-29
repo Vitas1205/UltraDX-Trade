@@ -3,11 +3,11 @@ package com.fota.trade;
 import com.alibaba.fastjson.JSON;
 import com.fota.common.Result;
 import com.fota.trade.client.FailedRecord;
+import com.fota.trade.common.ADLBizException;
+import com.fota.trade.common.BizException;
+import com.fota.trade.common.BizExceptionEnum;
 import com.fota.trade.domain.ContractADLMatchDTO;
-import com.fota.trade.manager.ADLManager;
-import com.fota.trade.manager.ContractOrderManager;
-import com.fota.trade.manager.DealManager;
-import com.fota.trade.manager.RedisManager;
+import com.fota.trade.manager.*;
 import com.fota.trade.msg.TopicConstants;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
 import com.fota.trade.util.BasicUtils;
@@ -17,9 +17,12 @@ import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
+import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,13 +34,20 @@ import org.springframework.util.CollectionUtils;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+import static com.fota.trade.client.ADLPhaseEnum.RESEND;
 import static com.fota.trade.client.ADLPhaseEnum.START;
 import static com.fota.trade.client.ADLPhaseEnum.UNKNOW;
 import static com.fota.trade.client.FailedRecord.*;
 import static com.fota.trade.client.PostDealPhaseEnum.PARSE;
+import static com.fota.trade.common.BizExceptionEnum.DB_EXCEPTION;
+import static com.fota.trade.common.BizExceptionEnum.NO_CURRENT_PRICE;
+import static com.fota.trade.common.BizExceptionEnum.UPDATE_POSITION;
 import static com.fota.trade.msg.TopicConstants.MCH_CONTRACT_ADL;
 
 
@@ -73,6 +83,9 @@ public class ADLConsumer {
     private ContractOrderServiceImpl contractOrderService;
 
     DefaultMQPushConsumer consumer;
+
+    @Autowired
+    private RocketMqManager rocketMqManager;
 
     @PostConstruct
     public void init() throws InterruptedException, MQClientException {
@@ -113,6 +126,7 @@ public class ADLConsumer {
                 return ConsumeOrderlyStatus.SUCCESS;
             }
             try {
+                Map<ContractADLMatchDTO, MessageExt> messageExtMap = new HashMap<>();
                 List<ContractADLMatchDTO> adlMessages = msgs
                         .stream()
                         .filter(DistinctFilter.distinctByKey(MessageExt::getKeys))
@@ -122,6 +136,7 @@ public class ADLConsumer {
                                 ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(NOT_RETRY, PARSE.name(), x));
                                 return null;
                             }
+                            messageExtMap.put(message, x);
                             return message;
                         })
                         .filter(x -> null != x)
@@ -132,16 +147,26 @@ public class ADLConsumer {
                     return ConsumeOrderlyStatus.SUCCESS;
                 }
 
-                adlMessages.stream().forEach(adlMessage -> {
+                for (ContractADLMatchDTO adlMessage : adlMessages) {
                     try {
-                        Result result = adlManager.adl(adlMessage);
-                        if (!result.isSuccess()) {
-                            ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(NOT_RETRY, UNKNOW.name(), adlMessage, result.getCode()+"", result.getMessage()));
-                        }
+                        adlManager.adl(adlMessage);
                     }catch (Throwable t) {
+
+                        if (t instanceof ADLBizException) {
+                            ADLBizException adlBizException = (ADLBizException)t;
+                            if (DB_EXCEPTION == adlBizException.getBizException() || UPDATE_POSITION == adlBizException.getBizException()) {
+                                MessageExt messageExt = messageExtMap.get(adlMessage);
+                                rocketMqManager.sendMessage(Arrays.asList(messageExt));
+                                ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(NOT_RETRY, RESEND.name(), adlMessage), t);
+                            }
+                            //如果没有现货指数价格，adl先停一会
+                            if (NO_CURRENT_PRICE == adlBizException.getBizException()) {
+                                return ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT;
+                            }
+                        }
                         ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(RETRY, START.name(), adlMessage), t);
                     }
-                });
+                }
 
             } catch (Throwable t) {
                 ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(NOT_SURE, UNKNOW.name(), msgs), t);

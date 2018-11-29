@@ -6,6 +6,7 @@ package com.fota.trade.client;
  */
 public enum  ADLPhaseEnum {
     START,
+    RESEND,
     UNKNOW
     ;
 }

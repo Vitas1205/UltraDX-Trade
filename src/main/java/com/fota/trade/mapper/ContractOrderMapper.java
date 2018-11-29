@@ -95,6 +95,14 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
                               @Param("gmtModified") Date gmtModified);
 
 
+    @Update("update trade_contract_order where user_id=#{userId} and order_id=#{orderId} set gmt_modified=now(3), unfilled_amount=#{unfilledAmount}, " +
+            " status=#{toStatus}")
+    int update(@Param("userId") Long userId,
+                     @Param("orderId") Long orderId,
+                     @Param("unfilledAmount") BigDecimal amount,
+                     @Param("toStatus") int toStatus);
+
+
 //    int batchUpdateAmountAndStatus(List<UpdateOrderItem> updateOrderItems);
 
     int countByQuery(Map<String, Object> param);

@@ -2,16 +2,16 @@ package com.fota.trade.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.fota.common.Result;
+import com.fota.common.utils.LogUtil;
 import com.fota.risk.client.domain.UserRRLDTO;
 import com.fota.risk.client.manager.RelativeRiskLevelManager;
 import com.fota.trade.PriceTypeEnum;
-import com.fota.trade.common.BizException;
-import com.fota.trade.common.ResultCodeEnum;
-import com.fota.trade.common.UpdatePositionResult;
+import com.fota.trade.common.*;
 import com.fota.trade.domain.ContractADLMatchDTO;
 import com.fota.trade.domain.ContractMatchedOrderDO;
 import com.fota.trade.domain.UserPositionDO;
 import com.fota.trade.domain.enums.OrderCloseType;
+import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.domain.enums.PositionTypeEnum;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
@@ -29,15 +29,21 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 import static com.fota.common.ResultCodeEnum.ILLEGAL_PARAM;
 import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
+import static com.fota.trade.common.BizExceptionEnum.CANCEL_ORDER_FAILED;
+import static com.fota.trade.common.BizExceptionEnum.DB_EXCEPTION;
+import static com.fota.trade.common.BizExceptionEnum.UPDATE_POSITION;
 import static com.fota.trade.common.ResultCodeEnum.BIZ_ERROR;
+import static com.fota.trade.common.TradeBizTypeEnum.CONTRACT_ADL;
 import static com.fota.trade.domain.enums.OrderCloseType.DECREASE_LEVERAGE;
 import static com.fota.trade.domain.enums.OrderCloseType.ENFORCE;
+import static com.fota.trade.domain.enums.OrderStatusEnum.PART_CANCEL;
 import static com.fota.trade.domain.enums.PositionTypeEnum.OVER;
 
 /**
@@ -73,17 +79,30 @@ public class ADLManager {
      * @param
      */
     @Transactional(rollbackFor = Throwable.class)
-    public Result adl(ContractADLMatchDTO adlMatchDTO) {
+    public void adl(ContractADLMatchDTO adlMatchDTO) {
+        BigDecimal currentPrice = currentPriceService.getSpotIndexByContractName(adlMatchDTO.getContractName());
+        if (null == currentPrice) {
+            LogUtil.error(CONTRACT_ADL, adlMatchDTO.getId()+"", adlMatchDTO.getContractName(), "no spotIndex, contractName="+adlMatchDTO.getContractName());
+            throw new ADLBizException(BizExceptionEnum.NO_CURRENT_PRICE);
+        }
         if (!checkADLParam(adlMatchDTO)) {
-            return Result.fail(ILLEGAL_PARAM.getCode(), ILLEGAL_PARAM.getMessage());
+            LogUtil.error(TradeBizTypeEnum.CONTRACT_ADL, null, adlMatchDTO, "illegal param");
+            return;
         }
+        int aff;
         //更新委托，同时有去重加锁的作用
-        int aff = contractOrderMapper.updateAmountAndStatus(adlMatchDTO.getUserId(), adlMatchDTO.getOrderId(), adlMatchDTO.getAmount(), adlMatchDTO.getPrice(), new Date());
-        if (1 != aff) {
-            return Result.fail(ILLEGAL_PARAM.getCode(), "duplicate message or concurrency problem");
+        try {
+            aff = contractOrderMapper.updateAmountAndStatus(adlMatchDTO.getUserId(), adlMatchDTO.getOrderId(), adlMatchDTO.getAmount(), adlMatchDTO.getPrice(), new Date());
+            if (1 != aff) {
+                log.warn("duplicate adl message:{}", adlMatchDTO);
+                return;
+            }
+        }catch (Throwable t) {
+            LogUtil.error(TradeBizTypeEnum.CONTRACT_ADL, adlMatchDTO.getId()+"", adlMatchDTO, "db exception", t);
+            throw new ADLBizException(t, DB_EXCEPTION);
         }
-        List<ContractDealedMessage> allPostDealTasks = new LinkedList<>();
 
+        List<ContractDealedMessage> allPostDealTasks = new LinkedList<>();
 
         List<ContractDealedMessage> matchedPostDeal = dealManager.processNoEnforceMatchedOrders(adlMatchDTO);
 
@@ -91,22 +110,20 @@ public class ADLManager {
         int pageSize = 100;
         int needPositionDirection = adlMatchDTO.getDirection();
         //获取当前价格
-        BigDecimal currentPrice = currentPriceService.getSpotIndexByContractName(adlMatchDTO.getContractName());
         BigDecimal adlPrice = getAdlPrice( adlMatchDTO.getPrice(), currentPrice, needPositionDirection);
 
         //降杠杆和强平单成交记录
         List<ContractMatchedOrderDO> contractMatchedOrderDOS = new LinkedList<>();
 
         for (int start = 0; unfilledAmount.compareTo(BigDecimal.ZERO) > 0; start = start + pageSize + 1) {
-            Result<List<UserRRLDTO>> riskResult = getRRLWithRetry(adlMatchDTO.getContractId(),
+            List<UserRRLDTO>  RRL = getRRLWithRetry(adlMatchDTO.getContractId(),
                     needPositionDirection, start, start + pageSize);
 
-            //调用排行榜失败，回滚事务
-            if (null == riskResult || !riskResult.isSuccess() || CollectionUtils.isEmpty(riskResult.getData())) {
-                throw new BizException(ResultCodeEnum.BIZ_ERROR.getCode(), "failed riskResult:" + riskResult);
+            //调用排行榜失败，break
+            if (CollectionUtils.isEmpty(RRL)) {
+                LogUtil.error(CONTRACT_ADL, adlMatchDTO.getId()+"", null, "start="+start+" contractId="+adlMatchDTO.getContractId()+" dir="+needPositionDirection);
+                break;
             }
-
-            List<UserRRLDTO> RRL = riskResult.getData();
             List<Long> userIds = RRL.stream().map(UserRRLDTO::getUserId).collect(Collectors.toList());
 
             //批量查询持仓
@@ -145,9 +162,12 @@ public class ADLManager {
 
         }
 
+        //如果数量不足，修改委托状态
         if (unfilledAmount.compareTo(BigDecimal.ZERO)>0) {
-            throw new BizException(BIZ_ERROR.getCode(), "unfilledAmount still bigger than 0.userId="+ adlMatchDTO.getUserId() +", orderId=" + adlMatchDTO.getOrderId()+
-            ", unfilled=" + unfilledAmount);
+            aff = contractOrderMapper.update(adlMatchDTO.getUserId(), adlMatchDTO.getOrderId(), unfilledAmount, calStatus(adlMatchDTO.getAmount(), unfilledAmount));
+            if (aff < 1) {
+                 throw new ADLBizException("cancel enforce order failed", CANCEL_ORDER_FAILED);
+            }
         }
 
         BigDecimal platformProfit = calPlatformProfit(adlMatchDTO, adlPrice);
@@ -155,9 +175,11 @@ public class ADLManager {
         contractMatchedOrderDOS.add(forceddMatchRecord);
         if (!CollectionUtils.isEmpty(contractMatchedOrderDOS)) {
             //写成交记录
-            aff = contractMatchedOrderMapper.insert(contractMatchedOrderDOS);
-            if (aff < contractMatchedOrderDOS.size()) {
-                throw new BizException(BIZ_ERROR.getCode(), "insert matched record failed");
+            try {
+                contractMatchedOrderMapper.insert(contractMatchedOrderDOS);
+            }catch (Throwable t) {
+                LogUtil.error(TradeBizTypeEnum.CONTRACT_ADL, adlMatchDTO.getId()+"", adlMatchDTO, "db exception", t);
+                throw new ADLBizException(t, DB_EXCEPTION);
             }
         }
 
@@ -173,7 +195,7 @@ public class ADLManager {
             List<ContractDealedMessage> curUserPostDealTasks =  Arrays.asList(postDealMessage);
             UpdatePositionResult positionResult = dealManager.updatePosition(postDealMessage.getUserId(),postDealMessage.getSubjectId(), curUserPostDealTasks);
             if (null == positionResult) {
-                throw new BizException(BIZ_ERROR.getCode(), "update position failed");
+                throw new ADLBizException(UPDATE_POSITION);
             }
             updatePositionResults.add(positionResult);
             Runnable task = () -> dealManager.processAfterPositionUpdated(positionResult, curUserPostDealTasks);
@@ -187,8 +209,10 @@ public class ADLManager {
         map.put("updatePositionResults", updatePositionResults);
         map.put("adlPrice", adlPrice);
         ADL_EXTEA_LOG.info("{}", JSON.toJSONString(map));
-        return Result.suc(null);
 
+    }
+    int calStatus(BigDecimal total, BigDecimal unfilled){
+        return total.compareTo(unfilled) > 0 ? PART_CANCEL.getCode() : OrderStatusEnum.CANCEL.getCode();
     }
 
     /**
@@ -229,27 +253,9 @@ public class ADLManager {
 //        return end;
 //    }
 
-    public Result<List<UserRRLDTO>> getRRLWithRetry(long contractId, int direction, int start, int end) {
-        int maxRetries = 5;
-        for (int i = 0; i < maxRetries; i++) {
-            try {
-                //获取排行榜，以后可以看排行榜变化频率考虑是否缓存
-                List<UserRRLDTO> ret = riskLevelManager.range(contractId,
-                        direction, start, end);
-                if (CollectionUtils.isEmpty(ret) && (i+1) < maxRetries) {
-                    BasicUtils.exeWhitoutError(() -> Thread.sleep(30));
-                    continue;
-                }
-                return Result.suc(ret);
-            } catch (Throwable t) {
-                //调用抛异常三次，回滚事务
-                if ((maxRetries - 1) >= i) {
-                    throw new BizException(ResultCodeEnum.BIZ_ERROR.getCode(), "riskLevelService.range result exception." + t.getMessage());
-                }
-                BasicUtils.exeWhitoutError(() -> Thread.sleep(30));
-            }
-        }
-        throw new BizException(ResultCodeEnum.BIZ_ERROR.getCode(), "riskLevelService.range result exception.");
+    public List<UserRRLDTO> getRRLWithRetry(long contractId, int direction, int start, int end) {
+        return BasicUtils.retryWhenFail(() -> riskLevelManager.range(contractId,
+                direction, start, end), ret -> !CollectionUtils.isEmpty(ret), Duration.ofMillis(30), 5);
 
     }
 

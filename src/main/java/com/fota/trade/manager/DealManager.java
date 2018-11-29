@@ -21,6 +21,7 @@ import com.fota.trade.msg.ContractDealedMessage;
 import com.fota.trade.msg.TopicConstants;
 import com.fota.trade.service.ContractCategoryService;
 import com.fota.trade.util.*;
+import com.google.common.base.Predicates;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.common.message.Message;
@@ -37,6 +38,7 @@ import org.springframework.util.CollectionUtils;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -382,7 +384,9 @@ public class DealManager {
     }
 
     public UpdatePositionResult updatePosition(long userId, long contractId, List<ContractDealedMessage> postDealMessages) {
-
+        return BasicUtils.retryWhenFail(()-> internalUpdatePosition(userId, contractId, postDealMessages), x -> null!=x, Duration.ofMillis(10), 3);
+    }
+    private UpdatePositionResult internalUpdatePosition(long userId, long contractId, List<ContractDealedMessage> postDealMessages) {
         String requestId = postDealMessages.stream().map(ContractDealedMessage::getMsgKey).collect(Collectors.joining());
 
         ContractDealedMessage sample = postDealMessages.get(0);
