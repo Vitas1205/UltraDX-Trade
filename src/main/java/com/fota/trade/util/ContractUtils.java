@@ -102,6 +102,9 @@ public class ContractUtils {
                                             BigDecimal oldAmount, BigDecimal newAmount, BigDecimal oldOpenAveragePrice) {
 
         BigDecimal closeAmount = calCloseAmount(oldAmount, newAmount);
+        if (closeAmount.compareTo(BigDecimal.ZERO) == 0) {
+            return closeAmount;
+        }
         //手续费
         BigDecimal actualFee = filledPrice.multiply(closeAmount).multiply(rate);
         BigDecimal dir = oldAmount.compareTo(BigDecimal.ZERO) > 0 ? BigDecimal.ONE : NEG_ONE;
