@@ -167,7 +167,7 @@ public class PostDealConsumer {
     }
 
     private List<ContractDealedMessage> removeDuplicta(List<ContractDealedMessage> postDealMessages) {
-        List<String> keys = postDealMessages.stream().map(x -> EXIST_POST_DEAL + x.getMsgKey()).collect(Collectors.toList());
+        List<String> keys = postDealMessages.stream().map(x -> EXIST_POST_DEAL + x.msgKey()).collect(Collectors.toList());
         List<String> existList = redisTemplate.opsForValue().multiGet(keys);
         if (null == existList) {
             return postDealMessages;
@@ -186,7 +186,7 @@ public class PostDealConsumer {
 
     public void markExist(List<ContractDealedMessage> postDealMessages) {
         List<String> keyList = postDealMessages.stream()
-                .map(x -> EXIST_POST_DEAL + x.getMsgKey())
+                .map(x -> EXIST_POST_DEAL + x.msgKey())
                 .collect(Collectors.toList());
         for (String s : keyList) {
             redisManager.setWithExpire(s, "EXIST", Duration.ofSeconds(seconds));

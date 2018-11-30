@@ -54,29 +54,29 @@ public class ADLTest extends BaseTest {
         mockLock(1);
         when(riskLevelManager.range(anyLong(), anyInt(), anyInt(), anyInt())).thenReturn( null);
     }
-    @Test
-    public void testNoCurrentPrice(){
-        mockCurrentPrice(null);
-        adlManager.adl(messageExtMap, contractADLMatchDTO);
-        verify(defaultMQProducer, calls(1));
-    }
-    @Test
-    public void testLockFailed(){
-        mockLock(0);
-        adlManager.adl(messageExtMap, contractADLMatchDTO);
-    }
-    @Test
-    public void testNoEnoughRRL(){
-       adlManager.adl(messageExtMap, contractADLMatchDTO);
-       verify(defaultMQProducer, calls(1));
-
-    }
-    @Test
-    public void testMockInsertFailed(){
-        adlManager.adl(messageExtMap, contractADLMatchDTO);
-        verify(contractOrderMapper.updateAAS(any(), any(), any(), any()), calls(1));
-        verify(defaultMQProducer, calls(1));
-    }
+//    @Test
+//    public void testNoCurrentPrice(){
+//        mockCurrentPrice(null);
+//        adlManager.adl(messageExtMap, contractADLMatchDTO);
+//        verify(defaultMQProducer, calls(1));
+//    }
+//    @Test
+//    public void testLockFailed(){
+//        mockLock(0);
+//        adlManager.adl(messageExtMap, contractADLMatchDTO);
+//    }
+//    @Test
+//    public void testNoEnoughRRL(){
+//       adlManager.adl(messageExtMap, contractADLMatchDTO);
+//       verify(defaultMQProducer, calls(1));
+//
+//    }
+//    @Test
+//    public void testMockInsertFailed(){
+//        adlManager.adl(messageExtMap, contractADLMatchDTO);
+//        verify(contractOrderMapper.updateAAS(any(), any(), any(), any()), calls(1));
+//        verify(defaultMQProducer, calls(1));
+//    }
 
     private void mockCurrentPrice(BigDecimal price){
         when(currentPriceService.getSpotIndexByContractName(anyString())).thenReturn(price);
