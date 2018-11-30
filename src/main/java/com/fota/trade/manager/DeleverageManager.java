@@ -91,10 +91,10 @@ public class DeleverageManager {
                 //注意direction与仓位方向相反,费率为0
                 ContractDealedMessage contractDealedMessage = new ContractDealedMessage(userPositionDO.getContractId(), userPositionDO.getUserId(),
                         ConvertUtils.opDirection(deleverageDTO.getNeedPositionDirection()), BigDecimal.ZERO);
+                contractDealedMessage.setOrderId(BasicUtils.generateId());
                 contractDealedMessage.setMatchId(matchId);
                 contractDealedMessage.setFilledAmount(subAmount);
                 contractDealedMessage.setFilledPrice(adlPrice);
-                contractDealedMessage.setMsgKey("adl_"+matchId+"_"+ BasicUtils.generateId());
                 contractDealedMessage.setSubjectName(userPositionDO.getContractName());
                 contractDealedMessages.add(contractDealedMessage);
                 contractMatchedOrderDOS.add(ConvertUtils.toMatchedOrderDO(contractDealedMessage,

@@ -118,7 +118,6 @@ public class PostDealConsumer {
                                     UPDATE_POSITION_FAILED_LOGGER.error("{}\037", new FailedRecord(RETRY, PARSE.name(), Arrays.asList(x)));
                                     return null;
                                 }
-                                message.setMsgKey(x.getKeys());
                                 return message;
                             })
                             .filter(x -> null != x)

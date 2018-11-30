@@ -387,7 +387,7 @@ public class DealManager {
         return BasicUtils.retryWhenFail(()-> internalUpdatePosition(userId, contractId, postDealMessages), x -> null!=x, Duration.ofMillis(10), 3);
     }
     private UpdatePositionResult internalUpdatePosition(long userId, long contractId, List<ContractDealedMessage> postDealMessages) {
-        String requestId = postDealMessages.stream().map(ContractDealedMessage::getMsgKey).collect(Collectors.joining());
+        String requestId = postDealMessages.stream().map(ContractDealedMessage::msgKey).collect(Collectors.joining());
 
         ContractDealedMessage sample = postDealMessages.get(0);
         UpdatePositionResult result = new UpdatePositionResult();
@@ -596,11 +596,10 @@ public class DealManager {
     private ContractDealedMessage toDealMessage(long matchId, ContractOrderDO contractOrderDO, BigDecimal filledAmount, BigDecimal filledPrice) {
         ContractDealedMessage postMatchMessage = new ContractDealedMessage(contractOrderDO.getContractId(), contractOrderDO.getUserId(),
                 contractOrderDO.getOrderDirection(), contractOrderDO.getFee(), contractOrderDO.getLever(),  contractOrderDO.getContractName());
-
+        postMatchMessage.setOrderId(contractOrderDO.getId());
         postMatchMessage.setFilledAmount(filledAmount);
         postMatchMessage.setFilledPrice(filledPrice);
         postMatchMessage.setMatchId(matchId);
-        postMatchMessage.setMsgKey(matchId + "_" + contractOrderDO.getId());
         return postMatchMessage;
     }
     private void sendDealMessage(long matchId, ContractOrderDO contractOrderDO, BigDecimal filledAmount, BigDecimal filledPrice) {
@@ -612,8 +611,8 @@ public class DealManager {
             int key = arg.hashCode();
             return mqs.get(key % mqs.size());
         };
-        rocketMqManager.sendMessage(TopicConstants.TRD_CONTRACT_DEAL, postDealMessage.getSubjectId()+"", postDealMessage.getMsgKey(), postDealMessage, queueSelector,
-                postDealMessage.getUserId() + postDealMessage.getSubjectId());
+        rocketMqManager.sendMessage(TopicConstants.TRD_CONTRACT_DEAL, postDealMessage.getSubjectId()+"", postDealMessage.msgKey(), postDealMessage, queueSelector,
+                postDealMessage.getGroup());
     }
 
     private ResultCode checkParam(ContractOrderDO askContractOrder, ContractOrderDO bidContractOrder, ContractMatchedOrderDTO contractMatchedOrderDTO) {

@@ -171,10 +171,10 @@ public class ADLManager {
     public ContractDealedMessage getContractDealedMessage4EnforceOrder(ContractADLMatchDTO adlMatchDTO) {
         ContractDealedMessage postDealMessage = new ContractDealedMessage(adlMatchDTO.getContractId(), adlMatchDTO.getUserId(),
                 adlMatchDTO.getDirection(), BigDecimal.ZERO);
+        postDealMessage.setOrderId(adlMatchDTO.getOrderId());
         postDealMessage.setMatchId(adlMatchDTO.getId());
         postDealMessage.setFilledAmount(adlMatchDTO.getAmount());
         postDealMessage.setFilledPrice(adlMatchDTO.getPrice());
-        postDealMessage.setMsgKey(adlMatchDTO.getId()+"_"+adlMatchDTO.getOrderId());
         return postDealMessage;
     }
 

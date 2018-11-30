@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 import static com.fota.trade.common.TestConfig.userId;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
+import static com.fota.trade.domain.enums.OrderTypeEnum.ENFORCE;
 import static com.fota.trade.domain.enums.OrderTypeEnum.LIMIT;
 import static com.fota.trade.domain.enums.OrderTypeEnum.PASSIVE;
 
@@ -71,7 +72,7 @@ public class ContractTest extends BaseTest {
         contractOrderDTO.setContractId(1217L);
         contractOrderDTO.setUserId(userId);
         contractOrderDTO.setOrderDirection(ASK.getCode());
-        contractOrderDTO.setOrderType(PASSIVE.getCode());
+        contractOrderDTO.setOrderType(ENFORCE.getCode());
         contractOrderDTO.setTotalAmount(new BigDecimal("0.02"));
         contractOrderDTO.setPrice(new BigDecimal("6604"));
         Map<String, String> map = new HashMap<>();
