@@ -109,6 +109,7 @@ public class ContractOrderManager {
     @Autowired
     private RelativeRiskLevelManager relativeRiskLevelManager;
 
+
     private static final BigDecimal POSITION_LIMIT_BTC = BigDecimal.valueOf(100);
 
     private static final BigDecimal POSITION_LIMIT_ETH = BigDecimal.valueOf(2_500);
@@ -223,8 +224,18 @@ public class ContractOrderManager {
             profiler.complelete("getContractCompetitorsPriceOrder");
 
             for (PlaceContractOrderDTO placeOrderDTO : placeOrderRequest.getPlaceOrderDTOS()) {
+                //根据userId判断是否是做事账户
+                BigDecimal feeRate = UserLevelEnum.DEFAULT.getFeeRate();
+                try {
+                    Boolean ret = marketAccountListService.contains(userId);
+                    if (ret){
+                        feeRate = UserLevelEnum.FREE.getFeeRate();
+                    }
+                }catch (Exception e){
+                    LogUtil.error(CONTRACT_ORDER, placeOrderDTO.getExtOrderId(), userId, "marketAccountListService.contains() failed");
+                }
                 ContractOrderDO contractOrderDO = ConvertUtils.extractContractOrderDO(placeOrderDTO, placeOrderRequest.getUserId(),
-                        placeOrderRequest.getUserLevel().getFeeRate(), placeOrderRequest.getUserName(), placeOrderRequest.getIp());
+                        feeRate, placeOrderRequest.getUserName(), placeOrderRequest.getIp());
                 Result checkRes = checkAndfillProperties(contractOrderDO, competitorsPrices, placeOrderDTO.getEntrustValue());
                 if(!checkRes.isSuccess()) {
                     return checkRes;
