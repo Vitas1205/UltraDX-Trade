@@ -6,7 +6,7 @@ import java.math.BigDecimal;
 
 @Data
 public class DeleverageDTO {
-    private BigDecimal unfilled;
+    private BigDecimal unfilledAmount;
     private Long matchId;
 
     private Long contractId;
@@ -20,7 +20,7 @@ public class DeleverageDTO {
     private BigDecimal adlPrice;
 
     public String key(){
-        return matchId + "_"+unfilled;
+        return matchId + "_"+ unfilledAmount;
     }
 
     public String queue(){
