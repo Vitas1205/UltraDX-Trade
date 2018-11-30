@@ -95,7 +95,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
                               @Param("gmtModified") Date gmtModified);
 
 
-    @Update("update trade_contract_order set gmt_modified=now(3), unfilled_amount=#{unfilledAmount},  status=#{tStatus} " +
+    @Update("update trade_contract_order set gmt_modified=now(3), unfilled_amount=#{unfilledAmount},  status=#{toStatus} " +
             " where user_id=#{userId} and id=#{orderId}")
     int updateAAS(@Param("userId") Long userId,
                   @Param("orderId") Long orderId,
