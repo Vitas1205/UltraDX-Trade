@@ -118,7 +118,8 @@ public class UserPositionServiceImpl implements com.fota.trade.service.UserPosit
                     Long quantile = quantiles.get(userPositionDTO.getContractId());
                     if (Objects.isNull(quantile)) {
                         quantile = Constant.DEFAULT_POSITION_QUANTILE;
-                        log.error("user:{} contract:{}/{} quantile miss", userId, contractId, tmp.getPositionType());
+                        log.warn("user:{} contract:{}/{} quantile miss", userId, userPositionDTO.getContractId(),
+                                tmp.getPositionType());
                     }
                     userPositionDTO.setQuantile(quantile);
                     BigDecimal computePrice = contractOrderManager.computePrice(contractCompetitorsPrice, tmp.getPositionType(), tmp.getContractId());

@@ -660,7 +660,7 @@ public class ContractOrderManager {
                 Long quantile = quantiles.get(userPositionDTO.getContractId());
                 if (Objects.isNull(quantile)) {
                     quantile = Constant.DEFAULT_POSITION_QUANTILE;
-                    log.error("user:{} contract:{}/{} quantile miss", userId, contractId, positionType);
+                    log.warn("user:{} contract:{}/{} quantile miss", userId, contractId, positionType);
                 }
                 userPositionDTO.setQuantile(quantile);
                 userPositionDTOS.add(userPositionDTO);
