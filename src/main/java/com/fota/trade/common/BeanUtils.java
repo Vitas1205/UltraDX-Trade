@@ -52,7 +52,7 @@ public class BeanUtils {
         contractCategoryDTO.setAssetId(contractCategoryDO.getAssetId());
         contractCategoryDTO.setAssetName(contractCategoryDO.getAssetName());
 //        contractCategoryDTO.setTotalAmount(contractCategoryDO.getTotalAmount());
-//        contractCategoryDTO.setUnfilled(contractCategoryDO.getUnfilled());
+//        contractCategoryDTO.setUnfilledAmount(contractCategoryDO.getUnfilledAmount());
         contractCategoryDTO.setDeliveryDate(contractCategoryDO.getDeliveryDate().getTime());
         contractCategoryDTO.setStatus(contractCategoryDO.getStatus());
         contractCategoryDTO.setContractType(contractCategoryDO.getContractType());
@@ -85,7 +85,7 @@ public class BeanUtils {
 //    private Integer orderDirection;
 //    private Integer orderType;
 //    private BigDecimal totalAmount;
-//    private BigDecimal unfilled;
+//    private BigDecimal unfilledAmount;
 //    private BigDecimal price;
 //    private BigDecimal fee;
 //    private Integer status;

@@ -54,7 +54,7 @@ public class DeleverageManager {
         Long contractId = deleverageDTO.getContractId();
         BigDecimal adlPrice = deleverageDTO.getAdlPrice();
 
-        BigDecimal unfilledAmount = deleverageDTO.getUnfilled();
+        BigDecimal unfilledAmount = deleverageDTO.getUnfilledAmount();
         int pageSize = 100;
         int needPositionDirection = deleverageDTO.getNeedPositionDirection();
         //获取当前价格
@@ -119,7 +119,7 @@ public class DeleverageManager {
             dealManager.sendDealMessage(contractDealedMessage);
         }
 
-        deleverageDTO.setUnfilled(unfilledAmount);
+        deleverageDTO.setUnfilledAmount(unfilledAmount);
         if (unfilledAmount.compareTo(BigDecimal.ZERO) > 0) {
             sendDeleverageMessage(deleverageDTO);
         }

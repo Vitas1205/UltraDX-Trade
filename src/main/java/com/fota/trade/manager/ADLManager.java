@@ -140,7 +140,7 @@ public class ADLManager {
 
         if (adlMatchDTO.getUnfilled().compareTo(BigDecimal.ZERO) > 0) {
             DeleverageDTO deleverageDTO = new DeleverageDTO();
-            deleverageDTO.setUnfilled(adlMatchDTO.getUnfilled());
+            deleverageDTO.setUnfilledAmount(adlMatchDTO.getUnfilled());
             deleverageDTO.setAdlPrice(adlPrice);
             deleverageDTO.setContractId(adlMatchDTO.getContractId());
             deleverageDTO.setMatchId(adlMatchDTO.getId());

@@ -479,7 +479,7 @@ public class DealManager {
 //            userPositionDO = ContractUtils.buildPosition(contractOrderDO, contractOrderDO.getLever(), filledAmount, filledPrice);
 //            userPositionMapper.insert(userPositionDO);
 //            result.setNewPositionDirection(userPositionDO.getPositionType());
-//            result.setNewTotalAmount(userPositionDO.getUnfilled());
+//            result.setNewTotalAmount(userPositionDO.getUnfilledAmount());
 //            return result;
 //        }
 //
@@ -493,20 +493,20 @@ public class DealManager {
 //        if (contractOrderDO.getOrderDirection().equals(userPositionDO.getPositionType())) {
 //            //成交单和持仓是同方向
 //            newAveragePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount);
-//            newTotalAmount = userPositionDO.getUnfilled().add(filledAmount);
+//            newTotalAmount = userPositionDO.getUnfilledAmount().add(filledAmount);
 //        }
 //        //成交单和持仓是反方向 （平仓）
-//        else if (filledAmount.compareTo(userPositionDO.getUnfilled()) <= 0) {
+//        else if (filledAmount.compareTo(userPositionDO.getUnfilledAmount()) <= 0) {
 //            //不改变仓位方向
 //            newAveragePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount);
-//            newTotalAmount = userPositionDO.getUnfilled().subtract(filledAmount);
-//            result.setCloseAmount(filledAmount.min(userPositionDO.getUnfilled()));
+//            newTotalAmount = userPositionDO.getUnfilledAmount().subtract(filledAmount);
+//            result.setCloseAmount(filledAmount.min(userPositionDO.getUnfilledAmount()));
 //        } else {
 //            //改变仓位方向
 //            newAveragePrice = computeAveragePrice(contractOrderDO, userPositionDO, filledPrice, filledAmount);
 //            newPositionType = contractOrderDO.getOrderDirection();
-//            result.setCloseAmount(filledAmount.min(userPositionDO.getUnfilled()));
-//            newTotalAmount = filledAmount.subtract(userPositionDO.getUnfilled());
+//            result.setCloseAmount(filledAmount.min(userPositionDO.getUnfilledAmount()));
+//            newTotalAmount = filledAmount.subtract(userPositionDO.getUnfilledAmount());
 //        }
 //        result.setNewPositionDirection(newPositionType);
 //        result.setNewTotalAmount(newTotalAmount);
@@ -634,7 +634,7 @@ public class DealManager {
             problemDirection = bidContractOrder.getOrderDirection();
         }
         if (null != problemDirection) {
-            LogUtil.error(TradeBizTypeEnum.CONTRACT_DEAL,  contractMatchedOrderDTO.getId()+"", contractMatchedOrderDTO, "unfilled not enough, problemDirection="+problemDirection);
+            LogUtil.error(TradeBizTypeEnum.CONTRACT_DEAL,  contractMatchedOrderDTO.getId()+"", contractMatchedOrderDTO, "unfilledAmount not enough, problemDirection="+problemDirection);
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), null);
         }
         return ResultCode.success();

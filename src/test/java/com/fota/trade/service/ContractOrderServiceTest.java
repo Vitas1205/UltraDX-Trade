@@ -234,7 +234,7 @@ public class ContractOrderServiceTest {
         ContractOrderDO curContract = contractOrderMapper.selectByIdAndUserId(contractOrderDO.getUserId(), contractOrderDO.getId());
         log.info("oldOrder={}", contractOrderDO);
         log.info("curOrder={}", curContract);
-        /*assert curContract.getUnfilled() == contractOrderDO.getUnfilled().longValue()
+        /*assert curContract.getUnfilledAmount() == contractOrderDO.getUnfilledAmount().longValue()
                 && curContract.getStatus().intValue() == contractOrderDO.getStatus()
                 && BasicUtils.equal(curContract.getAveragePrice(), contractOrderDO.getAveragePrice());*/
     }

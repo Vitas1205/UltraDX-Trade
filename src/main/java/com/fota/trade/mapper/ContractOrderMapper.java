@@ -29,7 +29,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
             "now(3), #{userId}, ",
             "#{contractId,jdbcType=INTEGER}, #{contractName,jdbcType=VARCHAR}, ",
             "#{orderDirection,jdbcType=TINYINT}, ",
-            "#{totalAmount,jdbcType=BIGINT}, #{unfilled,jdbcType=BIGINT}, ",
+            "#{totalAmount,jdbcType=BIGINT}, #{unfilledAmount,jdbcType=BIGINT}, ",
             "#{price,jdbcType=DECIMAL}, #{fee,jdbcType=DECIMAL},",
             " #{status}, #{averagePrice,jdbcType=DECIMAL}, #{orderType}, #{closeType}, #{orderContext,jdbcType=VARCHAR})"
     })
@@ -95,11 +95,11 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
                               @Param("gmtModified") Date gmtModified);
 
 
-    @Update("update trade_contract_order set gmt_modified=now(3), unfilled_amount=#{unfilled},  status=#{toStatus} " +
+    @Update("update trade_contract_order set gmt_modified=now(3), unfilled_amount=#{unfilledAmount},  status=#{toStatus} " +
             " where user_id=#{userId} and id=#{orderId}")
     int updateAAS(@Param("userId") Long userId,
                   @Param("orderId") Long orderId,
-                  @Param("unfilled") BigDecimal amount,
+                  @Param("unfilledAmount") BigDecimal amount,
                   @Param("toStatus") int toStatus);
 
 
