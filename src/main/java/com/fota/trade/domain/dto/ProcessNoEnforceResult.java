@@ -7,6 +7,5 @@ import lombok.Data;
 import java.util.List;
 @Data
 public class ProcessNoEnforceResult {
-    List<ContractDealedMessage> contractDealedMessages;
     List<ContractMatchedOrderDO> contractMatchedOrderDOS;
 }

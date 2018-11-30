@@ -26,7 +26,7 @@ public interface UserPositionMapper {
         "values (#{id,jdbcType=BIGINT}, now(), ",
         "now(), #{userId,jdbcType=BIGINT}, ",
         "#{contractId,jdbcType=INTEGER}, #{contractName,jdbcType=VARCHAR}, ",
-        "#{lockedAmount,jdbcType=DECIMAL}, #{unfilledAmount,jdbcType=DECIMAL}, #{averagePrice,jdbcType=DECIMAL}, ",
+        "#{lockedAmount,jdbcType=DECIMAL}, #{unfilled,jdbcType=DECIMAL}, #{averagePrice,jdbcType=DECIMAL}, ",
         "#{positionType,jdbcType=INTEGER}, #{status,jdbcType=INTEGER}, #{lever,jdbcType=INTEGER}, #{feeRate, jdbcType=DECIMAL})"
     })
     int insert(UserPositionDO record);
@@ -101,7 +101,7 @@ public interface UserPositionMapper {
           "contract_id = #{contractId,jdbcType=INTEGER},",
           "contract_name = #{contractName,jdbcType=VARCHAR},",
           "locked_amount = #{lockedAmount,jdbcType=DECIMAL},",
-          "unfilled_amount = #{unfilledAmount,jdbcType=DECIMAL},",
+          "unfilled_amount = #{unfilled,jdbcType=DECIMAL},",
           "position_type = #{positionType,jdbcType=INTEGER},",
           "status = #{status,jdbcType=INTEGER}",
         "where id = #{id,jdbcType=BIGINT}"
@@ -116,7 +116,7 @@ public interface UserPositionMapper {
             "contract_id = #{contractId,jdbcType=INTEGER},",
             "contract_name = #{contractName,jdbcType=VARCHAR},",
             "locked_amount = #{lockedAmount,jdbcType=DECIMAL},",
-            "unfilled_amount = #{unfilledAmount,jdbcType=DECIMAL},",
+            "unfilled_amount = #{unfilled,jdbcType=DECIMAL},",
             "position_type = #{positionType,jdbcType=INTEGER},",
             "average_price = #{averagePrice, jdbcType=DECIMAL},",
             "status = #{status,jdbcType=INTEGER}",
@@ -130,7 +130,7 @@ public interface UserPositionMapper {
             "set gmt_modified = now(),",
             "position_type = #{positionType,jdbcType=INTEGER},",
             "status = #{status,jdbcType=INTEGER},",
-            "unfilled_amount = #{unfilledAmount},",
+            "unfilled_amount = #{unfilled},",
             "average_price = #{averagePrice, jdbcType=DECIMAL},",
             "fee_rate = #{feeRate, jdbcType=DECIMAL}",
             "where id = #{id,jdbcType=BIGINT} and gmt_modified = #{gmtModified}"})

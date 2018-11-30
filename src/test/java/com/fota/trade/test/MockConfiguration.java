@@ -1,5 +1,6 @@
 package com.fota.trade.test;
 
+import com.fota.risk.client.manager.RelativeRiskLevelManager;
 import com.fota.trade.manager.CurrentPriceService;
 import com.fota.trade.manager.RocketMqManager;
 import com.fota.trade.mapper.ContractOrderMapper;
@@ -44,6 +45,11 @@ public class MockConfiguration {
     @Bean
     public ContractOrderMapper contractOrderMapper(){
         return Mockito.mock(ContractOrderMapper.class);
+    }
+    @Primary
+    @Bean
+    public RelativeRiskLevelManager riskLevelManager(){
+        return Mockito.mock(RelativeRiskLevelManager.class);
     }
 
 

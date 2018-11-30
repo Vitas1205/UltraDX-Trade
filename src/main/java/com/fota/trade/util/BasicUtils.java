@@ -4,6 +4,7 @@ import com.github.rholder.retry.*;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -90,6 +91,14 @@ public class BasicUtils {
         }
     }
 
+//    public static Pair<String, Integer> getAndInc(String key){
+//        if (!key.matches(".*#[0-9]*")) {
+//            return Pair.of(key+"#1", 0);
+//        }
+//        String[] strs = key.split("#");
+//        int cnt = Integer.parseInt(strs[1]);
+//        return Pair.of(strs[0]+"#"+ (cnt+1), cnt);
+//    }
     public static int count(String str, char ch) {
         if (null == str) {
             return 0;

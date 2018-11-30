@@ -2,7 +2,7 @@ package com.fota.trade.common;
 
 public class ADLBizException extends BaseBizException{
     public ADLBizException(BizExceptionEnum bizExceptionEnum) {
-        super(bizExceptionEnum);
+        this(bizExceptionEnum.name(), bizExceptionEnum);
     }
 
     public ADLBizException(Throwable cause, BizExceptionEnum bizExceptionEnum) {

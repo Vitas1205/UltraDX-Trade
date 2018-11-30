@@ -674,14 +674,14 @@ public class UsdkOrderManager {
         if (BasicUtils.gt(filledAmount, askUsdkOrder.getUnfilledAmount())){
             parameter.put("filledAmount", filledAmount);
             parameter.put("askUnfilledAmount", askUsdkOrder.getUnfilledAmount());
-            LogUtil.error( TradeBizTypeEnum.CONTRACT_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), parameter, "askOrder unfilledAmount not enough");
-            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), "askOrder unfilledAmount not enough. order="+askUsdkOrder);
+            LogUtil.error( TradeBizTypeEnum.CONTRACT_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), parameter, "askOrder unfilled not enough");
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), "askOrder unfilled not enough. order="+askUsdkOrder);
         }
         if (BasicUtils.gt(filledAmount, bidUsdkOrder.getUnfilledAmount())){
             parameter.put("filledAmount", filledAmount);
             parameter.put("bidUnfilledAmount", bidUsdkOrder.getUnfilledAmount());
-            LogUtil.error( TradeBizTypeEnum.CONTRACT_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), parameter, "bidOrder unfilledAmount not enough");
-            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), "bidOrder unfilledAmount not enough. order="+bidUsdkOrder);
+            LogUtil.error( TradeBizTypeEnum.CONTRACT_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), parameter, "bidOrder unfilled not enough");
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), "bidOrder unfilled not enough. order="+bidUsdkOrder);
         }
 
         BigDecimal filledPrice = new BigDecimal(usdkMatchedOrderDTO.getFilledPrice());

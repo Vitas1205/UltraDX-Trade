@@ -8,6 +8,7 @@ import com.fota.trade.util.BasicUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.junit.Test;
+import org.springframework.dao.DataAccessException;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -76,6 +77,7 @@ public class BasicFunctionTest {
     }
     @Test
     public void testCount(){
+        assert new org.mybatis.spring.MyBatisSystemException(new Exception()) instanceof DataAccessException;
         assert 2== BasicUtils.count("a##", '#');
     }
 }

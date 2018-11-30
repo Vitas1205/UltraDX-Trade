@@ -30,7 +30,7 @@ public interface UsdkOrderMapper {
         "#{userId,jdbcType=BIGINT}, ",
         "#{assetId,jdbcType=INTEGER}, #{assetName,jdbcType=VARCHAR}, ",
         "#{orderDirection,jdbcType=TINYINT}, #{orderType,jdbcType=TINYINT}, ",
-        "#{totalAmount,jdbcType=DECIMAL}, #{unfilledAmount,jdbcType=DECIMAL}, ",
+        "#{totalAmount,jdbcType=DECIMAL}, #{unfilled,jdbcType=DECIMAL}, ",
         "#{price,jdbcType=DECIMAL}, #{fee,jdbcType=DECIMAL}, #{status,jdbcType=INTEGER}, #{averagePrice,jdbcType=DECIMAL}, #{orderContext,jdbcType=VARCHAR})"
     })
     int insert(UsdkOrderDO record);

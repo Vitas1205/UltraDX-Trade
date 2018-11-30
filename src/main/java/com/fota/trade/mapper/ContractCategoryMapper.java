@@ -19,7 +19,7 @@ public interface ContractCategoryMapper {
         "values (#{gmtCreate,jdbcType=TIMESTAMP}, ",
         "#{gmtModified,jdbcType=TIMESTAMP}, #{contractName,jdbcType=VARCHAR}, ",
         "#{assetId,jdbcType=INTEGER}, #{assetName,jdbcType=VARCHAR}, ",
-        "#{totalAmount,jdbcType=DECIMAL}, #{unfilledAmount,jdbcType=DECIMAL}, ",
+        "#{totalAmount,jdbcType=DECIMAL}, #{unfilled,jdbcType=DECIMAL}, ",
         "#{deliveryDate,jdbcType=TIMESTAMP}, #{status,jdbcType=INTEGER}, ",
         "#{contractType,jdbcType=TINYINT}, #{price,jdbcType=DECIMAL})"
     })
@@ -80,7 +80,7 @@ public interface ContractCategoryMapper {
           "asset_id = #{assetId,jdbcType=INTEGER},",
           "asset_name = #{assetName,jdbcType=VARCHAR},",
           "total_amount = #{totalAmount,jdbcType=DECIMAL},",
-          "unfilled_amount = #{unfilledAmount,jdbcType=DECIMAL},",
+          "unfilled_amount = #{unfilled,jdbcType=DECIMAL},",
           "delivery_date = #{deliveryDate,jdbcType=TIMESTAMP},",
           "status = #{status,jdbcType=INTEGER},",
           "contract_type = #{contractType,jdbcType=TINYINT},",
