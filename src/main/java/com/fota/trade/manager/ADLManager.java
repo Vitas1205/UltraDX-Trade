@@ -67,7 +67,6 @@ public class ADLManager {
 
     private static final Logger ADL_EXTEA_LOG = LoggerFactory.getLogger("adlExtraInfo");
 
-    private static final ExecutorService executorService = new ThreadPoolExecutor(4, 10, 3, TimeUnit.MINUTES, new LinkedBlockingDeque<>());
     /**
      * 自动减仓
      *
@@ -125,14 +124,18 @@ public class ADLManager {
             }
             updatePositionResults.add(positionResult);
             Runnable task = () -> dealManager.processAfterPositionUpdated(positionResult, curUserPostDealTasks);
-            executorService.submit(task);
+            DeleverageManager.executorService.submit(task);
         }
 
 
 
         Map<String, Object> map = new HashMap<>();
         map.put("platformProfit", platformProfit);
-        map.put("adlMatchDTO", adlMatchDTO);
+        map.put("matchId", adlMatchDTO.getId());
+        map.put("userId", adlMatchDTO.getUserId());
+        map.put("matchedList", adlMatchDTO.getMatchedList());
+        map.put("direction", adlMatchDTO.getDirection());
+        map.put("contractId", adlMatchDTO.getContractId());
         map.put("currentPrice", currentPrice);
         map.put("updatePositionResults", updatePositionResults);
         map.put("adlPrice", adlPrice);
