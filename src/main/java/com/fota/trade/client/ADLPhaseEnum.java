@@ -6,7 +6,11 @@ package com.fota.trade.client;
  */
 public enum  ADLPhaseEnum {
     START,
+    /**
+     * 重新发送mq消息
+     */
     RESEND,
+    EXCEPTION,
     UNKNOW
     ;
 }

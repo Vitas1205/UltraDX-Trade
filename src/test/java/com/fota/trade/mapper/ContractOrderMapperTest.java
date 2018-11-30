@@ -8,6 +8,11 @@ import com.fota.trade.util.PriceUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
@@ -19,15 +24,16 @@ import java.util.List;
 import static com.fota.trade.common.TestConfig.userId;
 import static com.fota.trade.domain.enums.OrderStatusEnum.CANCEL;
 import static com.fota.trade.domain.enums.OrderStatusEnum.MATCH;
+import static com.fota.trade.domain.enums.OrderStatusEnum.PART_CANCEL;
 
 /**
  * @author Gavin Shen
  * @Date 2018/7/8
  */
-//@RunWith(SpringRunner.class)
-//@SpringBootTest
+@RunWith(SpringRunner.class)
+@SpringBootTest
 @Slf4j
-//@ContextConfiguration(classes = MapperTestConfig.class)
+@ContextConfiguration(classes = MapperTestConfig.class)
 @Transactional
 public class ContractOrderMapperTest {
 
@@ -82,7 +88,7 @@ public class ContractOrderMapperTest {
         log.info("result={}", obj);
     }
 
-//    @Test
+    @Test
     public void testUpdateAmountAndStatus() throws Exception {
 
         BigDecimal filledAmount = BigDecimal.valueOf(100L);
@@ -99,6 +105,16 @@ public class ContractOrderMapperTest {
                 && contractOrderDO2.getStatus() == MATCH.getCode()
         );
     }
+
+    @Test
+    public void testUpdateAAS(){
+        BigDecimal unfilledAmount = new BigDecimal(1);
+        int aff = contractOrderMapper.updateAAS(userId, contractOrderDO.getId(), unfilledAmount, PART_CANCEL.getCode());
+        assert 1 == aff;
+        ContractOrderDO newOrder = contractOrderMapper.selectByIdAndUserId(userId, contractOrderDO.getId());
+        assert newOrder.getStatus() == PART_CANCEL.getCode() && newOrder.getUnfilledAmount().compareTo(unfilledAmount) ==0;
+    }
+
 
 
 //    @Test

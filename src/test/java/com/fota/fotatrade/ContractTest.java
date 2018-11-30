@@ -3,6 +3,7 @@ package com.fota.fotatrade;
 import com.alibaba.fastjson.JSON;
 import com.fota.common.Result;
 import com.fota.common.enums.FotaApplicationEnum;
+import com.fota.trade.test.BaseTest;
 import com.fota.trade.client.PlaceContractOrderDTO;
 import com.fota.trade.client.PlaceOrderRequest;
 import com.fota.trade.client.UserLevelEnum;
@@ -18,11 +19,8 @@ import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -40,11 +38,9 @@ import static com.fota.trade.domain.enums.OrderTypeEnum.PASSIVE;
  * @Date: Create in 2018/7/12 10:59
  * @Modified:
  */
-@SpringBootTest
-@Slf4j
-@RunWith(SpringRunner.class)
 //@Transactional
-public class ContractTest {
+@Slf4j
+public class ContractTest extends BaseTest {
 
     @Autowired
     private ContractOrderServiceImpl contractOrderService;
@@ -66,6 +62,7 @@ public class ContractTest {
 
     @Autowired
     private ADLManager adlManager;
+
 
 //    @Test
     public void placeOrder(){
@@ -187,9 +184,13 @@ public class ContractTest {
 
         //        String str1="{\"amount\":0.00124,\"contractId\":1005,\"contractName\":\"ETH1811\",\"direction\":2,\"id\":778530085816632320,\"matchedList\":[{\"direction\":1,\"fee\":0.0005,\"filledPrice\":208,\"id\":388647496670778,\"matchedAmount\":0.00035,\"orderType\":1,\"price\":208,\"unfilledAmount\":0.00445,\"userId\":402},{\"direction\":1,\"fee\":0.0005,\"filledPrice\":205,\"id\":880205821685829,\"matchedAmount\":0.00089,\"orderType\":1,\"price\":205,\"unfilledAmount\":0.00000,\"userId\":405}],\"orderId\":696202187523784,\"price\":216.38522800000000190285831536129990126937627792358398437500,\"time\":1541666668039,\"unfilled\":0.00000,\"userId\":8}";
 
+//        Mockito.when()
         adlManager.adl(JSON.parseObject(str, ContractADLMatchDTO.class));
         System.out.printf("a");
 //        Result result1 = adlManager.adl(JSON.parseObject(str1, ContractADLMatchDTO.class));
     }
+
+
+
 
 }

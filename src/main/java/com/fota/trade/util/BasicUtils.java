@@ -90,4 +90,17 @@ public class BasicUtils {
         }
     }
 
+    public static int count(String str, char ch) {
+        if (null == str) {
+            return 0;
+        }
+        int count = 0;
+        for (char tm : str.toCharArray()) {
+            if (tm == ch) {
+                count++;
+            }
+        }
+        return count;
+    }
+
 }

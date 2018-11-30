@@ -149,7 +149,6 @@
             <!--<AppenderRef ref="console"/>-->
             <AppenderRef ref="infoFile"/>
             <AppenderRef ref="errorFile"/>
-            <AppenderRef ref="console"/>
         </AsyncRoot>
         <AsyncLogger name="trade" level="info" additivity="false" includeLocation="true">
             <AppenderRef ref="tradeFile"/>

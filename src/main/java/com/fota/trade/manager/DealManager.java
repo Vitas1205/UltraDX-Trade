@@ -13,6 +13,7 @@ import com.fota.trade.client.FailedRecord;
 import com.fota.trade.client.PostDealPhaseEnum;
 import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
+import com.fota.trade.domain.dto.ProcessNoEnforceResult;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserContractLeverMapper;
@@ -196,10 +197,10 @@ public class DealManager {
         return resultCode;
     }
 
-    public List<ContractDealedMessage> processNoEnforceMatchedOrders(ContractADLMatchDTO contractADLMatchDTO) {
+    public ProcessNoEnforceResult processNoEnforceMatchedOrders(ContractADLMatchDTO contractADLMatchDTO) {
         if (CollectionUtils.isEmpty(contractADLMatchDTO.getMatchedList())) {
             log.error("empty contractMatchedOrderDTOList");
-            return null;
+            return new ProcessNoEnforceResult();
         }
         long matchId = contractADLMatchDTO.getId();
         List<ADLMatchedDTO> adlMatchedDTOList = contractADLMatchDTO.getMatchedList();
@@ -228,13 +229,9 @@ public class DealManager {
             updateContractOrder(x.getUserId(), x.getId(), x.getFilledAmount(), x.getFilledPrice(), gmtModified);
         });
 
-        //批量写成交记录
-        int aff = contractMatchedOrderMapper.insert(contractMatchedOrderDOS);
-        if (contractMatchedOrderDOS.size() != aff) {
-            throw new BizException(BIZ_ERROR.getCode(), "insert match record failed, aff="+aff+ ", expectAff="+contractMatchedOrderDOS.size());
-        };
+        ProcessNoEnforceResult processNoEnforceResult = new ProcessNoEnforceResult();
 
-        return contractMatchedOrderDOS.stream().map(contractMatchedOrderDO -> {
+        List<ContractDealedMessage> contractDealedMessages = contractMatchedOrderDOS.stream().map(contractMatchedOrderDO -> {
             ContractOrderDO x = contractOrderMapper.selectByIdAndUserId(contractMatchedOrderDO.getUserId(), contractMatchedOrderDO.getOrderId());
             BigDecimal filledAmount = contractMatchedOrderDO.getFilledAmount();
             BigDecimal filledPrice = contractMatchedOrderDO.getFilledPrice();
@@ -243,6 +240,12 @@ public class DealManager {
             return toDealMessage(matchId, x, filledAmount,filledPrice);
 
         }).collect(Collectors.toList());
+
+        processNoEnforceResult.setContractDealedMessages(contractDealedMessages);
+
+        processNoEnforceResult.setContractMatchedOrderDOS(contractMatchedOrderDOS);
+
+        return processNoEnforceResult;
 
     }
 

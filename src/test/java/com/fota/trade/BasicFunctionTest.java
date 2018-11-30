@@ -74,4 +74,8 @@ public class BasicFunctionTest {
     public void testRetry(){
         BasicUtils.retryWhenFail(() -> {log.info("a");return false;},Duration.ofMillis(10), 3);
     }
+    @Test
+    public void testCount(){
+        assert 2== BasicUtils.count("a##", '#');
+    }
 }

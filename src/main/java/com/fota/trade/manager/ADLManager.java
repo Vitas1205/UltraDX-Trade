@@ -1,18 +1,18 @@
 package com.fota.trade.manager;
 
 import com.alibaba.fastjson.JSON;
-import com.fota.common.Result;
 import com.fota.common.utils.LogUtil;
 import com.fota.risk.client.domain.UserRRLDTO;
 import com.fota.risk.client.manager.RelativeRiskLevelManager;
-import com.fota.trade.PriceTypeEnum;
-import com.fota.trade.common.*;
+import com.fota.trade.common.ADLBizException;
+import com.fota.trade.common.BizExceptionEnum;
+import com.fota.trade.common.TradeBizTypeEnum;
+import com.fota.trade.common.UpdatePositionResult;
 import com.fota.trade.domain.ContractADLMatchDTO;
 import com.fota.trade.domain.ContractMatchedOrderDO;
 import com.fota.trade.domain.UserPositionDO;
-import com.fota.trade.domain.enums.OrderCloseType;
+import com.fota.trade.domain.dto.ProcessNoEnforceResult;
 import com.fota.trade.domain.enums.OrderStatusEnum;
-import com.fota.trade.domain.enums.PositionTypeEnum;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
@@ -31,15 +31,14 @@ import org.springframework.util.CollectionUtils;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static com.fota.common.ResultCodeEnum.ILLEGAL_PARAM;
 import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
-import static com.fota.trade.common.BizExceptionEnum.CANCEL_ORDER_FAILED;
-import static com.fota.trade.common.BizExceptionEnum.DB_EXCEPTION;
 import static com.fota.trade.common.BizExceptionEnum.UPDATE_POSITION;
-import static com.fota.trade.common.ResultCodeEnum.BIZ_ERROR;
 import static com.fota.trade.common.TradeBizTypeEnum.CONTRACT_ADL;
 import static com.fota.trade.domain.enums.OrderCloseType.DECREASE_LEVERAGE;
 import static com.fota.trade.domain.enums.OrderCloseType.ENFORCE;
@@ -91,20 +90,14 @@ public class ADLManager {
         }
         int aff;
         //更新委托，同时有去重加锁的作用
-        try {
-            aff = contractOrderMapper.updateAmountAndStatus(adlMatchDTO.getUserId(), adlMatchDTO.getOrderId(), adlMatchDTO.getAmount(), adlMatchDTO.getPrice(), new Date());
-            if (1 != aff) {
-                log.warn("duplicate adl message:{}", adlMatchDTO);
-                return;
-            }
-        }catch (Throwable t) {
-            LogUtil.error(TradeBizTypeEnum.CONTRACT_ADL, adlMatchDTO.getId()+"", adlMatchDTO, "db exception", t);
-            throw new ADLBizException(t, DB_EXCEPTION);
+        aff = contractOrderMapper.updateAmountAndStatus(adlMatchDTO.getUserId(), adlMatchDTO.getOrderId(), adlMatchDTO.getAmount(), adlMatchDTO.getPrice(), new Date());
+        if (1 != aff) {
+            log.warn("duplicate adl message or no such order{}", adlMatchDTO);
+            return;
         }
 
         List<ContractDealedMessage> allPostDealTasks = new LinkedList<>();
 
-        List<ContractDealedMessage> matchedPostDeal = dealManager.processNoEnforceMatchedOrders(adlMatchDTO);
 
         BigDecimal unfilledAmount = adlMatchDTO.getUnfilled();
         int pageSize = 100;
@@ -164,31 +157,29 @@ public class ADLManager {
 
         //如果数量不足，修改委托状态
         if (unfilledAmount.compareTo(BigDecimal.ZERO)>0) {
-            aff = contractOrderMapper.update(adlMatchDTO.getUserId(), adlMatchDTO.getOrderId(), unfilledAmount, calStatus(adlMatchDTO.getAmount(), unfilledAmount));
-            if (aff < 1) {
-                 throw new ADLBizException("cancel enforce order failed", CANCEL_ORDER_FAILED);
-            }
+            contractOrderMapper.updateAAS(adlMatchDTO.getUserId(), adlMatchDTO.getOrderId(), unfilledAmount, calStatus(adlMatchDTO.getAmount(), unfilledAmount));
+        }
+
+        ProcessNoEnforceResult processNoEnforceResult = dealManager.processNoEnforceMatchedOrders(adlMatchDTO);
+        //更新持仓,账户余额
+        if (!CollectionUtils.isEmpty(processNoEnforceResult.getContractDealedMessages())) {
+            //处理已经撮合的非强平单
+            allPostDealTasks.addAll(processNoEnforceResult.getContractDealedMessages());
+        }
+        if (!CollectionUtils.isEmpty(processNoEnforceResult.getContractMatchedOrderDOS())) {
+            contractMatchedOrderDOS.addAll(processNoEnforceResult.getContractMatchedOrderDOS());
         }
 
         BigDecimal platformProfit = calPlatformProfit(adlMatchDTO, adlPrice);
         ContractMatchedOrderDO forceddMatchRecord = getMatchRecordForEnforceOrder(adlMatchDTO, platformProfit);
         contractMatchedOrderDOS.add(forceddMatchRecord);
+
         if (!CollectionUtils.isEmpty(contractMatchedOrderDOS)) {
             //写成交记录
-            try {
-                contractMatchedOrderMapper.insert(contractMatchedOrderDOS);
-            }catch (Throwable t) {
-                LogUtil.error(TradeBizTypeEnum.CONTRACT_ADL, adlMatchDTO.getId()+"", adlMatchDTO, "db exception", t);
-                throw new ADLBizException(t, DB_EXCEPTION);
-            }
+            contractMatchedOrderMapper.insert(contractMatchedOrderDOS);
         }
 
 
-        //更新持仓,账户余额
-        if (!CollectionUtils.isEmpty(matchedPostDeal)) {
-            //处理已经撮合的非强平单
-            allPostDealTasks.addAll(matchedPostDeal);
-        }
         allPostDealTasks.add(getContractDealedMessage4EnforceOrder(adlMatchDTO));
         List<UpdatePositionResult> updatePositionResults = new LinkedList<>();
         for (ContractDealedMessage postDealMessage : allPostDealTasks) {
