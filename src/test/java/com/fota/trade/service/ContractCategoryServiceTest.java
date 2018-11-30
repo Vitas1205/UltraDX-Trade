@@ -1,6 +1,5 @@
 package com.fota.trade.service;
 
-import com.fota.trade.domain.ContractCategoryDO;
 import com.fota.trade.domain.ContractCategoryDTO;
 import com.fota.trade.domain.enums.ContractStatus;
 import com.fota.trade.domain.enums.ContractStatusEnum;
@@ -11,7 +10,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
@@ -25,7 +23,7 @@ import java.util.List;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
-@Transactional
+//@Transactional
 public class ContractCategoryServiceTest {
 
     @Resource
@@ -43,7 +41,7 @@ public class ContractCategoryServiceTest {
         Assert.assertTrue(list != null);
     }
 
-    @Test
+//    @Test
     public void testGetContractById() throws Exception {
         ContractCategoryDTO contractCategoryDO = contractCategoryService.getContractById(1000L);
         Assert.assertTrue(contractCategoryDO != null);
@@ -57,8 +55,8 @@ public class ContractCategoryServiceTest {
 
     @Test
     public void testUpdataStatusById() throws Exception {
-        //int ret = contractCategoryService.updateContractStatus(1056L, ContractStatus.DELETED);
-        //Assert.assertTrue(ret>0);
+        int ret = contractCategoryService.updateContractStatus(1196L, ContractStatus.PROCESSING);
+        Assert.assertTrue(ret>0);
     }
 
     public ContractCategoryDTO testSaveContract() throws Exception {
@@ -80,7 +78,7 @@ public class ContractCategoryServiceTest {
     }
 
 
-//    @Test
+    @Test
     public void testUpdateContract() throws Exception {
         ContractCategoryDTO contractCategoryDTO = new ContractCategoryDTO();
         contractCategoryDTO.setId(2L);
@@ -89,7 +87,7 @@ public class ContractCategoryServiceTest {
 //        Assert.assertTrue(updateRet != null && updateRet > 0);
     }
 
-    @Test
+//    @Test
     public void testRemoveContract() throws Exception {
         long id = 1000L;
         assert null != contractCategoryService.getContractById(id);

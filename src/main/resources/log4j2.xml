@@ -70,7 +70,7 @@
 
         <!-- 自定义日志配置 -->
         <RollingRandomAccessFile name="sendMQMessageFailed" fileName="${fileName}/sendMQMessageFailed.log" immediateFlush="false"
-                                 filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.trade">
+                                 filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.sendMQMessageFailed">
             <PatternLayout pattern="%d{yyyy-MM-dd 'at' HH:mm:ss z} [%t] %-5level %logger{36} %L %M - %msg%xEx%n" />
             <Policies>
                 <SizeBasedTriggeringPolicy size="50 MB"/>
@@ -81,7 +81,7 @@
 
         <!-- 自定义日志配置 -->
         <RollingRandomAccessFile name="updatePositionFailed" fileName="${fileName}/updatePositionFailed.log" immediateFlush="false"
-                                 filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.trade">
+                                 filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.updatePositionFailed">
             <PatternLayout pattern="%d{yyyy-MM-dd 'at' HH:mm:ss z} [%t] %-5level %logger{36} %L %M - %msg%xEx%n" />
             <Policies>
                 <SizeBasedTriggeringPolicy size="50 MB"/>
@@ -96,7 +96,7 @@
 
         <!-- 自定义日志配置 -->
         <RollingRandomAccessFile name="adlFailed" fileName="${fileName}/adlFailed.log" immediateFlush="false"
-                                 filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.trade">
+                                 filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.adlFailed">
             <PatternLayout pattern="%d{yyyy-MM-dd 'at' HH:mm:ss z} [%t] %-5level %logger{36} %L %M - %msg%xEx%n" />
             <Policies>
                 <SizeBasedTriggeringPolicy size="50 MB"/>
@@ -111,7 +111,22 @@
 
         <!-- 自定义日志配置 -->
         <RollingRandomAccessFile name="adlExtraInfo" fileName="${fileName}/adlExtraInfo.log" immediateFlush="false"
-                                 filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.trade">
+                                 filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.adlExtraInfo">
+            <PatternLayout pattern="%d{yyyy-MM-dd 'at' HH:mm:ss z} [%t] %-5level %logger{36} %L %M - %msg%xEx%n" />
+            <Policies>
+                <SizeBasedTriggeringPolicy size="50 MB"/>
+            </Policies>
+            <Filters>
+                <!-- 只记录info级别信息 -->
+                <ThresholdFilter level="info" onMatch="ACCEPT" onMismatch="DENY"/>
+            </Filters>
+            <!-- 指定每天的最大压缩包个数，默认7个，超过了会覆盖之前的 -->
+            <DefaultRolloverStrategy max="50"/>
+        </RollingRandomAccessFile>
+
+        <!-- 自定义日志配置 -->
+        <RollingRandomAccessFile name="updatePositionExtraInfo" fileName="${fileName}/updatePositionExtraInfo.log" immediateFlush="false"
+                                 filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.updatePositionExtraInfo">
             <PatternLayout pattern="%d{yyyy-MM-dd 'at' HH:mm:ss z} [%t] %-5level %logger{36} %L %M - %msg%xEx%n" />
             <Policies>
                 <SizeBasedTriggeringPolicy size="50 MB"/>
@@ -146,12 +161,20 @@
             <AppenderRef ref="sendMQMessageFailed"/>
         </AsyncLogger>
 
+        <AsyncLogger name="updatePositionExtraInfo" level="info" additivity="false">
+            <AppenderRef ref="updatePositionExtraInfo"/>
+        </AsyncLogger>
+
         <AsyncLogger name="adlFailed" level="info" additivity="false">
             <AppenderRef ref="adlFailed"/>
         </AsyncLogger>
 
         <AsyncLogger name="adlExtraInfo" level="info" additivity="false">
             <AppenderRef ref="adlExtraInfo"/>
+        </AsyncLogger>
+        <!--现货指数只打印error日志-->
+        <AsyncLogger name="com.fota.data.manager.IndexCacheManager" level="error">
+            <AppenderRef ref="errorFile"/>
         </AsyncLogger>
 
     </Loggers>

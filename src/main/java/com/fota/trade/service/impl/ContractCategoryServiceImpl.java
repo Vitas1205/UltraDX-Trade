@@ -64,7 +64,7 @@ public class ContractCategoryServiceImpl implements ContractCategoryService {
                 .collect(Collectors.toList());
     }
 
-    private List<ContractCategoryDTO> getAllValidContract(){
+    public List<ContractCategoryDTO> getAllValidContract(){
         List<ContractCategoryDTO> contractCategoryDTOList = redisManager.get(CONTRACT_LIST_KEY);
         if (!CollectionUtils.isEmpty(contractCategoryDTOList)) {
             return contractCategoryDTOList;

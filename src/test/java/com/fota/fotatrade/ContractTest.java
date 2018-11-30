@@ -31,7 +31,6 @@ import java.util.stream.Collectors;
 import static com.fota.trade.common.TestConfig.userId;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
-import static com.fota.trade.domain.enums.OrderTypeEnum.ENFORCE;
 import static com.fota.trade.domain.enums.OrderTypeEnum.LIMIT;
 import static com.fota.trade.domain.enums.OrderTypeEnum.PASSIVE;
 
@@ -68,7 +67,7 @@ public class ContractTest {
     @Autowired
     private ADLManager adlManager;
 
-    @Test
+//    @Test
     public void placeOrder(){
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
         contractOrderDTO.setContractName("BTC0304");
@@ -86,7 +85,7 @@ public class ContractTest {
         log.info("result={}", result);
     }
 
-    @Test
+//    @Test
     public void batchPlaceOrder(){
 
         PlaceOrderRequest<PlaceContractOrderDTO> placeOrderRequest = new PlaceOrderRequest();
@@ -182,7 +181,7 @@ public class ContractTest {
         ContractCategoryDO contractCategoryDO = contractCategoryMapper.getContractCategoryById(contractId);
     }
 
-    @Test
+//    @Test
     public void testAdl(){
         String str="{\"amount\":0.0047100000000000,\"contractId\":1069,\"contractName\":\"ETH1812\",\"direction\":2,\"id\":778540589869040641,\"matchedList\":[{\"direction\":1,\"fee\":0E-16,\"filledPrice\":212.5000000000000000,\"id\":495716989791457,\"matchedAmount\":0.0047100000000000,\"orderType\":1,\"price\":212.5000000000000000,\"unfilledAmount\":22.4420400000000000,\"userId\":11}],\"orderId\":675856890627061,\"price\":233.538000000000,\"time\":1541746807599,\"unfilled\":0E-16,\"userId\":330}";
 

@@ -6,7 +6,6 @@ import com.fota.common.Result;
 import com.fota.common.enums.FotaApplicationEnum;
 import com.fota.trade.client.*;
 import com.fota.trade.common.Constant;
-import com.fota.trade.common.TestConfig;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderPriceTypeEnum;
@@ -16,12 +15,10 @@ import com.fota.trade.mapper.UsdkOrderMapper;
 import com.fota.trade.service.impl.UsdkOrderServiceImpl;
 import com.fota.trade.util.BasicUtils;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
@@ -29,7 +26,6 @@ import java.math.RoundingMode;
 import java.util.*;
 
 import static com.fota.trade.common.TestConfig.userId;
-import static com.fota.trade.domain.enums.OrderTypeEnum.MARKET;
 
 /**
  * @author Gavin Shen
@@ -143,7 +139,7 @@ public class UsdkOrderServiceTest {
 
     }
 
-    @Test
+//    @Test
     public void testUpdateOrderByMatch() throws Exception {
 
 

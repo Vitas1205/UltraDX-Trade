@@ -15,7 +15,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication
 @ImportResource("classpath:application-context.xml")
 @EnableConfigurationProperties(MarketAccountListConfig.class)
-@EnableCaching
+//@EnableCaching
 @EnableScheduling
 public class FotaTradeApplication {
 

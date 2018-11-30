@@ -106,7 +106,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
             " update trade_contract_order" +
             " set gmt_modified = now()," +
             " status = #{toStatus}" +
-            " where user_id=#{userId} and id = #{id} "
+            " where user_id=#{userId} and id = #{id} and status != #{toStatus} "
     })
     int cancel(@Param("userId") long userId, @Param("id") long id, @Param("toStatus") int toStatus);
 

@@ -21,7 +21,6 @@ import com.fota.trade.util.BasicUtils;
 import com.fota.trade.util.DateUtil;
 import com.fota.trade.util.PriceUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -101,7 +100,7 @@ public class ContractOrderServiceTest {
         log.info(String.valueOf(contractOrderDTOPage));
     }
 
-    @Test
+//    @Test
     public void testUpdateOrderByMatch() {
 
 
@@ -343,7 +342,7 @@ public class ContractOrderServiceTest {
         log.info(result.toString());
     }
 
-    @Test
+//    @Test
     public void getAccountMsgTest(){
         ContractAccount contractAccount = contractOrderManager.computeContractAccount(282L);
         log.info(contractAccount.toString());

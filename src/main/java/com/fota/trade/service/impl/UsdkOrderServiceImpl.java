@@ -181,7 +181,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         }catch (Exception e){
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
-                log.error("usdk order fialed, code={}, message={}", businessException.getCode(), businessException.getMessage());
+                log.error("usdk order fialed, usdkOrderDTO={}, code={}, message={}", usdkOrderDTO, businessException.getCode(), businessException.getMessage());
                 result.setCode(businessException.getCode());
                 result.setMessage(businessException.getMessage());
                 return result;
