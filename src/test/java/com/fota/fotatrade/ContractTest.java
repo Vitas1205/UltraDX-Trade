@@ -67,7 +67,7 @@ public class ContractTest {
     @Autowired
     private ADLManager adlManager;
 
-    @Test
+//    @Test
     public void placeOrder(){
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
         contractOrderDTO.setContractName("BTC0304");
@@ -85,7 +85,7 @@ public class ContractTest {
         log.info("result={}", result);
     }
 
-    @Test
+//    @Test
     public void batchPlaceOrder(){
 
         PlaceOrderRequest<PlaceContractOrderDTO> placeOrderRequest = new PlaceOrderRequest();
