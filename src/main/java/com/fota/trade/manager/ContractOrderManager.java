@@ -237,7 +237,7 @@ public class ContractOrderManager {
                 }
                 ContractOrderDO contractOrderDO = ConvertUtils.extractContractOrderDO(placeOrderDTO, placeOrderRequest.getUserId(),
                         feeRate, placeOrderRequest.getUserName(), placeOrderRequest.getIp());
-                Result checkRes = checkAndFillProperties(contractOrderDO, competitorsPrices, placeOrderDTO.getEntrustValue());
+                Result checkRes = checkAndFillProperties(contractOrderDO, competitorsPrices, placeOrderDTO.getEntrustValue(), true);
                 if(!checkRes.isSuccess()) {
                     return checkRes;
                 }
@@ -287,7 +287,7 @@ public class ContractOrderManager {
     /**
      * 计算价格，数量
      */
-    private Result checkAndFillProperties(ContractOrderDO newContractOrderDO, List<CompetitorsPriceDTO> competitorsPrices, BigDecimal entrustValue){
+    private Result checkAndFillProperties(ContractOrderDO newContractOrderDO, List<CompetitorsPriceDTO> competitorsPrices, BigDecimal entrustValue, boolean check){
         int assetId = AssetTypeEnum.getAssetIdByContractName(newContractOrderDO.getContractName());
         if (assetId == AssetTypeEnum.UNKNOW.getCode()) {
             LogUtil.error( CONTRACT_ORDER, null,  newContractOrderDO.getContractName(), "illegal contractName");
@@ -295,7 +295,7 @@ public class ContractOrderManager {
         }
         //计算合约价格
         Result<BigDecimal> getPriceRes = computeAndCheckOrderPrice(competitorsPrices, newContractOrderDO.getOrderType(), newContractOrderDO.getPrice(),
-                assetId, newContractOrderDO.getContractId(), newContractOrderDO.getOrderDirection());
+                assetId, newContractOrderDO.getContractId(), newContractOrderDO.getOrderDirection(), check);
         if (!getPriceRes.isSuccess()) {
             return Result.fail(getPriceRes.getCode(), getPriceRes.getMessage());
         }
@@ -974,7 +974,7 @@ public class ContractOrderManager {
     /**
      * 根据不同价格策略，获取下单价格
      */
-    public Result<BigDecimal> computeAndCheckOrderPrice(List<CompetitorsPriceDTO> competitorsPriceList, Integer orderType, BigDecimal orderPrice, int assetId, Long contractId, int orderDeriction) {
+    public Result<BigDecimal> computeAndCheckOrderPrice(List<CompetitorsPriceDTO> competitorsPriceList, Integer orderType, BigDecimal orderPrice, int assetId, Long contractId, int orderDeriction, boolean checkPriceBoundary) {
 
         if (null == orderType) {
             return Result.fail(PRICE_TYPE_ILLEGAL.getCode(), PRICE_TYPE_ILLEGAL.getMessage());
@@ -1027,10 +1027,10 @@ public class ContractOrderManager {
             return Result.fail(AMOUNT_ILLEGAL.getCode(), AMOUNT_ILLEGAL.getMessage());
         }
         if (indexes.compareTo(BigDecimal.ZERO) != 0){
-            if (orderDeriction == ASK.getCode() && orderPrice.compareTo(sellMinPrice) < 0){
+            if (orderDeriction == ASK.getCode() && orderPrice.compareTo(sellMinPrice) < 0 && checkPriceBoundary){
                 return Result.fail(PRICE_OUT_OF_BOUNDARY.getCode(), PRICE_OUT_OF_BOUNDARY.getMessage());
             }
-            if (orderDeriction == OrderDirectionEnum.BID.getCode() && orderPrice.compareTo(buyMaxPrice) > 0){
+            if (orderDeriction == OrderDirectionEnum.BID.getCode() && orderPrice.compareTo(buyMaxPrice) > 0 && checkPriceBoundary){
                 return Result.fail(PRICE_OUT_OF_BOUNDARY.getCode(), PRICE_OUT_OF_BOUNDARY.getMessage());
             }
         }
@@ -1213,7 +1213,7 @@ public class ContractOrderManager {
         redisManager.hPutAll(userContractPositionExtraKey, map);
     }
 
-    public Optional<ContractMarginDTO> getPreciseContractMargin(ContractOrderDTO contractOrderDTO) {
+    public Result<ContractMarginDTO> getPreciseContractMargin(ContractOrderDTO contractOrderDTO) {
         Long userId = contractOrderDTO.getUserId();
         Long contractId = contractOrderDTO.getContractId();
         List<ContractOrderDO> contractOrderDOS = contractOrderMapper.selectNotEnforceOrderByUserId(userId);
@@ -1228,7 +1228,7 @@ public class ContractOrderManager {
         bidContractOrderDO.setOrderType(contractOrderDTO.getOrderType());
         bidContractOrderDO.setPrice(contractOrderDTO.getPrice());
         Result result = checkAndFillProperties(bidContractOrderDO, competitorsPrices,
-                contractOrderDTO.getEntrustValue());
+                contractOrderDTO.getEntrustValue(), false);
 
         if (result.isSuccess()) {
             ContractOrderDO askContractOrderDO = new ContractOrderDO();
@@ -1264,21 +1264,26 @@ public class ContractOrderManager {
                     Optional<ContractAccount> askContractAccountOp = computeContractAccount(userId, categoryDTOMap, contractOrderDOS, allPositions, assetLeverMap,
                             competitorsPrices);
                     if (askContractAccountOp.isPresent()) {
+                        int precision = AssetTypeEnum.getContractInfoPricePrecisionByAssetId(AssetTypeEnum.BTC.getCode());
                         ContractAccount askContractAccount = askContractAccountOp.get();
                         ContractMarginDTO contractMarginDTO = new ContractMarginDTO();
                         contractMarginDTO.setAsk(askContractAccount.getAccountMargin()
                                 .subtract(contractAccount.getAccountMargin())
+                                .setScale(precision, BigDecimal.ROUND_DOWN)
                                 .toPlainString());
                         contractMarginDTO.setBid(bidContractAccount.getAccountMargin()
                                 .subtract(contractAccount.getAccountMargin())
+                                .setScale(precision, BigDecimal.ROUND_DOWN)
                                 .toPlainString());
-                        return Optional.of(contractMarginDTO);
+                        return Result.suc(contractMarginDTO);
                     }
                 }
             }
+        } else {
+            return result;
         }
 
-        return Optional.empty();
+        return Result.fail(SYSTEM_ERROR.getCode(), SYSTEM_ERROR.getMessage());
     }
 
     @Nonnull

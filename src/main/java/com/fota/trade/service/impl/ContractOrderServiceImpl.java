@@ -514,13 +514,10 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     }
 
     @Override
-    public Result<ContractMarginDTO> getPreciseMargin(ContractOrderDTO contractOrderDTO) {
+    public Result<ContractMarginDTO> getPreciseMarginReq(ContractOrderDTO contractOrderDTO) {
         try {
-            Optional<ContractMarginDTO> contractMarginDTOOp = contractOrderManager.getPreciseContractMargin(contractOrderDTO);
-            if (contractMarginDTOOp.isPresent()) {
-                return Result.suc(contractMarginDTOOp.get());
-            }
-            return Result.fail(SYSTEM_ERROR.getCode(), SYSTEM_ERROR.getMessage());
+            Result<ContractMarginDTO> result = contractOrderManager.getPreciseContractMargin(contractOrderDTO);
+            return result;
         }catch (Exception e){
             log.error("contractOrderManager.getPreciseMargin failed{}", contractOrderDTO);
             throw new RuntimeException("contractOrderManager.getPreciseMargin failed", e);

@@ -1,5 +1,6 @@
 package com.fota.trade.manager;
 
+import com.fota.common.Result;
 import com.fota.trade.client.ContractMarginDTO;
 import com.fota.trade.domain.ContractOrderDTO;
 import com.fota.trade.domain.enums.OrderTypeEnum;
@@ -12,7 +13,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.Optional;
 
 /**
  * @Author: Harry Wang
@@ -38,7 +38,7 @@ public class ContractOrderTest {
         contractOrderDTO.setOrderType(OrderTypeEnum.LIMIT.getCode());
         contractOrderDTO.setPrice(BigDecimal.valueOf(3900.1));
         contractOrderDTO.setEntrustValue(BigDecimal.valueOf(0.01));
-        Optional<ContractMarginDTO> preciseContractMargin = contractOrderManager.getPreciseContractMargin(contractOrderDTO);
+        Result<ContractMarginDTO> preciseContractMargin = contractOrderManager.getPreciseContractMargin(contractOrderDTO);
         System.out.println(preciseContractMargin);
     }
 }
