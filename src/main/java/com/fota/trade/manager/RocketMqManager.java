@@ -100,7 +100,7 @@ public class RocketMqManager {
                 return false;
             }
         } catch (Exception e) {
-            log.error("send message failed, mqMessage={}", mqMessage, e);
+            log.error("send message failed, mqMessage={}\037", mqMessage, e);
             return false;
         }
     }
@@ -137,7 +137,7 @@ public class RocketMqManager {
                 log.error("send message failed, mqMessage={}, ret={}", message, JSON.toJSONString(ret));
             }
         } catch (Throwable e) {
-            log.error("send message failed, mqMessage={}", message);
+            log.error("send message failed, mqMessage={}\037", message, e);
         }
         return false;
 
@@ -172,7 +172,7 @@ public class RocketMqManager {
             }
             return true;
         } catch (Exception e) {
-            log.error("send message failed, mqMessage={}, exceptionMsg={}", mqMessages, e.getMessage());
+            log.error("send message failed, mqMessage={}, exceptionMsg={}\037", mqMessages, e);
             return false;
         }
     }

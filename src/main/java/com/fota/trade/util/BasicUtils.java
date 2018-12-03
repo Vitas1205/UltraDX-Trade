@@ -60,6 +60,17 @@ public class BasicUtils {
         return a.subtract(b).abs().compareTo(error) < 0;
     }
 
+    public static int absHash(Object obj) {
+        int h = obj.hashCode();
+        if (h < 0) {
+            h = Math.abs(h);
+        }
+        if (h < 0) {
+            h = 0;
+        }
+        return h;
+    }
+
     public static boolean gt(BigDecimal a, BigDecimal b) {
         return a.subtract(b).compareTo(error) > 0;
     }

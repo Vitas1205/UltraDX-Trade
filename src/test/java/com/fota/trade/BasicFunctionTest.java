@@ -80,4 +80,9 @@ public class BasicFunctionTest {
         assert new org.mybatis.spring.MyBatisSystemException(new Exception()) instanceof DataAccessException;
         assert 2== BasicUtils.count("a##", '#');
     }
+    @Test
+    public void testAbsHash(){
+        int h = BasicUtils.absHash(Integer.MIN_VALUE);
+        assert h>=0;
+    }
 }

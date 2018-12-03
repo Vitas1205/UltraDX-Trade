@@ -177,7 +177,7 @@ public class DeleverageManager {
         String messageKey = StringUtils.isEmpty(retryKey)? deleverageDTO.key():retryKey;
 
         MessageQueueSelector queueSelector = (final List<MessageQueue> mqs, final Message msg, final Object arg) -> {
-            int key = arg.hashCode();
+            int key = BasicUtils.absHash(arg);
             return mqs.get(key % mqs.size());
         };
         return rocketMqManager.sendMessage(TopicConstants.TRD_CONTRACT_DELEVERAGE, "adl", messageKey, deleverageDTO, queueSelector, deleverageDTO.queue());
