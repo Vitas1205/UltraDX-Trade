@@ -23,7 +23,7 @@ import java.math.BigDecimal;
 @Slf4j
 @Transactional
 @RunWith(SpringRunner.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest
 public class ContractOrderTest {
 
     @Autowired
