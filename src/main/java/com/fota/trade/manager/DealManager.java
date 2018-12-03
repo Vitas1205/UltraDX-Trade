@@ -305,6 +305,9 @@ public class DealManager {
             LogUtil.error(TradeBizTypeEnum.CONTRACT_DEAL, null, postDealMessages, "empty postDealMessages");
             return Result.fail(ILLEGAL_PARAM.getCode(), "empty postDealMessages in postDeal");
         }
+        String mkeys = postDealMessages.stream().map(ContractDealedMessage::msgKey)
+                .collect(Collectors.joining("-"));
+        log.info("postDealOneUserOneContract, mkeys={}", mkeys);
         ContractDealedMessage sample = postDealMessages.get(0);
         long userId =sample.getUserId();
         long contractId = sample.getSubjectId();
@@ -464,6 +467,7 @@ public class DealManager {
         }else {
             int aff = userPositionMapper.updatePositionById(userPositionDO, oldPositionType, oldUnfilledAmount, oldAveragePrice);
             if (1 != aff) {
+                log.error("update failed updatePositionById, userPositionDO={}", userPositionDO);
                 return null;
             }
         }

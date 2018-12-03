@@ -110,6 +110,9 @@ public class PostDealConsumer {
                     return ConsumeOrderlyStatus.SUCCESS;
                 }
                 try {
+                    String mqKeys = msgs.stream().map(MessageExt::getKeys)
+                            .collect(Collectors.joining("-"));
+                    log.info("post deal mqKeys:{}", mqKeys);
                     List<ContractDealedMessage> postDealMessages = msgs
                             .stream()
                             .map(x -> {
@@ -129,6 +132,10 @@ public class PostDealConsumer {
                     }catch (Throwable t) {
                         UPDATE_POSITION_FAILED_LOGGER.error("{}\037", new FailedRecord(RETRY, REMOVE_DUPLICATE.name(), postDealMessages));
                     }
+
+                    String mkeys = postDealMessages.stream().map(ContractDealedMessage::msgKey)
+                            .collect(Collectors.joining("-"));
+                    log.info("post deal mqKeys:{}", mkeys);
 
                     if (CollectionUtils.isEmpty(postDealMessages)) {
                         return ConsumeOrderlyStatus.SUCCESS;
