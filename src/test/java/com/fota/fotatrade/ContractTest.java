@@ -3,6 +3,9 @@ package com.fota.fotatrade;
 import com.alibaba.fastjson.JSON;
 import com.fota.common.Result;
 import com.fota.common.enums.FotaApplicationEnum;
+import com.fota.trade.DeleverageConsumer;
+import com.fota.trade.dto.DeleverageDTO;
+import com.fota.trade.manager.DeleverageManager;
 import com.fota.trade.test.BaseTest;
 import com.fota.trade.client.PlaceContractOrderDTO;
 import com.fota.trade.client.PlaceOrderRequest;
@@ -18,6 +21,7 @@ import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.BeanUtils;
@@ -70,8 +74,13 @@ public class ContractTest {
     @Autowired
     private ADLManager adlManager;
 
+    @Autowired
+    private DeleverageConsumer deleverageConsumer;
+    @Autowired
+    private DeleverageManager deleverageManager;
 
-    @Test
+
+//    @Test
     public void placeOrder(){
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
         contractOrderDTO.setContractName("BTC1901");
@@ -145,7 +154,7 @@ public class ContractTest {
         Long orderId = 349L;
 //        contractOrderService.cancelOrder(userId, orderId);
     }
-    @Test
+//    @Test
     public void cancleAllOrder(){
         Long userId = 284L;
         //contractOrderService.cancelAllmatch_adlOrder(userId);
@@ -195,6 +204,19 @@ public class ContractTest {
         adlManager.adl(JSON.parseObject(str, ContractADLMatchDTO.class));
         System.out.printf("a");
 //        Result result1 = adlManager.adl(JSON.parseObject(str1, ContractADLMatchDTO.class));
+    }
+
+
+//    @Test
+    public void testDeleverage(){
+        DeleverageDTO deleverageDTO = new DeleverageDTO();
+        deleverageDTO.setMatchId(1L);
+        deleverageDTO.setNeedPositionDirection(1);
+        deleverageDTO.setContractId(1196L);
+        deleverageDTO.setAdlPrice(new BigDecimal("4019"));
+        deleverageDTO.setUnfilledAmount(new BigDecimal("0.000002"));
+        deleverageManager.deleverage(deleverageDTO);
+        log.info("a");
     }
 
 
