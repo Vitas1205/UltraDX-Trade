@@ -116,7 +116,7 @@ public class ADLConsumer {
         try {
             adlManager.adl(adlMessage);
         }catch (Throwable t){
-            ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(RETRY, EXCEPTION.name(), x), t);
+            ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(RETRY, EXCEPTION.name(), adlMessage), t);
             return ConsumeConcurrentlyStatus.RECONSUME_LATER;
         }
 
