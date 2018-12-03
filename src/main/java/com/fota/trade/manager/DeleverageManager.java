@@ -65,7 +65,7 @@ public class DeleverageManager {
     public static final ExecutorService executorService = new ThreadPoolExecutor(4, 10, 3, TimeUnit.MINUTES, new LinkedBlockingDeque<>());
 
 
-    @Transactional
+    @Transactional(rollbackFor = Throwable.class)
     public void deleverage(DeleverageDTO deleverageDTO){
 
         Long matchId = deleverageDTO.getMatchId();
@@ -146,7 +146,6 @@ public class DeleverageManager {
 
         if (!CollectionUtils.isEmpty(contractMatchedOrderDOS)) {
             contractMatchedOrderMapper.insert(contractMatchedOrderDOS);
-            contractDealedMessages.forEach(x -> dealManager.sendDealMessage(x));
         }
 
 
