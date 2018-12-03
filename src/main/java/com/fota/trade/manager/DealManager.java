@@ -397,7 +397,7 @@ public class DealManager {
         return positionResult;
     }
     private UpdatePositionResult internalUpdatePosition(long userId, long contractId, List<ContractDealedMessage> postDealMessages) {
-        String requestId = postDealMessages.stream().map(ContractDealedMessage::msgKey).collect(Collectors.joining());
+        String requestId = postDealMessages.stream().map(ContractDealedMessage::msgKey).collect(Collectors.joining("-"));
 
         ContractDealedMessage sample = postDealMessages.get(0);
         UpdatePositionResult result = new UpdatePositionResult();
