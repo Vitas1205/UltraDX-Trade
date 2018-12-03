@@ -11,6 +11,7 @@ import com.fota.trade.manager.RedisManager;
 import com.fota.trade.msg.ContractDealedMessage;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
 import com.fota.trade.util.BasicUtils;
+import com.fota.trade.util.DistinctFilter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
@@ -124,7 +125,6 @@ public class PostDealConsumer {
                                 return message;
                             })
                             .filter(x -> null != x)
-                            .distinct()
                             .collect(Collectors.toList());
 
                     try {
@@ -135,7 +135,7 @@ public class PostDealConsumer {
 
                     String mkeys = postDealMessages.stream().map(ContractDealedMessage::msgKey)
                             .collect(Collectors.joining("-"));
-                    log.info("post deal mqKeys:{}", mkeys);
+                    log.info("post deal mqKeys after remove duplicate :{}", mkeys);
 
                     if (CollectionUtils.isEmpty(postDealMessages)) {
                         return ConsumeOrderlyStatus.SUCCESS;
@@ -183,7 +183,7 @@ public class PostDealConsumer {
             if (null == existList.get(i)) {
                 ret.add(postDealMessage);
             } else {
-                log.info("duplicate post deal message, message={}", postDealMessage);
+                log.info("duplicate post deal message, mkey={}", postDealMessage.msgKey());
             }
         }
         return ret;
