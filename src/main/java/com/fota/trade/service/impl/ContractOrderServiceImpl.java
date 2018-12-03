@@ -523,7 +523,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     }
 
     @Override
-    public Result<ContractMarginDTO> getPreciseMargin(ContractOrderDTO contractOrderDTO) {
+    public Result<ContractMarginDTO> getPreciseMarginReq(ContractOrderDTO contractOrderDTO) {
         return null;
     }
 
