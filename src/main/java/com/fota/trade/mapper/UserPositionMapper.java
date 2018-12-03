@@ -130,8 +130,8 @@ public interface UserPositionMapper {
             "set gmt_modified = now(),",
             "position_type = #{item.positionType},",
             "unfilled_amount = #{item.unfilledAmount},",
-            "average_price = #{item.averagePrice},",
-            "where id = #{item.id,jdbcType=BIGINT} and position_type=#{oldPositionType} and unfilled_amount=#{oldUnfilledAmount}" +
+            "average_price = #{item.averagePrice} ",
+            " where id = #{item.id} and position_type=#{oldPositionType} and unfilled_amount=#{oldUnfilledAmount} " +
                     " and average_price=#{oldAveragePrice}"})
     int updatePositionById(@Param("item") UserPositionDO userPositionDO, @Param("oldPositionType") Integer oldPositionType,
                            @Param("oldUnfilledAmount") BigDecimal oldUnfilledAmount,
