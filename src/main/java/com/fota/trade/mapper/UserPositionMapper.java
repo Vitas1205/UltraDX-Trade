@@ -128,13 +128,14 @@ public interface UserPositionMapper {
     @Update({
             "update trade_user_position",
             "set gmt_modified = now(),",
-            "position_type = #{positionType,jdbcType=INTEGER},",
-            "status = #{status,jdbcType=INTEGER},",
-            "unfilled_amount = #{unfilledAmount},",
-            "average_price = #{averagePrice, jdbcType=DECIMAL},",
-            "fee_rate = #{feeRate, jdbcType=DECIMAL}",
-            "where id = #{id,jdbcType=BIGINT} and gmt_modified = #{gmtModified}"})
-    int updatePositionById(UserPositionDO userPositionDO);
+            "position_type = #{item.positionType},",
+            "unfilled_amount = #{item.unfilledAmount},",
+            "average_price = #{item.averagePrice},",
+            "where id = #{item.id,jdbcType=BIGINT} and position_type=#{oldPositionType} and unfilled_amount=#{oldUnfilledAmount}" +
+                    " and average_price=#{oldAveragePrice}"})
+    int updatePositionById(@Param("item") UserPositionDO userPositionDO, @Param("oldPositionType") Integer oldPositionType,
+                           @Param("oldUnfilledAmount") BigDecimal oldUnfilledAmount,
+                           @Param("oldAveragePrice") BigDecimal oldAveragePrice);
 
     int countByQuery(Map<String, Object> param);
 

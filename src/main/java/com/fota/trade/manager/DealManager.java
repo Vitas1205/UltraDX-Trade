@@ -384,7 +384,15 @@ public class DealManager {
     }
 
     public UpdatePositionResult updatePosition(long userId, long contractId, List<ContractDealedMessage> postDealMessages) {
-        return BasicUtils.retryWhenFail(()-> internalUpdatePosition(userId, contractId, postDealMessages), x -> null!=x, Duration.ofMillis(10), 3);
+        UpdatePositionResult positionResult = BasicUtils.retryWhenFail(()-> internalUpdatePosition(userId, contractId, postDealMessages), x -> null!=x, Duration.ofMillis(10), 3);
+        if (null != positionResult) {
+            executorService.submit(() -> {
+                //防止异常抛出
+                BasicUtils.exeWhitoutError(() -> updateTotalPosition(contractId, positionResult));
+                BasicUtils.exeWhitoutError(() -> updateTodayFee(postDealMessages));
+            });
+        }
+        return positionResult;
     }
     private UpdatePositionResult internalUpdatePosition(long userId, long contractId, List<ContractDealedMessage> postDealMessages) {
         String requestId = postDealMessages.stream().map(ContractDealedMessage::msgKey).collect(Collectors.joining());
@@ -402,6 +410,10 @@ public class DealManager {
             shouldInsert = true;
             userPositionDO = ContractUtils.buildPosition(sample);
         }
+
+        BigDecimal oldUnfilledAmount = userPositionDO.getUnfilledAmount();
+        BigDecimal oldAveragePrice = userPositionDO.getAveragePrice();
+        Integer oldPositionType = userPositionDO.getPositionType();
 
         BigDecimal preOpenAveragePrice = userPositionDO.getAveragePrice();
         BigDecimal preAmount = userPositionDO.computeSignAmount();
@@ -448,16 +460,11 @@ public class DealManager {
                 return null;
             }
         }else {
-            boolean suc = doUpdatePosition(userPositionDO);
-            if (!suc) {
+            int aff = userPositionMapper.updatePositionById(userPositionDO, oldPositionType, oldUnfilledAmount, oldAveragePrice);
+            if (1 != aff) {
                 return null;
             }
         }
-        executorService.submit(() -> {
-            //防止异常抛出
-            BasicUtils.exeWhitoutError(() -> updateTotalPosition(contractId, result));
-            BasicUtils.exeWhitoutError(() -> updateTodayFee(postDealMessages));
-        });
         return result;
     }
 
@@ -517,22 +524,6 @@ public class DealManager {
 //        return result;
 //    }
 
-    /**
-     * @param userPositionDO   旧的持仓
-     * @return
-     */
-    private boolean doUpdatePosition(UserPositionDO userPositionDO) {
-        try {
-            int aff = userPositionMapper.updatePositionById(userPositionDO);
-            if (1 != aff) {
-                log.error("update position failed, userPositionDO={}", userPositionDO);
-            }
-            return aff == 1;
-        } catch (Throwable t) {
-            log.error("update position exception, userPositionDO={}", userPositionDO, t);
-            return false;
-        }
-    }
 
     /**
      * 打印后台交易撮合监控日志
