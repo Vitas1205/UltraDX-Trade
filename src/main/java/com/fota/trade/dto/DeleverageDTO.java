@@ -8,7 +8,6 @@ import java.math.BigDecimal;
 public class DeleverageDTO {
     private BigDecimal unfilledAmount;
     private Long matchId;
-
     private Long contractId;
     /**
      * 减仓方向
@@ -20,7 +19,7 @@ public class DeleverageDTO {
     private BigDecimal adlPrice;
 
     public String key(){
-        return matchId + "_"+ unfilledAmount;
+        return matchId+"";
     }
 
     public String queue(){

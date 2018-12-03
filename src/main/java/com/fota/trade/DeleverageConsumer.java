@@ -114,7 +114,10 @@ public class DeleverageConsumer {
                 log.error("message error when deleverage!");
                 return ConsumeOrderlyStatus.SUCCESS;
             }
+
             try {
+                msgs = msgs.stream().filter(DistinctFilter.distinctByKey(MessageExt::getKeys))
+                        .collect(Collectors.toList());
                 msgs = removeDuplicta(keyPrefix, msgs);
             }catch (Throwable t) {
                 ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(RETRY, DL_REMOVE_DUPLICATE.name(), msgs), t);
@@ -124,8 +127,6 @@ public class DeleverageConsumer {
                 log.warn("empty msgs when deleverage");
             }
             msgs
-                    .stream()
-                    .filter(DistinctFilter.distinctByKey(MessageExt::getKeys))
                     .forEach(x -> {
                         DeleverageDTO message = BasicUtils.exeWhitoutError(() -> JSON.parseObject(x.getBody(), DeleverageDTO.class));
                         if (null == message) {
@@ -158,6 +159,9 @@ public class DeleverageConsumer {
     };
 
     public List<MessageExt> removeDuplicta(String keyPrefix, List<MessageExt> messageExts) {
+        if (CollectionUtils.isEmpty(messageExts)) {
+            return messageExts;
+        }
         List<String> keys = messageExts.stream().map(x -> keyPrefix + x.getKeys()).collect(Collectors.toList());
         List<String> existList = redisTemplate.opsForValue().multiGet(keys);
         if (null == existList) {

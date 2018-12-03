@@ -90,7 +90,7 @@ public class DeleverageManager {
 
             //调用排行榜失败，break
             if (CollectionUtils.isEmpty(RRL)) {
-                LogUtil.error(CONTRACT_ADL, deleverageDTO.getMatchId()+"", null, "start="+start+" contractId="+contractId+" dir="+needPositionDirection);
+                LogUtil.error(CONTRACT_ADL, deleverageDTO.getMatchId()+"", null, "empty RRL, start="+start+" contractId="+contractId+" dir="+needPositionDirection);
                 break;
             }
             List<Long> userIds = RRL.stream().map(UserRRLDTO::getUserId).collect(Collectors.toList());
@@ -169,7 +169,7 @@ public class DeleverageManager {
 
     public List<UserRRLDTO> getRRLWithRetry(long contractId, int direction, int start, int end) {
         return BasicUtils.retryWhenFail(() -> riskLevelManager.range(contractId,
-                direction, start, end), ret -> !CollectionUtils.isEmpty(ret), Duration.ofMillis(30), 5);
+                direction, start, end), ret -> CollectionUtils.isEmpty(ret), Duration.ofMillis(30), 5);
 
     }
 
