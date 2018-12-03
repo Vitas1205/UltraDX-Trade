@@ -135,14 +135,16 @@ public class ADLConsumer {
 //            if (t instanceof DataAccessException) {
 //                shouldRetry = true;
 //            }
-            if (shouldRetry) {
+            int count = BasicUtils.count(messageExt.getKeys(), '#');
+            messageExt.setKeys(messageExt.getKeys() + '#');
+            if (shouldRetry && count <=5) {
                 boolean suc = rocketMqManager.sendMessage(Arrays.asList(messageExt));
                 if (suc) {
-                    ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(RETRY, RESEND.name(), adlMessage, "retry", ""), t);
+                    ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(RETRY, RESEND.name(), adlMessage, "mqRetry", "retries="+count), t);
                     return;
                 }
             }else {
-                ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(RETRY, EXCEPTION.name(), adlMessage), t);
+                ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(RETRY, EXCEPTION.name(), adlMessage, "exception", "retries="+count), t);
             }
         }
     }
