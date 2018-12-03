@@ -384,7 +384,7 @@ public class DealManager {
     }
 
     public UpdatePositionResult updatePosition(long userId, long contractId, List<ContractDealedMessage> postDealMessages) {
-        UpdatePositionResult positionResult = BasicUtils.retryWhenFail(()-> internalUpdatePosition(userId, contractId, postDealMessages), x -> null!=x, Duration.ofMillis(10), 3);
+        UpdatePositionResult positionResult = BasicUtils.retryWhenFail(()-> internalUpdatePosition(userId, contractId, postDealMessages), x -> null==x, Duration.ofMillis(10), 3);
         if (null != positionResult) {
             executorService.submit(() -> {
                 //防止异常抛出
