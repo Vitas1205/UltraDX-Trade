@@ -601,7 +601,7 @@ public class DealManager {
     }
     public void sendDealMessage(ContractDealedMessage postDealMessage) {
         MessageQueueSelector queueSelector = (final List<MessageQueue> mqs, final Message msg, final Object arg) -> {
-            int key = arg.hashCode();
+            int key = Math.abs(arg.hashCode());
             return mqs.get(key % mqs.size());
         };
         rocketMqManager.sendMessage(TopicConstants.TRD_CONTRACT_DEAL, postDealMessage.getSubjectId()+"", postDealMessage.msgKey(), postDealMessage, queueSelector,
