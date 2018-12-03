@@ -134,6 +134,7 @@ public class ADLManager {
         map.put("matchId", adlMatchDTO.getId());
         map.put("userId", adlMatchDTO.getUserId());
         map.put("matchedList", adlMatchDTO.getMatchedList());
+        map.put("unfilled", adlMatchDTO.getUnfilled());
         map.put("direction", adlMatchDTO.getDirection());
         map.put("contractId", adlMatchDTO.getContractId());
         map.put("currentPrice", currentPrice);

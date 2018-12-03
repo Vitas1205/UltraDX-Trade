@@ -162,6 +162,7 @@ public class DeleverageManager {
         map.put("direction", deleverageDTO.getNeedPositionDirection());
         map.put("contractId", deleverageDTO.getContractId());
         map.put("updatePositionResults", updatePositionResultMap.values());
+        map.put("unfilled", deleverageDTO.getUnfilledAmount());
         map.put("adlPrice", adlPrice);
         ADL_EXTEA_LOG.info("{}", JSON.toJSONString(map));
 
