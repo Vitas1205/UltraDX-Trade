@@ -113,7 +113,7 @@ public class PostDealConsumer {
                 try {
                     String mqKeys = msgs.stream().map(MessageExt::getKeys)
                             .collect(Collectors.joining("-"));
-                    log.info("post deal mqKeys:{}", mqKeys);
+//                    log.info("post deal mqKeys:{}", mqKeys);
                     List<ContractDealedMessage> postDealMessages = msgs
                             .stream()
                             .map(x -> {
@@ -135,7 +135,7 @@ public class PostDealConsumer {
 
                     String mkeys = postDealMessages.stream().map(ContractDealedMessage::msgKey)
                             .collect(Collectors.joining("-"));
-                    log.info("post deal mqKeys after remove duplicate :{}", mkeys);
+//                    log.info("post deal mqKeys after remove duplicate :{}", mkeys);
 
                     if (CollectionUtils.isEmpty(postDealMessages)) {
                         return ConsumeOrderlyStatus.SUCCESS;

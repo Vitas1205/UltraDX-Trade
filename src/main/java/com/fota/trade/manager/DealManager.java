@@ -217,7 +217,7 @@ public class DealManager {
         });
 
         List<ContractMatchedOrderDO> contractMatchedOrderDOS = adlMatchedDTOList.stream()
-                .map( matchedOrderDTO ->  ConvertUtils.toMatchedOrderDO( matchedOrderDTO, contractADLMatchDTO.getDirection() , contractADLMatchDTO.getUserId(),
+                .map( matchedOrderDTO ->  ConvertUtils.toMatchedOrderDO( matchId, matchedOrderDTO, contractADLMatchDTO.getDirection() , contractADLMatchDTO.getUserId(),
                         contractADLMatchDTO.getContractId(), contractADLMatchDTO.getContractName()))
                 .collect(Collectors.toList());
 
@@ -307,7 +307,6 @@ public class DealManager {
         }
         String mkeys = postDealMessages.stream().map(ContractDealedMessage::msgKey)
                 .collect(Collectors.joining("-"));
-        log.info("postDealOneUserOneContract, mkeys={}", mkeys);
         ContractDealedMessage sample = postDealMessages.get(0);
         long userId =sample.getUserId();
         long contractId = sample.getSubjectId();
@@ -389,8 +388,8 @@ public class DealManager {
     public UpdatePositionResult updatePosition(long userId, long contractId, List<ContractDealedMessage> postDealMessages) {
         UpdatePositionResult positionResult = BasicUtils.retryWhenFail(()-> internalUpdatePosition(userId, contractId, postDealMessages), x -> null==x, Duration.ofMillis(10), 3);
         if (null != positionResult) {
+            contractOrderManager.updateExtraEntrustAmountByContract(userId, contractId);
             executorService.submit(() -> {
-                contractOrderManager.updateExtraEntrustAmountByContract(userId, contractId);
 
                 //防止异常抛出
                 BasicUtils.exeWhitoutError(() -> updateTotalPosition(contractId, positionResult));

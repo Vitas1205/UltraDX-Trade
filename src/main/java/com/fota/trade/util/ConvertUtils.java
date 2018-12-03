@@ -53,7 +53,7 @@ public class ConvertUtils {
     }
 
 
-    public static ContractMatchedOrderDO toMatchedOrderDO(ADLMatchedDTO adlMatchedDTO, int matchType, long enforceUserId, long contractId, String contractName){
+    public static ContractMatchedOrderDO toMatchedOrderDO(long matchId, ADLMatchedDTO adlMatchedDTO, int matchType, long enforceUserId, long contractId, String contractName){
         ContractMatchedOrderDO matchedOrderDO = new ContractMatchedOrderDO();
         matchedOrderDO.setOrderId(adlMatchedDTO.getId())
                 .setUserId(adlMatchedDTO.getUserId())
@@ -61,7 +61,7 @@ public class ConvertUtils {
                 .setOrderDirection(adlMatchedDTO.getDirection())
                 .setCloseType(adlMatchedDTO.getOrderType());
 
-        matchedOrderDO.setMatchId(adlMatchedDTO.getId());
+        matchedOrderDO.setMatchId(matchId);
         matchedOrderDO.setMatchUserId(enforceUserId);
 
         matchedOrderDO.setMatchType(matchType);
