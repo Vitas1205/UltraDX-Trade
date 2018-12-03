@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.fota.trade.client.FailedRecord;
 import com.fota.trade.dto.DeleverageDTO;
 import com.fota.trade.manager.*;
+import com.fota.trade.msg.ContractDealedMessage;
 import com.fota.trade.util.BasicUtils;
 import com.fota.trade.util.DistinctFilter;
 import lombok.extern.slf4j.Slf4j;
@@ -25,11 +26,14 @@ import org.springframework.util.CollectionUtils;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
-import static com.fota.trade.client.ADLPhaseEnum.DL_EXCEPTION;
-import static com.fota.trade.client.ADLPhaseEnum.DL_PARSE;
+import static com.fota.trade.client.ADLPhaseEnum.*;
 import static com.fota.trade.client.FailedRecord.NOT_RETRY;
+import static com.fota.trade.client.FailedRecord.RETRY;
 import static com.fota.trade.msg.TopicConstants.MCH_CONTRACT_ADL;
 import static com.fota.trade.msg.TopicConstants.TRD_CONTRACT_DELEVERAGE;
 
@@ -68,6 +72,12 @@ public class DeleverageConsumer {
     @Autowired
     private RocketMqManager rocketMqManager;
 
+    int maxRetries = 5;
+    long seconds = 3600;
+
+
+    String keyPrefix = "TRADE_DELEVERAGE_DUPLICATE_";
+
     @PostConstruct
     public void init() throws InterruptedException, MQClientException {
         //声明并初始化一个consumer
@@ -93,7 +103,7 @@ public class DeleverageConsumer {
     }
 
     @PreDestroy
-    public void destory(){
+    public void destory() {
         consumer.shutdown();
     }
 
@@ -101,32 +111,77 @@ public class DeleverageConsumer {
         @Override
         public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, ConsumeOrderlyContext context) {
             if (CollectionUtils.isEmpty(msgs)) {
-                log.error("message error!");
+                log.error("message error when deleverage!");
                 return ConsumeOrderlyStatus.SUCCESS;
             }
-                     msgs
+            try {
+                msgs = removeDuplicta(keyPrefix, msgs);
+            }catch (Throwable t) {
+                ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(RETRY, DL_REMOVE_DUPLICATE.name(), msgs), t);
+                return ConsumeOrderlyStatus.SUCCESS;
+            }
+            if (CollectionUtils.isEmpty(msgs)) {
+                log.warn("empty msgs when deleverage");
+            }
+            msgs
                     .stream()
                     .filter(DistinctFilter.distinctByKey(MessageExt::getKeys))
-                    .map(x -> {
-                        DeleverageDTO message = BasicUtils.exeWhitoutError(()->JSON.parseObject(x.getBody(), DeleverageDTO.class));
+                    .forEach(x -> {
+                        DeleverageDTO message = BasicUtils.exeWhitoutError(() -> JSON.parseObject(x.getBody(), DeleverageDTO.class));
                         if (null == message) {
                             ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(NOT_RETRY, DL_PARSE.name(), x));
-                            return null;
+                            return;
                         }
-                        return message;
-                    })
-                    .filter(x -> null != x)
-                    .forEach(x -> {
                         try {
-                            deleverageManager.deleverage(x);
-                        }catch (Throwable t) {
-                            ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(NOT_RETRY, DL_EXCEPTION.name(), x), t);
-                            deleverageManager.sendDeleverageMessage(x);
+                            deleverageManager.deleverage(message);
+                        } catch (Throwable t) {
+                            int retries = BasicUtils.count(x.getKeys(), '#');
+                            if (retries < maxRetries) {
+                                boolean suc = deleverageManager.sendDeleverageMessage(message, x.getKeys() + '#');
+                                if (suc) {
+                                    ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(NOT_RETRY, DL_RESEND.name(), x, "'retry'", "retries=" + retries), t);
+                                    return;
+                                }
+                            }
+                            ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(NOT_RETRY, DL_EXCEPTION.name(), x, "exception", "retries=" + retries), t);
                         }
                     });
+
+            try {
+                markExist(keyPrefix, msgs);
+            }catch (Throwable t) {
+                ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(NOT_RETRY, DL_MARK_EXIST.name(), msgs), t);
+            }
             return ConsumeOrderlyStatus.SUCCESS;
         }
+
     };
 
+    public List<MessageExt> removeDuplicta(String keyPrefix, List<MessageExt> messageExts) {
+        List<String> keys = messageExts.stream().map(x -> keyPrefix + x.getKeys()).collect(Collectors.toList());
+        List<String> existList = redisTemplate.opsForValue().multiGet(keys);
+        if (null == existList) {
+            return messageExts;
+        }
+        List<MessageExt> ret = new ArrayList<>();
+        for (int i = 0; i < messageExts.size(); i++) {
+            MessageExt postDealMessage = messageExts.get(i);
+            if (null == existList.get(i)) {
+                ret.add(postDealMessage);
+            } else {
+                log.info("duplicate post deal message, message={}", postDealMessage);
+            }
+        }
+        return ret;
+    }
+
+    public void markExist(String keyPrefix, List<MessageExt> postDealMessages) {
+        List<String> keyList = postDealMessages.stream()
+                .map(x -> keyPrefix + x.getKeys())
+                .collect(Collectors.toList());
+        for (String s : keyList) {
+            redisManager.setWithExpire(s, "EXIST", Duration.ofSeconds(seconds));
+        }
+    }
 }
 

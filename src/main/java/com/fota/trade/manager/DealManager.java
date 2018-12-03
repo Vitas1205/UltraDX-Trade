@@ -387,6 +387,8 @@ public class DealManager {
         UpdatePositionResult positionResult = BasicUtils.retryWhenFail(()-> internalUpdatePosition(userId, contractId, postDealMessages), x -> null==x, Duration.ofMillis(10), 3);
         if (null != positionResult) {
             executorService.submit(() -> {
+                contractOrderManager.updateExtraEntrustAmountByContract(userId, contractId);
+
                 //防止异常抛出
                 BasicUtils.exeWhitoutError(() -> updateTotalPosition(contractId, positionResult));
                 BasicUtils.exeWhitoutError(() -> updateTodayFee(postDealMessages));

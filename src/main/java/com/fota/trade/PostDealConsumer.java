@@ -142,8 +142,6 @@ public class PostDealConsumer {
 
                         try {
                             dealManager.postDealOneUserOneContract(entry.getValue());
-                            ContractDealedMessage postDealMessage = entry.getValue().get(0);
-                            contractOrderManager.updateExtraEntrustAmountByContract(postDealMessage.getUserId(), postDealMessage.getSubjectId());
                             BasicUtils.exeWhitoutError(() ->  markExist(entry.getValue()));
                         }catch (Throwable t) {
                             UPDATE_POSITION_FAILED_LOGGER.error("{}\037", new FailedRecord(NOT_SURE, UNKNOWN.name(), entry.getValue()), t);

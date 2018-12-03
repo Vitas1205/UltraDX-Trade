@@ -19,8 +19,12 @@ import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -40,8 +44,10 @@ import static com.fota.trade.domain.enums.OrderTypeEnum.PASSIVE;
  * @Modified:
  */
 //@Transactional
+@RunWith(SpringRunner.class)
+@SpringBootTest
 @Slf4j
-public class ContractTest extends BaseTest {
+public class ContractTest {
 
     @Autowired
     private ContractOrderServiceImpl contractOrderService;
@@ -65,16 +71,16 @@ public class ContractTest extends BaseTest {
     private ADLManager adlManager;
 
 
-//    @Test
+    @Test
     public void placeOrder(){
         ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
-        contractOrderDTO.setContractName("BTC0304");
-        contractOrderDTO.setContractId(1217L);
+        contractOrderDTO.setContractName("BTC1901");
+        contractOrderDTO.setContractId(1204L);
         contractOrderDTO.setUserId(userId);
         contractOrderDTO.setOrderDirection(ASK.getCode());
         contractOrderDTO.setOrderType(ENFORCE.getCode());
-        contractOrderDTO.setTotalAmount(new BigDecimal("0.02"));
-        contractOrderDTO.setPrice(new BigDecimal("6604"));
+        contractOrderDTO.setTotalAmount(new BigDecimal("0.000057"));
+        contractOrderDTO.setPrice(new BigDecimal("4000"));
         Map<String, String> map = new HashMap<>();
         map.put("usernmae", "123");
         map.put("ip", "192.169.1.1");

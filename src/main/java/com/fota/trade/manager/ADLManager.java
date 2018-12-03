@@ -148,7 +148,7 @@ public class ADLManager {
             deleverageDTO.setContractId(adlMatchDTO.getContractId());
             deleverageDTO.setMatchId(adlMatchDTO.getId());
             deleverageDTO.setNeedPositionDirection(needPositionDirection);
-            deleverageManager.sendDeleverageMessage(deleverageDTO);
+            deleverageManager.sendDeleverageMessage(deleverageDTO, null);
         }
 
     }
@@ -177,6 +177,7 @@ public class ADLManager {
         postDealMessage.setOrderId(adlMatchDTO.getOrderId());
         postDealMessage.setMatchId(adlMatchDTO.getId());
         postDealMessage.setFilledAmount(adlMatchDTO.getAmount());
+        postDealMessage.setSubjectName(adlMatchDTO.getContractName());
         postDealMessage.setFilledPrice(adlMatchDTO.getPrice());
         return postDealMessage;
     }

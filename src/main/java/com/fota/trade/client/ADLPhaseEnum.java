@@ -15,8 +15,11 @@ public enum  ADLPhaseEnum {
 
     //======减仓阶段
     DL_PARSE,
+    DL_REMOVE_DUPLICATE,
     DL,
+    DL_RESEND,
     DL_EXCEPTION,
+    DL_MARK_EXIST,
     UNKNOW
     ;
 }

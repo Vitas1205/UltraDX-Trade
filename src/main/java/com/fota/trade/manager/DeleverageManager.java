@@ -4,7 +4,9 @@ import com.alibaba.fastjson.JSON;
 import com.fota.common.utils.LogUtil;
 import com.fota.risk.client.domain.UserRRLDTO;
 import com.fota.risk.client.manager.RelativeRiskLevelManager;
+import com.fota.trade.common.ADLBizException;
 import com.fota.trade.common.BizException;
+import com.fota.trade.common.BizExceptionEnum;
 import com.fota.trade.common.UpdatePositionResult;
 import com.fota.trade.domain.ContractMatchedOrderDO;
 import com.fota.trade.domain.UserPositionDO;
@@ -22,7 +24,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -61,6 +65,7 @@ public class DeleverageManager {
     public static final ExecutorService executorService = new ThreadPoolExecutor(4, 10, 3, TimeUnit.MINUTES, new LinkedBlockingDeque<>());
 
 
+    @Transactional
     public void deleverage(DeleverageDTO deleverageDTO){
 
         Long matchId = deleverageDTO.getMatchId();
@@ -134,6 +139,10 @@ public class DeleverageManager {
 
         }
 
+        if (unfilledAmount.compareTo(BigDecimal.ZERO) > 0) {
+            throw new ADLBizException( "unfilledAmount="+unfilledAmount, BizExceptionEnum.NO_ENOUGH_POSITION);
+        }
+
 
         if (!CollectionUtils.isEmpty(contractMatchedOrderDOS)) {
             contractMatchedOrderMapper.insert(contractMatchedOrderDOS);
@@ -156,12 +165,6 @@ public class DeleverageManager {
         map.put("adlPrice", adlPrice);
         ADL_EXTEA_LOG.info("{}", JSON.toJSONString(map));
 
-        deleverageDTO.setUnfilledAmount(unfilledAmount);
-        if (unfilledAmount.compareTo(BigDecimal.ZERO) > 0) {
-            sendDeleverageMessage(deleverageDTO);
-        }
-
-
     }
 
     public List<UserRRLDTO> getRRLWithRetry(long contractId, int direction, int start, int end) {
@@ -170,11 +173,13 @@ public class DeleverageManager {
 
     }
 
-    public boolean sendDeleverageMessage(DeleverageDTO deleverageDTO){
+    public boolean sendDeleverageMessage(DeleverageDTO deleverageDTO, String retryKey){
+        String messageKey = StringUtils.isEmpty(retryKey)? deleverageDTO.key():retryKey;
+
         MessageQueueSelector queueSelector = (final List<MessageQueue> mqs, final Message msg, final Object arg) -> {
             int key = arg.hashCode();
             return mqs.get(key % mqs.size());
         };
-        return rocketMqManager.sendMessage(TopicConstants.TRD_CONTRACT_DELEVERAGE, "adl", deleverageDTO.key(), deleverageDTO, queueSelector, deleverageDTO.queue());
+        return rocketMqManager.sendMessage(TopicConstants.TRD_CONTRACT_DELEVERAGE, "adl", messageKey, deleverageDTO, queueSelector, deleverageDTO.queue());
     }
 }
