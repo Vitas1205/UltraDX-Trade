@@ -100,7 +100,7 @@ public class RocketMqManager {
                 return false;
             }
         } catch (Exception e) {
-            log.error("send message failed, mqMessage={}, exceptionMsg={}", mqMessage, e.getMessage());
+            log.error("send message failed, mqMessage={}", mqMessage, e);
             return false;
         }
     }
