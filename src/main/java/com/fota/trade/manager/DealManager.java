@@ -13,6 +13,7 @@ import com.fota.trade.client.FailedRecord;
 import com.fota.trade.client.PostDealPhaseEnum;
 import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
+import com.fota.trade.domain.dto.ProcessNoEnforceResult;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserContractLeverMapper;
@@ -21,6 +22,7 @@ import com.fota.trade.msg.ContractDealedMessage;
 import com.fota.trade.msg.TopicConstants;
 import com.fota.trade.service.ContractCategoryService;
 import com.fota.trade.util.*;
+import com.google.common.base.Predicates;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.common.message.Message;
@@ -37,6 +39,7 @@ import org.springframework.util.CollectionUtils;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -194,10 +197,10 @@ public class DealManager {
         return resultCode;
     }
 
-    public List<ContractDealedMessage> processNoEnforceMatchedOrders(ContractADLMatchDTO contractADLMatchDTO) {
+    public ProcessNoEnforceResult processNoEnforceMatchedOrders(ContractADLMatchDTO contractADLMatchDTO) {
         if (CollectionUtils.isEmpty(contractADLMatchDTO.getMatchedList())) {
             log.error("empty contractMatchedOrderDTOList");
-            return null;
+            return new ProcessNoEnforceResult();
         }
         long matchId = contractADLMatchDTO.getId();
         List<ADLMatchedDTO> adlMatchedDTOList = contractADLMatchDTO.getMatchedList();
@@ -214,7 +217,7 @@ public class DealManager {
         });
 
         List<ContractMatchedOrderDO> contractMatchedOrderDOS = adlMatchedDTOList.stream()
-                .map( matchedOrderDTO ->  ConvertUtils.toMatchedOrderDO( matchedOrderDTO, contractADLMatchDTO.getDirection() , contractADLMatchDTO.getUserId(),
+                .map( matchedOrderDTO ->  ConvertUtils.toMatchedOrderDO( matchId, matchedOrderDTO, contractADLMatchDTO.getDirection() , contractADLMatchDTO.getUserId(),
                         contractADLMatchDTO.getContractId(), contractADLMatchDTO.getContractName()))
                 .collect(Collectors.toList());
 
@@ -226,21 +229,20 @@ public class DealManager {
             updateContractOrder(x.getUserId(), x.getId(), x.getFilledAmount(), x.getFilledPrice(), gmtModified);
         });
 
-        //批量写成交记录
-        int aff = contractMatchedOrderMapper.insert(contractMatchedOrderDOS);
-        if (contractMatchedOrderDOS.size() != aff) {
-            throw new BizException(BIZ_ERROR.getCode(), "insert match record failed, aff="+aff+ ", expectAff="+contractMatchedOrderDOS.size());
-        };
+        ProcessNoEnforceResult processNoEnforceResult = new ProcessNoEnforceResult();
+        processNoEnforceResult.setContractMatchedOrderDOS(contractMatchedOrderDOS);
 
-        return contractMatchedOrderDOS.stream().map(contractMatchedOrderDO -> {
+        contractMatchedOrderDOS.stream().forEach(contractMatchedOrderDO -> {
             ContractOrderDO x = contractOrderMapper.selectByIdAndUserId(contractMatchedOrderDO.getUserId(), contractMatchedOrderDO.getOrderId());
             BigDecimal filledAmount = contractMatchedOrderDO.getFilledAmount();
             BigDecimal filledPrice = contractMatchedOrderDO.getFilledPrice();
             //后台交易监控日志打在里面 注释需谨慎
             saveToLog(x, filledAmount, matchId);
-            return toDealMessage(matchId, x, filledAmount,filledPrice);
+            sendDealMessage(matchId, x, filledAmount, filledPrice);
 
-        }).collect(Collectors.toList());
+        });
+
+        return processNoEnforceResult;
 
     }
 
@@ -303,6 +305,8 @@ public class DealManager {
             LogUtil.error(TradeBizTypeEnum.CONTRACT_DEAL, null, postDealMessages, "empty postDealMessages");
             return Result.fail(ILLEGAL_PARAM.getCode(), "empty postDealMessages in postDeal");
         }
+        String mkeys = postDealMessages.stream().map(ContractDealedMessage::msgKey)
+                .collect(Collectors.joining("-"));
         ContractDealedMessage sample = postDealMessages.get(0);
         long userId =sample.getUserId();
         long contractId = sample.getSubjectId();
@@ -382,8 +386,20 @@ public class DealManager {
     }
 
     public UpdatePositionResult updatePosition(long userId, long contractId, List<ContractDealedMessage> postDealMessages) {
+        UpdatePositionResult positionResult = BasicUtils.retryWhenFail(()-> internalUpdatePosition(userId, contractId, postDealMessages), x -> null==x, Duration.ofMillis(10), 3);
+        if (null != positionResult) {
+            contractOrderManager.updateExtraEntrustAmountByContract(userId, contractId);
+            executorService.submit(() -> {
 
-        String requestId = postDealMessages.stream().map(ContractDealedMessage::getMsgKey).collect(Collectors.joining());
+                //防止异常抛出
+                BasicUtils.exeWhitoutError(() -> updateTotalPosition(contractId, positionResult));
+                BasicUtils.exeWhitoutError(() -> updateTodayFee(postDealMessages));
+            });
+        }
+        return positionResult;
+    }
+    private UpdatePositionResult internalUpdatePosition(long userId, long contractId, List<ContractDealedMessage> postDealMessages) {
+        String requestId = postDealMessages.stream().map(ContractDealedMessage::msgKey).collect(Collectors.joining("-"));
 
         ContractDealedMessage sample = postDealMessages.get(0);
         UpdatePositionResult result = new UpdatePositionResult();
@@ -398,6 +414,12 @@ public class DealManager {
             shouldInsert = true;
             userPositionDO = ContractUtils.buildPosition(sample);
         }
+
+        BigDecimal oldUnfilledAmount = userPositionDO.getUnfilledAmount();
+        BigDecimal oldAveragePrice = userPositionDO.getAveragePrice();
+        Integer oldPositionType = userPositionDO.getPositionType();
+        result.setFeeRate(sample.getFeeRate());
+        result.setOldAveragePrice(oldAveragePrice);
 
         BigDecimal preOpenAveragePrice = userPositionDO.getAveragePrice();
         BigDecimal preAmount = userPositionDO.computeSignAmount();
@@ -444,16 +466,12 @@ public class DealManager {
                 return null;
             }
         }else {
-            boolean suc = doUpdatePosition(userPositionDO);
-            if (!suc) {
+            int aff = userPositionMapper.updatePositionById(userPositionDO, oldPositionType, oldUnfilledAmount, oldAveragePrice);
+            if (1 != aff) {
+                log.error("update failed updatePositionById, userPositionDO={}", userPositionDO);
                 return null;
             }
         }
-        executorService.submit(() -> {
-            //防止异常抛出
-            BasicUtils.exeWhitoutError(() -> updateTotalPosition(contractId, result));
-            BasicUtils.exeWhitoutError(() -> updateTodayFee(postDealMessages));
-        });
         return result;
     }
 
@@ -513,22 +531,6 @@ public class DealManager {
 //        return result;
 //    }
 
-    /**
-     * @param userPositionDO   旧的持仓
-     * @return
-     */
-    private boolean doUpdatePosition(UserPositionDO userPositionDO) {
-        try {
-            int aff = userPositionMapper.updatePositionById(userPositionDO);
-            if (1 != aff) {
-                log.error("update position failed, userPositionDO={}", userPositionDO);
-            }
-            return aff == 1;
-        } catch (Throwable t) {
-            log.error("update position exception, userPositionDO={}", userPositionDO, t);
-            return false;
-        }
-    }
 
     /**
      * 打印后台交易撮合监控日志
@@ -592,11 +594,10 @@ public class DealManager {
     private ContractDealedMessage toDealMessage(long matchId, ContractOrderDO contractOrderDO, BigDecimal filledAmount, BigDecimal filledPrice) {
         ContractDealedMessage postMatchMessage = new ContractDealedMessage(contractOrderDO.getContractId(), contractOrderDO.getUserId(),
                 contractOrderDO.getOrderDirection(), contractOrderDO.getFee(), contractOrderDO.getLever(),  contractOrderDO.getContractName());
-
+        postMatchMessage.setOrderId(contractOrderDO.getId());
         postMatchMessage.setFilledAmount(filledAmount);
         postMatchMessage.setFilledPrice(filledPrice);
         postMatchMessage.setMatchId(matchId);
-        postMatchMessage.setMsgKey(matchId + "_" + contractOrderDO.getId());
         return postMatchMessage;
     }
     private void sendDealMessage(long matchId, ContractOrderDO contractOrderDO, BigDecimal filledAmount, BigDecimal filledPrice) {
@@ -605,11 +606,11 @@ public class DealManager {
     }
     public void sendDealMessage(ContractDealedMessage postDealMessage) {
         MessageQueueSelector queueSelector = (final List<MessageQueue> mqs, final Message msg, final Object arg) -> {
-            int key = arg.hashCode();
+            int key = BasicUtils.absHash(arg);
             return mqs.get(key % mqs.size());
         };
-        rocketMqManager.sendMessage(TopicConstants.TRD_CONTRACT_DEAL, postDealMessage.getSubjectId()+"", postDealMessage.getMsgKey(), postDealMessage, queueSelector,
-                postDealMessage.getUserId() + postDealMessage.getSubjectId());
+        rocketMqManager.sendMessage(TopicConstants.TRD_CONTRACT_DEAL, postDealMessage.getSubjectId()+"", postDealMessage.msgKey(), postDealMessage, queueSelector,
+                postDealMessage.getGroup());
     }
 
     private ResultCode checkParam(ContractOrderDO askContractOrder, ContractOrderDO bidContractOrder, ContractMatchedOrderDTO contractMatchedOrderDTO) {

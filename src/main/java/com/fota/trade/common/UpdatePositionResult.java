@@ -34,5 +34,7 @@ public class UpdatePositionResult {
      * 平仓盈亏
      */
     private BigDecimal closePL;
+    private BigDecimal feeRate;
+    private BigDecimal oldAveragePrice;
 
 }

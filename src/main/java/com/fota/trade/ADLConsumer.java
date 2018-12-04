@@ -1,22 +1,14 @@
 package com.fota.trade;
 
 import com.alibaba.fastjson.JSON;
-import com.fota.common.Result;
 import com.fota.trade.client.FailedRecord;
 import com.fota.trade.domain.ContractADLMatchDTO;
-import com.fota.trade.manager.ADLManager;
-import com.fota.trade.manager.ContractOrderManager;
-import com.fota.trade.manager.DealManager;
-import com.fota.trade.manager.RedisManager;
-import com.fota.trade.msg.TopicConstants;
+import com.fota.trade.manager.*;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
 import com.fota.trade.util.BasicUtils;
-import com.fota.trade.util.DistinctFilter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
-import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
-import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
+import org.apache.rocketmq.client.consumer.listener.*;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -31,13 +23,14 @@ import org.springframework.util.CollectionUtils;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
+import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
-import static com.fota.trade.client.ADLPhaseEnum.START;
-import static com.fota.trade.client.ADLPhaseEnum.UNKNOW;
-import static com.fota.trade.client.FailedRecord.*;
-import static com.fota.trade.client.PostDealPhaseEnum.PARSE;
+import static com.fota.trade.client.ADLPhaseEnum.EXCEPTION;
+import static com.fota.trade.client.ADLPhaseEnum.PARSE;
+import static com.fota.trade.client.ADLPhaseEnum.RESEND;
+import static com.fota.trade.client.FailedRecord.NOT_RETRY;
+import static com.fota.trade.client.FailedRecord.RETRY;
 import static com.fota.trade.msg.TopicConstants.MCH_CONTRACT_ADL;
 
 
@@ -74,6 +67,9 @@ public class ADLConsumer {
 
     DefaultMQPushConsumer consumer;
 
+    @Autowired
+    private RocketMqManager rocketMqManager;
+
     @PostConstruct
     public void init() throws InterruptedException, MQClientException {
         //声明并初始化一个consumer
@@ -91,11 +87,9 @@ public class ADLConsumer {
         consumer.setVipChannelEnabled(false);
         //设置consumer所订阅的Topic和Tag，*代表全部的Tag
         consumer.subscribe(MCH_CONTRACT_ADL, "*");
-        consumer.setConsumeMessageBatchMaxSize(100);
-        consumer.setPullInterval(30);
-        consumer.setPullBatchSize(100);
+        consumer.setConsumeMessageBatchMaxSize(20);
         //设置一个Listener，主要进行消息的逻辑处理
-        consumer.registerMessageListener(messageListenerOrderly);
+        consumer.registerMessageListener(messageListener);
         //调用start()方法启动consumer
         consumer.start();
     }
@@ -105,50 +99,55 @@ public class ADLConsumer {
         consumer.shutdown();
     }
 
-    public MessageListenerOrderly messageListenerOrderly = new MessageListenerOrderly() {
-        @Override
-        public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, ConsumeOrderlyContext context) {
-            if (CollectionUtils.isEmpty(msgs)) {
-                log.error("message error!");
-                return ConsumeOrderlyStatus.SUCCESS;
-            }
-            try {
-                List<ContractADLMatchDTO> adlMessages = msgs
-                        .stream()
-                        .filter(DistinctFilter.distinctByKey(MessageExt::getKeys))
-                        .map(x -> {
-                            ContractADLMatchDTO message = BasicUtils.exeWhitoutError(()->JSON.parseObject(x.getBody(), ContractADLMatchDTO.class));
-                            if (null == message) {
-                                ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(NOT_RETRY, PARSE.name(), x));
-                                return null;
-                            }
-                            return message;
-                        })
-                        .filter(x -> null != x)
-                        .collect(Collectors.toList());
-
-                if (CollectionUtils.isEmpty(adlMessages)) {
-                    log.error("empty postDealMessages");
-                    return ConsumeOrderlyStatus.SUCCESS;
-                }
-
-                adlMessages.stream().forEach(adlMessage -> {
-                    try {
-                        Result result = adlManager.adl(adlMessage);
-                        if (!result.isSuccess()) {
-                            ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(NOT_RETRY, UNKNOW.name(), adlMessage, result.getCode()+"", result.getMessage()));
-                        }
-                    }catch (Throwable t) {
-                        ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(RETRY, START.name(), adlMessage), t);
-                    }
-                });
-
-            } catch (Throwable t) {
-                ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(NOT_SURE, UNKNOW.name(), msgs), t);
-            }
+    public MessageListenerOrderly messageListener = (final List<MessageExt> msgs,
+                                                     final ConsumeOrderlyContext context) -> {
+        if (CollectionUtils.isEmpty(msgs)) {
+            ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(NOT_RETRY, PARSE.name(), msgs), "message error!");
             return ConsumeOrderlyStatus.SUCCESS;
         }
+
+        for (MessageExt messageExt : msgs){
+            ContractADLMatchDTO adlMessage = BasicUtils.exeWhitoutError(()->JSON.parseObject(messageExt.getBody(), ContractADLMatchDTO.class));
+            if (null == adlMessage) {
+                ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(NOT_RETRY, PARSE.name(), messageExt));
+                return ConsumeOrderlyStatus.SUCCESS;
+            }
+            adl(messageExt, adlMessage);
+        }
+        return ConsumeOrderlyStatus.SUCCESS;
+
+
     };
+
+    public void adl(MessageExt messageExt, ContractADLMatchDTO adlMessage){
+        try {
+            adlManager.adl(adlMessage);
+        }catch (Throwable t) {
+            boolean shouldRetry = true;
+//            if (t instanceof ADLBizException) {
+//                ADLBizException adlBizException = (ADLBizException)t;
+//                BizExceptionEnum bizException = adlBizException.getBizException();
+//                if ( UPDATE_POSITION == bizException
+//                        || NO_CURRENT_PRICE == bizException || NO_ENOUGH_POSITION == bizException) {
+//                    shouldRetry = true;
+//                }
+//            }
+//            if (t instanceof DataAccessException) {
+//                shouldRetry = true;
+//            }
+            int count = BasicUtils.count(messageExt.getKeys(), '#');
+            messageExt.setKeys(messageExt.getKeys() + '#');
+            if (shouldRetry && count <=5) {
+                boolean suc = rocketMqManager.sendMessage(Arrays.asList(messageExt));
+                if (suc) {
+                    ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(RETRY, RESEND.name(), adlMessage, "mqRetry", "retries="+count), t);
+                    return;
+                }
+            }else {
+                ADL_FAILED_LOGGER.error("{}\037", new FailedRecord(RETRY, EXCEPTION.name(), adlMessage, "exception", "retries="+count), t);
+            }
+        }
+    }
 
 }
 

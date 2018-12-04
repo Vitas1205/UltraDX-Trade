@@ -25,6 +25,8 @@
 		<spring-cloud.version>Finchley.RELEASE</spring-cloud.version>
 		<data.client.version>1.1.5</data.client.version>
 		<sharding-sphere.version>3.0.0.M4</sharding-sphere.version>
+		<guava-retry.version>2.0.0</guava-retry.version>
+
 	</properties>
 
 	<dependencies>
@@ -33,6 +35,13 @@
 			<artifactId>ticker-client</artifactId>
 			<version>1.0.2</version>
 		</dependency>
+
+		<dependency>
+			<groupId>com.github.rholder</groupId>
+			<artifactId>guava-retrying</artifactId>
+			<version>${guava-retry.version}</version>
+		</dependency>
+
 		<!--log4j-->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -179,8 +188,7 @@
 		<dependency>
 			<groupId>com.fota</groupId>
 			<artifactId>trade-client</artifactId>
-			<version>1.1.0</version>
-
+			<version>1.1.1</version>
 		</dependency>
 
 		<dependency>

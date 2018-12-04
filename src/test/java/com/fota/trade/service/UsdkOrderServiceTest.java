@@ -92,7 +92,7 @@ public class UsdkOrderServiceTest {
 //        Assert.assertTrue(result != null && result.getData() != null && result.getData() != null);
     }
 
-    @Test
+//    @Test
     public void testOrderReturnId(){
         UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
         usdkOrderDTO.setCompleteAmount(new BigDecimal(0));
@@ -114,7 +114,7 @@ public class UsdkOrderServiceTest {
                 //&& (long)result.getData() >0;
     }
 
-    @Test
+//    @Test
     public void testPlaceOrder(){
         int assetId = 4;
         UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
@@ -246,7 +246,7 @@ public class UsdkOrderServiceTest {
         assert resultCode.isSuccess();
     }
 
-    @Test
+//    @Test
     public void batchOrderTest() {
         PlaceOrderRequest<PlaceCoinOrderDTO> placeOrderRequest = new PlaceOrderRequest<PlaceCoinOrderDTO>();
         List<PlaceCoinOrderDTO> list = new ArrayList<PlaceCoinOrderDTO>();

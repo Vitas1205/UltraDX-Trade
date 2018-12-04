@@ -7,10 +7,6 @@ import com.fota.common.utils.LogUtil;
 import com.fota.trade.client.*;
 import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
-import com.fota.trade.domain.ResultCode;
-
-
-import com.fota.trade.domain.enums.OrderTypeEnum;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.DealManager;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
@@ -19,7 +15,6 @@ import com.fota.trade.service.ContractOrderService;
 import com.fota.trade.service.internal.MarketAccountListService;
 import com.fota.trade.util.ConvertUtils;
 import com.fota.trade.util.DateUtil;
-
 import com.fota.trade.util.Profiler;
 import com.fota.trade.util.ThreadContextUtil;
 import com.google.common.base.Joiner;
@@ -31,14 +26,10 @@ import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.util.*;
-
 import java.util.stream.Collectors;
 
 import static com.fota.trade.client.constants.Constants.TABLE_NUMBER;
-import static com.fota.trade.common.ResultCodeEnum.DATABASE_EXCEPTION;
-
-import static com.fota.trade.common.ResultCodeEnum.ILLEGAL_PARAM;
-import static com.fota.trade.common.ResultCodeEnum.SYSTEM_ERROR;
+import static com.fota.trade.common.ResultCodeEnum.*;
 import static com.fota.trade.common.TradeBizTypeEnum.CONTRACT_DEAL;
 import static com.fota.trade.common.TradeBizTypeEnum.CONTRACT_ORDER;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
@@ -519,6 +510,16 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         }catch (Exception e){
             log.error("contractOrderMapper.selectByIdAndUserId failed{}", orderId);
             throw new RuntimeException("contractOrderMapper.selectByIdAndUserId failed", e);
+        }
+    }
+
+    @Override
+    public Result<ContractMarginDTO> getPreciseMarginReq(ContractOrderDTO contractOrderDTO) {
+        try {
+            return contractOrderManager.getPreciseContractMargin(contractOrderDTO);
+        }catch (Exception e){
+            log.error("contractOrderManager.getPreciseMargin failed: {}", contractOrderDTO, e);
+            return Result.suc(new ContractMarginDTO());
         }
     }
 
