@@ -1014,7 +1014,7 @@ public class ContractOrderManager {
                 orderPrice= currentPrice.get().getPrice().setScale(scale, roundingMode);
             }else {
                 log.warn("bizType:{},\037traceId:{},\037param:{},\037detailMsg:{}\037", TradeBizTypeEnum.CONTRACT_ORDER,
-                        null, contractId, "NO_COMPETITORS_PRICE, competitorsPriceList: " + competitorsPriceList);
+                        null, contractId, "subjectId:"+contractId + ",orderDirection:" + orderDeriction);
                 return Result.fail(NO_COMPETITORS_PRICE.getCode(), NO_COMPETITORS_PRICE.getMessage());
             }
 
