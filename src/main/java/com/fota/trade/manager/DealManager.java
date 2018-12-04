@@ -418,6 +418,8 @@ public class DealManager {
         BigDecimal oldUnfilledAmount = userPositionDO.getUnfilledAmount();
         BigDecimal oldAveragePrice = userPositionDO.getAveragePrice();
         Integer oldPositionType = userPositionDO.getPositionType();
+        result.setFeeRate(sample.getFeeRate());
+        result.setOldAveragePrice(oldAveragePrice);
 
         BigDecimal preOpenAveragePrice = userPositionDO.getAveragePrice();
         BigDecimal preAmount = userPositionDO.computeSignAmount();
