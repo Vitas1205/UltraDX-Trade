@@ -108,6 +108,7 @@ public class DeleverageManager {
                 UserPositionDO userPositionDO = userPositionDOMap.get(userRRLDTO.getUserId());
                 //过滤掉不正确的持仓
                 if (null == userPositionDO || userPositionDO.getUnfilledAmount().compareTo(BigDecimal.ZERO) == 0 || userPositionDO.getPositionType() != needPositionDirection) {
+                    LogUtil.error(CONTRACT_ADL, deleverageDTO.getMatchId()+"", userPositionDO, "illegal userPositionDO:{}");
                     continue;
                 }
                 BigDecimal subAmount = userPositionDO.getUnfilledAmount().min(unfilledAmount);
@@ -125,7 +126,7 @@ public class DeleverageManager {
                 UpdatePositionResult positionResult = dealManager.updatePosition(contractDealedMessage.getUserId(),contractDealedMessage.getSubjectId(), curUserPostDealTasks);
                 //更新失败，换下一个持仓
                 if (null == positionResult) {
-                    ADL_FAILED_LOGGER.warn("update position failed, contractDealedMessage={}", JSON.toJSONString(contractDealedMessage));
+                    ADL_EXTEA_LOG.warn("update position failed, contractDealedMessage={}", JSON.toJSONString(contractDealedMessage));
                     continue;
                 }
                 contractMatchedOrderDOS.add(ConvertUtils.toMatchedOrderDO(contractDealedMessage,
@@ -150,6 +151,12 @@ public class DeleverageManager {
         if (!CollectionUtils.isEmpty(contractMatchedOrderDOS)) {
             contractMatchedOrderMapper.insert(contractMatchedOrderDOS);
         }
+
+        Map<String, Object> temp = new HashMap<>();
+        temp.put("updatePositionResults", updatePositionResultMap.values());
+        temp.put("matchId", matchId);
+        ADL_EXTEA_LOG.info("temp:{}", temp);
+
 
         for (Map.Entry<ContractDealedMessage, UpdatePositionResult>  entry: updatePositionResultMap.entrySet()) {
             UpdatePositionResult positionResult = entry.getValue();
