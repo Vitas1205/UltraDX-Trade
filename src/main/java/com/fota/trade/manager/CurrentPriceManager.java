@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -31,11 +32,17 @@ public class CurrentPriceManager {
     @Cacheable(value = "spotIndexes", sync = true)
     public List<TickerDTO> getSpotIndexes(){
         Profiler profiler = ThreadContextUtil.getPrifiler();
-        List<TickerDTO> ret = indexCacheManager.listCurrentSpotIndex();
-        if (null != profiler) {
-            profiler.complelete("getDeliveryIndex");
+        try {
+            List<TickerDTO> ret = indexCacheManager.listCurrentSpotIndex();
+            if (null != profiler) {
+                profiler.complelete("getDeliveryIndex");
+            }
+            return ret;
+        }catch (Throwable t) {
+            log.error("getDeliveryIndex exception, ", t);
+            return new LinkedList<>();
         }
-        return ret;
+
     }
 
 

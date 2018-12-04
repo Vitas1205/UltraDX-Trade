@@ -40,7 +40,7 @@
 //        contractADLMatchDTO.setId(BasicUtils.generateId());
 //        contractADLMatchDTO.setContractId(mockOrderDO.getContractId());
 //        contractADLMatchDTO.setAmount(mockOrderDO.getTotalAmount());
-//        contractADLMatchDTO.setUnfilled(mockOrderDO.getUnfilledAmount());
+//        contractADLMatchDTO.setUnfilledAmount(mockOrderDO.getUnfilledAmount());
 //        contractADLMatchDTO.setOrderId(mockOrderDO.getId());
 //        contractADLMatchDTO.setTime(new Date());
 //        contractADLMatchDTO.setDirection(mockOrderDO.getOrderDirection());

@@ -45,8 +45,8 @@ public class CurrentPriceService {
         TickerDTO tickerDTO = tickerDTOS.stream()
                 .filter(x -> assetName.equals(x.getSymbol()))
                 .findFirst().orElse(null);
-        if (null == tickerDTO || null == tickerDTO.getSymbol()) {
-            log.error("null spotIndex, assetId={}, symbol={}", assetName);
+        if (null == tickerDTO || null == tickerDTO.getPrice()) {
+            log.error("null spotIndex,  symbol={}, tickerDTO={}", assetName, tickerDTO);
             return null;
         }
 

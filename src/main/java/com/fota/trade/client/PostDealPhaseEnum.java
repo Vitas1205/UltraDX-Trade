@@ -5,7 +5,7 @@ package com.fota.trade.client;
  * Code is the law
  */
 public enum  PostDealPhaseEnum {
-    PARSE(),
+    PARSE,
     REMOVE_DUPLICATE,
     UPDATE_POSITION,
     UPDATE_BALANCE,

@@ -4,10 +4,13 @@ import com.fota.common.utils.LogUtil;
 import com.fota.trade.client.FailedRecord;
 import com.fota.trade.common.TradeBizTypeEnum;
 import com.fota.trade.domain.ContractOrderDO;
+import com.fota.trade.util.BasicUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.junit.Test;
+import org.springframework.dao.DataAccessException;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -66,5 +69,20 @@ public class BasicFunctionTest {
         LogUtil.error( TradeBizTypeEnum.COIN_CANCEL_ORDER.toString(), "1", 1, "usdkOrderMapper.cancel failed");
 
         LogUtil.error(1, "1", 1, new RuntimeException("a"));
+    }
+
+    @Test
+    public void testRetry(){
+        BasicUtils.retryWhenFail(() -> {log.info("a");return false;},Duration.ofMillis(10), 3);
+    }
+    @Test
+    public void testCount(){
+        assert new org.mybatis.spring.MyBatisSystemException(new Exception()) instanceof DataAccessException;
+        assert 2== BasicUtils.count("a##", '#');
+    }
+    @Test
+    public void testAbsHash(){
+        int h = BasicUtils.absHash(Integer.MIN_VALUE);
+        assert h>=0;
     }
 }

@@ -1,18 +1,10 @@
 package com.fota.trade.common;
 
 
-import com.fota.trade.domain.OrderMessage;
-import com.fota.trade.domain.UsdkOrderDTO;
-import com.fota.trade.domain.enums.OrderOperateTypeEnum;
 import com.fota.trade.manager.RocketMqManager;
+import com.fota.trade.test.BaseTest;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.transaction.annotation.Transactional;
-
-import javax.annotation.Resource;
 
 /**
  * @Author: Harry Wang
@@ -20,26 +12,20 @@ import javax.annotation.Resource;
  * @Date: Create in 2018/7/13 16:02
  * @Modified:
  */
-@SpringBootTest
-@RunWith(SpringRunner.class)
-@Transactional
-public class RocketMqTest {
+
+public class RocketMqTest extends BaseTest {
 
     @Autowired
     private RocketMqManager rocketMqManager;
 
     @Test
     public void RocketMqtest(){
-        String topic = "order";
-        String tag = "UsdkOrder";
-        UsdkOrderDTO usdkOrderDTO = new UsdkOrderDTO();
-        usdkOrderDTO.setUserId(1l);
-        usdkOrderDTO.setAssetId(2);
-        usdkOrderDTO.setAssetName("BTC");
-        OrderMessage orderMessage = new OrderMessage();
-        orderMessage.setEvent(OrderOperateTypeEnum.PLACE_ORDER.getCode());
-        /*orderMessage.setUserId(001);
-        orderMessage.setSubjectId(2);*/
-        //Boolean ret = rocketMqManager.sendMessage(topic,tag,"key",orderMessage);
+//        String topic = "trade_test";
+//        String tag = "UsdkOrder";
+//        List<Message> t = Arrays.asList(new Message());
+//        when(rocketMqManager.sendMessage(anyList())).thenReturn(true);
+//        Boolean ret = rocketMqManager.sendMessage(t);
+//        assert ret;
     }
+
 }

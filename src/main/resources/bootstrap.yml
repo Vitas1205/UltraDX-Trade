@@ -15,8 +15,8 @@ spring:
       pool:
         max-active: 4000
         max-wait: 100ms
-        max-idle: 1000
-        min-idle: 100
+        max-idle: 10
+        min-idle: 1
 
 service-group:  ${SPRING_SERVICE:dev}
 reference-group: ${SPRING_REFERENCE:daily}

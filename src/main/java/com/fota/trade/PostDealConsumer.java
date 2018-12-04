@@ -11,6 +11,7 @@ import com.fota.trade.manager.RedisManager;
 import com.fota.trade.msg.ContractDealedMessage;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
 import com.fota.trade.util.BasicUtils;
+import com.fota.trade.util.DistinctFilter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
@@ -110,6 +111,9 @@ public class PostDealConsumer {
                     return ConsumeOrderlyStatus.SUCCESS;
                 }
                 try {
+                    String mqKeys = msgs.stream().map(MessageExt::getKeys)
+                            .collect(Collectors.joining("-"));
+//                    log.info("post deal mqKeys:{}", mqKeys);
                     List<ContractDealedMessage> postDealMessages = msgs
                             .stream()
                             .map(x -> {
@@ -118,11 +122,9 @@ public class PostDealConsumer {
                                     UPDATE_POSITION_FAILED_LOGGER.error("{}\037", new FailedRecord(RETRY, PARSE.name(), Arrays.asList(x)));
                                     return null;
                                 }
-                                message.setMsgKey(x.getKeys());
                                 return message;
                             })
                             .filter(x -> null != x)
-                            .distinct()
                             .collect(Collectors.toList());
 
                     try {
@@ -130,6 +132,10 @@ public class PostDealConsumer {
                     }catch (Throwable t) {
                         UPDATE_POSITION_FAILED_LOGGER.error("{}\037", new FailedRecord(RETRY, REMOVE_DUPLICATE.name(), postDealMessages));
                     }
+
+                    String mkeys = postDealMessages.stream().map(ContractDealedMessage::msgKey)
+                            .collect(Collectors.joining("-"));
+//                    log.info("post deal mqKeys after remove duplicate :{}", mkeys);
 
                     if (CollectionUtils.isEmpty(postDealMessages)) {
                         return ConsumeOrderlyStatus.SUCCESS;
@@ -143,8 +149,6 @@ public class PostDealConsumer {
 
                         try {
                             dealManager.postDealOneUserOneContract(entry.getValue());
-                            ContractDealedMessage postDealMessage = entry.getValue().get(0);
-                            contractOrderManager.updateExtraEntrustAmountByContract(postDealMessage.getUserId(), postDealMessage.getSubjectId());
                             BasicUtils.exeWhitoutError(() ->  markExist(entry.getValue()));
                         }catch (Throwable t) {
                             UPDATE_POSITION_FAILED_LOGGER.error("{}\037", new FailedRecord(NOT_SURE, UNKNOWN.name(), entry.getValue()), t);
@@ -168,7 +172,7 @@ public class PostDealConsumer {
     }
 
     private List<ContractDealedMessage> removeDuplicta(List<ContractDealedMessage> postDealMessages) {
-        List<String> keys = postDealMessages.stream().map(x -> EXIST_POST_DEAL + x.getMsgKey()).collect(Collectors.toList());
+        List<String> keys = postDealMessages.stream().map(x -> EXIST_POST_DEAL + x.msgKey()).collect(Collectors.toList());
         List<String> existList = redisTemplate.opsForValue().multiGet(keys);
         if (null == existList) {
             return postDealMessages;
@@ -179,7 +183,7 @@ public class PostDealConsumer {
             if (null == existList.get(i)) {
                 ret.add(postDealMessage);
             } else {
-                log.info("duplicate post deal message, message={}", postDealMessage);
+                log.info("duplicate post deal message, mkey={}", postDealMessage.msgKey());
             }
         }
         return ret;
@@ -187,7 +191,7 @@ public class PostDealConsumer {
 
     public void markExist(List<ContractDealedMessage> postDealMessages) {
         List<String> keyList = postDealMessages.stream()
-                .map(x -> EXIST_POST_DEAL + x.getMsgKey())
+                .map(x -> EXIST_POST_DEAL + x.msgKey())
                 .collect(Collectors.toList());
         for (String s : keyList) {
             redisManager.setWithExpire(s, "EXIST", Duration.ofSeconds(seconds));

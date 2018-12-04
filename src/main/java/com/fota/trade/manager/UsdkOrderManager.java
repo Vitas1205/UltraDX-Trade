@@ -445,7 +445,8 @@ public class UsdkOrderManager {
                     competitorsPrice.getId() == assetId).findFirst().orElse(null);
 
             if (null == competitorsPriceDTO || null == competitorsPriceDTO.getPrice() || BigDecimal.ZERO.compareTo(competitorsPriceDTO.getPrice()) >= 0){
-                LogUtil.error( "computeAndCheckOrderPrice", null, competitorsPriceDTO, NO_COMPETITORS_PRICE.getMessage());
+                log.warn("bizType:{},\037traceId:{},\037param:{},\037detailMsg:{}\037", TradeBizTypeEnum.COIN_ORDER,
+                        null, assetId, "subjectId:"+assetId + ",orderDirection:" + orderDirection);
                 return Result.fail(NO_COMPETITORS_PRICE.getCode(), NO_COMPETITORS_PRICE.getMessage());
             }
             return Result.suc(competitorsPriceDTO.getPrice().setScale(scale, BigDecimal.ROUND_DOWN));

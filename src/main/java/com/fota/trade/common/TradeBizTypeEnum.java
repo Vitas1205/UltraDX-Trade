@@ -11,5 +11,6 @@ public enum  TradeBizTypeEnum {
     COIN_DEAL,
     CONTRACT_ORDER,
     CONTRACT_CANCEL_ORDER,
-    CONTRACT_DEAL
+    CONTRACT_DEAL,
+    CONTRACT_ADL
 }
