@@ -81,7 +81,6 @@ public class DeleverageManager {
 
         //降杠杆和强平单成交记录
         List<ContractMatchedOrderDO> contractMatchedOrderDOS = new LinkedList<>();
-        List<ContractDealedMessage> contractDealedMessages = new LinkedList<>();
 
         Map<ContractDealedMessage, UpdatePositionResult> updatePositionResultMap = new HashMap<>();
 
@@ -100,6 +99,7 @@ public class DeleverageManager {
             //批量查询持仓
             List<UserPositionDO> userPositionDOS = userPositionMapper.selectByContractIdAndUserIds(userIds, deleverageDTO.getContractId());
             if (CollectionUtils.isEmpty(userPositionDOS)) {
+                LogUtil.error(CONTRACT_ADL, deleverageDTO.getMatchId()+"", null, "empty userPositionDOS, userIds="+userIds+", contractId="+contractId+", dir="+needPositionDirection);
                 continue;
             }
             Map<Long, UserPositionDO> userPositionDOMap = userPositionDOS.stream().collect(Collectors.toMap(UserPositionDO::getUserId, x -> x));
@@ -128,7 +128,6 @@ public class DeleverageManager {
                     ADL_FAILED_LOGGER.warn("update position failed, contractDealedMessage={}", JSON.toJSONString(contractDealedMessage));
                     continue;
                 }
-                contractDealedMessages.add(contractDealedMessage);
                 contractMatchedOrderDOS.add(ConvertUtils.toMatchedOrderDO(contractDealedMessage,
                         adlPrice, DECREASE_LEVERAGE.getCode(), 0L, ConvertUtils.opDirection(needPositionDirection)
                 ));
