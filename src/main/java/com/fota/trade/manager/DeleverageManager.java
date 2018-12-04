@@ -60,6 +60,8 @@ public class DeleverageManager {
     private DealManager dealManager;
 
     private static final Logger ADL_EXTEA_LOG = LoggerFactory.getLogger("adlExtraInfo");
+    private static final Logger ADL_FAILED_LOGGER = LoggerFactory.getLogger("adlFailed");
+
 
 
     public static final ExecutorService executorService = new ThreadPoolExecutor(4, 10, 3, TimeUnit.MINUTES, new LinkedBlockingDeque<>());
@@ -117,17 +119,19 @@ public class DeleverageManager {
                 contractDealedMessage.setFilledAmount(subAmount);
                 contractDealedMessage.setFilledPrice(adlPrice);
                 contractDealedMessage.setSubjectName(userPositionDO.getContractName());
-                contractDealedMessages.add(contractDealedMessage);
-                contractMatchedOrderDOS.add(ConvertUtils.toMatchedOrderDO(contractDealedMessage,
-                        adlPrice, DECREASE_LEVERAGE.getCode(), 0L, ConvertUtils.opDirection(needPositionDirection)
-                ));
+
 
                 List<ContractDealedMessage> curUserPostDealTasks =  Arrays.asList(contractDealedMessage);
                 UpdatePositionResult positionResult = dealManager.updatePosition(contractDealedMessage.getUserId(),contractDealedMessage.getSubjectId(), curUserPostDealTasks);
                 //更新失败，换下一个持仓
                 if (null == positionResult) {
+                    ADL_FAILED_LOGGER.warn("update position failed, contractDealedMessage={}", JSON.toJSONString(contractDealedMessage));
                     continue;
                 }
+                contractDealedMessages.add(contractDealedMessage);
+                contractMatchedOrderDOS.add(ConvertUtils.toMatchedOrderDO(contractDealedMessage,
+                        adlPrice, DECREASE_LEVERAGE.getCode(), 0L, ConvertUtils.opDirection(needPositionDirection)
+                ));
                 updatePositionResultMap.put(contractDealedMessage, positionResult);
 
                 unfilledAmount = unfilledAmount.subtract(subAmount);
@@ -147,7 +151,6 @@ public class DeleverageManager {
         if (!CollectionUtils.isEmpty(contractMatchedOrderDOS)) {
             contractMatchedOrderMapper.insert(contractMatchedOrderDOS);
         }
-
 
         for (Map.Entry<ContractDealedMessage, UpdatePositionResult>  entry: updatePositionResultMap.entrySet()) {
             UpdatePositionResult positionResult = entry.getValue();
