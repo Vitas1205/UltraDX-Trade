@@ -4,10 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.fota.common.utils.LogUtil;
 import com.fota.risk.client.domain.UserRRLDTO;
 import com.fota.risk.client.manager.RelativeRiskLevelManager;
-import com.fota.trade.common.ADLBizException;
-import com.fota.trade.common.BizException;
-import com.fota.trade.common.BizExceptionEnum;
-import com.fota.trade.common.UpdatePositionResult;
+import com.fota.trade.common.*;
 import com.fota.trade.domain.ContractMatchedOrderDO;
 import com.fota.trade.domain.UserPositionDO;
 import com.fota.trade.dto.DeleverageDTO;
@@ -82,8 +79,8 @@ public class DeleverageManager {
         //降杠杆和强平单成交记录
         List<ContractMatchedOrderDO> contractMatchedOrderDOS = new LinkedList<>();
 
-        Map<ContractDealedMessage, UpdatePositionResult> updatePositionResultMap = new HashMap<>();
-
+        List<Runnable> updateBalanceTasks = new LinkedList<>();
+        List<UpdatePositionResult> updatePositionResults = new LinkedList<>();
 
         for (int start = 0; unfilledAmount.compareTo(BigDecimal.ZERO) > 0; start = start + pageSize + 1) {
             List<UserRRLDTO>  RRL = getRRLWithRetry(deleverageDTO.getContractId(),
@@ -126,13 +123,15 @@ public class DeleverageManager {
                 UpdatePositionResult positionResult = dealManager.updatePosition(contractDealedMessage.getUserId(),contractDealedMessage.getSubjectId(), curUserPostDealTasks);
                 //更新失败，换下一个持仓
                 if (null == positionResult) {
-                    ADL_EXTEA_LOG.warn("update position failed, contractDealedMessage={}", JSON.toJSONString(contractDealedMessage));
+                    LogUtil.error(TradeBizTypeEnum.CONTRACT_ADL,matchId+"", contractDealedMessage, "update position failed when adl");
                     continue;
                 }
+                Runnable task = () -> dealManager.processAfterPositionUpdated(positionResult, Arrays.asList(contractDealedMessage));
+                updateBalanceTasks.add(task);
+                updatePositionResults.add(positionResult);
                 contractMatchedOrderDOS.add(ConvertUtils.toMatchedOrderDO(contractDealedMessage,
                         adlPrice, DECREASE_LEVERAGE.getCode(), 0L, ConvertUtils.opDirection(needPositionDirection)
                 ));
-                updatePositionResultMap.put(contractDealedMessage, positionResult);
 
                 unfilledAmount = unfilledAmount.subtract(subAmount);
                 if (unfilledAmount.compareTo(BigDecimal.ZERO) == 0) {
@@ -152,16 +151,8 @@ public class DeleverageManager {
             contractMatchedOrderMapper.insert(contractMatchedOrderDOS);
         }
 
-        Map<String, Object> temp = new HashMap<>();
-        temp.put("updatePositionResults", updatePositionResultMap.values());
-        temp.put("matchId", matchId);
-        ADL_EXTEA_LOG.info("temp:{}", temp);
-
-
-        for (Map.Entry<ContractDealedMessage, UpdatePositionResult>  entry: updatePositionResultMap.entrySet()) {
-            UpdatePositionResult positionResult = entry.getValue();
-            Runnable task = () -> dealManager.processAfterPositionUpdated(positionResult, Arrays.asList(entry.getKey()));
-            executorService.submit(task);
+        for (Runnable updateBalanceTask : updateBalanceTasks) {
+            updateBalanceTask.run();
         }
 
         Map<String, Object> map = new HashMap<>();
@@ -169,7 +160,7 @@ public class DeleverageManager {
         map.put("adlPrice", adlPrice);
         map.put("direction", deleverageDTO.getNeedPositionDirection());
         map.put("contractId", deleverageDTO.getContractId());
-        map.put("updatePositionResults", updatePositionResultMap.values());
+        map.put("updatePositionResults", updatePositionResults);
         map.put("unfilled", deleverageDTO.getUnfilledAmount());
         map.put("adlPrice", adlPrice);
         ADL_EXTEA_LOG.info("{}", JSON.toJSONString(map));
