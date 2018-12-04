@@ -1013,7 +1013,8 @@ public class ContractOrderManager {
             if (currentPrice.isPresent() && currentPrice.get().getPrice().compareTo(BigDecimal.ZERO) > 0){
                 orderPrice= currentPrice.get().getPrice().setScale(scale, roundingMode);
             }else {
-                LogUtil.error(TradeBizTypeEnum.CONTRACT_ORDER, null, contractId, "NO_COMPETITORS_PRICE, competitorsPriceList:" + competitorsPriceList);
+                log.warn("bizType:{},\037traceId:{},\037param:{},\037detailMsg:{}\037", TradeBizTypeEnum.CONTRACT_ORDER,
+                        null, contractId, "NO_COMPETITORS_PRICE, competitorsPriceList: " + competitorsPriceList);
                 return Result.fail(NO_COMPETITORS_PRICE.getCode(), NO_COMPETITORS_PRICE.getMessage());
             }
 
