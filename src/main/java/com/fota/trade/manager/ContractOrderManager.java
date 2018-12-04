@@ -1225,7 +1225,7 @@ public class ContractOrderManager {
         bidContractOrderDO.setContractId(contractId);
         bidContractOrderDO.setContractName(contractOrderDTO.getContractName());
         bidContractOrderDO.setOrderDirection(BID.getCode());
-        bidContractOrderDO.setFee(UserLevelEnum.FREE.getFeeRate());
+        bidContractOrderDO.setFee(UserLevelEnum.DEFAULT.getFeeRate());
         bidContractOrderDO.setOrderType(contractOrderDTO.getOrderType());
         bidContractOrderDO.setPrice(contractOrderDTO.getPrice());
 
