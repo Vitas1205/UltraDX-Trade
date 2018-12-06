@@ -336,12 +336,20 @@ public class DealManager {
     }
 
     public  Result internalProcessAfterPositionUpdated(UpdatePositionResult positionResult, List<ContractDealedMessage> postDealMessages){
+        if (null == positionResult) {
+            return Result.fail(ILLEGAL_PARAM.getCode(), "null positionResult");
+        }
         long userId = positionResult.getUserId();
         long contractId = positionResult.getContractId();
         if (CollectionUtils.isEmpty(postDealMessages)) {
             LogUtil.error(TradeBizTypeEnum.CONTRACT_DEAL, null, postDealMessages, "empty postDealMessages");
             return Result.fail(ILLEGAL_PARAM.getCode(), "empty postDealMessages in postDeal");
         }
+        //防止异常抛出
+        BasicUtils.exeWhitoutError(()-> contractOrderManager.internalUpdateExtraEntrustAmountByContract(userId, contractId));
+        BasicUtils.exeWhitoutError(() -> updateTotalPosition(contractId, positionResult));
+        BasicUtils.exeWhitoutError(() -> updateTodayFee(postDealMessages));
+
         if (0 == positionResult.getClosePL().compareTo(ZERO)) {
             positionResult.setPostDealPhaseEnum(PostDealPhaseEnum.UPDATE_BALANCE);
             return Result.suc(null);
@@ -387,15 +395,6 @@ public class DealManager {
 
     public UpdatePositionResult updatePosition(long userId, long contractId, List<ContractDealedMessage> postDealMessages) {
         UpdatePositionResult positionResult = BasicUtils.retryWhenFail(()-> internalUpdatePosition(userId, contractId, postDealMessages), x -> null==x, Duration.ofMillis(10), 3);
-        if (null != positionResult) {
-            contractOrderManager.updateExtraEntrustAmountByContract(userId, contractId);
-            executorService.submit(() -> {
-
-                //防止异常抛出
-                BasicUtils.exeWhitoutError(() -> updateTotalPosition(contractId, positionResult));
-                BasicUtils.exeWhitoutError(() -> updateTodayFee(postDealMessages));
-            });
-        }
         return positionResult;
     }
     private UpdatePositionResult internalUpdatePosition(long userId, long contractId, List<ContractDealedMessage> postDealMessages) {
