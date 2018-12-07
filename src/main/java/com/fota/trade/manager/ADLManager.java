@@ -118,7 +118,7 @@ public class ADLManager {
         List<UpdatePositionResult> updatePositionResults = new LinkedList<>();
         for (ContractDealedMessage postDealMessage : allPostDealTasks) {
             List<ContractDealedMessage> curUserPostDealTasks =  Arrays.asList(postDealMessage);
-            UpdatePositionResult positionResult = dealManager.updatePosition(postDealMessage.getUserId(),postDealMessage.getSubjectId(), curUserPostDealTasks);
+            UpdatePositionResult positionResult = dealManager.updatePositionWithRetry(postDealMessage.getUserId(),postDealMessage.getSubjectId(), curUserPostDealTasks);
             if (null == positionResult) {
                 throw new ADLBizException(UPDATE_POSITION);
             }
