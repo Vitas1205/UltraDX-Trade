@@ -384,6 +384,20 @@ public class DealManager {
         }
         BigDecimal totalFee = postDealMessages.stream().filter(x->x.getTotalFee() != null)
                 .map(ContractDealedMessage::getTotalFee).reduce(BigDecimal.ZERO, BigDecimal::add);
+        //后台监控日志
+        String userId;
+        String operation;
+        String contractName;
+        String count;
+        String timestamp;
+        for (ContractDealedMessage  contractCategoryService : postDealMessages){
+            userId = String.valueOf(contractCategoryService.getUserId());
+            operation = String.valueOf(contractCategoryService.getOrderDirection());
+            contractName = String.valueOf(contractCategoryService.getSubjectName());
+            count = String.valueOf(contractCategoryService.getTotalFee());
+            timestamp = String.valueOf(System.currentTimeMillis());
+            log.info("fee@"+userId+"@@@"+operation+"@@@"+contractName+"@@@"+count+"@@@"+timestamp);
+        }
         if (totalFee.compareTo(ZERO) > 0){
             String dateStr = new SimpleDateFormat("yyyyMMdd").format(new Date());
             Double currentFee = redisManager.counter(Constant.REDIS_TODAY_FEE + dateStr, totalFee);
