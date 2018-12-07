@@ -118,7 +118,7 @@ public class ADLManager {
         List<UpdatePositionResult> updatePositionResults = new LinkedList<>();
         for (ContractDealedMessage postDealMessage : allPostDealTasks) {
             List<ContractDealedMessage> curUserPostDealTasks =  Arrays.asList(postDealMessage);
-            UpdatePositionResult positionResult = dealManager.updatePosition(postDealMessage.getUserId(),postDealMessage.getSubjectId(), curUserPostDealTasks);
+            UpdatePositionResult positionResult = dealManager.updatePositionWithRetry(postDealMessage.getUserId(),postDealMessage.getSubjectId(), curUserPostDealTasks);
             if (null == positionResult) {
                 throw new ADLBizException(UPDATE_POSITION);
             }
@@ -134,6 +134,7 @@ public class ADLManager {
         map.put("matchId", adlMatchDTO.getId());
         map.put("userId", adlMatchDTO.getUserId());
         map.put("matchedList", adlMatchDTO.getMatchedList());
+        map.put("enforcePrice", adlMatchDTO.getPrice());
         map.put("unfilled", adlMatchDTO.getUnfilled());
         map.put("direction", adlMatchDTO.getDirection());
         map.put("contractId", adlMatchDTO.getContractId());

@@ -76,7 +76,7 @@ public class DeleverageManager {
         BigDecimal adlPrice = deleverageDTO.getAdlPrice();
 
         BigDecimal unfilledAmount = deleverageDTO.getUnfilledAmount();
-        int pageSize = 100;
+        int pageSize = 10,start=0;
         int needPositionDirection = deleverageDTO.getNeedPositionDirection();
         //获取当前价格
 
@@ -90,13 +90,21 @@ public class DeleverageManager {
         DeleveragedMessages deleveragedMessages = new DeleveragedMessages();
         deleveragedMessages.setDeleveragedMessageList(deleveragedMessageList);
 
-        for (int start = 0; unfilledAmount.compareTo(BigDecimal.ZERO) > 0; start = start + pageSize + 1) {
+        //同一页RRL不准确次数
+        int notAcurateTime = 0;
+        //每次取排名前10的减仓，知道unfilledAmount=0
+        for (;unfilledAmount.compareTo(BigDecimal.ZERO) > 0;) {
+            //同一页RRL不准确达到三次就下一页
+            if (notAcurateTime >=3) {
+              notAcurateTime=0;
+              start = start + pageSize + 1;
+            }
             List<UserRRLDTO>  RRL = getRRLWithRetry(deleverageDTO.getContractId(),
                     needPositionDirection, start, start + pageSize);
 
             //调用排行榜失败，break
             if (CollectionUtils.isEmpty(RRL)) {
-                LogUtil.error(CONTRACT_ADL, deleverageDTO.getMatchId()+"", null, "empty RRL, start="+start+" contractId="+contractId+" dir="+needPositionDirection);
+                LogUtil.error(CONTRACT_ADL, deleverageDTO.getMatchId()+"", null, "empty RRL, retries="+ notAcurateTime+", start="+start+", contractId="+contractId+", dir="+needPositionDirection);
                 break;
             }
             List<Long> userIds = RRL.stream().map(UserRRLDTO::getUserId).collect(Collectors.toList());
@@ -104,16 +112,19 @@ public class DeleverageManager {
             //批量查询持仓
             List<UserPositionDO> userPositionDOS = userPositionMapper.selectByContractIdAndUserIds(userIds, deleverageDTO.getContractId());
             if (CollectionUtils.isEmpty(userPositionDOS)) {
-                LogUtil.error(CONTRACT_ADL, deleverageDTO.getMatchId()+"", null, "empty userPositionDOS, userIds="+userIds+", contractId="+contractId+", dir="+needPositionDirection);
+                LogUtil.error(CONTRACT_ADL, deleverageDTO.getMatchId()+"", null, "empty userPositionDOS, retries="+notAcurateTime+", start="+start + ", userIds="+userIds+", contractId="+contractId+", dir="+needPositionDirection);
                 continue;
             }
             Map<Long, UserPositionDO> userPositionDOMap = userPositionDOS.stream().collect(Collectors.toMap(UserPositionDO::getUserId, x -> x));
+            //RRL是否准确
+            boolean isAcurateRRL =true;
             //按照RRL顺序减仓
             for (UserRRLDTO userRRLDTO : RRL) {
                 UserPositionDO userPositionDO = userPositionDOMap.get(userRRLDTO.getUserId());
                 //过滤掉不正确的持仓
                 if (null == userPositionDO || userPositionDO.getUnfilledAmount().compareTo(BigDecimal.ZERO) == 0 || userPositionDO.getPositionType() != needPositionDirection) {
-                    LogUtil.error(CONTRACT_ADL, deleverageDTO.getMatchId()+"", userPositionDO, "illegal userPositionDO:{}");
+                    LogUtil.error(CONTRACT_ADL, deleverageDTO.getMatchId()+"", userPositionDO, "illegal userPositionDO,userId="+userRRLDTO.getUserId()+"direction="+needPositionDirection);
+                    isAcurateRRL = false;
                     continue;
                 }
                 BigDecimal subAmount = userPositionDO.getUnfilledAmount().min(unfilledAmount);
@@ -127,10 +138,13 @@ public class DeleverageManager {
                 contractDealedMessage.setSubjectName(userPositionDO.getContractName());
 
                 List<ContractDealedMessage> curUserPostDealTasks =  Arrays.asList(contractDealedMessage);
-                UpdatePositionResult positionResult = dealManager.updatePosition(contractDealedMessage.getUserId(),contractDealedMessage.getSubjectId(), curUserPostDealTasks);
+
+                //重要：减仓并发控制，保证更新db时仓位数量方向和现在一致
+                UpdatePositionResult positionResult = dealManager.doUpdatePosition(contractDealedMessage.getUserId(),contractDealedMessage.getSubjectId(), userPositionDO, curUserPostDealTasks);
                 //更新失败，换下一个持仓
                 if (null == positionResult) {
                     LogUtil.error(TradeBizTypeEnum.CONTRACT_ADL,matchId+"", contractDealedMessage, "update position failed when adl");
+                    isAcurateRRL = false;
                     continue;
                 }
 
@@ -154,6 +168,9 @@ public class DeleverageManager {
                     break;
                 }
 
+            }
+            if (!isAcurateRRL) {
+                notAcurateTime++;
             }
 
         }

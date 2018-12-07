@@ -1021,7 +1021,7 @@ public class ContractOrderManager {
         }
 
         //校验价格
-        if (orderPrice.compareTo(BigDecimal.ZERO) <= 0){
+        if (orderPrice == null || orderPrice.compareTo(BigDecimal.ZERO) <= 0){
             return Result.fail(AMOUNT_ILLEGAL.getCode(), AMOUNT_ILLEGAL.getMessage());
         }
         if ( scale < orderPrice.scale()) {
