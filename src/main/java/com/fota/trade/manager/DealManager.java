@@ -404,7 +404,7 @@ public class DealManager {
     }
 
 
-    public UpdatePositionResult doUpdatePosition(long userId, long contractId, UserPositionDO userPositionDO, List<ContractDealedMessage> postDealMessages) {
+    public UpdatePositionResult doUpdatePosition(long userId, long contractId, UserPositionDO oldPositionDO, List<ContractDealedMessage> postDealMessages) {
         String requestId = postDealMessages.stream().map(ContractDealedMessage::msgKey).collect(Collectors.joining("-"));
         ContractDealedMessage sample = postDealMessages.get(0);
         UpdatePositionResult result = new UpdatePositionResult();
@@ -413,10 +413,14 @@ public class DealManager {
                 .setRequestId(requestId)
                 .setPostDealPhaseEnum(PostDealPhaseEnum.UPDATE_POSITION);
         boolean shouldInsert = false;
+        UserPositionDO userPositionDO;
         // db没有持仓记录，新建
-        if (userPositionDO == null) {
+        if (oldPositionDO == null) {
             shouldInsert = true;
             userPositionDO = ContractUtils.buildPosition(sample);
+        }else {
+            userPositionDO = new UserPositionDO();
+            BeanUtils.copyProperties(oldPositionDO, userPositionDO);
         }
 
         BigDecimal oldUnfilledAmount = userPositionDO.getUnfilledAmount();
