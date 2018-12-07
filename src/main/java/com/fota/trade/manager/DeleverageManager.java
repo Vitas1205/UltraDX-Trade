@@ -61,6 +61,7 @@ public class DeleverageManager {
 
     private static final Logger ADL_EXTEA_LOG = LoggerFactory.getLogger("adlExtraInfo");
     private static final Logger ADL_FAILED_LOGGER = LoggerFactory.getLogger("adlFailed");
+    private static final Logger tradeLog = LoggerFactory.getLogger("trade");
 
 
 
@@ -150,7 +151,12 @@ public class DeleverageManager {
                 DeleveragedMessage deleveragedMessage = new DeleveragedMessage(userPositionDO.getUserId(), userPositionDO.getContractId(), userPositionDO.getContractName(),
                         userPositionDO.getPositionType(), subAmount, adlPrice);
                 deleveragedMessageList.add(deleveragedMessage);
-                Runnable task = () -> dealManager.processAfterPositionUpdated(positionResult, Arrays.asList(contractDealedMessage));
+                Runnable task = () -> {
+                    dealManager.processAfterPositionUpdated(positionResult, Arrays.asList(contractDealedMessage));
+                    tradeLog.info("adl@{}@@@{}@@@{}@@@{}@@@{}", userPositionDO.getUserId(),
+                            userPositionDO.getPositionType(), userPositionDO.getContractName(), subAmount, System.currentTimeMillis());
+
+                };
                 updateBalanceTasks.add(task);
                 updatePositionResults.add(positionResult);
                 contractMatchedOrderDOS.add(ConvertUtils.toMatchedOrderDO(contractDealedMessage,
