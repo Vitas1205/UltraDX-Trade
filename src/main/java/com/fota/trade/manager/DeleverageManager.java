@@ -165,7 +165,7 @@ public class DeleverageManager {
             updateBalanceTask.run();
         }
 
-        rocketMqManager.sendMessage(TopicConstants.TRD_CONTRACT_DELEVERAGED, "deleveraged", matchId+"", deleveragedMessageList);
+        rocketMqManager.sendMessage(TopicConstants.TRD_CONTRACT_DELEVERAGED, "deleveraged", matchId+"", deleveragedMessages);
 
         Map<String, Object> map = new HashMap<>();
         map.put("matchId", matchId);
