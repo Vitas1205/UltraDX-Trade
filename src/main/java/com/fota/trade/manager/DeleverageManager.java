@@ -11,9 +11,12 @@ import com.fota.trade.dto.DeleverageDTO;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.UserPositionMapper;
 import com.fota.trade.msg.ContractDealedMessage;
+import com.fota.trade.msg.DeleveragedMessage;
+import com.fota.trade.msg.DeleveragedMessages;
 import com.fota.trade.msg.TopicConstants;
 import com.fota.trade.util.BasicUtils;
 import com.fota.trade.util.ConvertUtils;
+import lombok.experimental.var;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -58,6 +61,7 @@ public class DeleverageManager {
 
     private static final Logger ADL_EXTEA_LOG = LoggerFactory.getLogger("adlExtraInfo");
     private static final Logger ADL_FAILED_LOGGER = LoggerFactory.getLogger("adlFailed");
+    private static final Logger tradeLog = LoggerFactory.getLogger("trade");
 
 
 
@@ -81,6 +85,10 @@ public class DeleverageManager {
 
         List<Runnable> updateBalanceTasks = new LinkedList<>();
         List<UpdatePositionResult> updatePositionResults = new LinkedList<>();
+
+        List<DeleveragedMessage> deleveragedMessageList = new LinkedList<>();
+        DeleveragedMessages deleveragedMessages = new DeleveragedMessages();
+        deleveragedMessages.setDeleveragedMessageList(deleveragedMessageList);
 
         for (int start = 0; unfilledAmount.compareTo(BigDecimal.ZERO) > 0; start = start + pageSize + 1) {
             List<UserRRLDTO>  RRL = getRRLWithRetry(deleverageDTO.getContractId(),
@@ -118,7 +126,6 @@ public class DeleverageManager {
                 contractDealedMessage.setFilledPrice(adlPrice);
                 contractDealedMessage.setSubjectName(userPositionDO.getContractName());
 
-
                 List<ContractDealedMessage> curUserPostDealTasks =  Arrays.asList(contractDealedMessage);
                 UpdatePositionResult positionResult = dealManager.updatePosition(contractDealedMessage.getUserId(),contractDealedMessage.getSubjectId(), curUserPostDealTasks);
                 //更新失败，换下一个持仓
@@ -126,7 +133,16 @@ public class DeleverageManager {
                     LogUtil.error(TradeBizTypeEnum.CONTRACT_ADL,matchId+"", contractDealedMessage, "update position failed when adl");
                     continue;
                 }
-                Runnable task = () -> dealManager.processAfterPositionUpdated(positionResult, Arrays.asList(contractDealedMessage));
+
+                DeleveragedMessage deleveragedMessage = new DeleveragedMessage(userPositionDO.getUserId(), userPositionDO.getContractId(), userPositionDO.getContractName(),
+                        userPositionDO.getPositionType(), subAmount, adlPrice);
+                deleveragedMessageList.add(deleveragedMessage);
+                Runnable task = () -> {
+                    dealManager.processAfterPositionUpdated(positionResult, Arrays.asList(contractDealedMessage));
+                    tradeLog.info("adl@{}@@@{}@@@{}@@@{}@@@{}", userPositionDO.getUserId(),
+                            userPositionDO.getPositionType(), userPositionDO.getContractName(), subAmount, System.currentTimeMillis());
+
+                };
                 updateBalanceTasks.add(task);
                 updatePositionResults.add(positionResult);
                 contractMatchedOrderDOS.add(ConvertUtils.toMatchedOrderDO(contractDealedMessage,
@@ -154,6 +170,8 @@ public class DeleverageManager {
         for (Runnable updateBalanceTask : updateBalanceTasks) {
             updateBalanceTask.run();
         }
+
+        rocketMqManager.sendMessage(TopicConstants.TRD_CONTRACT_DELEVERAGED, "deleveraged", matchId+"", deleveragedMessages);
 
         Map<String, Object> map = new HashMap<>();
         map.put("matchId", matchId);

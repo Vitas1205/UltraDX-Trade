@@ -590,7 +590,7 @@ public class UsdkOrderManager {
             parameter.put("userId", userId);
             parameter.put("toStatus", toStatus);
             LogUtil.error( TradeBizTypeEnum.COIN_CANCEL_ORDER.toString(), String.valueOf(orderId), parameter, "usdkOrderMapper.cancel failed");
-            return ResultCode.error(ResultCodeEnum.BIZ_ERROR.getCode(), "usdkOrderMapper.cancel failed" + usdkOrderDO.getId());
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), "usdkOrderMapper.cancel failed" + usdkOrderDO.getId());
         }
         return resultCode;
     }
