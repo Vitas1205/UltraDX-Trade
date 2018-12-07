@@ -36,7 +36,7 @@ public class BasicUtils {
         try {
             return supplier.get();
         } catch (Throwable t) {
-            log.error("exe function error");
+            log.error("exe function error",t);
         }
         return null;
     }

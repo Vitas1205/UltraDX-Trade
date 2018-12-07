@@ -16,7 +16,7 @@ public class BaseBizException extends RuntimeException{
     }
 
     public BaseBizException(String message, BizExceptionEnum bizExceptionEnum) {
-        super(message);
+        super(bizExceptionEnum + "," + message);
         this.bizException = bizExceptionEnum;
     }
 }
