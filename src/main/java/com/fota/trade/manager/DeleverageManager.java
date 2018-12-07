@@ -122,7 +122,7 @@ public class DeleverageManager {
                 UserPositionDO userPositionDO = userPositionDOMap.get(userRRLDTO.getUserId());
                 //过滤掉不正确的持仓
                 if (null == userPositionDO || userPositionDO.getUnfilledAmount().compareTo(BigDecimal.ZERO) == 0 || userPositionDO.getPositionType() != needPositionDirection) {
-                    LogUtil.error(CONTRACT_ADL, deleverageDTO.getMatchId()+"", userPositionDO, "illegal userPositionDO:{}");
+                    LogUtil.error(CONTRACT_ADL, deleverageDTO.getMatchId()+"", userPositionDO, "illegal userPositionDO,userId="+userRRLDTO.getUserId()+"direction="+needPositionDirection);
                     isAcurateRRL = false;
                     continue;
                 }
