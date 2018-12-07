@@ -38,6 +38,7 @@ import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.*;
@@ -57,6 +58,7 @@ import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
 import static com.fota.trade.domain.enums.PositionTypeEnum.EMPTY;
 import static com.fota.trade.domain.enums.PositionTypeEnum.OVER;
+import static java.math.BigDecimal.ROUND_DOWN;
 import static java.math.BigDecimal.ZERO;
 import static org.springframework.transaction.annotation.Propagation.REQUIRED;
 
@@ -190,7 +192,7 @@ public class DealManager {
         contractOrderDOS.stream().forEach(x -> {
             sendDealMessage(matchId, x, filledAmount, filledPrice);
             //后台交易监控日志打在里面 注释需谨慎
-            saveToLog(x, filledAmount, matchId);
+            saveToLog(x, filledAmount, matchId, filledPrice);
         });
 
         resultCode.setCode(ResultCodeEnum.SUCCESS.getCode());
@@ -237,7 +239,7 @@ public class DealManager {
             BigDecimal filledAmount = contractMatchedOrderDO.getFilledAmount();
             BigDecimal filledPrice = contractMatchedOrderDO.getFilledPrice();
             //后台交易监控日志打在里面 注释需谨慎
-            saveToLog(x, filledAmount, matchId);
+            saveToLog(x, filledAmount, matchId, filledPrice);
             sendDealMessage(matchId, x, filledAmount, filledPrice);
 
         });
@@ -384,20 +386,6 @@ public class DealManager {
         }
         BigDecimal totalFee = postDealMessages.stream().filter(x->x.getTotalFee() != null)
                 .map(ContractDealedMessage::getTotalFee).reduce(BigDecimal.ZERO, BigDecimal::add);
-        //后台监控日志
-        String userId;
-        String operation;
-        String contractName;
-        String count;
-        String timestamp;
-        for (ContractDealedMessage  contractCategoryService : postDealMessages){
-            userId = String.valueOf(contractCategoryService.getUserId());
-            operation = String.valueOf(contractCategoryService.getOrderDirection());
-            contractName = String.valueOf(contractCategoryService.getSubjectName());
-            count = String.valueOf(contractCategoryService.getTotalFee());
-            timestamp = String.valueOf(System.currentTimeMillis());
-            log.info("fee@"+userId+"@@@"+operation+"@@@"+contractName+"@@@"+count+"@@@"+timestamp);
-        }
         if (totalFee.compareTo(ZERO) > 0){
             String dateStr = new SimpleDateFormat("yyyyMMdd").format(new Date());
             Double currentFee = redisManager.counter(Constant.REDIS_TODAY_FEE + dateStr, totalFee);
@@ -552,7 +540,7 @@ public class DealManager {
      * @param completeAmount
      * @param matchId
      */
-    private void saveToLog(ContractOrderDO contractOrderDO, BigDecimal completeAmount, long matchId) {
+    private void saveToLog(ContractOrderDO contractOrderDO, BigDecimal completeAmount, long matchId, BigDecimal filledPrice) {
 
         Map<String, Object> context = new HashMap<>();
         if (contractOrderDO.getOrderContext() != null) {
@@ -567,9 +555,10 @@ public class DealManager {
         if (context != null) {
             userName = context.get("username") == null ? "" : String.valueOf(context.get("username"));
         }
-        tradeLog.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
+        BigDecimal fee = contractOrderDO.getFee().multiply(filledPrice).multiply(completeAmount).setScale(16, RoundingMode.DOWN);
+        tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                 2, contractOrderDTO.getContractName(), userName, contractOrderDTO.getCompleteAmount(),
-                System.currentTimeMillis(), 4, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), matchId);
+                System.currentTimeMillis(), 4, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), fee);
     }
 
     public void updateTotalPosition(long contractId, UpdatePositionResult positionResult) {
