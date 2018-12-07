@@ -314,7 +314,7 @@ public class DealManager {
         long contractId = sample.getSubjectId();
 
                 //更新持仓
-        UpdatePositionResult positionResult = updatePosition(userId, contractId, postDealMessages);
+        UpdatePositionResult positionResult = updatePositionWithRetry(userId, contractId, postDealMessages);
         if (null == positionResult) {
             //不回滚则打日志
             UPDATE_POSITION_FAILED_LOGGER.error("{}", new FailedRecord(RETRY, UPDATE_POSITION.name(), postDealMessages));
@@ -395,25 +395,34 @@ public class DealManager {
         }
     }
 
-    public UpdatePositionResult updatePosition(long userId, long contractId, List<ContractDealedMessage> postDealMessages) {
+    public UpdatePositionResult updatePositionWithRetry(long userId, long contractId, List<ContractDealedMessage> postDealMessages) {
         UpdatePositionResult positionResult = BasicUtils.retryWhenFail(()-> internalUpdatePosition(userId, contractId, postDealMessages), x -> null==x, Duration.ofMillis(10), 3);
         return positionResult;
     }
-    private UpdatePositionResult internalUpdatePosition(long userId, long contractId, List<ContractDealedMessage> postDealMessages) {
-        String requestId = postDealMessages.stream().map(ContractDealedMessage::msgKey).collect(Collectors.joining("-"));
 
+    private UpdatePositionResult internalUpdatePosition(long userId, long contractId, List<ContractDealedMessage> postDealMessages) {
+        UserPositionDO userPositionDO = userPositionMapper.selectByUserIdAndContractId(userId, contractId);
+        return doUpdatePosition(userId, contractId, userPositionDO, postDealMessages);
+    }
+
+
+    public UpdatePositionResult doUpdatePosition(long userId, long contractId, UserPositionDO oldPositionDO, List<ContractDealedMessage> postDealMessages) {
+        String requestId = postDealMessages.stream().map(ContractDealedMessage::msgKey).collect(Collectors.joining("-"));
         ContractDealedMessage sample = postDealMessages.get(0);
         UpdatePositionResult result = new UpdatePositionResult();
         result.setUserId(userId)
                 .setContractId(contractId)
                 .setRequestId(requestId)
                 .setPostDealPhaseEnum(PostDealPhaseEnum.UPDATE_POSITION);
-        UserPositionDO userPositionDO = userPositionMapper.selectByUserIdAndContractId(userId, contractId);
         boolean shouldInsert = false;
+        UserPositionDO userPositionDO;
         // db没有持仓记录，新建
-        if (userPositionDO == null) {
+        if (oldPositionDO == null) {
             shouldInsert = true;
             userPositionDO = ContractUtils.buildPosition(sample);
+        }else {
+            userPositionDO = new UserPositionDO();
+            BeanUtils.copyProperties(oldPositionDO, userPositionDO);
         }
 
         BigDecimal oldUnfilledAmount = userPositionDO.getUnfilledAmount();
