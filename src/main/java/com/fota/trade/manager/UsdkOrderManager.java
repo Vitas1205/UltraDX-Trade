@@ -129,7 +129,7 @@ public class UsdkOrderManager {
         int count = usdkOrderMapper.countByQuery(criteriaMap);
         profiler.complelete("count 8,9 orders");
         if (count >= 200) {
-            log.error("user: {} too much {} orders", usdkOrderDTO.getUserId(),
+            log.warn("user: {} too much {} orders", usdkOrderDTO.getUserId(),
                     AssetTypeEnum.getAssetNameByAssetId(usdkOrderDTO.getAssetId()));
             return Result.fail(TOO_MUCH_ORDERS.getCode(), TOO_MUCH_ORDERS.getMessage());
         }
@@ -300,7 +300,7 @@ public class UsdkOrderManager {
             int count = usdkOrderMapper.countByQuery(criteriaMap);
             profiler.complelete("count 8,9 orders");
             if (entry.getValue().size() + count > 200) {
-                log.error("user: {} too much {} orders", userId, AssetTypeEnum.getAssetNameByAssetId(entry.getKey().intValue()));
+                log.warn("user: {} too much {} orders", userId, AssetTypeEnum.getAssetNameByAssetId(entry.getKey().intValue()));
                 return Result.fail(TOO_MUCH_ORDERS.getCode(), TOO_MUCH_ORDERS.getMessage());
             }
         }
