@@ -232,7 +232,7 @@ public class UsdkOrderManager {
                         param.put("entrustValue", entrustValue);
                         param.put("totalAmount", amount);
                         param.put("availableAmount", availableAmount);
-                        LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), orderId.toString(), param, errorMsg);
+                        log.warn("bizType:{},\037traceId:{},\037param:{},\037detailMsg:{}\037", TradeBizTypeEnum.COIN_ORDER.toString(), orderId.toString(), param, errorMsg);
                         throw new BusinessException(errorCode, errorMsg);
                     }
                 }
