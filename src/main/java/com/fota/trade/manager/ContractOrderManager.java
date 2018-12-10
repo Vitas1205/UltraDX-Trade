@@ -992,8 +992,8 @@ public class ContractOrderManager {
         int scale = AssetTypeEnum.getContractPricePrecisionByAssetId(assetId);
         int roundingMode = ASK.getCode() == orderDeriction ? BigDecimal.ROUND_UP : BigDecimal.ROUND_DOWN;
 
-        BigDecimal buyMaxPrice = indexes.multiply(new BigDecimal("1.05")).setScale(scale, RoundingMode.UP);
-        BigDecimal sellMinPrice = indexes.multiply(new BigDecimal("0.95")).setScale(scale, BigDecimal.ROUND_DOWN);
+        BigDecimal buyMaxPrice = indexes.multiply(new BigDecimal("1.05")).setScale(scale, RoundingMode.DOWN);
+        BigDecimal sellMinPrice = indexes.multiply(new BigDecimal("0.95")).setScale(scale, BigDecimal.ROUND_UP);
 
         //市场单
         if (orderType == MARKET_PRICE.getCode()) {
