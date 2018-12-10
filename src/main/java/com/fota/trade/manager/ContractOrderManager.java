@@ -497,7 +497,6 @@ public class ContractOrderManager {
 
     public void sendCancelReq(List<Long> orderIdList, Long userId) {
         if (CollectionUtils.isEmpty(orderIdList) || null == userId) {
-            log.error("empty orderList");
             return;
         }
         //批量发送MQ消息到match
@@ -522,16 +521,11 @@ public class ContractOrderManager {
         List<ContractOrderDO> list = contractOrderMapper.selectUnfinishedOrderByUserId(userId);
         List<ContractOrderDO> listFilter = new ArrayList<>();
         for (ContractOrderDO temp : list){
-            ContractCategoryDTO contractCategoryDO = contractCategoryService.getContractById(temp.getContractId());
-            if (contractCategoryDO.getStatus() != PROCESSING.getCode()){
-                log.error("contract status illegal,can not cancel{}", contractCategoryDO);
-                continue;
-            }
             if (temp.getOrderType() != OrderTypeEnum.ENFORCE.getCode()){
                 listFilter.add(temp);
             }
         }
-        if (listFilter != null){
+        if (!CollectionUtils.isEmpty(listFilter)){
             List<Long> orderIdList = list.stream()
                     .map(ContractOrderDO::getId)
                     .collect(toList());
@@ -784,7 +778,7 @@ public class ContractOrderManager {
     public Boolean judgeOrderResult(List<ContractOrderDO> filterOrderList,Integer positionType,
                                     BigDecimal positionUnfilledAmount, BigDecimal positionEntrustAmount, BigDecimal lever) {
         if (null == positionUnfilledAmount) {
-            log.error("null positionUnfilledAmount");
+            log.warn("null positionUnfilledAmount");
             positionUnfilledAmount = BigDecimal.ZERO;
         }
         BigDecimal totalEntrustAmount = BigDecimal.ZERO;
@@ -831,7 +825,7 @@ public class ContractOrderManager {
                                             BigDecimal positionEntrustAmount,BigDecimal positionMarginByIndex,
                                             BigDecimal lever, BigDecimal positionValue) {
         if (null == positionUnfilledAmount) {
-            log.error("null positionUnfilledAmount");
+            log.warn("null positionUnfilledAmount, userId:{}, contractId:{}", userId, contractId);
             positionUnfilledAmount = BigDecimal.ZERO;
         }
 
