@@ -232,7 +232,7 @@ public class UsdkOrderManager {
                         param.put("entrustValue", entrustValue);
                         param.put("totalAmount", amount);
                         param.put("availableAmount", availableAmount);
-                        LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), orderId.toString(), param, errorMsg);
+                        log.warn("bizType:{},\037traceId:{},\037param:{},\037detailMsg:{}\037", TradeBizTypeEnum.COIN_ORDER.toString(), orderId.toString(), param, errorMsg);
                         throw new BusinessException(errorCode, errorMsg);
                     }
                 }
@@ -651,7 +651,7 @@ public class UsdkOrderManager {
     public ResultCode updateOrderByMatch(UsdkMatchedOrderDTO usdkMatchedOrderDTO) throws Exception {
         Profiler profiler =  null == ThreadContextUtil.getPrifiler() ? new Profiler("UsdkOrderManager.updateOrderByMatch", usdkMatchedOrderDTO.getId().toString()) : ThreadContextUtil.getPrifiler();
         if (usdkMatchedOrderDTO == null) {
-            LogUtil.error( TradeBizTypeEnum.CONTRACT_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), usdkMatchedOrderDTO, ResultCodeEnum.ILLEGAL_PARAM.getMessage());
+            LogUtil.error( TradeBizTypeEnum.COIN_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), usdkMatchedOrderDTO, ResultCodeEnum.ILLEGAL_PARAM.getMessage());
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), "illegal usdkMatchedOrderDTO" + usdkMatchedOrderDTO);
         }
         Long transferTime = System.currentTimeMillis();
@@ -660,11 +660,11 @@ public class UsdkOrderManager {
         UsdkOrderDO bidUsdkOrder = usdkOrderMapper.selectByUserIdAndId(usdkMatchedOrderDTO.getBidUserId(), usdkMatchedOrderDTO.getBidOrderId());
         profiler.complelete("select order");
         if (null == askUsdkOrder ) {
-            LogUtil.error( TradeBizTypeEnum.CONTRACT_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), askUsdkOrder, "null askOrder!!! ");
+            LogUtil.error( TradeBizTypeEnum.COIN_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), askUsdkOrder, "null askOrder!!! ");
             return ResultCode.error(ILLEGAL_PARAM.getCode(), "null askOrder!!! ");
         }
         if (null == bidUsdkOrder) {
-            LogUtil.error( TradeBizTypeEnum.CONTRACT_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), bidUsdkOrder, "null bidOrder!!! ");
+            LogUtil.error( TradeBizTypeEnum.COIN_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), bidUsdkOrder, "null bidOrder!!! ");
             return ResultCode.error(ILLEGAL_PARAM.getCode(), "null bidOrder!!! ");
         }
         List<UsdkOrderDO> usdkOrderDOS = Arrays.asList(askUsdkOrder, bidUsdkOrder);
@@ -675,13 +675,13 @@ public class UsdkOrderManager {
         if (BasicUtils.gt(filledAmount, askUsdkOrder.getUnfilledAmount())){
             parameter.put("filledAmount", filledAmount);
             parameter.put("askUnfilledAmount", askUsdkOrder.getUnfilledAmount());
-            LogUtil.error( TradeBizTypeEnum.CONTRACT_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), parameter, "askOrder unfilledAmount not enough");
+            LogUtil.error( TradeBizTypeEnum.COIN_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), parameter, "askOrder unfilledAmount not enough");
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), "askOrder unfilledAmount not enough. order="+askUsdkOrder);
         }
         if (BasicUtils.gt(filledAmount, bidUsdkOrder.getUnfilledAmount())){
             parameter.put("filledAmount", filledAmount);
             parameter.put("bidUnfilledAmount", bidUsdkOrder.getUnfilledAmount());
-            LogUtil.error( TradeBizTypeEnum.CONTRACT_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), parameter, "bidOrder unfilledAmount not enough");
+            LogUtil.error( TradeBizTypeEnum.COIN_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), parameter, "bidOrder unfilledAmount not enough");
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), "bidOrder unfilledAmount not enough. order="+bidUsdkOrder);
         }
 
@@ -694,7 +694,7 @@ public class UsdkOrderManager {
                 parameter.put("orderId", usdkOrderDO.getId());
                 parameter.put("filledAmount", filledAmount);
                 parameter.put("filledPrice", filledPrice);
-                LogUtil.error( TradeBizTypeEnum.CONTRACT_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), parameter, "doUpdateUsdkOrder failed");
+                LogUtil.error( TradeBizTypeEnum.COIN_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), parameter, "doUpdateUsdkOrder failed");
                 throw new BizException(ResultCodeEnum.BIZ_ERROR.getCode(), "doUpdateUsdkOrder failed, order=" + usdkOrderDO);
             }
         }
@@ -753,11 +753,11 @@ public class UsdkOrderManager {
             updateRet = assetWriteService.batchAddCapitalAmount(updateList, String.valueOf(usdkMatchedOrderDTO.getId()), AssetOperationTypeEnum.USDT_EXCHANGE_ORDER_DEALED.getCode());
             profiler.complelete("updateBalance");
         }catch (Exception e){
-            LogUtil.error( TradeBizTypeEnum.CONTRACT_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), updateList, "Asset RPC Error!, assetWriteService.batchAddCapitalAmount exception", e);
+            LogUtil.error( TradeBizTypeEnum.COIN_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), updateList, "Asset RPC Error!, assetWriteService.batchAddCapitalAmount exception", e);
             throw new BizException(BIZ_ERROR.getCode(), "assetWriteService.batchAddCapitalAmount exception, updateList:{}" + updateList);
         }
         if (!updateRet.isSuccess() || !updateRet.getData()) {
-            LogUtil.error( TradeBizTypeEnum.CONTRACT_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), updateList, "errorCode:"+ updateRet.getCode() + ", errorMsg:"+ updateRet.getMessage());
+            LogUtil.error( TradeBizTypeEnum.COIN_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), updateList, "errorCode:"+ updateRet.getCode() + ", errorMsg:"+ updateRet.getMessage());
             throw new BizException(BIZ_ERROR.getCode(), "assetWriteService.batchAddCapitalAmount failed, updateList:{}" + updateList);
         }
         UsdkMatchedOrderDO askMatchRecordDO = com.fota.trade.common.BeanUtils.extractUsdtRecord(usdkMatchedOrderDTO, OrderDirectionEnum.ASK.getCode());
@@ -766,7 +766,7 @@ public class UsdkOrderManager {
         int ret = usdkMatchedOrder.insert(Arrays.asList(askMatchRecordDO, bidMatchRecordDO));
             profiler.complelete("insert match record");
         if (ret < 2){
-            LogUtil.error( TradeBizTypeEnum.CONTRACT_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), Arrays.asList(askMatchRecordDO, bidMatchRecordDO), "usdkMatchedOrder.insert failed");
+            LogUtil.error( TradeBizTypeEnum.COIN_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), Arrays.asList(askMatchRecordDO, bidMatchRecordDO), "usdkMatchedOrder.insert failed");
             throw new RuntimeException("usdkMatchedOrder.insert failed");
         }
         long matchId = usdkMatchedOrderDTO.getId();
