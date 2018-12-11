@@ -479,6 +479,9 @@ public class DealManager {
         if (null == userPositionDO.getAveragePrice()) {
             userPositionDO.setAveragePrice(ZERO);
         }
+        if (null == userPositionDO.getRealAveragePrice()) {
+            userPositionDO.setRealAveragePrice(BigDecimal.ZERO);
+        }
         if (shouldInsert) {
             int aff = userPositionMapper.insert(userPositionDO);
             if (1 != aff) {

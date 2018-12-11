@@ -59,7 +59,7 @@ public interface UserPositionMapper {
     @Select({
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, locked_amount, ",
-            "unfilled_amount, position_type, average_price, status, lever, fee_rate",
+            "unfilled_amount, position_type, average_price, real_average_price, status, lever, fee_rate",
             "from trade_user_position",
             "where contract_id = #{contractId,jdbcType=BIGINT} and user_id = #{userId,jdbcType=BIGINT}"
     })

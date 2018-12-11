@@ -43,6 +43,7 @@ public class UserPositionMapperTest {
         userPositionDO.setAveragePrice(new BigDecimal("5000"));
         userPositionDO.setFeeRate(BigDecimal.ZERO);
         userPositionDO.setStatus(1);
+        userPositionDO.setRealAveragePrice(BigDecimal.ZERO);
         int insertRet = userPositionMapper.insert(userPositionDO);
         Assert.assertTrue(insertRet > 0);
     }
@@ -75,6 +76,10 @@ public class UserPositionMapperTest {
     public void testDelete() throws Exception {
         int deleteRet = userPositionMapper.deleteByUserId(userId);
         Assert.assertTrue(deleteRet > 0);
+    }
+    @Test
+    public void testSelectByUserIdAndId(){
+        userPositionMapper.selectByUserIdAndContractId(userId, 1196L);
     }
 
 //    @Test
