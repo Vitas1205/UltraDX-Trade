@@ -21,12 +21,12 @@ public interface UserPositionMapper {
         "insert into trade_user_position (id, gmt_create, ",
         "gmt_modified, user_id, ",
         "contract_id, contract_name, ",
-        "locked_amount, unfilled_amount, average_price,",
+        "locked_amount, unfilled_amount, average_price, real_average_price,",
         "position_type, status, lever, fee_rate)",
         "values (#{id,jdbcType=BIGINT}, now(), ",
         "now(), #{userId,jdbcType=BIGINT}, ",
         "#{contractId,jdbcType=INTEGER}, #{contractName,jdbcType=VARCHAR}, ",
-        "#{lockedAmount,jdbcType=DECIMAL}, #{unfilledAmount,jdbcType=DECIMAL}, #{averagePrice,jdbcType=DECIMAL}, ",
+        "#{lockedAmount,jdbcType=DECIMAL}, #{unfilledAmount,jdbcType=DECIMAL}, #{averagePrice,jdbcType=DECIMAL}, #{realAveragePrice}, ",
         "#{positionType,jdbcType=INTEGER}, #{status,jdbcType=INTEGER}, #{lever,jdbcType=INTEGER}, #{feeRate, jdbcType=DECIMAL})"
     })
     int insert(UserPositionDO record);
@@ -46,7 +46,7 @@ public interface UserPositionMapper {
     @Select({
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, locked_amount, ",
-            "unfilled_amount, position_type, average_price, status, lever, fee_rate",
+            "unfilled_amount, position_type, average_price, real_average_price, status, lever, fee_rate",
             "from trade_user_position",
             "where contract_id = #{contractId,jdbcType=BIGINT} and user_id = #{userId,jdbcType=BIGINT} and unfilled_amount > 0"
     })
@@ -59,7 +59,7 @@ public interface UserPositionMapper {
     @Select({
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, locked_amount, ",
-            "unfilled_amount, position_type, average_price, status, lever, fee_rate",
+            "unfilled_amount, position_type, average_price, real_average_price, status, lever, fee_rate",
             "from trade_user_position",
             "where contract_id = #{contractId,jdbcType=BIGINT} and user_id = #{userId,jdbcType=BIGINT}"
     })
@@ -81,7 +81,7 @@ public interface UserPositionMapper {
     @Select({
             "select",
             "id, gmt_create, gmt_modified, user_id, contract_id, contract_name, locked_amount, ",
-            "unfilled_amount, position_type, average_price,status,lever, fee_rate",
+            "unfilled_amount, position_type, average_price, real_average_price, status,lever, fee_rate",
             "from trade_user_position",
             "where  contract_id = #{contractId,jdbcType=BIGINT} and status = #{status} and unfilled_amount > 0"
     })
@@ -130,6 +130,7 @@ public interface UserPositionMapper {
             "set gmt_modified = now(),",
             "position_type = #{item.positionType},",
             "unfilled_amount = #{item.unfilledAmount},",
+            "real_average_price = #{item.realAveragePrice}, ",
             "average_price = #{item.averagePrice} ",
             " where id = #{item.id} and position_type=#{oldPositionType} and unfilled_amount=#{oldUnfilledAmount} " +
                     " and average_price=#{oldAveragePrice}"})

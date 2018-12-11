@@ -4,18 +4,23 @@ import com.fota.trade.common.ParamUtil;
 import com.fota.trade.domain.UserPositionDO;
 import com.fota.trade.domain.query.UserPositionQuery;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
+
+import static com.fota.trade.domain.enums.PositionStatusEnum.UNDELIVERED;
 
 /**
  * @author Gavin Shen
@@ -29,18 +34,22 @@ public class UserPositionMapperTest {
     @Resource
     private UserPositionMapper userPositionMapper;
 
-    private Long userId = 9528L;
-//    @Before
+    private Long userId = 0L;
+
+    Long contractId = 0L;
+    @Before
     public void Insert() throws Exception {
         UserPositionDO userPositionDO = new UserPositionDO();
         userPositionDO.setUserId(userId);
-        userPositionDO.setContractId(1000L);
+        userPositionDO.setContractId(contractId);
         userPositionDO.setContractName("BTC/0102");
         //userPositionDO.setLockedAmount(new BigDecimal(5L));
         userPositionDO.setUnfilledAmount(BigDecimal.valueOf(3));
         userPositionDO.setPositionType(1);
         userPositionDO.setAveragePrice(new BigDecimal("5000"));
+        userPositionDO.setFeeRate(BigDecimal.ZERO);
         userPositionDO.setStatus(1);
+        userPositionDO.setRealAveragePrice(BigDecimal.ZERO);
         int insertRet = userPositionMapper.insert(userPositionDO);
         Assert.assertTrue(insertRet > 0);
     }
@@ -60,11 +69,11 @@ public class UserPositionMapperTest {
     public void testListByQuery() throws Exception {
         UserPositionQuery userPositionQuery = new UserPositionQuery();
    //     userPositionQuery.setUserId(userId);
-        userPositionQuery.setContractId(1000L);
+        userPositionQuery.setContractId(contractId);
         userPositionQuery.setPageNo(1);
         userPositionQuery.setPageSize(20);
         List<UserPositionDO> list = userPositionMapper.listByQuery(ParamUtil.objectToMap(userPositionQuery));
-        System.out.println(list);
+        assert !CollectionUtils.isEmpty(list);
 //        Assert.assertTrue(list != null && list.size() >= 1);
 //        Assert.assertTrue(list.get(0).getUserId().longValue() ==  userId.longValue());
     }
@@ -73,6 +82,33 @@ public class UserPositionMapperTest {
     public void testDelete() throws Exception {
         int deleteRet = userPositionMapper.deleteByUserId(userId);
         Assert.assertTrue(deleteRet > 0);
+    }
+    @Test
+    public void testSelectByUserIdAndId(){
+        UserPositionDO userPositionDO1 = userPositionMapper.selectByUserIdAndContractId(userId, contractId);
+        UserPositionDO userPositionDO2 = userPositionMapper.selectByUserIdAndId(userId, contractId);
+        assert null != userPositionDO1;
+        assert Objects.equals(userPositionDO1, userPositionDO2);
+    }
+
+    @Test
+    public void testSelectByUserId(){
+        List<UserPositionDO> userPositionDO = userPositionMapper.selectByUserId(userId, UNDELIVERED.getCode());
+        assert !CollectionUtils.isEmpty(userPositionDO);
+    }
+
+    @Test
+    public void testSelectByContractId(){
+        List<UserPositionDO> userPositionDOS = userPositionMapper.selectByContractId(contractId, UNDELIVERED.getCode());
+        assert !CollectionUtils.isEmpty(userPositionDOS);
+    }
+
+    @Test
+    public void testUpdatePositionById(){
+        UserPositionDO userPositionDO = userPositionMapper.selectByUserIdAndContractId(userId, contractId);
+        userPositionDO.setRealAveragePrice(BigDecimal.ONE);
+        int aff = userPositionMapper.updatePositionById(userPositionDO, userPositionDO.getPositionType(), userPositionDO.getUnfilledAmount(), userPositionDO.getAveragePrice());
+        assert 1 == aff;
     }
 
 //    @Test
@@ -95,7 +131,7 @@ public class UserPositionMapperTest {
 
     @Test
     public void testBatchSelect(){
-        List<UserPositionDO> userPositionDOS = userPositionMapper.selectByContractIdAndUserIds(Arrays.asList(userId),1218L );
-        System.out.println(userPositionDOS);
+        List<UserPositionDO> userPositionDOS = userPositionMapper.selectByContractIdAndUserIds(Arrays.asList(userId),contractId );
+        assert !CollectionUtils.isEmpty(userPositionDOS);
     }
 }
