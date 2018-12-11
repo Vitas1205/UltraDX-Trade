@@ -41,6 +41,7 @@ public class UserPositionMapperTest {
         userPositionDO.setUnfilledAmount(BigDecimal.valueOf(3));
         userPositionDO.setPositionType(1);
         userPositionDO.setAveragePrice(new BigDecimal("5000"));
+        userPositionDO.setFeeRate(BigDecimal.ZERO);
         userPositionDO.setStatus(1);
         int insertRet = userPositionMapper.insert(userPositionDO);
         Assert.assertTrue(insertRet > 0);

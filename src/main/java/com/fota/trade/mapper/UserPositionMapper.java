@@ -21,12 +21,12 @@ public interface UserPositionMapper {
         "insert into trade_user_position (id, gmt_create, ",
         "gmt_modified, user_id, ",
         "contract_id, contract_name, ",
-        "locked_amount, unfilled_amount, average_price, real_average_price",
+        "locked_amount, unfilled_amount, average_price, real_average_price,",
         "position_type, status, lever, fee_rate)",
         "values (#{id,jdbcType=BIGINT}, now(), ",
         "now(), #{userId,jdbcType=BIGINT}, ",
         "#{contractId,jdbcType=INTEGER}, #{contractName,jdbcType=VARCHAR}, ",
-        "#{lockedAmount,jdbcType=DECIMAL}, #{unfilledAmount,jdbcType=DECIMAL}, #{averagePrice,jdbcType=DECIMAL}, #{realAveragePrice}",
+        "#{lockedAmount,jdbcType=DECIMAL}, #{unfilledAmount,jdbcType=DECIMAL}, #{averagePrice,jdbcType=DECIMAL}, #{realAveragePrice}, ",
         "#{positionType,jdbcType=INTEGER}, #{status,jdbcType=INTEGER}, #{lever,jdbcType=INTEGER}, #{feeRate, jdbcType=DECIMAL})"
     })
     int insert(UserPositionDO record);

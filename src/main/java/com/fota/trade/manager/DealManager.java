@@ -454,7 +454,7 @@ public class DealManager {
                     preOpenAveragePrice, filledAmount, filledPrice);
 
 
-            BigDecimal newRealOpenPrice = ContractUtils.computeAveragePrice(postDealMessage.getOrderDirection(), positionType, rate, preAmount.abs(),
+            BigDecimal newRealOpenPrice = ContractUtils.computeAveragePrice(postDealMessage.getOrderDirection(), positionType, BigDecimal.ZERO, preAmount.abs(),
                     preRealAveragePrice, filledAmount, filledPrice);
 
             //加平仓盈亏
