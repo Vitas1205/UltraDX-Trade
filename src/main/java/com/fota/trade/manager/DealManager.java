@@ -621,44 +621,48 @@ public class DealManager {
      * @param positionResult
      */
     private void logPositionStatement(long contractId, UpdatePositionResult positionResult) {
-        BigDecimal newPositionAmount = positionResult.getNewAmount();
-        BigDecimal oldPositionAmount = positionResult.getOldAmount();
-        BigDecimal shortIncreaseAmount = null;
-        BigDecimal longIncreaseAmount = null;
-        if (newPositionAmount.multiply(oldPositionAmount).compareTo(ZERO) >= 0) {
-            //持仓方向不变
-            if (newPositionAmount.compareTo(ZERO) > 0 || oldPositionAmount.compareTo(ZERO) > 0) {
-                //都是多方向
-                longIncreaseAmount = newPositionAmount.subtract(oldPositionAmount);
+        try {
+            BigDecimal newPositionAmount = positionResult.getNewAmount();
+            BigDecimal oldPositionAmount = positionResult.getOldAmount();
+            BigDecimal shortIncreaseAmount = null;
+            BigDecimal longIncreaseAmount = null;
+            if (newPositionAmount.multiply(oldPositionAmount).compareTo(ZERO) >= 0) {
+                //持仓方向不变
+                if (newPositionAmount.compareTo(ZERO) > 0 || oldPositionAmount.compareTo(ZERO) > 0) {
+                    //都是多方向
+                    longIncreaseAmount = newPositionAmount.subtract(oldPositionAmount);
+                } else {
+                    //都是空方向
+                    shortIncreaseAmount = newPositionAmount.subtract(oldPositionAmount).negate();
+                }
             } else {
-                //都是空方向
-                shortIncreaseAmount = newPositionAmount.subtract(oldPositionAmount).negate();
+                //持仓方向改变
+                if (newPositionAmount.compareTo(ZERO) > 0) {
+                    longIncreaseAmount = newPositionAmount;
+                    shortIncreaseAmount = oldPositionAmount;
+                } else {
+                    shortIncreaseAmount = newPositionAmount.negate();
+                    longIncreaseAmount = oldPositionAmount.negate();
+                }
             }
-        } else {
-            //持仓方向改变
-            if (newPositionAmount.compareTo(ZERO) > 0) {
-                longIncreaseAmount = newPositionAmount;
-                shortIncreaseAmount = oldPositionAmount;
-            } else {
-                shortIncreaseAmount = newPositionAmount.negate();
-                longIncreaseAmount = oldPositionAmount.negate();
+            if (shortIncreaseAmount != null) {
+                positionStatementInfoLog.info("positionStatement@{}@@@{}@@@{}@@@{}@@@{}@@@",
+                        positionResult.getUserId(),
+                        contractId,
+                        PositionTypeEnum.EMPTY.getCode(),
+                        shortIncreaseAmount,
+                        positionResult.getRequestId());
             }
-        }
-        if (shortIncreaseAmount != null) {
-            positionStatementInfoLog.info("positionStatement@{}@@@{}@@@{}@@@{}@@@{}@@@",
-                    positionResult.getUserId(),
-                    contractId,
-                    PositionTypeEnum.EMPTY.getCode(),
-                    shortIncreaseAmount,
-                    positionResult.getRequestId());
-        }
-        if (longIncreaseAmount != null) {
-            positionStatementInfoLog.info("positionStatement@{}@@@{}@@@{}@@@{}@@@{}@@@",
-                    positionResult.getUserId(),
-                    contractId,
-                    PositionTypeEnum.OVER.getCode(),
-                    longIncreaseAmount,
-                    positionResult.getRequestId());
+            if (longIncreaseAmount != null) {
+                positionStatementInfoLog.info("positionStatement@{}@@@{}@@@{}@@@{}@@@{}@@@",
+                        positionResult.getUserId(),
+                        contractId,
+                        PositionTypeEnum.OVER.getCode(),
+                        longIncreaseAmount,
+                        positionResult.getRequestId());
+            }
+        } catch (Exception e) {
+            positionStatementInfoLog.error("logPositionStatement exception", e);
         }
     }
 
