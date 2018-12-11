@@ -14,6 +14,7 @@ import com.fota.trade.client.PostDealPhaseEnum;
 import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.dto.ProcessNoEnforceResult;
+import com.fota.trade.domain.enums.PositionTypeEnum;
 import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.ContractOrderMapper;
 import com.fota.trade.mapper.UserContractLeverMapper;
@@ -71,6 +72,8 @@ import static org.springframework.transaction.annotation.Propagation.REQUIRED;
 public class DealManager {
 
     private static final Logger tradeLog = LoggerFactory.getLogger("trade");
+
+    private static final Logger positionStatementInfoLog = LoggerFactory.getLogger("positionStatementInfo");
 
     @Autowired
     private ContractOrderMapper contractOrderMapper;
@@ -582,7 +585,7 @@ public class DealManager {
         positionAmount = positionResult.getNewAmount();
         BigDecimal formerPositionAmount = positionResult.getOldAmount();
         increase = positionAmount.abs().subtract(formerPositionAmount.abs());
-
+        logPositionStatement(contractId, positionResult);
         Double currentPosition = redisManager.counter(Constant.CONTRACT_TOTAL_POSITION + contractId, increase);
         //redis异常，直接返回
         if (null == currentPosition) {
@@ -600,6 +603,53 @@ public class DealManager {
             redisManager.counter(Constant.CONTRACT_TOTAL_POSITION + contractId, position.subtract(increase));
         }
 
+    }
+
+    /**
+     * 计算每笔成交的其中一个用户的持仓两个方向的增量，用于日志统计监控
+     * @param contractId
+     * @param positionResult
+     */
+    private void logPositionStatement(long contractId, UpdatePositionResult positionResult) {
+        BigDecimal newPositionAmount = positionResult.getNewAmount();
+        BigDecimal oldPositionAmount = positionResult.getOldAmount();
+        BigDecimal shortIncreaseAmount = null;
+        BigDecimal longIncreaseAmount = null;
+        if (newPositionAmount.multiply(oldPositionAmount).compareTo(ZERO) >= 0) {
+            //持仓方向不变
+            if (newPositionAmount.compareTo(ZERO) > 0 || oldPositionAmount.compareTo(ZERO) > 0) {
+                //都是多方向
+                longIncreaseAmount = newPositionAmount.subtract(oldPositionAmount);
+            } else {
+                //都是空方向
+                shortIncreaseAmount = newPositionAmount.subtract(oldPositionAmount).negate();
+            }
+        } else {
+            //持仓方向改变
+            if (newPositionAmount.compareTo(ZERO) > 0) {
+                longIncreaseAmount = newPositionAmount;
+                shortIncreaseAmount = oldPositionAmount;
+            } else {
+                shortIncreaseAmount = newPositionAmount.negate();
+                longIncreaseAmount = oldPositionAmount.negate();
+            }
+        }
+        if (shortIncreaseAmount != null) {
+            positionStatementInfoLog.info("positionStatement@{}@@@{}@@@{}@@@{}@@@{}@@@",
+                    positionResult.getUserId(),
+                    contractId,
+                    PositionTypeEnum.EMPTY.getCode(),
+                    shortIncreaseAmount,
+                    positionResult.getRequestId());
+        }
+        if (longIncreaseAmount != null) {
+            positionStatementInfoLog.info("positionStatement@{}@@@{}@@@{}@@@{}@@@{}@@@",
+                    positionResult.getUserId(),
+                    contractId,
+                    PositionTypeEnum.OVER.getCode(),
+                    longIncreaseAmount,
+                    positionResult.getRequestId());
+        }
     }
 
     private ContractDealedMessage toDealMessage(long matchId, ContractOrderDO contractOrderDO, BigDecimal filledAmount, BigDecimal filledPrice) {
