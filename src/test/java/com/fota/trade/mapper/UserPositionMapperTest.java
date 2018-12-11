@@ -4,6 +4,7 @@ import com.fota.trade.common.ParamUtil;
 import com.fota.trade.domain.UserPositionDO;
 import com.fota.trade.domain.query.UserPositionQuery;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -30,7 +31,7 @@ public class UserPositionMapperTest {
     private UserPositionMapper userPositionMapper;
 
     private Long userId = 9528L;
-//    @Before
+    @Test
     public void Insert() throws Exception {
         UserPositionDO userPositionDO = new UserPositionDO();
         userPositionDO.setUserId(userId);

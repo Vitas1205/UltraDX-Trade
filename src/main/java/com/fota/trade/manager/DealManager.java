@@ -432,6 +432,7 @@ public class DealManager {
         result.setOldAveragePrice(oldAveragePrice);
 
         BigDecimal preOpenAveragePrice = userPositionDO.getAveragePrice();
+        BigDecimal preRealAveragePrice = userPositionDO.getRealAveragePrice();
         BigDecimal preAmount = userPositionDO.computeSignAmount();
         BigDecimal totalClosePL = ZERO;
         //记录开始持仓量
@@ -449,12 +450,17 @@ public class DealManager {
             BigDecimal newOpenAveragePrice = ContractUtils.computeAveragePrice(postDealMessage.getOrderDirection(), positionType, rate, preAmount.abs(),
                     preOpenAveragePrice, filledAmount, filledPrice);
 
+
+            BigDecimal newRealOpenPrice = ContractUtils.computeAveragePrice(postDealMessage.getOrderDirection(), positionType, rate, preAmount.abs(),
+                    preRealAveragePrice, filledAmount, filledPrice);
+
             //加平仓盈亏
             totalClosePL = totalClosePL.add(ContractUtils.computeClosePL(rate, filledAmount, filledPrice, preAmount, newAmount, preOpenAveragePrice));
 
             //更新以前持仓量和开仓均价
             preAmount = newAmount;
             preOpenAveragePrice = newOpenAveragePrice;
+            preRealAveragePrice = newRealOpenPrice;
         }
         //记录结束持仓量和总平仓盈亏
         result.setNewAmount(preAmount);
@@ -465,6 +471,7 @@ public class DealManager {
         userPositionDO.setPositionType(positionType);
         userPositionDO.setUnfilledAmount(preAmount.abs());
         userPositionDO.setAveragePrice(preOpenAveragePrice);
+        userPositionDO.setRealAveragePrice(preRealAveragePrice);
 
         if (null == userPositionDO.getAveragePrice()) {
             userPositionDO.setAveragePrice(ZERO);
