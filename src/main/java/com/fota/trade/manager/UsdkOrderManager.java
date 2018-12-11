@@ -362,69 +362,76 @@ public class UsdkOrderManager {
             }
         }
 
-        Map<Integer, UserCapitalDTO> userCapitalDTOMap = userCapitalDTOList.stream()
-                .collect(toMap(UserCapitalDTO::getAssetId, Function.identity()));
-        UserCapitalDTO btcCapital = userCapitalDTOMap.get(AssetTypeEnum.BTC.getCode());
+        try {
+            Map<Integer, UserCapitalDTO> userCapitalDTOMap = userCapitalDTOList.stream()
+                    .collect(toMap(UserCapitalDTO::getAssetId, Function.identity()));
+            UserCapitalDTO btcCapital = userCapitalDTOMap.get(AssetTypeEnum.BTC.getCode());
 
-        Map<Integer, List<UsdkOrderDO>> mapByOrderDirection = usdkOrderDOList.stream()
-                .collect(groupingBy(UsdkOrderDO::getOrderDirection));
-        for (Map.Entry<Integer, List<UsdkOrderDO>> entry : mapByOrderDirection.entrySet()) {
-            Integer orderDirection = entry.getKey();
-            if (orderDirection == BID.getCode()) {
-                if (Objects.isNull(btcCapital)) {
-                    return Result.fail(COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(),
-                            COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
-                } else {
-                    BigDecimal amount = new BigDecimal(btcCapital.getAmount());
-                    BigDecimal lockedAmount = new BigDecimal(btcCapital.getLockedAmount());
-                    BigDecimal availableAmount = amount.subtract(lockedAmount);
-                    BigDecimal totalPrice = entry.getValue().stream()
-                            .map(usdkOrderDO -> usdkOrderDO.getTotalAmount().multiply(usdkOrderDO.getPrice()))
-                            .reduce(BigDecimal::add)
-                            .orElse(BigDecimal.ZERO);
-                    if (totalPrice.compareTo(availableAmount) > 0) {
-                        return Result.fail(COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(),
-                                COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
-                    }
-                }
-            } else if (orderDirection == ASK.getCode()) {
-                Map<Integer, List<UsdkOrderDO>> mapByAssetId = entry.getValue()
-                        .stream()
-                        .collect(groupingBy(UsdkOrderDO::getAssetId));
-                for (Map.Entry<Integer, List<UsdkOrderDO>> askEntry : mapByAssetId.entrySet()) {
-                    Integer assetId = askEntry.getKey();
-                    UserCapitalDTO userCapitalDTO = userCapitalDTOMap.get(assetId);
-                    if (Objects.isNull(userCapitalDTO)) {
+            Map<Integer, List<UsdkOrderDO>> mapByOrderDirection = usdkOrderDOList.stream()
+                    .collect(groupingBy(UsdkOrderDO::getOrderDirection));
+            for (Map.Entry<Integer, List<UsdkOrderDO>> entry : mapByOrderDirection.entrySet()) {
+                Integer orderDirection = entry.getKey();
+                if (orderDirection == BID.getCode()) {
+                    if (Objects.isNull(btcCapital) || Objects.isNull(btcCapital.getAmount())) {
                         return Result.fail(COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(),
                                 COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
                     } else {
-                        BigDecimal askedTotalAmount = askEntry.getValue()
-                                .stream()
-                                .map(UsdkOrderDO::getTotalAmount)
+                        BigDecimal amount = new BigDecimal(btcCapital.getAmount());
+                        BigDecimal lockedAmount = StringUtils.isEmpty(btcCapital.getLockedAmount()) ? BigDecimal.ZERO : new BigDecimal(btcCapital.getLockedAmount());
+                        BigDecimal availableAmount = amount.subtract(lockedAmount);
+                        BigDecimal totalPrice = entry.getValue().stream()
+                                .map(usdkOrderDO -> usdkOrderDO.getTotalAmount().multiply(usdkOrderDO.getPrice()))
                                 .reduce(BigDecimal::add)
                                 .orElse(BigDecimal.ZERO);
-                        if (askedTotalAmount.compareTo(new BigDecimal(userCapitalDTO.getAmount())) > 0) {
+                        if (totalPrice.compareTo(availableAmount) > 0) {
                             return Result.fail(COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(),
                                     COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
                         }
                     }
+                } else if (orderDirection == ASK.getCode()) {
+                    Map<Integer, List<UsdkOrderDO>> mapByAssetId = entry.getValue()
+                            .stream()
+                            .collect(groupingBy(UsdkOrderDO::getAssetId));
+                    for (Map.Entry<Integer, List<UsdkOrderDO>> askEntry : mapByAssetId.entrySet()) {
+                        Integer assetId = askEntry.getKey();
+                        UserCapitalDTO userCapitalDTO = userCapitalDTOMap.get(assetId);
+                        if (Objects.isNull(userCapitalDTO) || Objects.isNull(userCapitalDTO.getAmount())) {
+                            return Result.fail(COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(),
+                                    COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
+                        } else {
+                            BigDecimal amount = new BigDecimal(userCapitalDTO.getAmount());
+                            BigDecimal lockedAmount = StringUtils.isEmpty(userCapitalDTO.getLockedAmount()) ? BigDecimal.ZERO : new BigDecimal(btcCapital.getLockedAmount());
+                            BigDecimal availableAmount = amount.subtract(lockedAmount);
+                            BigDecimal askedTotalAmount = askEntry.getValue()
+                                    .stream()
+                                    .map(UsdkOrderDO::getTotalAmount)
+                                    .reduce(BigDecimal::add)
+                                    .orElse(BigDecimal.ZERO);
+                            if (askedTotalAmount.compareTo(availableAmount) > 0) {
+                                return Result.fail(COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(),
+                                        COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
+                            }
+                        }
+                    }
                 }
             }
-        }
 
-        Map<Long, List<PlaceCoinOrderDTO>> reqListMap = reqList.stream()
-                .collect(groupingBy(PlaceCoinOrderDTO::getSubjectId));
-        for (Map.Entry<Long, List<PlaceCoinOrderDTO>> entry : reqListMap.entrySet()) {
-            Map<String, Object> criteriaMap = new HashMap<>();
-            criteriaMap.put("userId", userId);
-            criteriaMap.put("assetId", entry.getKey());
-            criteriaMap.put("orderStatus", Arrays.asList(COMMIT.getCode(), PART_MATCH.getCode()));
-            int count = usdkOrderMapper.countByQuery(criteriaMap);
-            profiler.complelete("count 8,9 orders");
-            if (entry.getValue().size() + count > 200) {
-                log.warn("user: {} too much {} orders", userId, AssetTypeEnum.getAssetNameByAssetId(entry.getKey().intValue()));
-                return Result.fail(TOO_MUCH_ORDERS.getCode(), TOO_MUCH_ORDERS.getMessage());
+            Map<Long, List<PlaceCoinOrderDTO>> reqListMap = reqList.stream()
+                    .collect(groupingBy(PlaceCoinOrderDTO::getSubjectId));
+            for (Map.Entry<Long, List<PlaceCoinOrderDTO>> entry : reqListMap.entrySet()) {
+                Map<String, Object> criteriaMap = new HashMap<>();
+                criteriaMap.put("userId", userId);
+                criteriaMap.put("assetId", entry.getKey());
+                criteriaMap.put("orderStatus", Arrays.asList(COMMIT.getCode(), PART_MATCH.getCode()));
+                int count = usdkOrderMapper.countByQuery(criteriaMap);
+                profiler.complelete("count 8,9 orders");
+                if (entry.getValue().size() + count > 200) {
+                    log.warn("user: {} too much {} orders", userId, AssetTypeEnum.getAssetNameByAssetId(entry.getKey().intValue()));
+                    return Result.fail(TOO_MUCH_ORDERS.getCode(), TOO_MUCH_ORDERS.getMessage());
+                }
             }
+        } catch (Exception e) {
+            log.error("error when check batch usdt order", e);
         }
 
         //插入委托订单记录
