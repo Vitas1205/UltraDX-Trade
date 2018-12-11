@@ -130,7 +130,7 @@ public interface UserPositionMapper {
             "set gmt_modified = now(),",
             "position_type = #{item.positionType},",
             "unfilled_amount = #{item.unfilledAmount},",
-            "reail_average_price = #{item.realAveragePrice} ",
+            "real_average_price = #{item.realAveragePrice}, ",
             "average_price = #{item.averagePrice} ",
             " where id = #{item.id} and position_type=#{oldPositionType} and unfilled_amount=#{oldUnfilledAmount} " +
                     " and average_price=#{oldAveragePrice}"})
