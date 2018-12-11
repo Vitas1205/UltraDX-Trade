@@ -10,6 +10,7 @@ import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
@@ -33,14 +34,14 @@ public class UserPositionMapperTest {
     @Resource
     private UserPositionMapper userPositionMapper;
 
-    private Long userId = 274L;
+    private Long userId = 0L;
 
-    Long contractId = 1196L;
-    @Test
+    Long contractId = 0L;
+    @Before
     public void Insert() throws Exception {
         UserPositionDO userPositionDO = new UserPositionDO();
         userPositionDO.setUserId(userId);
-        userPositionDO.setContractId(1000L);
+        userPositionDO.setContractId(contractId);
         userPositionDO.setContractName("BTC/0102");
         //userPositionDO.setLockedAmount(new BigDecimal(5L));
         userPositionDO.setUnfilledAmount(BigDecimal.valueOf(3));
@@ -68,11 +69,11 @@ public class UserPositionMapperTest {
     public void testListByQuery() throws Exception {
         UserPositionQuery userPositionQuery = new UserPositionQuery();
    //     userPositionQuery.setUserId(userId);
-        userPositionQuery.setContractId(1000L);
+        userPositionQuery.setContractId(contractId);
         userPositionQuery.setPageNo(1);
         userPositionQuery.setPageSize(20);
         List<UserPositionDO> list = userPositionMapper.listByQuery(ParamUtil.objectToMap(userPositionQuery));
-        System.out.println(list);
+        assert !CollectionUtils.isEmpty(list);
 //        Assert.assertTrue(list != null && list.size() >= 1);
 //        Assert.assertTrue(list.get(0).getUserId().longValue() ==  userId.longValue());
     }
@@ -86,18 +87,20 @@ public class UserPositionMapperTest {
     public void testSelectByUserIdAndId(){
         UserPositionDO userPositionDO1 = userPositionMapper.selectByUserIdAndContractId(userId, contractId);
         UserPositionDO userPositionDO2 = userPositionMapper.selectByUserIdAndId(userId, contractId);
-        userPositionMapper.selectByContractIdAndUserIds(Arrays.asList(userId),contractId);
+        assert null != userPositionDO1;
         assert Objects.equals(userPositionDO1, userPositionDO2);
     }
 
     @Test
     public void testSelectByUserId(){
-        userPositionMapper.selectByUserId(userId, UNDELIVERED.getCode());
+        List<UserPositionDO> userPositionDO = userPositionMapper.selectByUserId(userId, UNDELIVERED.getCode());
+        assert !CollectionUtils.isEmpty(userPositionDO);
     }
 
     @Test
     public void testSelectByContractId(){
-        userPositionMapper.selectByContractId(contractId, UNDELIVERED.getCode());
+        List<UserPositionDO> userPositionDOS = userPositionMapper.selectByContractId(contractId, UNDELIVERED.getCode());
+        assert !CollectionUtils.isEmpty(userPositionDOS);
     }
 
     @Test
@@ -128,7 +131,7 @@ public class UserPositionMapperTest {
 
     @Test
     public void testBatchSelect(){
-        List<UserPositionDO> userPositionDOS = userPositionMapper.selectByContractIdAndUserIds(Arrays.asList(userId),1218L );
-        System.out.println(userPositionDOS);
+        List<UserPositionDO> userPositionDOS = userPositionMapper.selectByContractIdAndUserIds(Arrays.asList(userId),contractId );
+        assert !CollectionUtils.isEmpty(userPositionDOS);
     }
 }
