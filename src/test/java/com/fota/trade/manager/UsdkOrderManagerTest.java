@@ -1,6 +1,8 @@
 package com.fota.trade.manager;
 
+import com.fota.asset.domain.UserCapitalDTO;
 import com.fota.asset.domain.enums.AssetTypeEnum;
+import com.fota.asset.service.AssetService;
 import com.fota.common.Result;
 import com.fota.common.enums.FotaApplicationEnum;
 import com.fota.match.domain.TradeUsdkOrder;
@@ -44,6 +46,9 @@ public class UsdkOrderManagerTest {
     @Mock
     private UsdkOrderMapper usdkOrderMapper;
 
+    @Mock
+    private AssetService assetService;
+
     @InjectMocks
     private UsdkOrderManager usdkOrderManager;
 
@@ -63,24 +68,44 @@ public class UsdkOrderManagerTest {
     }
 
     @Test
-    public void test_batch_exceed_200_limit() throws Exception {
+    public void test_batch_price_limit() throws Exception {
         List<PlaceCoinOrderDTO> placeCoinOrderDTOS = new ArrayList<>();
         PlaceCoinOrderDTO placeCoinOrderDTO = new PlaceCoinOrderDTO();
-        placeCoinOrderDTO.setSubjectId((long) AssetTypeEnum.BTC.getCode());
+        placeCoinOrderDTO.setSubjectId((long) AssetTypeEnum.ETH.getCode());
         placeCoinOrderDTO.setPrice(BigDecimal.valueOf(1000));
-        placeCoinOrderDTO.setOrderDirection(OrderDirectionEnum.ASK.getCode());
-        placeCoinOrderDTO.setSubjectName(AssetTypeEnum.BTC.getDesc());
+        placeCoinOrderDTO.setOrderDirection(OrderDirectionEnum.BID.getCode());
+        placeCoinOrderDTO.setSubjectName(AssetTypeEnum.ETH.getDesc());
         placeCoinOrderDTO.setExtOrderId("1234");
         placeCoinOrderDTO.setOrderType(OrderTypeEnum.LIMIT.getCode());
-        placeCoinOrderDTO.setTotalAmount(BigDecimal.valueOf(1000));
+        placeCoinOrderDTO.setTotalAmount(BigDecimal.valueOf(10));
         placeCoinOrderDTOS.add(placeCoinOrderDTO);
         PlaceOrderRequest<PlaceCoinOrderDTO> placeOrderRequest = new PlaceOrderRequest<>();
         placeOrderRequest.setUserId(100L);
         placeOrderRequest.setPlaceOrderDTOS(placeCoinOrderDTOS);
         placeOrderRequest.setCaller(FotaApplicationEnum.TRADE);
         placeOrderRequest.setUserLevel(UserLevelEnum.DEFAULT);
+        List<UserCapitalDTO> userCapitalDTOList = new ArrayList<>();
+        UserCapitalDTO btcUserCapital = new UserCapitalDTO();
+        btcUserCapital.setAmount("10");
+        btcUserCapital.setAssetId(AssetTypeEnum.BTC.getCode());
+        UserCapitalDTO ethUserCapital = new UserCapitalDTO();
+        ethUserCapital.setAmount("1");
+        ethUserCapital.setAssetId(AssetTypeEnum.ETH.getCode());
+        userCapitalDTOList.add(btcUserCapital);
+        userCapitalDTOList.add(ethUserCapital);
+        when(assetService.getUserCapital(100L)).thenReturn(userCapitalDTOList);
         when(usdkOrderMapper.countByQuery(anyMap())).thenReturn(200);
         Result<List<PlaceOrderResult>> result = usdkOrderManager.batchOrder(placeOrderRequest);
+        assertEquals(result.getCode(), ResultCodeEnum.COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode());
+
+        placeCoinOrderDTO.setOrderDirection(OrderDirectionEnum.ASK.getCode());
+        result = usdkOrderManager.batchOrder(placeOrderRequest);
+        assertEquals(result.getCode(), ResultCodeEnum.COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode());
+
+        btcUserCapital.setAmount("100000");
+        ethUserCapital.setAmount("10");
+
+        result = usdkOrderManager.batchOrder(placeOrderRequest);
         assertEquals(result.getCode(), ResultCodeEnum.TOO_MUCH_ORDERS.getCode());
     }
 

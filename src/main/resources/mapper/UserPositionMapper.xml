@@ -13,6 +13,7 @@
       <arg column="unfilled_amount" jdbcType="DECIMAL" javaType="java.math.BigDecimal" />
       <arg column="position_type" jdbcType="INTEGER" javaType="java.lang.Integer" />
       <arg column="average_price" jdbcType="DECIMAL" javaType="java.math.BigDecimal" />
+      <arg column="real_average_price" jdbcType="DECIMAL" javaType="java.math.BigDecimal" />
       <arg column="status" jdbcType="INTEGER" javaType="java.lang.Integer" />
       <arg column="lever" jdbcType="INTEGER" javaType="java.lang.Integer" />
       <arg column="fee_rate" jdbcType="DECIMAL" javaType="java.math.BigDecimal" />
@@ -21,7 +22,7 @@
 
   <sql id="Base_Column_List" >
     id, gmt_create as gmtCreate, gmt_modified as gmtModified, user_id as userId, contract_id as contractId, contract_name as contractName, locked_amount as lockedAmount,
-    unfilled_amount as unfilledAmount, position_type as positionType, average_price as averagePrice, `status`, lever, fee_rate as feeRate
+    unfilled_amount as unfilledAmount, position_type as positionType, average_price as averagePrice, real_average_price as realAveragePrice, `status`, lever, fee_rate as feeRate
   </sql>
 
   <insert id="insertSelective" parameterType="com.fota.trade.domain.UserPositionDO" >

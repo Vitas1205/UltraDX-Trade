@@ -4,6 +4,7 @@ import com.fota.trade.common.ParamUtil;
 import com.fota.trade.domain.UserPositionDO;
 import com.fota.trade.domain.query.UserPositionQuery;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -15,7 +16,10 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
+
+import static com.fota.trade.domain.enums.PositionStatusEnum.UNDELIVERED;
 
 /**
  * @author Gavin Shen
@@ -29,8 +33,10 @@ public class UserPositionMapperTest {
     @Resource
     private UserPositionMapper userPositionMapper;
 
-    private Long userId = 9528L;
-//    @Before
+    private Long userId = 274L;
+
+    Long contractId = 1196L;
+    @Test
     public void Insert() throws Exception {
         UserPositionDO userPositionDO = new UserPositionDO();
         userPositionDO.setUserId(userId);
@@ -40,7 +46,9 @@ public class UserPositionMapperTest {
         userPositionDO.setUnfilledAmount(BigDecimal.valueOf(3));
         userPositionDO.setPositionType(1);
         userPositionDO.setAveragePrice(new BigDecimal("5000"));
+        userPositionDO.setFeeRate(BigDecimal.ZERO);
         userPositionDO.setStatus(1);
+        userPositionDO.setRealAveragePrice(BigDecimal.ZERO);
         int insertRet = userPositionMapper.insert(userPositionDO);
         Assert.assertTrue(insertRet > 0);
     }
@@ -73,6 +81,31 @@ public class UserPositionMapperTest {
     public void testDelete() throws Exception {
         int deleteRet = userPositionMapper.deleteByUserId(userId);
         Assert.assertTrue(deleteRet > 0);
+    }
+    @Test
+    public void testSelectByUserIdAndId(){
+        UserPositionDO userPositionDO1 = userPositionMapper.selectByUserIdAndContractId(userId, contractId);
+        UserPositionDO userPositionDO2 = userPositionMapper.selectByUserIdAndId(userId, contractId);
+        userPositionMapper.selectByContractIdAndUserIds(Arrays.asList(userId),contractId);
+        assert Objects.equals(userPositionDO1, userPositionDO2);
+    }
+
+    @Test
+    public void testSelectByUserId(){
+        userPositionMapper.selectByUserId(userId, UNDELIVERED.getCode());
+    }
+
+    @Test
+    public void testSelectByContractId(){
+        userPositionMapper.selectByContractId(contractId, UNDELIVERED.getCode());
+    }
+
+    @Test
+    public void testUpdatePositionById(){
+        UserPositionDO userPositionDO = userPositionMapper.selectByUserIdAndContractId(userId, contractId);
+        userPositionDO.setRealAveragePrice(BigDecimal.ONE);
+        int aff = userPositionMapper.updatePositionById(userPositionDO, userPositionDO.getPositionType(), userPositionDO.getUnfilledAmount(), userPositionDO.getAveragePrice());
+        assert 1 == aff;
     }
 
 //    @Test

@@ -23,6 +23,10 @@ public class UserPositionDO {
     private Integer positionType;
     private BigDecimal averagePrice;
     /**
+     * 没有手续费的开仓均价
+     */
+    private BigDecimal realAveragePrice;
+    /**
      * 1 未交割，2 已交割
      */
     private Integer status;

@@ -124,6 +124,20 @@
             <DefaultRolloverStrategy max="50"/>
         </RollingRandomAccessFile>
 
+        <RollingRandomAccessFile name="positionStatementInfo" fileName="${fileName}/positionStatementInfo.log" immediateFlush="false"
+                                 filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.positionStatementInfo">
+            <PatternLayout pattern="%d{yyyy-MM-dd 'at' HH:mm:ss z} [%t] %-5level %logger{36} %L %M - %msg%xEx%n" />
+            <Policies>
+                <SizeBasedTriggeringPolicy size="50 MB"/>
+            </Policies>
+            <Filters>
+                <!-- 只记录info级别信息 -->
+                <ThresholdFilter level="info" onMatch="ACCEPT" onMismatch="DENY"/>
+            </Filters>
+            <!-- 指定每天的最大压缩包个数，默认7个，超过了会覆盖之前的 -->
+            <DefaultRolloverStrategy max="100"/>
+        </RollingRandomAccessFile>
+
         <!-- 自定义日志配置 -->
         <RollingRandomAccessFile name="updatePositionExtraInfo" fileName="${fileName}/updatePositionExtraInfo.log" immediateFlush="false"
                                  filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.updatePositionExtraInfo">
@@ -171,6 +185,9 @@
 
         <AsyncLogger name="adlExtraInfo" level="info" additivity="false">
             <AppenderRef ref="adlExtraInfo"/>
+        </AsyncLogger>
+        <AsyncLogger name="positionStatementInfo" level="info" additivity="false">
+            <AppenderRef ref="positionStatementInfo"/>
         </AsyncLogger>
         <!--现货指数只打印error日志-->
         <AsyncLogger name="com.fota.data.manager.IndexCacheManager" level="error">
