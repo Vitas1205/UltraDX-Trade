@@ -187,7 +187,7 @@ public class UsdkOrderManager {
                             param.put("assetId", userCapitalDTO.getAssetId());
                             param.put("entrustValue", entrustValue);
                             LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), orderId.toString(), param, "Asset RPC Error!, placeOrder assetWriteService.addCapitalAmount exception", e);
-                            throw new RuntimeException("placeOrder assetWriteService.addCapitalAmount exception");
+                            throw new RuntimeException("placeOrder assetWriteService.addCapitalAmount exception", e);
                         }
                         if (!updateLockedAmountRet.isSuccess() || !updateLockedAmountRet.getData()){
                             param.put("userId", userId);
@@ -195,7 +195,7 @@ public class UsdkOrderManager {
                             param.put("entrustValue", entrustValue);
                             param.put("totalAmount", amount);
                             param.put("availableAmount", availableAmount);
-                            LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), orderId.toString(), param, "errorCode:"+ updateLockedAmountRet.getCode() + ", errorMsg:"+ updateLockedAmountRet.getMessage());
+                            log.warn( "bizType:{},\037traceId:{},\037param:{},\037detailMsg:{}\037", TradeBizTypeEnum.COIN_ORDER.toString(), orderId.toString(), param, "errorCode:"+ updateLockedAmountRet.getCode() + ", errorMsg:"+ updateLockedAmountRet.getMessage());
                             throw new BusinessException(errorCode, errorMsg);
                         }
                     }else {
@@ -252,7 +252,7 @@ public class UsdkOrderManager {
         List<PlaceCoinOrderDTO> reqList = placeOrderRequest.getPlaceOrderDTOS();
         List<UsdkOrderDO> usdkOrderDOList = new ArrayList<>();
         if (CollectionUtils.isEmpty(reqList) || reqList.size() > Constant.BATCH_ORDER_MAX_SIZE){
-            log.error("out of max order size");
+            log.warn("out of max order size");
             LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), batchOrderId.toString(), reqList, "out of max order size");
             return result.error(ResultCodeEnum.BATCH_SIZE_OUT_OF_LIMIT.getCode(),ResultCodeEnum.BATCH_SIZE_OUT_OF_LIMIT.getMessage());
         }
@@ -429,7 +429,7 @@ public class UsdkOrderManager {
                 updateLockedAmountRet = assetWriteService.batchAddCapitalAmount(capitalAccountAddAmountDTOS, batchOrderId.toString(), AssetOperationTypeEnum.USDT_EXCHANGE_BATCH_PLACE_ORDER.getCode());
             }catch (Exception e){
                 LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), batchOrderId.toString(), capitalAccountAddAmountDTOS, "assetWriteService.batchAddCapitalAmount exception", e);
-                throw new Exception("assetWriteService.batchAddCapitalAmount exception");
+                throw new RuntimeException("assetWriteService.batchAddCapitalAmount exception", e);
             }
             if (updateLockedAmountRet == null ||
                     !updateLockedAmountRet.isSuccess() ||

@@ -181,7 +181,6 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         }catch (Exception e){
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
-                log.error("usdk order fialed, usdkOrderDTO={}, code={}, message={}", usdkOrderDTO, businessException.getCode(), businessException.getMessage());
                 result.setCode(businessException.getCode());
                 result.setMessage(businessException.getMessage());
                 return result;
@@ -220,6 +219,10 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
                 }
             }
         }catch (Exception e){
+            if (e instanceof BusinessException) {
+                BusinessException bE = (BusinessException)e;
+                return result.error(bE.getCode(), bE.getMessage());
+            }
             log.error("batchOrder exception, placeOrderRequest = ", placeOrderRequest, e);
             return result.error(ResultCodeEnum.ORDER_FAILED.getCode(),ResultCodeEnum.ORDER_FAILED.getMessage());
         }
