@@ -11,7 +11,10 @@ import com.fota.common.utils.LogUtil;
 import com.fota.trade.UpdateOrderItem;
 import com.fota.trade.client.FailedRecord;
 import com.fota.trade.client.PostDealPhaseEnum;
-import com.fota.trade.common.*;
+import com.fota.trade.common.Constant;
+import com.fota.trade.common.ResultCodeEnum;
+import com.fota.trade.common.TradeBizTypeEnum;
+import com.fota.trade.common.UpdatePositionResult;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.dto.ProcessNoEnforceResult;
 import com.fota.trade.domain.enums.PositionTypeEnum;
@@ -23,7 +26,6 @@ import com.fota.trade.msg.ContractDealedMessage;
 import com.fota.trade.msg.TopicConstants;
 import com.fota.trade.service.ContractCategoryService;
 import com.fota.trade.util.*;
-import com.google.common.base.Predicates;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.common.message.Message;
@@ -59,7 +61,6 @@ import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
 import static com.fota.trade.domain.enums.PositionTypeEnum.EMPTY;
 import static com.fota.trade.domain.enums.PositionTypeEnum.OVER;
-import static java.math.BigDecimal.ROUND_DOWN;
 import static java.math.BigDecimal.ZERO;
 import static org.springframework.transaction.annotation.Propagation.REQUIRED;
 
@@ -152,8 +153,8 @@ public class DealManager {
             }
             return a.getId().compareTo(b.getId());
         });
-        Profiler profiler = null == ThreadContextUtil.getPrifiler()
-                ? new Profiler("ContractOrderManager.updateOrderByMatch") : ThreadContextUtil.getPrifiler();
+        Profiler profiler = null == ThreadContextUtil.getProfiler()
+                ? new Profiler("ContractOrderManager.updateOrderByMatch") : ThreadContextUtil.getProfiler();
 
         ResultCode resultCode = new ResultCode();
 

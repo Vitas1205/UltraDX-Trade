@@ -158,8 +158,7 @@ public class ContractOrderManager {
      * @return
      */
     public Result<List<PlaceOrderResult>> placeOrder(PlaceOrderRequest<PlaceContractOrderDTO> placeOrderRequest, boolean isEnforce){
-        Profiler profiler = null == ThreadContextUtil.getPrifiler() ?
-                new Profiler("ContractOrderManager.placeOrder"): ThreadContextUtil.getPrifiler();
+        Profiler profiler = ThreadContextUtil.getProfiler("ContractOrderManager.placeOrder");
 
         //检查委托参数
         if (null == placeOrderRequest || !placeOrderRequest.checkParam()) {
@@ -1031,7 +1030,7 @@ public class ContractOrderManager {
      */
     public Result<OrderResult> judgeOrderAvailable(long userId, BigDecimal amount, List<ContractOrderDO> newContractOrderDOS, Map<Long, ContractCategoryDTO> categoryDTOMap,
                                                    List<CompetitorsPriceDTO> competitorsPrices, FotaApplicationEnum caller) {
-        Profiler profiler = (null == ThreadContextUtil.getPrifiler()) ? new Profiler("judgeOrderAvailable") : ThreadContextUtil.getPrifiler();
+        Profiler profiler = ThreadContextUtil.getProfiler("judgeOrderAvailable");
 
         ContractAccount contractAccount = new ContractAccount();
         contractAccount.setMarginCallRequirement(BigDecimal.ZERO)

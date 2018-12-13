@@ -7,7 +7,6 @@ import com.fota.common.enums.FotaApplicationEnum;
 import com.fota.trade.client.*;
 import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
-import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderTypeEnum;
 import com.fota.trade.manager.RedisManager;
@@ -187,7 +186,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
             }
             log.error("USDK order() failed", e);
         }finally {
-            Profiler profiler = ThreadContextUtil.getPrifiler();
+            Profiler profiler = ThreadContextUtil.getProfiler();
             if (null != profiler) {
                 profiler.log();
             }
@@ -306,7 +305,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         profiler.setStart(usdkMatchedOrderDTO.getGmtCreate().getTime());
         try {
             profiler.complelete("receive message");
-            ThreadContextUtil.setPrifiler(profiler);
+            ThreadContextUtil.setProfiler(profiler);
             resultCode = usdkOrderManager.updateOrderByMatch(usdkMatchedOrderDTO);
             if (resultCode.isSuccess()) {
                 Runnable postTask = ThreadContextUtil.getPostTask();

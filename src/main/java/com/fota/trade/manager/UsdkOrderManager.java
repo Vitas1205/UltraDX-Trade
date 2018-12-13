@@ -87,7 +87,7 @@ public class UsdkOrderManager {
     @Transactional(rollbackFor={Throwable.class})
     public com.fota.common.Result<Long> placeOrder(UsdkOrderDTO usdkOrderDTO, Map<String, String> userInfoMap)throws Exception {
         Profiler profiler = new Profiler("UsdkOrderManager.placeOrder");
-        ThreadContextUtil.setPrifiler(profiler);
+        ThreadContextUtil.setProfiler(profiler);
         String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
         String ipAddress = StringUtils.isEmpty(userInfoMap.get("ipAddress")) ? "" : userInfoMap.get("ipAddress");
         com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
@@ -687,7 +687,7 @@ public class UsdkOrderManager {
 
     @Transactional(rollbackFor = Throwable.class)
     public ResultCode updateOrderByMatch(UsdkMatchedOrderDTO usdkMatchedOrderDTO) throws Exception {
-        Profiler profiler =  null == ThreadContextUtil.getPrifiler() ? new Profiler("UsdkOrderManager.updateOrderByMatch", usdkMatchedOrderDTO.getId().toString()) : ThreadContextUtil.getPrifiler();
+        Profiler profiler =  null == ThreadContextUtil.getProfiler() ? new Profiler("UsdkOrderManager.updateOrderByMatch", usdkMatchedOrderDTO.getId().toString()) : ThreadContextUtil.getProfiler();
         if (usdkMatchedOrderDTO == null) {
             LogUtil.error( TradeBizTypeEnum.COIN_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), usdkMatchedOrderDTO, ResultCodeEnum.ILLEGAL_PARAM.getMessage());
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), "illegal usdkMatchedOrderDTO" + usdkMatchedOrderDTO);

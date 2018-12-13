@@ -241,7 +241,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     private Result<List<PlaceOrderResult>> internalBatchOrder(PlaceOrderRequest<PlaceContractOrderDTO> placeOrderRequest, boolean isEnforce){
         com.fota.common.Result<List<PlaceOrderResult>> result = new com.fota.common.Result<>();
         Profiler profiler = new Profiler("ContractOrderManager.placeOrder");
-        ThreadContextUtil.setPrifiler(profiler);
+        ThreadContextUtil.setProfiler(profiler);
         try {
             result = contractOrderManager.placeOrder(placeOrderRequest, isEnforce);
             if (result.isSuccess()) {
@@ -394,7 +394,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         Profiler profiler = new Profiler("ContractOrderManager.updateOrderByMatch", messageKey);
         profiler.setStart(contractMatchedOrderDTO.getGmtCreate().getTime());
         profiler.complelete("receive message");
-        ThreadContextUtil.setPrifiler(profiler);
+        ThreadContextUtil.setProfiler(profiler);
 
         try {
             return dealManager.deal(contractMatchedOrderDTO);
