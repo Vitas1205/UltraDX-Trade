@@ -184,7 +184,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         if (null == contractOrderDTO || null == contractOrderDTO.getOrderType()) {
             return ResultCode.error(ILLEGAL_PARAM.getCode(), ILLEGAL_PARAM.getMessage());
         }
-        PlaceOrderRequest placeOrderRequest = ConvertUtils.toPlaceOrderRequest(contractOrderDTO, userInfoMap, UserLevelEnum.DEFAULT, FotaApplicationEnum.WEB);
+        PlaceOrderRequest placeOrderRequest = ConvertUtils.toPlaceOrderRequest(contractOrderDTO, userInfoMap, FotaApplicationEnum.WEB);
         //TODO 不允许下强平单，暂时兼容以前逻辑
         boolean isEnforce = ENFORCE.getCode() == contractOrderDTO.getOrderType();
         Result<List<PlaceOrderResult>> result = internalBatchOrder(placeOrderRequest, isEnforce);
@@ -196,7 +196,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
 
     @Override
     public Result<Long> orderWithEnforce(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
-        PlaceOrderRequest placeOrderRequest = ConvertUtils.toPlaceOrderRequest(contractOrderDTO, userInfoMap, UserLevelEnum.DEFAULT, FotaApplicationEnum.MARGIN);
+        PlaceOrderRequest placeOrderRequest = ConvertUtils.toPlaceOrderRequest(contractOrderDTO, userInfoMap, FotaApplicationEnum.MARGIN);
         Result<List<PlaceOrderResult>> result = internalBatchOrder(placeOrderRequest, true);
         if (!result.isSuccess()) {
             return Result.fail(result.getCode(), result.getMessage());
@@ -206,7 +206,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
 
     @Override
     public com.fota.common.Result<Long> orderReturnId(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
-        PlaceOrderRequest placeOrderRequest = ConvertUtils.toPlaceOrderRequest(contractOrderDTO, userInfoMap, UserLevelEnum.FREE, FotaApplicationEnum.TRADING_API);
+        PlaceOrderRequest placeOrderRequest = ConvertUtils.toPlaceOrderRequest(contractOrderDTO, userInfoMap, FotaApplicationEnum.TRADING_API);
         Result<List<PlaceOrderResult>> result = internalBatchOrder(placeOrderRequest, false);
         if (!result.isSuccess()) {
             return Result.fail(result.getCode(), result.getMessage());
@@ -239,8 +239,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
             if (e instanceof BizException){
                 BizException bizException = (BizException) e;
                 LogUtil.error( CONTRACT_ORDER.name(), null, placeOrderRequest, bizException.getMessage());
-                result.fail(bizException.getCode(), bizException.getMessage());
-                return result;
+                return Result.fail(bizException.getCode(), bizException.getMessage());
             }else {
                 LogUtil.error( CONTRACT_ORDER,  null, placeOrderRequest,  e);
             }

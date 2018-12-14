@@ -134,15 +134,9 @@ public class ConvertUtils {
         return placeOrderMessage;
     }
 
-    public static List<ContractOrderDO> extractContractOrderDOS(PlaceOrderRequest<PlaceContractOrderDTO> placeOrderRequest) {
 
-        BigDecimal feeRate = placeOrderRequest.getUserLevel().getFeeRate();
-        return placeOrderRequest.getPlaceOrderDTOS().stream().map(x -> extractContractOrderDO(x, placeOrderRequest.getUserId(),
-                feeRate, placeOrderRequest.getUserName(), placeOrderRequest.getIp())).collect(Collectors.toList());
 
-    }
-
-    public static PlaceOrderRequest toPlaceOrderRequest(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap, UserLevelEnum userLevel, FotaApplicationEnum caller){
+    public static PlaceOrderRequest toPlaceOrderRequest(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap, FotaApplicationEnum caller){
         PlaceOrderRequest<PlaceContractOrderDTO>  placeOrderRequest = new PlaceOrderRequest();
         PlaceContractOrderDTO placeContractOrderDTO = new PlaceContractOrderDTO();
         placeOrderRequest.setPlaceOrderDTOS(Arrays.asList(placeContractOrderDTO));
@@ -160,7 +154,8 @@ public class ConvertUtils {
             placeOrderRequest.setIp(ip);
         }
         placeOrderRequest.setCaller(caller);
-        placeOrderRequest.setUserLevel(userLevel);
+        placeOrderRequest.setMakerFeeRate(contractOrderDTO.getFee());
+        placeOrderRequest.setTakerFeeRate(contractOrderDTO.getFee());
         if (null == placeContractOrderDTO.getOrderType()) {
             placeContractOrderDTO.setOrderType(LIMIT.getCode());
         }
