@@ -266,7 +266,7 @@ public class ContractOrderManager {
         Runnable runnable = () -> {
 
             List<ContractPlaceOrderMessage> contractPlaceOrderMessages = contractOrderDOS.stream().map(ConvertUtils::toContractPlaceOrderMessage).collect(toList());
-            rocketMqManager.batchSendMessage(TopicConstants.TRD_CONTRACT_ORDER, x -> x.getSubjectId() + "", x -> x.getOrderId()+"", contractPlaceOrderMessages);
+            rocketMqManager.batchSendMessage(TopicConstants.TRD_CONTRACT_ORDER, x -> x.getSubjectId() + "", x -> x.getUserId() + "_" + x.getOrderId(), contractPlaceOrderMessages);
             profiler.complelete("send MQ message");
 
             String userContractPositionExtraKey = RedisKey.getUserContractPositionExtraKey(placeOrderRequest.getUserId());

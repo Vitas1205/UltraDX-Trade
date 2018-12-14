@@ -226,7 +226,7 @@ public class UsdkOrderManager {
         //消息一定要在事务外发，不然会出现收到下单消息，db还没有这个订单
        Runnable postTask = () -> {
            CoinPlaceOrderMessage placeOrderMessage = toCoinPlaceOrderMessage(usdkOrderDO);
-           Boolean sendRet = rocketMqManager.sendMessage(TopicConstants.TRD_COIN_ORDER, placeOrderMessage.getSubjectId()+"", placeOrderMessage.getOrderId()+"", placeOrderMessage);
+           Boolean sendRet = rocketMqManager.sendMessage(TopicConstants.TRD_COIN_ORDER, placeOrderMessage.getSubjectId()+"", placeOrderMessage.getUserId() + "_" + placeOrderMessage.getOrderId(), placeOrderMessage);
            if (!sendRet){
                LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), String.valueOf(usdkOrderDO.getId()), placeOrderMessage, "Send RocketMQ Message Failed, placeOrderMessage={}");
            }
@@ -446,7 +446,7 @@ public class UsdkOrderManager {
             for (UsdkOrderDO usdkOrderDO : usdkOrderDOList){
                 placeOrderMessages.add(toCoinPlaceOrderMessage(usdkOrderDO));
             }
-            Boolean sendRet = rocketMqManager.batchSendMessage(TopicConstants.TRD_COIN_ORDER, x -> x.getSubjectId() + "", x -> x.getOrderId()+"", placeOrderMessages);
+            Boolean sendRet = rocketMqManager.batchSendMessage(TopicConstants.TRD_COIN_ORDER, x -> x.getSubjectId() + "", x -> x.getUserId() + "_" + x.getOrderId(), placeOrderMessages);
             if (!sendRet){
                 LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), batchOrderId.toString(), placeOrderMessages, "batchSendMessage Failed");
             }
