@@ -459,8 +459,12 @@ public class UsdkOrderManager {
                 LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), batchOrderId.toString(), capitalAccountAddAmountDTOS, "assetWriteService.batchAddCapitalAmount exception", e);
                 throw new Exception("assetWriteService.batchAddCapitalAmount exception");
             }
-            if (!updateLockedAmountRet.getData() || !updateLockedAmountRet.isSuccess()){
-                LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), batchOrderId.toString(), capitalAccountAddAmountDTOS, "errorCode:"+ updateLockedAmountRet.getCode() + ", errorMsg:"+ updateLockedAmountRet.getMessage());
+            if (updateLockedAmountRet == null ||
+                    !updateLockedAmountRet.isSuccess() ||
+                    updateLockedAmountRet.getData() == null ||
+                    !updateLockedAmountRet.getData()){
+                String detailMsg = updateLockedAmountRet == null ? "updateLockedAmountRet is null" : updateLockedAmountRet.getMessage();
+                LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), batchOrderId.toString(), capitalAccountAddAmountDTOS, detailMsg);
                 throw new Exception("assetWriteService.batchAddCapitalAmount failed");
             }
         }
