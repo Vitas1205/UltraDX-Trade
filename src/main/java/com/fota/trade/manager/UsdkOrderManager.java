@@ -10,7 +10,6 @@ import com.fota.asset.service.AssetService;
 import com.fota.asset.service.AssetWriteService;
 import com.fota.common.Result;
 import com.fota.common.utils.LogUtil;
-import com.fota.match.service.UsdkMatchedOrderService;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
 import com.fota.trade.PriceTypeEnum;
 import com.fota.trade.client.CancelTypeEnum;
@@ -21,7 +20,6 @@ import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderTypeEnum;
-import com.fota.trade.mapper.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkOrderMapper;
 import com.fota.trade.msg.*;
@@ -42,7 +40,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
-import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
@@ -72,44 +69,19 @@ import static java.util.stream.Collectors.*;
 public class UsdkOrderManager {
 
     private static final Logger tradeLog = LoggerFactory.getLogger("trade");
-
     private static BigDecimal usdkFee = BigDecimal.valueOf(0);
-
     @Autowired
     private UsdkOrderMapper usdkOrderMapper;
-
-    @Resource
-    private UsdkMatchedOrderMapper usdkMatchedOrderMapper;
-
-    @Resource
-    private ContractMatchedOrderMapper contractMatchedOrderMapper;
-
-    @Autowired
-    private RedisManager redisManager;
-
     @Autowired
     private RocketMqManager rocketMqManager;
-
     @Autowired
     private AssetWriteService assetWriteService;
-
     @Autowired
     private AssetService assetService;
-
-    @Autowired
-    private UsdkMatchedOrderService usdkMatchedOrderService;
-
     @Autowired
     private UsdkMatchedOrderMapper usdkMatchedOrder;
     @Autowired
     private RealTimeEntrustManager realTimeEntrustManager;
-    @Autowired
-    private CurrentPriceManager currentPriceManager;
-
-    private AssetService getAssetService() {
-        return assetService;
-    }
-
 
     //TODO 优化: 先更新账户，再insert订单，而不是先insert订单再更新账户
     @Transactional(rollbackFor={Throwable.class})
@@ -145,7 +117,7 @@ public class UsdkOrderManager {
         Integer assetId = usdkOrderDO.getAssetId();
         Long userId = usdkOrderDO.getUserId();
         Integer orderDirection = usdkOrderDO.getOrderDirection();
-        List<UserCapitalDTO> list = getAssetService().getUserCapital(userId);
+        List<UserCapitalDTO> list = assetService.getUserCapital(userId);
         profiler.complelete("getUserCapital");
         usdkOrderDO.setFee(usdkFee);
         usdkOrderDO.setStatus(COMMIT.getCode());
@@ -837,18 +809,8 @@ public class UsdkOrderManager {
         }
         long matchId = usdkMatchedOrderDTO.getId();
         Runnable runnable = () -> {
-            Map<String, Object> askOrderContext = new HashMap<>();
-            Map<String, Object> bidOrderContext = new HashMap<>();
-            if (askUsdkOrder.getOrderContext() != null){
-                askOrderContext  = JSON.parseObject(askUsdkOrder.getOrderContext());
-            }
-            if (bidUsdkOrder.getOrderContext() != null){
-                bidOrderContext  = JSON.parseObject(bidUsdkOrder.getOrderContext());
-            }
-
             postProcessOrder(askUsdkOrder, filledAmount, matchId);
             postProcessOrder(bidUsdkOrder, filledAmount, matchId);
-
         };
         ThreadContextUtil.setPostTask(runnable);
 
