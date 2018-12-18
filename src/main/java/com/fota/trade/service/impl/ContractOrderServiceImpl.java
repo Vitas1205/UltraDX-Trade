@@ -130,6 +130,11 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         return Result.suc(recoveryMetaData);
     }
 
+    @Override
+    public Result<ContractOrderDTO> queryOrderByIds(Long userId, List<Long> ids) {
+        return null;
+    }
+
 
     @Override
     public Result<Page<ContractOrderDTO>> listContractOrder4Recovery(RecoveryQuery recoveryQuery) {
