@@ -203,10 +203,16 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         if (null == contractOrderDTO || null == contractOrderDTO.getOrderType()) {
             return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), ResultCodeEnum.ILLEGAL_PARAM.getMessage());
         }
-        PlaceOrderRequest placeOrderRequest = ConvertUtils.toPlaceOrderRequest(contractOrderDTO, userInfoMap, FotaApplicationEnum.WEB);
         //TODO 不允许下强平单，暂时兼容以前逻辑
         boolean isEnforce = ENFORCE.getCode() == contractOrderDTO.getOrderType();
-        Result<List<PlaceOrderResult>> result = internalBatchOrder(placeOrderRequest, isEnforce);
+        Result<List<PlaceOrderResult>> result;
+        //有平仓百分比时进行平仓
+        if (Objects.nonNull(contractOrderDTO.getPositionPercent())) {
+            result = closePosition(contractOrderDTO, userInfoMap);
+        } else {
+            PlaceOrderRequest placeOrderRequest = ConvertUtils.toPlaceOrderRequest(contractOrderDTO, userInfoMap, FotaApplicationEnum.WEB);
+            result = internalBatchOrder(placeOrderRequest, isEnforce);
+        }
         ResultCode resultCode = new ResultCode();
         resultCode.setCode(result.getCode());
         resultCode.setMessage(result.getMessage());
@@ -236,6 +242,18 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     @Override
     public Result<List<PlaceOrderResult>> batchOrder(PlaceOrderRequest<PlaceContractOrderDTO> placeOrderRequest) {
         return internalBatchOrder(placeOrderRequest, false);
+    }
+
+    public Result closePosition(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
+        contractOrderDTO.setEntrustValue(null);
+        PlaceOrderRequest<PlaceContractOrderDTO> placeOrderRequest = ConvertUtils.toPlaceOrderRequest(contractOrderDTO,
+                userInfoMap, FotaApplicationEnum.WEB);
+        Result<List<PlaceOrderResult>> result = internalBatchOrder(placeOrderRequest, false);
+        if (result.getCode() == CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode()) {
+            return Result.fail(NOT_ENOUGH_MARGIN_FOR_CLOSING.getCode(), NOT_ENOUGH_MARGIN_FOR_CLOSING.getMessage());
+        }
+
+        return result;
     }
 
     private Result<List<PlaceOrderResult>> internalBatchOrder(PlaceOrderRequest<PlaceContractOrderDTO> placeOrderRequest, boolean isEnforce){
@@ -293,11 +311,6 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     }
 
     @Override
-    public Result cancelReverseOrdersByPosition(UserPositionDTO userPositionDTO) {
-        return null;
-    }
-
-    @Override
     public Result batchCancel(CancelOrderRequest cancelOrderRequest) {
         try {
             if (null == cancelOrderRequest || !cancelOrderRequest.checkParam()) {
@@ -333,10 +346,6 @@ public class ContractOrderServiceImpl implements ContractOrderService {
 
     /**
      * 撤销用户非强平单
-     * * @荆轲
-     * @param userId
-     * @param orderTypes
-     * @return
      */
     @Override
     public ResultCode cancelOrderByOrderType(long userId, List<Integer> orderTypes, Map<String, String> userInfoMap) {
@@ -356,12 +365,21 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         return resultCode;
     }
 
+    @Override
+    public Result cancelReverseOrdersByPosition(UserPositionDTO userPositionDTO) {
+        Result result = Result.create();
+        try {
+            result = contractOrderManager.cancelUserOrdersByContractIdAndDirection(userPositionDTO.getUserId(),
+                    userPositionDTO.getContractId(), userPositionDTO.getPositionType());
+        } catch (Exception e) {
+            log.error("contract cancelUserOrdersByContractIdAndDirection failed", e);
+            result = Result.fail(com.fota.common.ResultCodeEnum.SERVICE_EXCEPTION);
+        }
+        return result;
+    }
 
     /**
      * 撤销该合约的所有委托订单
-     ** * @王冕
-     * @param contractId
-     * @return
      */
     @Override
     public ResultCode cancelOrderByContractId(long contractId, Map<String, String> userInfoMap) {

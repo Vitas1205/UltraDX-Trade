@@ -110,6 +110,9 @@
         <if test="orderType != null">
             and order_type = #{orderType}
         </if>
+        <if test="orderDirection != null">
+            and order_direction = #{orderDirection}
+        </if>
         order by gmt_create desc
         limit #{startRow,jdbcType=INTEGER}, #{endRow,jdbcType=INTEGER}
     </select>

@@ -60,6 +60,8 @@ import static com.fota.trade.domain.enums.ContractStatusEnum.PROCESSING;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
 import static com.fota.trade.domain.enums.OrderStatusEnum.*;
+import static com.fota.trade.domain.enums.PositionTypeEnum.EMPTY;
+import static com.fota.trade.domain.enums.PositionTypeEnum.OVER;
 import static com.fota.trade.msg.TopicConstants.TRD_CONTRACT_CANCELED;
 import static java.util.stream.Collectors.*;
 
@@ -131,6 +133,22 @@ public class ContractOrderManager {
         return resultCode;
     }
 
+    public Result cancelUserOrdersByContractIdAndDirection(Long userId, Long contractId, Integer positionType) {
+        Map<String, Object> criteriaMap = new HashMap<>();
+        criteriaMap.put("userId", userId);
+        criteriaMap.put("contractId", contractId);
+        criteriaMap.put("orderStatus", Arrays.asList(COMMIT.getCode(), PART_MATCH.getCode()));
+        criteriaMap.put("orderDirection", positionType == EMPTY.getCode() ? OVER.getCode() : EMPTY.getCode());
+        List<ContractOrderDO> contractOrderDOS = contractOrderMapper.listByQuery(criteriaMap);
+        List<Long> orderIdList = contractOrderDOS.stream()
+                .filter(contractOrderDO -> contractOrderDO.getOrderType() != OrderTypeEnum.ENFORCE.getCode())
+                .map(ContractOrderDO::getId)
+                .collect(toList());
+        sendCancelReq(orderIdList, userId);
+
+        return Result.suc(null);
+    }
+
     public ResultCode cancelOrderByOrderType(long userId, List<Integer> orderTypes, Map<String, String> userInfoMap) throws Exception {
         ResultCode resultCode = new ResultCode();
         List<ContractOrderDO> list = contractOrderMapper.listByUserIdAndOrderType(userId, orderTypes);
@@ -150,7 +168,6 @@ public class ContractOrderManager {
         resultCode.setMessage("success");
         return resultCode;
     }
-
 
     /**
      * @param placeOrderRequest
@@ -184,7 +201,6 @@ public class ContractOrderManager {
                 return Result.fail(checkContractRest.getCode(), checkContractRest.getMessage());
             }
         }
-
 
         long userId = placeOrderRequest.getUserId();
 
@@ -232,7 +248,7 @@ public class ContractOrderManager {
 
                 ContractOrderDO contractOrderDO = ConvertUtils.extractContractOrderDO(placeOrderDTO, placeOrderRequest.getUserId(),
                         feeRate, placeOrderRequest.getUserName(), placeOrderRequest.getIp());
-                Result checkRes = checkAndFillProperties(contractOrderDO, competitorsPrices, placeOrderDTO.getEntrustValue(), true);
+                Result<List<PlaceOrderResult>> checkRes = checkAndFillProperties(contractOrderDO, competitorsPrices, placeOrderDTO.getEntrustValue(), true);
                 if(!checkRes.isSuccess()) {
                     return checkRes;
                 }
@@ -282,7 +298,7 @@ public class ContractOrderManager {
     /**
      * 计算价格，数量
      */
-    private Result checkAndFillProperties(ContractOrderDO newContractOrderDO, List<CompetitorsPriceDTO> competitorsPrices, BigDecimal entrustValue, boolean check){
+    private <T> Result<T> checkAndFillProperties(ContractOrderDO newContractOrderDO, List<CompetitorsPriceDTO> competitorsPrices, BigDecimal entrustValue, boolean check){
         int assetId = AssetTypeEnum.getAssetIdByContractName(newContractOrderDO.getContractName());
         if (assetId == AssetTypeEnum.UNKNOW.getCode()) {
             LogUtil.error( CONTRACT_ORDER, null,  newContractOrderDO.getContractName(), "illegal contractName");
@@ -595,7 +611,7 @@ public class ContractOrderManager {
             BigDecimal floatingPLByIndex = BigDecimal.ZERO;
             BigDecimal positionValueByIndex = BigDecimal.ZERO;
             BigDecimal positionValue = BigDecimal.ZERO;
-            int positionType = PositionTypeEnum.EMPTY.getCode();
+            int positionType = EMPTY.getCode();
             Optional<UserPositionDO> userPositionDOOptional = allPositions.stream()
                     .filter(userPosition -> userPosition.getContractId().equals(contractCategoryDO.getId()))
                     .findFirst();
@@ -644,16 +660,16 @@ public class ContractOrderManager {
             //计算委托额外保证金
             String contraryKey = "", sameKey = "";
             String contraryEntrustKey = "", sameEntrustKey = "";
-            if (positionType == PositionTypeEnum.OVER.getCode()) {
-                contraryKey = contractId + "-" + PositionTypeEnum.EMPTY.name();
-                sameKey = contractId + "-" + PositionTypeEnum.OVER.name();
-                contraryEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + "-" + PositionTypeEnum.EMPTY.name();
-                sameEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + "-" + PositionTypeEnum.OVER.name();
-            } else if (positionType == PositionTypeEnum.EMPTY.getCode()) {
-                contraryKey = contractId + "-" + PositionTypeEnum.OVER.name();
-                sameKey = contractId + "-" + PositionTypeEnum.EMPTY.name();
-                contraryEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + "-" + PositionTypeEnum.OVER.name();
-                sameEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + "-" + PositionTypeEnum.EMPTY.name();
+            if (positionType == OVER.getCode()) {
+                contraryKey = contractId + "-" + EMPTY.name();
+                sameKey = contractId + "-" + OVER.name();
+                contraryEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + "-" + EMPTY.name();
+                sameEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + "-" + OVER.name();
+            } else if (positionType == EMPTY.getCode()) {
+                contraryKey = contractId + "-" + OVER.name();
+                sameKey = contractId + "-" + EMPTY.name();
+                contraryEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + "-" + OVER.name();
+                sameEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + "-" + EMPTY.name();
             }
 
             Object contraryValue = userContractPositions.get(contraryKey);
@@ -769,7 +785,7 @@ public class ContractOrderManager {
         BigDecimal listFee = BigDecimal.ZERO;
         if (filterOrderList != null && filterOrderList.size() != 0) {
             List<ContractOrderDO> sortedList = new ArrayList<>();
-            if (positionType == PositionTypeEnum.OVER.getCode()){
+            if (positionType == OVER.getCode()){
                 sortedList = sortListAsc(filterOrderList);
             }else {
                 sortedList = sortListDesc(filterOrderList);
@@ -822,20 +838,20 @@ public class ContractOrderManager {
         String contraryKey = "", sameKey = "";
         String contraryEntrustKey = "", sameEntrustKey = "";
         List<ContractOrderDO> contrarySortedList, sameList;
-        if (positionType == PositionTypeEnum.OVER.getCode()) {
+        if (positionType == OVER.getCode()) {
             contrarySortedList = sortListAsc(askList);
             sameList = bidList;
-            contraryKey = contractId + "-" + PositionTypeEnum.EMPTY.name();
-            sameKey = contractId + "-" + PositionTypeEnum.OVER.name();
-            contraryEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + "-" + PositionTypeEnum.EMPTY.name();
-            sameEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + "-" + PositionTypeEnum.OVER.name();
-        } else if (positionType == PositionTypeEnum.EMPTY.getCode()) {
+            contraryKey = contractId + "-" + EMPTY.name();
+            sameKey = contractId + "-" + OVER.name();
+            contraryEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + "-" + EMPTY.name();
+            sameEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + "-" + OVER.name();
+        } else if (positionType == EMPTY.getCode()) {
             contrarySortedList = sortListDesc(bidList);
             sameList = askList;
-            contraryKey = contractId + "-" + PositionTypeEnum.OVER.name();
-            sameKey = contractId + "-" + PositionTypeEnum.EMPTY.name();
-            contraryEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + "-" + PositionTypeEnum.OVER.name();
-            sameEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + "-" + PositionTypeEnum.EMPTY.name();
+            contraryKey = contractId + "-" + OVER.name();
+            sameKey = contractId + "-" + EMPTY.name();
+            contraryEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + "-" + OVER.name();
+            sameEntrustKey = contractId + "-" + Constant.ENTRUST_VALUE_KEY + "-" + EMPTY.name();
         } else {
             throw new RuntimeException("positionType illegal");
         }
@@ -1080,7 +1096,7 @@ public class ContractOrderManager {
             BigDecimal floatingPL = BigDecimal.ZERO;
             BigDecimal entrustMargin = BigDecimal.ZERO;
             BigDecimal positionUnfilledAmount= BigDecimal.ZERO;
-            Integer positionType = PositionTypeEnum.EMPTY.getCode();
+            Integer positionType = EMPTY.getCode();
 
             List<ContractOrderDO>  orderList = allContractOrders.stream()
                     .filter(contractOrder -> contractOrder.getContractId().equals(contractId))
@@ -1186,7 +1202,7 @@ public class ContractOrderManager {
         UserPositionDO userPositionDO = userPositionMapper.selectByUserIdAndId(userId, contractId);
         Integer positionType = Optional.ofNullable(userPositionDO)
                 .map(UserPositionDO::getPositionType)
-                .orElse(PositionTypeEnum.EMPTY.getCode());
+                .orElse(EMPTY.getCode());
         BigDecimal unfilledAmount = Optional.ofNullable(userPositionDO)
                 .map(UserPositionDO::getUnfilledAmount)
                 .orElse(BigDecimal.ZERO);
@@ -1297,7 +1313,7 @@ public class ContractOrderManager {
             BigDecimal floatingPL = BigDecimal.ZERO;
             BigDecimal entrustMargin = BigDecimal.ZERO;
             BigDecimal positionUnfilledAmount = BigDecimal.ZERO;
-            Integer positionType = PositionTypeEnum.EMPTY.getCode();
+            Integer positionType = EMPTY.getCode();
 
             List<ContractOrderDO> orderList = contractOrderDOList.stream()
                     .filter(contractOrder -> contractOrder.getContractId().equals(contractId))

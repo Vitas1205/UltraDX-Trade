@@ -8,9 +8,10 @@ import com.fota.trade.client.PlaceContractOrderDTO;
 import com.fota.trade.client.PlaceOrderRequest;
 import com.fota.trade.client.UserLevelEnum;
 import com.fota.trade.common.BeanUtils;
-import com.fota.trade.domain.*;
-import com.fota.trade.domain.enums.OrderCloseType;
-import com.fota.trade.domain.enums.OrderTypeEnum;
+import com.fota.trade.domain.ADLMatchedDTO;
+import com.fota.trade.domain.ContractMatchedOrderDO;
+import com.fota.trade.domain.ContractOrderDO;
+import com.fota.trade.domain.ContractOrderDTO;
 import com.fota.trade.msg.ContractDealedMessage;
 import com.fota.trade.msg.ContractPlaceOrderMessage;
 
