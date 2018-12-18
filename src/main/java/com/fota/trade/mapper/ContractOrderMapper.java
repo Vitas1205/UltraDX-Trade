@@ -47,6 +47,9 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
     @ResultMap("BaseResultMap")
     ContractOrderDO selectByIdAndUserId(@Param("userId") Long userId, @Param("id") Long id);
 
+
+    List<ContractOrderDO> selectByUserIdAndIds(@Param("userId") Long userId, @Param("items") List<Long> ids);
+
     @Select(  " select max(gmt_create) " +
             " from trade_contract_order " +
             " where status in (8,9) ")

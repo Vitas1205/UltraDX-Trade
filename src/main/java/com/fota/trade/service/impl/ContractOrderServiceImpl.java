@@ -28,6 +28,7 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.fota.common.ResultCodeEnum.ILLEGAL_PARAM;
 import static com.fota.trade.client.constants.Constants.TABLE_NUMBER;
 import static com.fota.trade.common.ResultCodeEnum.*;
 import static com.fota.trade.common.TradeBizTypeEnum.CONTRACT_DEAL;
@@ -60,6 +61,8 @@ public class ContractOrderServiceImpl implements ContractOrderService {
 
     @Autowired
     private MarketAccountListService marketAccountListService;
+
+    public static final int MAX_BATCH_SIZE = 100;
 
     @Override
     public com.fota.common.Page<ContractOrderDTO> listContractOrderByQuery(BaseQuery contractOrderQueryDTO) {
@@ -131,8 +134,19 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     }
 
     @Override
-    public Result<ContractOrderDTO> queryOrderByIds(Long userId, List<Long> ids) {
-        return null;
+    public Result<List<ContractOrderDTO>> queryOrderByIds(Long userId, List<Long> ids) {
+        if (null == userId || CollectionUtils.isEmpty(ids)) {
+            return Result.fail(ILLEGAL_PARAM.getCode(), ILLEGAL_PARAM.getMessage());
+        }
+        if (ids.size() > MAX_BATCH_SIZE) {
+            return Result.fail(ILLEGAL_PARAM.getCode(), "exceed maxBatchSize"+ MAX_BATCH_SIZE);
+        }
+        List<ContractOrderDO> contractOrderDOS = contractOrderMapper.selectByUserIdAndIds(userId, ids);
+        if (CollectionUtils.isEmpty(contractOrderDOS)) {
+            return Result.suc(new LinkedList<>());
+        }
+        List<ContractOrderDTO> contractOrderDTOS = contractOrderDOS.stream().map(BeanUtils::copy).collect(Collectors.toList());
+        return Result.suc(contractOrderDTOS);
     }
 
 
@@ -187,7 +201,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     @Override
     public ResultCode order(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
         if (null == contractOrderDTO || null == contractOrderDTO.getOrderType()) {
-            return ResultCode.error(ILLEGAL_PARAM.getCode(), ILLEGAL_PARAM.getMessage());
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), ResultCodeEnum.ILLEGAL_PARAM.getMessage());
         }
         PlaceOrderRequest placeOrderRequest = ConvertUtils.toPlaceOrderRequest(contractOrderDTO, userInfoMap, FotaApplicationEnum.WEB);
         //TODO 不允许下强平单，暂时兼容以前逻辑
@@ -279,10 +293,15 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     }
 
     @Override
+    public Result cancelReverseOrdersByPosition(UserPositionDTO userPositionDTO) {
+        return null;
+    }
+
+    @Override
     public Result batchCancel(CancelOrderRequest cancelOrderRequest) {
         try {
             if (null == cancelOrderRequest || !cancelOrderRequest.checkParam()) {
-                return Result.fail(com.fota.common.ResultCodeEnum.ILLEGAL_PARAM);
+                return Result.fail(ILLEGAL_PARAM);
             }
             contractOrderManager.sendCancelReq( cancelOrderRequest.getOrderIds(), cancelOrderRequest.getUserId());
             return Result.suc(null);

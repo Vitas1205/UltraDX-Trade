@@ -148,7 +148,7 @@ public class ConvertUtils {
         BeanUtils.copy(contractOrderDTO, placeContractOrderDTO);
 
         if (null != userInfoMap) {
-            String userName = userInfoMap.get("userName");
+            String userName = userInfoMap.get("username");
             String ip = userInfoMap.get("ip");
             placeOrderRequest.setUserName(userName);
             placeOrderRequest.setIp(ip);
