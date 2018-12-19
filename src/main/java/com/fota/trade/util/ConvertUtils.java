@@ -155,7 +155,6 @@ public class ConvertUtils {
         }
         placeOrderRequest.setCaller(caller);
         placeOrderRequest.setMakerFeeRate(contractOrderDTO.getFee());
-        placeOrderRequest.setTakerFeeRate(contractOrderDTO.getFee());
         if (null == placeContractOrderDTO.getOrderType()) {
             placeContractOrderDTO.setOrderType(LIMIT.getCode());
         }
