@@ -19,6 +19,7 @@ import com.fota.trade.util.Profiler;
 import com.fota.trade.util.ThreadContextUtil;
 import com.google.common.base.Joiner;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -245,7 +246,13 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     }
 
     public Result closePosition(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
+        if (!ObjectUtils.allNotNull(contractOrderDTO.getTotalAmount(), contractOrderDTO.getUserId())) {
+            return Result.fail(ILLEGAL_PARAM);
+        }
+
         contractOrderDTO.setEntrustValue(null);
+        contractOrderDTO.setTotalAmount(contractOrderDTO.getTotalAmount()
+                .divide(BigDecimal.valueOf(100), 8, BigDecimal.ROUND_DOWN));
         PlaceOrderRequest<PlaceContractOrderDTO> placeOrderRequest = ConvertUtils.toPlaceOrderRequest(contractOrderDTO,
                 userInfoMap, FotaApplicationEnum.WEB);
         Result<List<PlaceOrderResult>> result = internalBatchOrder(placeOrderRequest, false);
