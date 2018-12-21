@@ -252,7 +252,8 @@ public class ContractOrderServiceImpl implements ContractOrderService {
 
         contractOrderDTO.setEntrustValue(null);
         contractOrderDTO.setTotalAmount(contractOrderDTO.getTotalAmount()
-                .divide(BigDecimal.valueOf(100), 8, BigDecimal.ROUND_DOWN));
+                .multiply(BigDecimal.valueOf(contractOrderDTO.getPositionPercent())
+                        .divide(BigDecimal.valueOf(100), 8, BigDecimal.ROUND_DOWN)));
         PlaceOrderRequest<PlaceContractOrderDTO> placeOrderRequest = ConvertUtils.toPlaceOrderRequest(contractOrderDTO,
                 userInfoMap, FotaApplicationEnum.WEB);
         Result<List<PlaceOrderResult>> result = internalBatchOrder(placeOrderRequest, false);
