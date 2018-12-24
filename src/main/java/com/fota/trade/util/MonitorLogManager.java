@@ -19,6 +19,7 @@ import java.math.RoundingMode;
 @Component
 public class MonitorLogManager {
 
+    private static final Logger log = LoggerFactory.getLogger(MonitorLogManager.class);
     private static final Logger tradeLog = LoggerFactory.getLogger("trade");
 
     private static final int ORDER_TYPE_COIN = 1;
@@ -41,106 +42,130 @@ public class MonitorLogManager {
      * order@type@@@name@@@username@@@amount@@@timestamp@@@operation@@@orderDirection@@@userId@@@fee
      */
     public void placeCoinOrderInfo(UsdkOrderDO usdkOrderDO) {
-        if (marketAccountListService.contains(usdkOrderDO.getUserId())) {
-            return;
+        try {
+            if (marketAccountListService.contains(usdkOrderDO.getUserId())) {
+                return;
+            }
+            tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{",
+                    ORDER_TYPE_COIN,
+                    usdkOrderDO.getAssetName(),
+                    getUserNameByOrder(usdkOrderDO),
+                    usdkOrderDO.getUnfilledAmount().toPlainString(),
+                    System.currentTimeMillis(),
+                    BIZ_TYPE_PLACE_ORDER,
+                    usdkOrderDO.getOrderDirection(),
+                    usdkOrderDO.getUserId(),
+                    usdkOrderDO.getFee());
+        } catch (Exception e) {
+            log.error("placeCoinOrderInfo({}) exception", usdkOrderDO, e);
         }
-        tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{",
-                ORDER_TYPE_COIN,
-                usdkOrderDO.getAssetName(),
-                getUserNameByOrder(usdkOrderDO),
-                usdkOrderDO.getUnfilledAmount().toPlainString(),
-                usdkOrderDO.getGmtCreate().getTime(),
-                BIZ_TYPE_PLACE_ORDER,
-                usdkOrderDO.getOrderDirection(),
-                usdkOrderDO.getUserId(),
-                usdkOrderDO.getFee());
     }
 
     /**
      * order@type@@@name@@@username@@@amount@@@timestamp@@@operation@@@orderDirection@@@userId@@@fee
      */
     public void cancelCoinOrderInfo(UsdkOrderDO usdkOrderDO) {
-        if (marketAccountListService.contains(usdkOrderDO.getUserId())) {
-            return;
+        try {
+            if (marketAccountListService.contains(usdkOrderDO.getUserId())) {
+                return;
+            }
+            tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{",
+                    ORDER_TYPE_COIN,
+                    usdkOrderDO.getAssetName(),
+                    getUserNameByOrder(usdkOrderDO),
+                    usdkOrderDO.getUnfilledAmount().toPlainString(),
+                    usdkOrderDO.getGmtCreate().getTime(),
+                    BIZ_TYPE_CANCEL_ORDER,
+                    usdkOrderDO.getOrderDirection(),
+                    usdkOrderDO.getUserId(),
+                    usdkOrderDO.getFee());
+        } catch (Exception e) {
+            log.error("cancelCoinOrderInfo({}) exception", usdkOrderDO, e);
         }
-        tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{",
-                ORDER_TYPE_COIN,
-                usdkOrderDO.getAssetName(),
-                getUserNameByOrder(usdkOrderDO),
-                usdkOrderDO.getUnfilledAmount().toPlainString(),
-                usdkOrderDO.getGmtCreate().getTime(),
-                BIZ_TYPE_CANCEL_ORDER,
-                usdkOrderDO.getOrderDirection(),
-                usdkOrderDO.getUserId(),
-                usdkOrderDO.getFee());
     }
 
     /**
      * 合约下单
      */
     public void placeContractOrderInfo(ContractOrderDO contractOrderDO) {
-        if (marketAccountListService.contains(contractOrderDO.getUserId())) {
-            return;
+        try {
+            if (marketAccountListService.contains(contractOrderDO.getUserId())) {
+                return;
+            }
+            tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{",
+                    ORDER_TYPE_CONTRACT,
+                    contractOrderDO.getContractName(),
+                    getUserNameByOrder(contractOrderDO),
+                    contractOrderDO.getUnfilledAmount().toPlainString(),
+                    System.currentTimeMillis(),
+                    contractOrderDO.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode()) ? BIZ_TYPE_FORCE_ORDER : BIZ_TYPE_PLACE_ORDER,
+                    contractOrderDO.getOrderDirection(),
+                    contractOrderDO.getUserId(),
+                    contractOrderDO.getFee());
+        } catch (Exception e) {
+            log.error("placeContractOrderInfo({}) exception", contractOrderDO, e);
         }
-        tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{",
-                ORDER_TYPE_CONTRACT,
-                contractOrderDO.getContractName(),
-                getUserNameByOrder(contractOrderDO),
-                contractOrderDO.getUnfilledAmount().toPlainString(),
-                contractOrderDO.getGmtCreate().getTime(),
-                contractOrderDO.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode()) ? BIZ_TYPE_FORCE_ORDER : BIZ_TYPE_PLACE_ORDER,
-                contractOrderDO.getOrderDirection(),
-                contractOrderDO.getUserId(),
-                contractOrderDO.getFee());
     }
 
     public void cancelContractOrderInfo(ContractOrderDO contractOrderDO) {
-        if (marketAccountListService.contains(contractOrderDO.getUserId())) {
-            return;
+        try {
+            if (marketAccountListService.contains(contractOrderDO.getUserId())) {
+                return;
+            }
+            tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{",
+                    ORDER_TYPE_COIN,
+                    contractOrderDO.getContractName(),
+                    getUserNameByOrder(contractOrderDO),
+                    contractOrderDO.getUnfilledAmount().toPlainString(),
+                    contractOrderDO.getGmtCreate().getTime(),
+                    BIZ_TYPE_CANCEL_ORDER,
+                    contractOrderDO.getOrderDirection(),
+                    contractOrderDO.getUserId(),
+                    contractOrderDO.getFee());
+        } catch (Exception e) {
+            log.error("cancelContractOrderInfo({}) exception", contractOrderDO, e);
         }
-        tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{",
-                ORDER_TYPE_COIN,
-                contractOrderDO.getContractName(),
-                getUserNameByOrder(contractOrderDO),
-                contractOrderDO.getUnfilledAmount().toPlainString(),
-                contractOrderDO.getGmtCreate().getTime(),
-                BIZ_TYPE_CANCEL_ORDER,
-                contractOrderDO.getOrderDirection(),
-                contractOrderDO.getUserId(),
-                contractOrderDO.getFee());
     }
 
     public void coinDealOrderInfo(UsdkOrderDO usdkOrderDO, BigDecimal filledAmount) {
-        if (marketAccountListService.contains(usdkOrderDO.getUserId())) {
-            return;
+        try {
+            if (marketAccountListService.contains(usdkOrderDO.getUserId())) {
+                return;
+            }
+            tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
+                    ORDER_TYPE_COIN,
+                    usdkOrderDO.getAssetName(),
+                    getUserNameByOrder(usdkOrderDO),
+                    filledAmount.toPlainString(),
+                    System.currentTimeMillis(),
+                    BIZ_TYPE_DEAL,
+                    usdkOrderDO.getOrderDirection(),
+                    usdkOrderDO.getUserId(),
+                    BigDecimal.ZERO);
+        } catch (Exception e) {
+            log.error("coinDealOrderInfo({}, {}) exception", usdkOrderDO, filledAmount, e);
         }
-        tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                ORDER_TYPE_COIN,
-                usdkOrderDO.getAssetName(),
-                getUserNameByOrder(usdkOrderDO),
-                filledAmount.toPlainString(),
-                System.currentTimeMillis(),
-                BIZ_TYPE_DEAL,
-                usdkOrderDO.getOrderDirection(),
-                usdkOrderDO.getUserId(),
-                BigDecimal.ZERO);
     }
 
     public void contractDealOrderInfo(ContractOrderDO contractOrderDO, BigDecimal completeAmount, BigDecimal filledPrice) {
-        if (marketAccountListService.contains(contractOrderDO.getUserId())) {
-            return;
+        try {
+            if (marketAccountListService.contains(contractOrderDO.getUserId())) {
+                return;
+            }
+            BigDecimal fee = contractOrderDO.getFee().multiply(filledPrice).multiply(completeAmount).setScale(16, RoundingMode.DOWN);
+            tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
+                    ORDER_TYPE_CONTRACT,
+                    contractOrderDO.getContractName(),
+                    getUserNameByOrder(contractOrderDO),
+                    completeAmount.toPlainString(),
+                    System.currentTimeMillis(),
+                    BIZ_TYPE_DEAL,
+                    contractOrderDO.getOrderDirection(),
+                    contractOrderDO.getUserId(),
+                    fee);
+        } catch (Exception e) {
+            log.error("contractDealOrderInfo({}, {}, {}) exception", contractOrderDO, completeAmount, filledPrice, e);
         }
-        BigDecimal fee = contractOrderDO.getFee().multiply(filledPrice).multiply(completeAmount).setScale(16, RoundingMode.DOWN);
-        tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                ORDER_TYPE_CONTRACT,
-                contractOrderDO.getContractName(),
-                getUserNameByOrder(contractOrderDO),
-                completeAmount.toPlainString(),
-                System.currentTimeMillis(),
-                BIZ_TYPE_DEAL,
-                contractOrderDO.getOrderDirection(),
-                contractOrderDO.getUserId(),
-                fee);
     }
 
     /**
@@ -148,12 +173,16 @@ public class MonitorLogManager {
      * adl@userId@@@orderDirection@@@contractName@@@amount@@@timestamp
      */
     public void adlInfo(UserPositionDO userPositionDO, BigDecimal adlAmount) {
-        tradeLog.info("adl@userId@@@orderDirection@@@contractName@@@amount@@@timestamp",
-                userPositionDO.getUserId(),
-                userPositionDO.getPositionType(),
-                userPositionDO.getContractName(),
-                adlAmount.toPlainString(),
-                System.currentTimeMillis());
+        try {
+            tradeLog.info("adl@userId@@@orderDirection@@@contractName@@@amount@@@timestamp",
+                    userPositionDO.getUserId(),
+                    userPositionDO.getPositionType(),
+                    userPositionDO.getContractName(),
+                    adlAmount.toPlainString(),
+                    System.currentTimeMillis());
+        } catch (Exception e) {
+            log.error("adlInfo({}, {}) exception", userPositionDO, adlAmount);
+        }
     }
 
     private String getUserNameByOrder(UsdkOrderDO usdkOrderDO) {
