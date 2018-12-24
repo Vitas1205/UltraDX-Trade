@@ -139,6 +139,8 @@ public class ContractOrderManager {
         criteriaMap.put("contractId", contractId);
         criteriaMap.put("orderStatus", Arrays.asList(COMMIT.getCode(), PART_MATCH.getCode()));
         criteriaMap.put("orderDirection", positionType == EMPTY.getCode() ? OVER.getCode() : EMPTY.getCode());
+        criteriaMap.put("startRow", 0);
+        criteriaMap.put("endRow", 500);
         List<ContractOrderDO> contractOrderDOS = contractOrderMapper.listByQuery(criteriaMap);
         List<Long> orderIdList = contractOrderDOS.stream()
                 .filter(contractOrderDO -> contractOrderDO.getOrderType() != OrderTypeEnum.ENFORCE.getCode())
