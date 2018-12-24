@@ -16,7 +16,7 @@ import com.fota.trade.msg.DeleveragedMessages;
 import com.fota.trade.msg.TopicConstants;
 import com.fota.trade.util.BasicUtils;
 import com.fota.trade.util.ConvertUtils;
-import lombok.experimental.var;
+import com.fota.trade.util.MonitorLogManager;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -37,7 +37,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static com.fota.trade.common.ResultCodeEnum.BIZ_ERROR;
 import static com.fota.trade.common.TradeBizTypeEnum.CONTRACT_ADL;
 import static com.fota.trade.domain.enums.OrderCloseType.DECREASE_LEVERAGE;
 
@@ -58,6 +57,9 @@ public class DeleverageManager {
 
     @Autowired
     private DealManager dealManager;
+
+    @Autowired
+    private MonitorLogManager monitorLogManager;
 
     private static final Logger ADL_EXTEA_LOG = LoggerFactory.getLogger("adlExtraInfo");
     private static final Logger ADL_FAILED_LOGGER = LoggerFactory.getLogger("adlFailed");
@@ -153,8 +155,9 @@ public class DeleverageManager {
                 deleveragedMessageList.add(deleveragedMessage);
                 Runnable task = () -> {
                     dealManager.processAfterPositionUpdated(positionResult, Arrays.asList(contractDealedMessage));
-                    tradeLog.info("adl@{}@@@{}@@@{}@@@{}@@@{}", userPositionDO.getUserId(),
-                            userPositionDO.getPositionType(), userPositionDO.getContractName(), subAmount, System.currentTimeMillis());
+                    monitorLogManager.adlInfo(userPositionDO, subAmount);
+//                    tradeLog.info("adl@{}@@@{}@@@{}@@@{}@@@{}", userPositionDO.getUserId(),
+//                            userPositionDO.getPositionType(), userPositionDO.getContractName(), subAmount, System.currentTimeMillis());
 
                 };
                 updateBalanceTasks.add(task);

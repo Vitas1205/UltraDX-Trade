@@ -23,7 +23,6 @@ import com.fota.trade.msg.ContractDealedMessage;
 import com.fota.trade.msg.TopicConstants;
 import com.fota.trade.service.ContractCategoryService;
 import com.fota.trade.util.*;
-import com.google.common.base.Predicates;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.common.message.Message;
@@ -39,7 +38,6 @@ import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.*;
@@ -59,7 +57,6 @@ import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
 import static com.fota.trade.domain.enums.PositionTypeEnum.EMPTY;
 import static com.fota.trade.domain.enums.PositionTypeEnum.OVER;
-import static java.math.BigDecimal.ROUND_DOWN;
 import static java.math.BigDecimal.ZERO;
 import static org.springframework.transaction.annotation.Propagation.REQUIRED;
 
@@ -107,6 +104,9 @@ public class DealManager {
 
     @Autowired
     private AssetWriteService assetWriteService;
+
+    @Autowired
+    private MonitorLogManager monitorLogManager;
 
 
     private static final Logger UPDATE_POSITION_FAILED_LOGGER = LoggerFactory.getLogger("updatePositionFailed");
@@ -564,23 +564,24 @@ public class DealManager {
      */
     private void saveToLog(ContractOrderDO contractOrderDO, BigDecimal completeAmount, long matchId, BigDecimal filledPrice) {
 
-        Map<String, Object> context = new HashMap<>();
-        if (contractOrderDO.getOrderContext() != null) {
-            context = JSON.parseObject(contractOrderDO.getOrderContext());
-        }
+//        Map<String, Object> context = new HashMap<>();
+//        if (contractOrderDO.getOrderContext() != null) {
+//            context = JSON.parseObject(contractOrderDO.getOrderContext());
+//        }
 
-        ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
-        BeanUtils.copyProperties(contractOrderDO, contractOrderDTO);
-        contractOrderDTO.setCompleteAmount(completeAmount);
-        contractOrderDTO.setOrderContext(context);
-        String userName = "";
-        if (context != null) {
-            userName = context.get("username") == null ? "" : String.valueOf(context.get("username"));
-        }
-        BigDecimal fee = contractOrderDO.getFee().multiply(filledPrice).multiply(completeAmount).setScale(16, RoundingMode.DOWN);
-        tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                2, contractOrderDTO.getContractName(), userName, contractOrderDTO.getCompleteAmount(),
-                System.currentTimeMillis(), 4, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), fee);
+//        ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
+//        BeanUtils.copyProperties(contractOrderDO, contractOrderDTO);
+//        contractOrderDTO.setCompleteAmount(completeAmount);
+//        contractOrderDTO.setOrderContext(context);
+//        String userName = "";
+//        if (context != null) {
+//            userName = context.get("username") == null ? "" : String.valueOf(context.get("username"));
+//        }
+//        BigDecimal fee = contractOrderDO.getFee().multiply(filledPrice).multiply(completeAmount).setScale(16, RoundingMode.DOWN);
+        monitorLogManager.contractDealOrderInfo(contractOrderDO, completeAmount, filledPrice);
+//        tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
+//                2, contractOrderDTO.getContractName(), userName, contractOrderDTO.getCompleteAmount(),
+//                System.currentTimeMillis(), 4, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), fee);
     }
 
     public void updateTotalPosition(long contractId, UpdatePositionResult positionResult) {

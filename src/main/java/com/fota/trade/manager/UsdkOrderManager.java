@@ -1,6 +1,5 @@
 package com.fota.trade.manager;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.fota.asset.domain.CapitalAccountAddAmountDTO;
 import com.fota.asset.domain.UserCapitalDTO;
@@ -23,10 +22,7 @@ import com.fota.trade.domain.enums.OrderTypeEnum;
 import com.fota.trade.mapper.UsdkMatchedOrderMapper;
 import com.fota.trade.mapper.UsdkOrderMapper;
 import com.fota.trade.msg.*;
-import com.fota.trade.util.BasicUtils;
-import com.fota.trade.util.ContractUtils;
-import com.fota.trade.util.Profiler;
-import com.fota.trade.util.ThreadContextUtil;
+import com.fota.trade.util.*;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
@@ -82,6 +78,8 @@ public class UsdkOrderManager {
     private UsdkMatchedOrderMapper usdkMatchedOrder;
     @Autowired
     private RealTimeEntrustManager realTimeEntrustManager;
+    @Autowired
+    private MonitorLogManager monitorLogManager;
 
     //TODO 优化: 先更新账户，再insert订单，而不是先insert订单再更新账户
     @Transactional(rollbackFor={Throwable.class})
@@ -209,8 +207,8 @@ public class UsdkOrderManager {
                     }
                 }
             }
-            tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                    1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getTotalAmount(), transferTime, 2, usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 1);
+//            tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
+//                    1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getTotalAmount(), transferTime, 2, usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 1);
         } else if (usdkOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()){
             //强平单处理
             int ret = insertUsdkOrder(usdkOrderDO);
@@ -219,9 +217,10 @@ public class UsdkOrderManager {
                 throw new RuntimeException("insert contractOrder failed");
             }
             BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
-            tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                    1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getTotalAmount(), transferTime, 3, usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 2);
+//            tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
+//                    1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getTotalAmount(), transferTime, 3, usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 2);
         }
+        monitorLogManager.placeCoinOrderInfo(usdkOrderDO);
         usdkOrderDTO.setCompleteAmount(BigDecimal.ZERO);
         //消息一定要在事务外发，不然会出现收到下单消息，db还没有这个订单
        Runnable postTask = () -> {
@@ -326,12 +325,13 @@ public class UsdkOrderManager {
                     map.put(assetTypeId, BigDecimal.ZERO);
                 }
                 map.put(assetTypeId , map.get(assetTypeId).add(entrustValue));
-                tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                        1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getTotalAmount(), transferTime, 2, usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 1);
+//                tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
+//                        1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getTotalAmount(), transferTime, 2, usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 1);
             } else if (usdkOrderDTO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()){
-                tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                        1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getTotalAmount(), transferTime, 3, usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 2);
+//                tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
+//                        1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getTotalAmount(), transferTime, 3, usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 2);
             }
+            monitorLogManager.placeCoinOrderInfo(usdkOrderDO);
         }
 
         try {
@@ -614,14 +614,15 @@ public class UsdkOrderManager {
                 LogUtil.error( TradeBizTypeEnum.COIN_CANCEL_ORDER.toString(), String.valueOf(orderId), parameter, "errorCode:"+ updateLockedAmountRet.getCode() + ", errorMsg:"+ updateLockedAmountRet.getMessage());
                 throw new BizException(BIZ_ERROR.getCode(),"cancelOrder assetWriteService.addCapitalAmount failed");
             }
-            JSONObject jsonObject = JSONObject.parseObject(usdkOrderDO.getOrderContext());
-            String username = "";
-            if (jsonObject != null && !jsonObject.isEmpty()) {
-                username = jsonObject.get("username") == null ? "" : jsonObject.get("username").toString();
-            }
-            String ipAddress = "";
-            tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                    1, usdkOrderDO.getAssetName(), username, ipAddress, unfilledAmount, System.currentTimeMillis(), 1,  usdkOrderDO.getOrderDirection(), usdkOrderDO.getUserId(), 1);
+//            JSONObject jsonObject = JSONObject.parseObject(usdkOrderDO.getOrderContext());
+//            String username = "";
+//            if (jsonObject != null && !jsonObject.isEmpty()) {
+//                username = jsonObject.get("username") == null ? "" : jsonObject.get("username").toString();
+//            }
+//            String ipAddress = "";
+//            tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
+//                    1, usdkOrderDO.getAssetName(), username, ipAddress, unfilledAmount, System.currentTimeMillis(), 1,  usdkOrderDO.getOrderDirection(), usdkOrderDO.getUserId(), 1);
+            monitorLogManager.cancelCoinOrderInfo(usdkOrderDO);
             sendCanceledMessage(usdkOrderDO, unfilledAmount);
             resultCode = ResultCode.success();
         }else {
@@ -818,13 +819,13 @@ public class UsdkOrderManager {
     }
 
     private void postProcessOrder(UsdkOrderDO usdkOrderDO, BigDecimal filledAmount, long matchId) {
-        Map<String, Object> context = BasicUtils.exeWhitoutError(() -> JSON.parseObject(usdkOrderDO.getOrderContext()));
-        String userName = null == context || null == context.get("username") ? "": String.valueOf(context.get("username"));
-        int dir = ContractUtils.toDirection(usdkOrderDO.getOrderDirection());
-        usdkOrderDO.fillAmount(filledAmount);
-        tradeLog.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                1, usdkOrderDO.getAssetName(), userName,filledAmount, System.currentTimeMillis(), 4,  usdkOrderDO.getOrderDirection(), usdkOrderDO.getUserId(), 1);
-
+//        Map<String, Object> context = BasicUtils.exeWhitoutError(() -> JSON.parseObject(usdkOrderDO.getOrderContext()));
+//        String userName = null == context || null == context.get("username") ? "": String.valueOf(context.get("username"));
+//        int dir = ContractUtils.toDirection(usdkOrderDO.getOrderDirection());
+//        usdkOrderDO.fillAmount(filledAmount);
+//        tradeLog.info("match@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
+//                1, usdkOrderDO.getAssetName(), userName,filledAmount, System.currentTimeMillis(), 4,  usdkOrderDO.getOrderDirection(), usdkOrderDO.getUserId(), 1);
+        monitorLogManager.coinDealOrderInfo(usdkOrderDO, filledAmount);
         CoinDealedMessage coinDealedMessage = new CoinDealedMessage();
         coinDealedMessage.setUserId(usdkOrderDO.getUserId());
         coinDealedMessage.setOrderId(usdkOrderDO.getId());

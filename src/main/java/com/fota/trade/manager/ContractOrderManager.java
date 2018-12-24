@@ -27,10 +27,7 @@ import com.fota.trade.msg.ContractPlaceOrderMessage;
 import com.fota.trade.msg.TopicConstants;
 import com.fota.trade.service.ContractCategoryService;
 import com.fota.trade.service.internal.MarketAccountListService;
-import com.fota.trade.util.ContractUtils;
-import com.fota.trade.util.ConvertUtils;
-import com.fota.trade.util.Profiler;
-import com.fota.trade.util.ThreadContextUtil;
+import com.fota.trade.util.*;
 import com.google.common.base.Joiner;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -109,6 +106,9 @@ public class ContractOrderManager {
 
     @Autowired
     private RelativeRiskLevelManager relativeRiskLevelManager;
+
+    @Autowired
+    private MonitorLogManager monitorLogManager;
 
 
     private static final BigDecimal POSITION_LIMIT_BTC = BigDecimal.valueOf(100);
@@ -386,16 +386,17 @@ public class ContractOrderManager {
     private void logPlaceOrder(List<ContractOrderDO> contractOrderDOS , String username, String ipAddress){
 
         for (ContractOrderDO contractOrderDO : contractOrderDOS) {
-            if (contractOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()) {
-
-                tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                        2, contractOrderDO.getContractName(), username, ipAddress, contractOrderDO.getTotalAmount(),
-                        System.currentTimeMillis(), 3, contractOrderDO.getOrderDirection(), contractOrderDO.getUserId(), 2);
-            } else {
-                tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                        2, contractOrderDO.getContractName(), username, ipAddress, contractOrderDO.getTotalAmount(),
-                        System.currentTimeMillis(), 2, contractOrderDO.getOrderDirection(), contractOrderDO.getUserId(), 1);
-            }
+            monitorLogManager.placeContractOrderInfo(contractOrderDO);
+//            if (contractOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()) {
+//
+//                tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
+//                        2, contractOrderDO.getContractName(), username, ipAddress, contractOrderDO.getTotalAmount(),
+//                        System.currentTimeMillis(), 3, contractOrderDO.getOrderDirection(), contractOrderDO.getUserId(), 2);
+//            } else {
+//                tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
+//                        2, contractOrderDO.getContractName(), username, ipAddress, contractOrderDO.getTotalAmount(),
+//                        System.currentTimeMillis(), 2, contractOrderDO.getOrderDirection(), contractOrderDO.getUserId(), 1);
+//            }
         }
     }
 
@@ -483,9 +484,10 @@ public class ContractOrderManager {
         if (jsonObject != null && !jsonObject.isEmpty()) {
             username = jsonObject.get("username") == null ? "" : jsonObject.get("username").toString();
         }
-        tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                2, contractOrderDTO.getContractName(), username, "", contractOrderDTO.getUnfilledAmount(),
-                System.currentTimeMillis(), 1, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 1);
+//        tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
+//                2, contractOrderDTO.getContractName(), username, "", contractOrderDTO.getUnfilledAmount(),
+//                System.currentTimeMillis(), 1, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 1);
+        monitorLogManager.cancelContractOrderInfo(contractOrderDO);
         sendCanceledMessage(canceledMessage);
         updateExtraEntrustAmountByContract(contractOrderDO.getUserId(), contractOrderDO.getContractId());
         return ResultCode.success();
