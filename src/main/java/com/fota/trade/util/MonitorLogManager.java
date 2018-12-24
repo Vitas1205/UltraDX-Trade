@@ -41,15 +41,15 @@ public class MonitorLogManager {
      * 现货下单日志
      * order@type@@@name@@@username@@@amount@@@timestamp@@@operation@@@orderDirection@@@userId@@@fee
      */
-    public void placeCoinOrderInfo(UsdkOrderDO usdkOrderDO) {
+    public void placeCoinOrderInfo(UsdkOrderDO usdkOrderDO, String username) {
         try {
             if (marketAccountListService.contains(usdkOrderDO.getUserId())) {
                 return;
             }
-            tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{",
+            tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                     ORDER_TYPE_COIN,
                     usdkOrderDO.getAssetName(),
-                    getUserNameByOrder(usdkOrderDO),
+                    username,
                     usdkOrderDO.getUnfilledAmount().toPlainString(),
                     System.currentTimeMillis(),
                     BIZ_TYPE_PLACE_ORDER,
@@ -69,7 +69,7 @@ public class MonitorLogManager {
             if (marketAccountListService.contains(usdkOrderDO.getUserId())) {
                 return;
             }
-            tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{",
+            tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                     ORDER_TYPE_COIN,
                     usdkOrderDO.getAssetName(),
                     getUserNameByOrder(usdkOrderDO),
@@ -87,14 +87,14 @@ public class MonitorLogManager {
     /**
      * 合约下单
      */
-    public void placeContractOrderInfo(ContractOrderDO contractOrderDO) {
+    public void placeContractOrderInfo(ContractOrderDO contractOrderDO, String userName) {
         try {
             if (marketAccountListService.contains(contractOrderDO.getUserId())) {
                 return;
             }
-            tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{",
+            tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                     ORDER_TYPE_CONTRACT,
-                    contractOrderDO.getContractName(),
+                    userName,
                     getUserNameByOrder(contractOrderDO),
                     contractOrderDO.getUnfilledAmount().toPlainString(),
                     System.currentTimeMillis(),
@@ -112,7 +112,7 @@ public class MonitorLogManager {
             if (marketAccountListService.contains(contractOrderDO.getUserId())) {
                 return;
             }
-            tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{",
+            tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                     ORDER_TYPE_COIN,
                     contractOrderDO.getContractName(),
                     getUserNameByOrder(contractOrderDO),
@@ -174,7 +174,7 @@ public class MonitorLogManager {
      */
     public void adlInfo(UserPositionDO userPositionDO, BigDecimal adlAmount) {
         try {
-            tradeLog.info("adl@userId@@@orderDirection@@@contractName@@@amount@@@timestamp",
+            tradeLog.info("adl@{}@@@{}@@@{}@@@{}@@@{}",
                     userPositionDO.getUserId(),
                     userPositionDO.getPositionType(),
                     userPositionDO.getContractName(),

@@ -386,7 +386,7 @@ public class ContractOrderManager {
     private void logPlaceOrder(List<ContractOrderDO> contractOrderDOS , String username, String ipAddress){
 
         for (ContractOrderDO contractOrderDO : contractOrderDOS) {
-            monitorLogManager.placeContractOrderInfo(contractOrderDO);
+            monitorLogManager.placeContractOrderInfo(contractOrderDO, username);
 //            if (contractOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()) {
 //
 //                tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",

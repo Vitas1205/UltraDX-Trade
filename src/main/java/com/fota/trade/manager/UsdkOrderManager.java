@@ -220,7 +220,7 @@ public class UsdkOrderManager {
 //            tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
 //                    1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getTotalAmount(), transferTime, 3, usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 2);
         }
-        monitorLogManager.placeCoinOrderInfo(usdkOrderDO);
+        monitorLogManager.placeCoinOrderInfo(usdkOrderDO, username);
         usdkOrderDTO.setCompleteAmount(BigDecimal.ZERO);
         //消息一定要在事务外发，不然会出现收到下单消息，db还没有这个订单
        Runnable postTask = () -> {
@@ -331,7 +331,7 @@ public class UsdkOrderManager {
 //                tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
 //                        1, usdkOrderDTO.getAssetName(), username, ipAddress, usdkOrderDTO.getTotalAmount(), transferTime, 3, usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getUserId(), 2);
             }
-            monitorLogManager.placeCoinOrderInfo(usdkOrderDO);
+            monitorLogManager.placeCoinOrderInfo(usdkOrderDO, username);
         }
 
         try {
