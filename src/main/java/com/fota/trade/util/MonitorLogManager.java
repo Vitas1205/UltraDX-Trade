@@ -94,8 +94,8 @@ public class MonitorLogManager {
             }
             tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                     ORDER_TYPE_CONTRACT,
+                    contractOrderDO.getContractName(),
                     userName,
-                    getUserNameByOrder(contractOrderDO),
                     contractOrderDO.getUnfilledAmount().toPlainString(),
                     System.currentTimeMillis(),
                     contractOrderDO.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode()) ? BIZ_TYPE_FORCE_ORDER : BIZ_TYPE_PLACE_ORDER,
