@@ -235,11 +235,6 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         List<Long> orderIds = cancelOrderRequest.getOrderIds();
         try {
             result = usdkOrderManager.batchCancelOrder(userId, orderIds);
-            if (result.isSuccess()) {
-                for (Long orderId : orderIds){
-                    tradeLog.info("撤销@@@" + userId+ "@@@" + orderId);
-                }
-            }
             return result;
         }catch (Exception e){
             log.error("USDK batchCancel() failed", e);
@@ -261,9 +256,6 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         ResultCode resultCode = new ResultCode();
         try {
             resultCode = usdkOrderManager.cancelOrder(userId, orderId, userInfoMap);
-            if (resultCode.isSuccess()) {
-                tradeLog.info("撤销@@@" + userId+ "@@@" + orderId);
-            }
             return resultCode;
         }catch (Exception e){
             log.error("USDK cancelOrder() failed", e);
