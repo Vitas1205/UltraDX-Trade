@@ -174,7 +174,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
                 if (null != postTask) {
                     executorService.submit(postTask);
                 }
-                tradeLog.info("下单@@@" + usdkOrderDTO);
+//                tradeLog.info("下单@@@" + usdkOrderDTO);
             }
             return result;
         }catch (Exception e){
