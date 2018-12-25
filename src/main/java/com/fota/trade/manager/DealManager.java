@@ -26,6 +26,7 @@ import com.fota.trade.msg.ContractDealedMessage;
 import com.fota.trade.msg.TopicConstants;
 import com.fota.trade.service.ContractCategoryService;
 import com.fota.trade.util.*;
+import com.google.common.base.Joiner;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.common.message.Message;
@@ -311,8 +312,6 @@ public class DealManager {
             LogUtil.error(TradeBizTypeEnum.CONTRACT_DEAL, null, postDealMessages, "empty postDealMessages");
             return Result.fail(ILLEGAL_PARAM.getCode(), "empty postDealMessages in postDeal");
         }
-        String mkeys = postDealMessages.stream().map(ContractDealedMessage::msgKey)
-                .collect(Collectors.joining("-"));
         ContractDealedMessage sample = postDealMessages.get(0);
         long userId =sample.getUserId();
         long contractId = sample.getSubjectId();
@@ -411,12 +410,13 @@ public class DealManager {
 
 
     public UpdatePositionResult doUpdatePosition(long userId, long contractId, UserPositionDO oldPositionDO, List<ContractDealedMessage> postDealMessages) {
-        String requestId = postDealMessages.stream().map(ContractDealedMessage::msgKey).collect(Collectors.joining("-"));
+        String matchIds = postDealMessages.stream().map(msg -> Long.toString(msg.getMatchId())).collect(Collectors.joining("_"));
         ContractDealedMessage sample = postDealMessages.get(0);
         UpdatePositionResult result = new UpdatePositionResult();
         result.setUserId(userId)
                 .setContractId(contractId)
-                .setRequestId(requestId)
+                .setRequestId(Joiner.on("_").join(userId, sample.getMatchId()))
+                .setMatchIds(matchIds)
                 .setPostDealPhaseEnum(PostDealPhaseEnum.UPDATE_POSITION);
         boolean shouldInsert = false;
         UserPositionDO userPositionDO;
