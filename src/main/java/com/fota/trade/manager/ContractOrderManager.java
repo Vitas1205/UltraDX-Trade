@@ -412,19 +412,8 @@ public class ContractOrderManager {
     }
 
     private void logPlaceOrder(List<ContractOrderDO> contractOrderDOS , String username, String ipAddress){
-
         for (ContractOrderDO contractOrderDO : contractOrderDOS) {
             monitorLogManager.placeContractOrderInfo(contractOrderDO, username);
-//            if (contractOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()) {
-//
-//                tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-//                        2, contractOrderDO.getContractName(), username, ipAddress, contractOrderDO.getTotalAmount(),
-//                        System.currentTimeMillis(), 3, contractOrderDO.getOrderDirection(), contractOrderDO.getUserId(), 2);
-//            } else {
-//                tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-//                        2, contractOrderDO.getContractName(), username, ipAddress, contractOrderDO.getTotalAmount(),
-//                        System.currentTimeMillis(), 2, contractOrderDO.getOrderDirection(), contractOrderDO.getUserId(), 1);
-//            }
         }
     }
 
@@ -488,7 +477,6 @@ public class ContractOrderManager {
         }
         Integer toStatus = unfilledAmount.compareTo(contractOrderDO.getTotalAmount()) < 0 ? PART_CANCEL.getCode() : CANCEL.getCode();
 
-        Long transferTime = System.currentTimeMillis();
         int ret = contractOrderMapper.cancel(userId, orderId, toStatus);
         if (ret > 0) {
         } else {
@@ -498,15 +486,6 @@ public class ContractOrderManager {
         BeanUtils.copyProperties(contractOrderDO, contractOrderDTO);
         contractOrderDTO.setCompleteAmount(contractOrderDTO.getTotalAmount().subtract(unfilledAmount));
         contractOrderDTO.setContractId(contractOrderDO.getContractId());
-        JSONObject jsonObject = JSONObject.parseObject(contractOrderDO.getOrderContext());
-        // 日志系统需要
-        String username = "";
-        if (jsonObject != null && !jsonObject.isEmpty()) {
-            username = jsonObject.get("username") == null ? "" : jsonObject.get("username").toString();
-        }
-//        tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-//                2, contractOrderDTO.getContractName(), username, "", contractOrderDTO.getUnfilledAmount(),
-//                System.currentTimeMillis(), 1, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), 1);
         monitorLogManager.cancelContractOrderInfo(contractOrderDO);
         sendCanceledMessage(canceledMessage);
         updateExtraEntrustAmountByContract(contractOrderDO.getUserId(), contractOrderDO.getContractId());

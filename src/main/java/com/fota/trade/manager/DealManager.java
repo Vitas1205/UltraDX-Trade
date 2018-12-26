@@ -566,25 +566,7 @@ public class DealManager {
      * @param matchId
      */
     private void saveToLog(ContractOrderDO contractOrderDO, BigDecimal completeAmount, long matchId, BigDecimal filledPrice) {
-
-//        Map<String, Object> context = new HashMap<>();
-//        if (contractOrderDO.getOrderContext() != null) {
-//            context = JSON.parseObject(contractOrderDO.getOrderContext());
-//        }
-
-//        ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
-//        BeanUtils.copyProperties(contractOrderDO, contractOrderDTO);
-//        contractOrderDTO.setCompleteAmount(completeAmount);
-//        contractOrderDTO.setOrderContext(context);
-//        String userName = "";
-//        if (context != null) {
-//            userName = context.get("username") == null ? "" : String.valueOf(context.get("username"));
-//        }
-//        BigDecimal fee = contractOrderDO.getFee().multiply(filledPrice).multiply(completeAmount).setScale(16, RoundingMode.DOWN);
         monitorLogManager.contractDealOrderInfo(contractOrderDO, completeAmount, filledPrice);
-//        tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-//                2, contractOrderDTO.getContractName(), userName, contractOrderDTO.getCompleteAmount(),
-//                System.currentTimeMillis(), 4, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), fee);
     }
 
     public void updateTotalPosition(long contractId, UpdatePositionResult positionResult) {
