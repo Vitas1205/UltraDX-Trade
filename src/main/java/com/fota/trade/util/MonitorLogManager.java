@@ -55,7 +55,7 @@ public class MonitorLogManager {
                     BIZ_TYPE_PLACE_ORDER,
                     usdkOrderDO.getOrderDirection(),
                     usdkOrderDO.getUserId(),
-                    usdkOrderDO.getFee());
+                    BigDecimal.ZERO);
         } catch (Exception e) {
             log.error("placeCoinOrderInfo({}) exception", usdkOrderDO, e);
         }
@@ -78,7 +78,7 @@ public class MonitorLogManager {
                     BIZ_TYPE_CANCEL_ORDER,
                     usdkOrderDO.getOrderDirection(),
                     usdkOrderDO.getUserId(),
-                    usdkOrderDO.getFee());
+                    BigDecimal.ZERO);
         } catch (Exception e) {
             log.error("cancelCoinOrderInfo({}) exception", usdkOrderDO, e);
         }
@@ -101,7 +101,7 @@ public class MonitorLogManager {
                     contractOrderDO.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode()) ? BIZ_TYPE_FORCE_ORDER : BIZ_TYPE_PLACE_ORDER,
                     contractOrderDO.getOrderDirection(),
                     contractOrderDO.getUserId(),
-                    contractOrderDO.getFee());
+                    BigDecimal.ZERO);
         } catch (Exception e) {
             log.error("placeContractOrderInfo({}) exception", contractOrderDO, e);
         }
@@ -121,7 +121,7 @@ public class MonitorLogManager {
                     BIZ_TYPE_CANCEL_ORDER,
                     contractOrderDO.getOrderDirection(),
                     contractOrderDO.getUserId(),
-                    contractOrderDO.getFee());
+                    BigDecimal.ZERO);
         } catch (Exception e) {
             log.error("cancelContractOrderInfo({}) exception", contractOrderDO, e);
         }
