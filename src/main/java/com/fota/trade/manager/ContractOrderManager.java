@@ -300,14 +300,14 @@ public class ContractOrderManager {
         return Result.suc(placeOrderResults);
     }
 
-    private <T> Result<T> checkAndFillProperties(ContractOrderDO newContractOrderDO, List<CompetitorsPriceDTO> competitorsPrices, BigDecimal entrustValue, boolean check){
-        return checkAndFillProperties(newContractOrderDO, competitorsPrices, entrustValue, check, false);
+    private <T> Result<T> checkAndFillProperties(ContractOrderDO newContractOrderDO, List<CompetitorsPriceDTO> competitorsPrices, BigDecimal entrustValue, boolean checkPriceBoundary){
+        return checkAndFillProperties(newContractOrderDO, competitorsPrices, entrustValue, checkPriceBoundary, false);
     }
 
     /**
      * 计算价格，数量
      */
-    private <T> Result<T> checkAndFillProperties(ContractOrderDO newContractOrderDO, List<CompetitorsPriceDTO> competitorsPrices, BigDecimal entrustValue, boolean check, boolean isClose){
+    private <T> Result<T> checkAndFillProperties(ContractOrderDO newContractOrderDO, List<CompetitorsPriceDTO> competitorsPrices, BigDecimal entrustValue, boolean checkPriceBoundary, boolean isClose){
         int assetId = AssetTypeEnum.getAssetIdByContractName(newContractOrderDO.getContractName());
         if (assetId == AssetTypeEnum.UNKNOW.getCode()) {
             LogUtil.error( CONTRACT_ORDER, null,  newContractOrderDO.getContractName(), "illegal contractName");
@@ -315,7 +315,7 @@ public class ContractOrderManager {
         }
         //计算合约价格
         Result<BigDecimal> getPriceRes = computeAndCheckOrderPrice(competitorsPrices, newContractOrderDO.getOrderType(), newContractOrderDO.getPrice(),
-                assetId, newContractOrderDO.getContractId(), newContractOrderDO.getOrderDirection(), check);
+                assetId, newContractOrderDO.getContractId(), newContractOrderDO.getOrderDirection(), checkPriceBoundary);
         if (!getPriceRes.isSuccess()) {
             return Result.fail(getPriceRes.getCode(), getPriceRes.getMessage());
         }
@@ -325,19 +325,20 @@ public class ContractOrderManager {
 
         //根据金额计算数量
         int scale = AssetTypeEnum.getContractAmountPrecisionByAssetId(assetId);
+        BigDecimal newAmount;
         if (null != entrustValue) {
-            newContractOrderDO.setTotalAmount(entrustValue.divide(newContractOrderDO.getPrice(), scale, ROUND_DOWN));
-            newContractOrderDO.setUnfilledAmount(newContractOrderDO.getTotalAmount());
-        }else {
-            BigDecimal newAmount = newContractOrderDO.getTotalAmount().setScale(scale, ROUND_DOWN);
-            if (isClose && newAmount.compareTo(BigDecimal.ZERO) <= 0) {
-                //平仓时，如果平仓数量小于当前精度的最小值则平仓数量替换为最小值
-                newAmount = BigDecimal.ONE.divide(BigDecimal.valueOf(Math.pow(10, scale)), scale, ROUND_DOWN);
-            }
-            newContractOrderDO.setTotalAmount(newAmount);
-            newContractOrderDO.setUnfilledAmount(newContractOrderDO.getTotalAmount());
+            newAmount = entrustValue.divide(newContractOrderDO.getPrice(), scale, ROUND_DOWN);
+        } else {
+            newAmount = newContractOrderDO.getTotalAmount().setScale(scale, ROUND_DOWN);
         }
-        if (newContractOrderDO.getTotalAmount().compareTo(BigDecimal.ZERO) <= 0) {
+
+        if (isClose && newAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            //平仓时，如果平仓数量小于当前精度的最小值则平仓数量替换为最小值
+            newAmount = BigDecimal.ONE.divide(BigDecimal.valueOf(Math.pow(10, scale)), scale, ROUND_DOWN);
+        }
+        newContractOrderDO.setTotalAmount(newAmount);
+        newContractOrderDO.setUnfilledAmount(newAmount);
+        if (newAmount.compareTo(BigDecimal.ZERO) <= 0) {
             return Result.fail(AMOUNT_ILLEGAL.getCode(), "合约金额太小");
         }
         return Result.suc(null);
