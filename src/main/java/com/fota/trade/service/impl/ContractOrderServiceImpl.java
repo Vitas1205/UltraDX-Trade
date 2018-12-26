@@ -19,6 +19,7 @@ import com.fota.trade.util.Profiler;
 import com.fota.trade.util.ThreadContextUtil;
 import com.google.common.base.Joiner;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +29,7 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.fota.common.ResultCodeEnum.ILLEGAL_PARAM;
 import static com.fota.trade.client.constants.Constants.TABLE_NUMBER;
 import static com.fota.trade.common.ResultCodeEnum.*;
 import static com.fota.trade.common.TradeBizTypeEnum.CONTRACT_DEAL;
@@ -60,6 +62,8 @@ public class ContractOrderServiceImpl implements ContractOrderService {
 
     @Autowired
     private MarketAccountListService marketAccountListService;
+
+    public static final int MAX_BATCH_SIZE = 100;
 
     @Override
     public com.fota.common.Page<ContractOrderDTO> listContractOrderByQuery(BaseQuery contractOrderQueryDTO) {
@@ -130,6 +134,22 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         return Result.suc(recoveryMetaData);
     }
 
+    @Override
+    public Result<List<ContractOrderDTO>> queryOrderByIds(Long userId, List<Long> ids) {
+        if (null == userId || CollectionUtils.isEmpty(ids)) {
+            return Result.fail(ILLEGAL_PARAM.getCode(), ILLEGAL_PARAM.getMessage());
+        }
+        if (ids.size() > MAX_BATCH_SIZE) {
+            return Result.fail(ILLEGAL_PARAM.getCode(), "exceed maxBatchSize"+ MAX_BATCH_SIZE);
+        }
+        List<ContractOrderDO> contractOrderDOS = contractOrderMapper.selectByUserIdAndIds(userId, ids);
+        if (CollectionUtils.isEmpty(contractOrderDOS)) {
+            return Result.suc(new LinkedList<>());
+        }
+        List<ContractOrderDTO> contractOrderDTOS = contractOrderDOS.stream().map(BeanUtils::copy).collect(Collectors.toList());
+        return Result.suc(contractOrderDTOS);
+    }
+
 
     @Override
     public Result<Page<ContractOrderDTO>> listContractOrder4Recovery(RecoveryQuery recoveryQuery) {
@@ -182,12 +202,18 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     @Override
     public ResultCode order(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
         if (null == contractOrderDTO || null == contractOrderDTO.getOrderType()) {
-            return ResultCode.error(ILLEGAL_PARAM.getCode(), ILLEGAL_PARAM.getMessage());
+            return ResultCode.error(ResultCodeEnum.ILLEGAL_PARAM.getCode(), ResultCodeEnum.ILLEGAL_PARAM.getMessage());
         }
-        PlaceOrderRequest placeOrderRequest = ConvertUtils.toPlaceOrderRequest(contractOrderDTO, userInfoMap, UserLevelEnum.DEFAULT, FotaApplicationEnum.WEB);
         //TODO 不允许下强平单，暂时兼容以前逻辑
         boolean isEnforce = ENFORCE.getCode() == contractOrderDTO.getOrderType();
-        Result<List<PlaceOrderResult>> result = internalBatchOrder(placeOrderRequest, isEnforce);
+        Result<List<PlaceOrderResult>> result;
+        //有平仓百分比时进行平仓
+        if (Objects.nonNull(contractOrderDTO.getPositionPercent())) {
+            result = closePosition(contractOrderDTO, userInfoMap);
+        } else {
+            PlaceOrderRequest placeOrderRequest = ConvertUtils.toPlaceOrderRequest(contractOrderDTO, userInfoMap, FotaApplicationEnum.WEB);
+            result = internalBatchOrder(placeOrderRequest, isEnforce);
+        }
         ResultCode resultCode = new ResultCode();
         resultCode.setCode(result.getCode());
         resultCode.setMessage(result.getMessage());
@@ -196,7 +222,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
 
     @Override
     public Result<Long> orderWithEnforce(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
-        PlaceOrderRequest placeOrderRequest = ConvertUtils.toPlaceOrderRequest(contractOrderDTO, userInfoMap, UserLevelEnum.DEFAULT, FotaApplicationEnum.MARGIN);
+        PlaceOrderRequest placeOrderRequest = ConvertUtils.toPlaceOrderRequest(contractOrderDTO, userInfoMap, FotaApplicationEnum.MARGIN);
         Result<List<PlaceOrderResult>> result = internalBatchOrder(placeOrderRequest, true);
         if (!result.isSuccess()) {
             return Result.fail(result.getCode(), result.getMessage());
@@ -206,7 +232,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
 
     @Override
     public com.fota.common.Result<Long> orderReturnId(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
-        PlaceOrderRequest placeOrderRequest = ConvertUtils.toPlaceOrderRequest(contractOrderDTO, userInfoMap, UserLevelEnum.FREE, FotaApplicationEnum.TRADING_API);
+        PlaceOrderRequest placeOrderRequest = ConvertUtils.toPlaceOrderRequest(contractOrderDTO, userInfoMap, FotaApplicationEnum.TRADING_API);
         Result<List<PlaceOrderResult>> result = internalBatchOrder(placeOrderRequest, false);
         if (!result.isSuccess()) {
             return Result.fail(result.getCode(), result.getMessage());
@@ -219,12 +245,35 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         return internalBatchOrder(placeOrderRequest, false);
     }
 
-    private Result<List<PlaceOrderResult>> internalBatchOrder(PlaceOrderRequest<PlaceContractOrderDTO> placeOrderRequest, boolean isEnforce){
+    public Result closePosition(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap) {
+        if (!ObjectUtils.allNotNull(contractOrderDTO.getTotalAmount(), contractOrderDTO.getUserId())) {
+            return Result.fail(ILLEGAL_PARAM);
+        }
+
+        contractOrderDTO.setEntrustValue(null);
+        contractOrderDTO.setTotalAmount(contractOrderDTO.getTotalAmount()
+                .multiply(BigDecimal.valueOf(contractOrderDTO.getPositionPercent())
+                        .divide(BigDecimal.valueOf(100), 8, BigDecimal.ROUND_DOWN)));
+        PlaceOrderRequest<PlaceContractOrderDTO> placeOrderRequest = ConvertUtils.toPlaceOrderRequest(contractOrderDTO,
+                userInfoMap, FotaApplicationEnum.WEB);
+        Result<List<PlaceOrderResult>> result = internalBatchOrder(placeOrderRequest, false, true);
+        if (result.getCode() == CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode()) {
+            return Result.fail(NOT_ENOUGH_MARGIN_FOR_CLOSING.getCode(), NOT_ENOUGH_MARGIN_FOR_CLOSING.getMessage());
+        }
+
+        return result;
+    }
+
+    private Result<List<PlaceOrderResult>> internalBatchOrder(PlaceOrderRequest<PlaceContractOrderDTO> placeOrderRequest, boolean isEnforce) {
+        return internalBatchOrder(placeOrderRequest, isEnforce, false);
+    }
+
+    private Result<List<PlaceOrderResult>> internalBatchOrder(PlaceOrderRequest<PlaceContractOrderDTO> placeOrderRequest, boolean isEnforce, boolean isClose){
         com.fota.common.Result<List<PlaceOrderResult>> result = new com.fota.common.Result<>();
         Profiler profiler = new Profiler("ContractOrderManager.placeOrder");
-        ThreadContextUtil.setPrifiler(profiler);
+        ThreadContextUtil.setProfiler(profiler);
         try {
-            result = contractOrderManager.placeOrder(placeOrderRequest, isEnforce);
+            result = contractOrderManager.placeOrder(placeOrderRequest, isEnforce, isClose);
             if (result.isSuccess()) {
                 profiler.setTraceId(result.getData()+"");
                 Runnable postTask = ThreadContextUtil.getPostTask();
@@ -239,8 +288,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
             if (e instanceof BizException){
                 BizException bizException = (BizException) e;
                 LogUtil.error( CONTRACT_ORDER.name(), null, placeOrderRequest, bizException.getMessage());
-                result.fail(bizException.getCode(), bizException.getMessage());
-                return result;
+                return Result.fail(bizException.getCode(), bizException.getMessage());
             }else {
                 LogUtil.error( CONTRACT_ORDER,  null, placeOrderRequest,  e);
             }
@@ -278,7 +326,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
     public Result batchCancel(CancelOrderRequest cancelOrderRequest) {
         try {
             if (null == cancelOrderRequest || !cancelOrderRequest.checkParam()) {
-                return Result.fail(com.fota.common.ResultCodeEnum.ILLEGAL_PARAM);
+                return Result.fail(ILLEGAL_PARAM);
             }
             contractOrderManager.sendCancelReq( cancelOrderRequest.getOrderIds(), cancelOrderRequest.getUserId());
             return Result.suc(null);
@@ -310,10 +358,6 @@ public class ContractOrderServiceImpl implements ContractOrderService {
 
     /**
      * 撤销用户非强平单
-     * * @荆轲
-     * @param userId
-     * @param orderTypes
-     * @return
      */
     @Override
     public ResultCode cancelOrderByOrderType(long userId, List<Integer> orderTypes, Map<String, String> userInfoMap) {
@@ -333,12 +377,26 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         return resultCode;
     }
 
+    @Override
+    public Result cancelReverseOrdersByPosition(UserPositionDTO userPositionDTO) {
+        if (Objects.isNull(userPositionDTO) ||
+                !ObjectUtils.allNotNull(userPositionDTO.getUserId(), userPositionDTO.getContractId(),
+                        userPositionDTO.getPositionType())) {
+            return Result.fail(ILLEGAL_PARAM);
+        }
+        Result result;
+        try {
+            result = contractOrderManager.cancelUserOrdersByContractIdAndDirection(userPositionDTO.getUserId(),
+                    userPositionDTO.getContractId(), userPositionDTO.getPositionType());
+        } catch (Exception e) {
+            log.error("contract cancelUserOrdersByContractIdAndDirection: {} failed", userPositionDTO, e);
+            result = Result.fail(com.fota.common.ResultCodeEnum.SERVICE_EXCEPTION);
+        }
+        return result;
+    }
 
     /**
      * 撤销该合约的所有委托订单
-     ** * @王冕
-     * @param contractId
-     * @return
      */
     @Override
     public ResultCode cancelOrderByContractId(long contractId, Map<String, String> userInfoMap) {
@@ -371,7 +429,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         Profiler profiler = new Profiler("ContractOrderManager.updateOrderByMatch", messageKey);
         profiler.setStart(contractMatchedOrderDTO.getGmtCreate().getTime());
         profiler.complelete("receive message");
-        ThreadContextUtil.setPrifiler(profiler);
+        ThreadContextUtil.setProfiler(profiler);
 
         try {
             return dealManager.deal(contractMatchedOrderDTO);

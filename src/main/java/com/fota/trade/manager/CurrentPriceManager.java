@@ -1,10 +1,7 @@
 package com.fota.trade.manager;
 
-import com.fota.data.domain.DeliveryIndexDTO;
 import com.fota.data.domain.TickerDTO;
 import com.fota.data.manager.IndexCacheManager;
-import com.fota.data.service.SpotIndexService;
-import com.fota.trade.client.AssetExtraProperties;
 import com.fota.trade.util.Profiler;
 import com.fota.trade.util.ThreadContextUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -13,9 +10,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.util.CollectionUtils;
 
-import java.math.BigDecimal;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -31,7 +26,7 @@ public class CurrentPriceManager {
 
     @Cacheable(value = "spotIndexes", sync = true)
     public List<TickerDTO> getSpotIndexes(){
-        Profiler profiler = ThreadContextUtil.getPrifiler();
+        Profiler profiler = ThreadContextUtil.getProfiler();
         try {
             List<TickerDTO> ret = indexCacheManager.listCurrentSpotIndex();
             if (null != profiler) {

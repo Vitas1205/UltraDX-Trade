@@ -116,6 +116,7 @@ public class PostDealConsumer {
 //                    log.info("post deal mqKeys:{}", mqKeys);
                     List<ContractDealedMessage> postDealMessages = msgs
                             .stream()
+                            .filter(DistinctFilter.distinctByKey(MessageExt::getKeys))
                             .map(x -> {
                                 ContractDealedMessage message = BasicUtils.exeWhitoutError(()->JSON.parseObject(x.getBody(), ContractDealedMessage.class));
                                 if (null == message) {
