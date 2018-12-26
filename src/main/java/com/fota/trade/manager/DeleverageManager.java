@@ -156,9 +156,6 @@ public class DeleverageManager {
                 Runnable task = () -> {
                     dealManager.processAfterPositionUpdated(positionResult, Arrays.asList(contractDealedMessage));
                     monitorLogManager.adlInfo(userPositionDO, subAmount);
-//                    tradeLog.info("adl@{}@@@{}@@@{}@@@{}@@@{}", userPositionDO.getUserId(),
-//                            userPositionDO.getPositionType(), userPositionDO.getContractName(), subAmount, System.currentTimeMillis());
-
                 };
                 updateBalanceTasks.add(task);
                 updatePositionResults.add(positionResult);
