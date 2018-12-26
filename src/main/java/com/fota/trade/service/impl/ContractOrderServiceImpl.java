@@ -256,7 +256,7 @@ public class ContractOrderServiceImpl implements ContractOrderService {
                         .divide(BigDecimal.valueOf(100), 8, BigDecimal.ROUND_DOWN)));
         PlaceOrderRequest<PlaceContractOrderDTO> placeOrderRequest = ConvertUtils.toPlaceOrderRequest(contractOrderDTO,
                 userInfoMap, FotaApplicationEnum.WEB);
-        Result<List<PlaceOrderResult>> result = internalBatchOrder(placeOrderRequest, false);
+        Result<List<PlaceOrderResult>> result = internalBatchOrder(placeOrderRequest, false, true);
         if (result.getCode() == CONTRACT_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode()) {
             return Result.fail(NOT_ENOUGH_MARGIN_FOR_CLOSING.getCode(), NOT_ENOUGH_MARGIN_FOR_CLOSING.getMessage());
         }
@@ -264,12 +264,16 @@ public class ContractOrderServiceImpl implements ContractOrderService {
         return result;
     }
 
-    private Result<List<PlaceOrderResult>> internalBatchOrder(PlaceOrderRequest<PlaceContractOrderDTO> placeOrderRequest, boolean isEnforce){
+    private Result<List<PlaceOrderResult>> internalBatchOrder(PlaceOrderRequest<PlaceContractOrderDTO> placeOrderRequest, boolean isEnforce) {
+        return internalBatchOrder(placeOrderRequest, isEnforce, false);
+    }
+
+    private Result<List<PlaceOrderResult>> internalBatchOrder(PlaceOrderRequest<PlaceContractOrderDTO> placeOrderRequest, boolean isEnforce, boolean isClose){
         com.fota.common.Result<List<PlaceOrderResult>> result = new com.fota.common.Result<>();
         Profiler profiler = new Profiler("ContractOrderManager.placeOrder");
         ThreadContextUtil.setProfiler(profiler);
         try {
-            result = contractOrderManager.placeOrder(placeOrderRequest, isEnforce);
+            result = contractOrderManager.placeOrder(placeOrderRequest, isEnforce, isClose);
             if (result.isSuccess()) {
                 profiler.setTraceId(result.getData()+"");
                 Runnable postTask = ThreadContextUtil.getPostTask();
