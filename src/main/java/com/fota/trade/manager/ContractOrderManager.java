@@ -330,7 +330,7 @@ public class ContractOrderManager {
             newContractOrderDO.setUnfilledAmount(newContractOrderDO.getTotalAmount());
         }else {
             BigDecimal newAmount = newContractOrderDO.getTotalAmount().setScale(scale, ROUND_DOWN);
-            if (isClose && newContractOrderDO.getTotalAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            if (isClose && newAmount.compareTo(BigDecimal.ZERO) <= 0) {
                 //平仓时，如果平仓数量小于当前精度的最小值则平仓数量替换为最小值
                 newAmount = BigDecimal.ONE.divide(BigDecimal.valueOf(Math.pow(10, scale)), scale, ROUND_DOWN);
             }
