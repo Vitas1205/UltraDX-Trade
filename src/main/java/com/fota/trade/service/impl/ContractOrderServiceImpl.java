@@ -379,12 +379,17 @@ public class ContractOrderServiceImpl implements ContractOrderService {
 
     @Override
     public Result cancelReverseOrdersByPosition(UserPositionDTO userPositionDTO) {
-        Result result = Result.create();
+        if (Objects.isNull(userPositionDTO) ||
+                !ObjectUtils.allNotNull(userPositionDTO.getUserId(), userPositionDTO.getContractId(),
+                        userPositionDTO.getPositionType())) {
+            return Result.fail(ILLEGAL_PARAM);
+        }
+        Result result;
         try {
             result = contractOrderManager.cancelUserOrdersByContractIdAndDirection(userPositionDTO.getUserId(),
                     userPositionDTO.getContractId(), userPositionDTO.getPositionType());
         } catch (Exception e) {
-            log.error("contract cancelUserOrdersByContractIdAndDirection failed", e);
+            log.error("contract cancelUserOrdersByContractIdAndDirection: {} failed", userPositionDTO, e);
             result = Result.fail(com.fota.common.ResultCodeEnum.SERVICE_EXCEPTION);
         }
         return result;
