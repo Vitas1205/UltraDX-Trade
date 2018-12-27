@@ -15,6 +15,7 @@ import java.math.BigDecimal;
 public class UpdatePositionResult {
 
     String requestId;
+    String matchIds;
     long userId;
     long contractId;
     /**

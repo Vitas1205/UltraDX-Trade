@@ -7,7 +7,6 @@ import com.fota.common.enums.FotaApplicationEnum;
 import com.fota.trade.client.*;
 import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
-import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderTypeEnum;
 import com.fota.trade.manager.RedisManager;
@@ -175,20 +174,19 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
                 if (null != postTask) {
                     executorService.submit(postTask);
                 }
-                tradeLog.info("下单@@@" + usdkOrderDTO);
+//                tradeLog.info("下单@@@" + usdkOrderDTO);
             }
             return result;
         }catch (Exception e){
             if (e instanceof BusinessException){
                 BusinessException businessException = (BusinessException) e;
-                log.error("usdk order fialed, usdkOrderDTO={}, code={}, message={}", usdkOrderDTO, businessException.getCode(), businessException.getMessage());
                 result.setCode(businessException.getCode());
                 result.setMessage(businessException.getMessage());
                 return result;
             }
             log.error("USDK order() failed", e);
         }finally {
-            Profiler profiler = ThreadContextUtil.getPrifiler();
+            Profiler profiler = ThreadContextUtil.getProfiler();
             if (null != profiler) {
                 profiler.log();
             }
@@ -220,6 +218,10 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
                 }
             }
         }catch (Exception e){
+            if (e instanceof BusinessException) {
+                BusinessException bE = (BusinessException)e;
+                return result.error(bE.getCode(), bE.getMessage());
+            }
             log.error("batchOrder exception, placeOrderRequest = ", placeOrderRequest, e);
             return result.error(ResultCodeEnum.ORDER_FAILED.getCode(),ResultCodeEnum.ORDER_FAILED.getMessage());
         }
@@ -233,11 +235,6 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         List<Long> orderIds = cancelOrderRequest.getOrderIds();
         try {
             result = usdkOrderManager.batchCancelOrder(userId, orderIds);
-            if (result.isSuccess()) {
-                for (Long orderId : orderIds){
-                    tradeLog.info("撤销@@@" + userId+ "@@@" + orderId);
-                }
-            }
             return result;
         }catch (Exception e){
             log.error("USDK batchCancel() failed", e);
@@ -259,9 +256,6 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         ResultCode resultCode = new ResultCode();
         try {
             resultCode = usdkOrderManager.cancelOrder(userId, orderId, userInfoMap);
-            if (resultCode.isSuccess()) {
-                tradeLog.info("撤销@@@" + userId+ "@@@" + orderId);
-            }
             return resultCode;
         }catch (Exception e){
             log.error("USDK cancelOrder() failed", e);
@@ -303,7 +297,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         profiler.setStart(usdkMatchedOrderDTO.getGmtCreate().getTime());
         try {
             profiler.complelete("receive message");
-            ThreadContextUtil.setPrifiler(profiler);
+            ThreadContextUtil.setProfiler(profiler);
             resultCode = usdkOrderManager.updateOrderByMatch(usdkMatchedOrderDTO);
             if (resultCode.isSuccess()) {
                 Runnable postTask = ThreadContextUtil.getPostTask();

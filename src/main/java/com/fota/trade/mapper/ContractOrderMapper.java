@@ -1,9 +1,6 @@
 package com.fota.trade.mapper;
 
-import com.fota.trade.UpdateOrderItem;
-import com.fota.trade.client.RecoveryQuery;
 import com.fota.trade.domain.ContractOrderDO;
-import com.fota.trade.domain.DateWrapper;
 import com.fota.trade.mapper.common.BaseMapper;
 import org.apache.ibatis.annotations.*;
 
@@ -41,11 +38,14 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
 
 
     @Select({
-            "select * from trade_contract_order",
+            "select * from trade_contract_order ",
             "where user_id =  #{userId,jdbcType=BIGINT} and id = #{id,jdbcType=BIGINT}"
     })
     @ResultMap("BaseResultMap")
     ContractOrderDO selectByIdAndUserId(@Param("userId") Long userId, @Param("id") Long id);
+
+
+    List<ContractOrderDO> selectByUserIdAndIds(@Param("userId") Long userId, @Param("items") List<Long> ids);
 
     @Select(  " select max(gmt_create) " +
             " from trade_contract_order " +
@@ -61,7 +61,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
 
     @Select({
             "select * ",
-            "from trade_contract_order",
+            "from trade_contract_order ",
             "where user_id =  #{userId,jdbcType=BIGINT} and status in (8,9)"
     })
     @ResultMap("BaseResultMap")
@@ -69,7 +69,7 @@ public interface ContractOrderMapper extends BaseMapper<ContractOrderDO> {
 
     @Select({
             "select * ",
-            "from trade_contract_order",
+            "from trade_contract_order ",
             "where user_id =  #{userId,jdbcType=BIGINT} and status in (8,9) and order_type != 3"
     })
     @ResultMap("BaseResultMap")

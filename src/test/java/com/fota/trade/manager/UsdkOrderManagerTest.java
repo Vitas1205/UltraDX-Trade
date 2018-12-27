@@ -15,6 +15,7 @@ import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderTypeEnum;
 import com.fota.trade.mapper.UsdkOrderMapper;
+import com.fota.trade.util.MonitorLogManager;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -48,6 +49,9 @@ public class UsdkOrderManagerTest {
 
     @Mock
     private AssetService assetService;
+
+    @Mock
+    private MonitorLogManager monitorLogManager;
 
     @InjectMocks
     private UsdkOrderManager usdkOrderManager;

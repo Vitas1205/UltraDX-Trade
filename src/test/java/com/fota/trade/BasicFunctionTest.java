@@ -5,6 +5,7 @@ import com.fota.trade.client.FailedRecord;
 import com.fota.trade.common.TradeBizTypeEnum;
 import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.util.BasicUtils;
+import com.fota.trade.util.DistinctFilter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.junit.Test;
@@ -12,6 +13,7 @@ import org.springframework.dao.DataAccessException;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -85,4 +87,17 @@ public class BasicFunctionTest {
         int h = BasicUtils.absHash(Integer.MIN_VALUE);
         assert h>=0;
     }
+    @Test
+    public void testDistinctFilter(){
+        MessageExt messageExt1 = new MessageExt(), messageExt2=new MessageExt(), messageExt3 = new MessageExt();
+        messageExt1.setKeys("1");
+        messageExt2.setKeys("2");
+        messageExt3.setKeys("1");
+        List<MessageExt> messageExts = Arrays.asList(messageExt1, messageExt2, messageExt3);
+        List<MessageExt> newList = messageExts.stream().filter(DistinctFilter.distinctByKey(MessageExt::getKeys))
+                .collect(Collectors.toList());
+        assert newList.size() == 2 && newList.contains(messageExt1) && newList.contains(messageExt2);
+
+    }
+
 }

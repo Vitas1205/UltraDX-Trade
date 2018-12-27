@@ -11,7 +11,10 @@ import com.fota.common.utils.LogUtil;
 import com.fota.trade.UpdateOrderItem;
 import com.fota.trade.client.FailedRecord;
 import com.fota.trade.client.PostDealPhaseEnum;
-import com.fota.trade.common.*;
+import com.fota.trade.common.Constant;
+import com.fota.trade.common.ResultCodeEnum;
+import com.fota.trade.common.TradeBizTypeEnum;
+import com.fota.trade.common.UpdatePositionResult;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.dto.ProcessNoEnforceResult;
 import com.fota.trade.domain.enums.PositionTypeEnum;
@@ -23,7 +26,7 @@ import com.fota.trade.msg.ContractDealedMessage;
 import com.fota.trade.msg.TopicConstants;
 import com.fota.trade.service.ContractCategoryService;
 import com.fota.trade.util.*;
-import com.google.common.base.Predicates;
+import com.google.common.base.Joiner;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.common.message.Message;
@@ -39,7 +42,6 @@ import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.*;
@@ -59,7 +61,6 @@ import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
 import static com.fota.trade.domain.enums.PositionTypeEnum.EMPTY;
 import static com.fota.trade.domain.enums.PositionTypeEnum.OVER;
-import static java.math.BigDecimal.ROUND_DOWN;
 import static java.math.BigDecimal.ZERO;
 import static org.springframework.transaction.annotation.Propagation.REQUIRED;
 
@@ -108,6 +109,9 @@ public class DealManager {
     @Autowired
     private AssetWriteService assetWriteService;
 
+    @Autowired
+    private MonitorLogManager monitorLogManager;
+
 
     private static final Logger UPDATE_POSITION_FAILED_LOGGER = LoggerFactory.getLogger("updatePositionFailed");
     private static final Logger UPDATE_POSITION_EXTRA_LOGGER = LoggerFactory.getLogger("updatePositionExtraInfo");
@@ -152,8 +156,8 @@ public class DealManager {
             }
             return a.getId().compareTo(b.getId());
         });
-        Profiler profiler = null == ThreadContextUtil.getPrifiler()
-                ? new Profiler("ContractOrderManager.updateOrderByMatch") : ThreadContextUtil.getPrifiler();
+        Profiler profiler = null == ThreadContextUtil.getProfiler()
+                ? new Profiler("ContractOrderManager.updateOrderByMatch") : ThreadContextUtil.getProfiler();
 
         ResultCode resultCode = new ResultCode();
 
@@ -310,8 +314,6 @@ public class DealManager {
             LogUtil.error(TradeBizTypeEnum.CONTRACT_DEAL, null, postDealMessages, "empty postDealMessages");
             return Result.fail(ILLEGAL_PARAM.getCode(), "empty postDealMessages in postDeal");
         }
-        String mkeys = postDealMessages.stream().map(ContractDealedMessage::msgKey)
-                .collect(Collectors.joining("-"));
         ContractDealedMessage sample = postDealMessages.get(0);
         long userId =sample.getUserId();
         long contractId = sample.getSubjectId();
@@ -410,12 +412,13 @@ public class DealManager {
 
 
     public UpdatePositionResult doUpdatePosition(long userId, long contractId, UserPositionDO oldPositionDO, List<ContractDealedMessage> postDealMessages) {
-        String requestId = postDealMessages.stream().map(ContractDealedMessage::msgKey).collect(Collectors.joining("-"));
+        String matchIds = postDealMessages.stream().map(msg -> Long.toString(msg.getMatchId())).collect(Collectors.joining("_"));
         ContractDealedMessage sample = postDealMessages.get(0);
         UpdatePositionResult result = new UpdatePositionResult();
         result.setUserId(userId)
                 .setContractId(contractId)
-                .setRequestId(requestId)
+                .setRequestId(Joiner.on("_").join(userId, sample.getMatchId()))
+                .setMatchIds(matchIds)
                 .setPostDealPhaseEnum(PostDealPhaseEnum.UPDATE_POSITION);
         boolean shouldInsert = false;
         UserPositionDO userPositionDO;
@@ -563,24 +566,7 @@ public class DealManager {
      * @param matchId
      */
     private void saveToLog(ContractOrderDO contractOrderDO, BigDecimal completeAmount, long matchId, BigDecimal filledPrice) {
-
-        Map<String, Object> context = new HashMap<>();
-        if (contractOrderDO.getOrderContext() != null) {
-            context = JSON.parseObject(contractOrderDO.getOrderContext());
-        }
-
-        ContractOrderDTO contractOrderDTO = new ContractOrderDTO();
-        BeanUtils.copyProperties(contractOrderDO, contractOrderDTO);
-        contractOrderDTO.setCompleteAmount(completeAmount);
-        contractOrderDTO.setOrderContext(context);
-        String userName = "";
-        if (context != null) {
-            userName = context.get("username") == null ? "" : String.valueOf(context.get("username"));
-        }
-        BigDecimal fee = contractOrderDO.getFee().multiply(filledPrice).multiply(completeAmount).setScale(16, RoundingMode.DOWN);
-        tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
-                2, contractOrderDTO.getContractName(), userName, contractOrderDTO.getCompleteAmount(),
-                System.currentTimeMillis(), 4, contractOrderDTO.getOrderDirection(), contractOrderDTO.getUserId(), fee);
+        monitorLogManager.contractDealOrderInfo(contractOrderDO, completeAmount, filledPrice);
     }
 
     public void updateTotalPosition(long contractId, UpdatePositionResult positionResult) {

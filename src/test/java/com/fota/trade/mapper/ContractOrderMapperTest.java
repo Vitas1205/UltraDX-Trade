@@ -6,10 +6,16 @@ import com.fota.trade.domain.query.ContractOrderQuery;
 import com.fota.trade.util.MockUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static com.fota.trade.common.TestConfig.userId;
@@ -19,11 +25,10 @@ import static com.fota.trade.domain.enums.OrderStatusEnum.CANCEL;
  * @author Gavin Shen
  * @Date 2018/7/8
  */
-//@RunWith(SpringRunner.class)
-//@SpringBootTest
+@RunWith(SpringRunner.class)
+@SpringBootTest
 @Slf4j
-//@ContextConfiguration(classes = MapperTestConfig.class)
-//@Transactional
+@Transactional
 public class ContractOrderMapperTest {
 
     @Resource
@@ -31,7 +36,7 @@ public class ContractOrderMapperTest {
 
     private ContractOrderDO contractOrderDO;
 
-//    @Before
+    @Before
     public void init() {
         contractOrderDO = MockUtils.mockContractOrder();
         int insertRet = contractOrderMapper.insert(contractOrderDO);
@@ -57,6 +62,11 @@ public class ContractOrderMapperTest {
         contractOrderQuery.setPageNo(1);
         List<ContractOrderDO> list = contractOrderMapper.listByQuery((ParamUtil.objectToMap(contractOrderQuery)));
         log.info("listByQuery result={}", list);
+    }
+    @Test
+    public void testSelectByIds(){
+        List<ContractOrderDO> contractOrderDOS = contractOrderMapper.selectByUserIdAndIds(contractOrderDO.getUserId(), Arrays.asList(contractOrderDO.getId()));
+        assert contractOrderDOS.size() > 0;
     }
 
 

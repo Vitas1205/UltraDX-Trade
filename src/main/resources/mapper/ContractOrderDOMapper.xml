@@ -110,6 +110,9 @@
         <if test="orderType != null">
             and order_type = #{orderType}
         </if>
+        <if test="orderDirection != null">
+            and order_direction = #{orderDirection}
+        </if>
         order by gmt_create desc
         limit #{startRow,jdbcType=INTEGER}, #{endRow,jdbcType=INTEGER}
     </select>
@@ -168,5 +171,18 @@
             from trade_contract_order
             where user_id = #{userId,jdbcType=BIGINT} and contract_id = #{contractId}  and status in (8,9) and order_type != 3
             limit 500
+    </select>
+    
+    
+    <select id="selectByUserIdAndIds" resultType="com.fota.trade.domain.ContractOrderDO">
+        select <include refid="Base_Column_List"/>
+        from trade_contract_order
+        where user_id = #{userId,jdbcType=BIGINT}
+        <if test="items != null and items.size != 0">
+            and id in
+            <foreach item="item" index="index" collection="items" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
     </select>
 </mapper>

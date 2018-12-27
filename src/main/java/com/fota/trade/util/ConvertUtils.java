@@ -8,9 +8,10 @@ import com.fota.trade.client.PlaceContractOrderDTO;
 import com.fota.trade.client.PlaceOrderRequest;
 import com.fota.trade.client.UserLevelEnum;
 import com.fota.trade.common.BeanUtils;
-import com.fota.trade.domain.*;
-import com.fota.trade.domain.enums.OrderCloseType;
-import com.fota.trade.domain.enums.OrderTypeEnum;
+import com.fota.trade.domain.ADLMatchedDTO;
+import com.fota.trade.domain.ContractMatchedOrderDO;
+import com.fota.trade.domain.ContractOrderDO;
+import com.fota.trade.domain.ContractOrderDTO;
 import com.fota.trade.msg.ContractDealedMessage;
 import com.fota.trade.msg.ContractPlaceOrderMessage;
 
@@ -134,15 +135,9 @@ public class ConvertUtils {
         return placeOrderMessage;
     }
 
-    public static List<ContractOrderDO> extractContractOrderDOS(PlaceOrderRequest<PlaceContractOrderDTO> placeOrderRequest) {
 
-        BigDecimal feeRate = placeOrderRequest.getUserLevel().getFeeRate();
-        return placeOrderRequest.getPlaceOrderDTOS().stream().map(x -> extractContractOrderDO(x, placeOrderRequest.getUserId(),
-                feeRate, placeOrderRequest.getUserName(), placeOrderRequest.getIp())).collect(Collectors.toList());
 
-    }
-
-    public static PlaceOrderRequest toPlaceOrderRequest(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap, UserLevelEnum userLevel, FotaApplicationEnum caller){
+    public static PlaceOrderRequest toPlaceOrderRequest(ContractOrderDTO contractOrderDTO, Map<String, String> userInfoMap, FotaApplicationEnum caller){
         PlaceOrderRequest<PlaceContractOrderDTO>  placeOrderRequest = new PlaceOrderRequest();
         PlaceContractOrderDTO placeContractOrderDTO = new PlaceContractOrderDTO();
         placeOrderRequest.setPlaceOrderDTOS(Arrays.asList(placeContractOrderDTO));
@@ -154,13 +149,13 @@ public class ConvertUtils {
         BeanUtils.copy(contractOrderDTO, placeContractOrderDTO);
 
         if (null != userInfoMap) {
-            String userName = userInfoMap.get("userName");
+            String userName = userInfoMap.get("username");
             String ip = userInfoMap.get("ip");
             placeOrderRequest.setUserName(userName);
             placeOrderRequest.setIp(ip);
         }
         placeOrderRequest.setCaller(caller);
-        placeOrderRequest.setUserLevel(userLevel);
+        placeOrderRequest.setMakerFeeRate(contractOrderDTO.getFee());
         if (null == placeContractOrderDTO.getOrderType()) {
             placeContractOrderDTO.setOrderType(LIMIT.getCode());
         }
