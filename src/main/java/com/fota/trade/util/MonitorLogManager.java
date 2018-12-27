@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Objects;
 
 /**
  * @author Gavin Shen
@@ -45,6 +46,9 @@ public class MonitorLogManager {
         try {
             if (marketAccountListService.contains(usdkOrderDO.getUserId())) {
                 return;
+            }
+            if (Objects.isNull(username)) {
+                username = "";
             }
             tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                     ORDER_TYPE_COIN,
@@ -87,15 +91,18 @@ public class MonitorLogManager {
     /**
      * 合约下单
      */
-    public void placeContractOrderInfo(ContractOrderDO contractOrderDO, String userName) {
+    public void placeContractOrderInfo(ContractOrderDO contractOrderDO, String username) {
         try {
             if (marketAccountListService.contains(contractOrderDO.getUserId())) {
                 return;
             }
+            if (Objects.isNull(username)) {
+                username = "";
+            }
             tradeLog.info("order@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}@@@{}",
                     ORDER_TYPE_CONTRACT,
                     contractOrderDO.getContractName(),
-                    userName,
+                    username,
                     contractOrderDO.getUnfilledAmount().toPlainString(),
                     System.currentTimeMillis(),
                     contractOrderDO.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode()) ? BIZ_TYPE_FORCE_ORDER : BIZ_TYPE_PLACE_ORDER,
