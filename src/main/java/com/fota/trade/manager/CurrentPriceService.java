@@ -1,10 +1,12 @@
 package com.fota.trade.manager;
 
+import com.fota.asset.domain.enums.AssetTypeEnum;
 import com.fota.data.domain.TickerDTO;
-import com.fota.trade.client.AssetExtraProperties;
+import com.fota.trade.util.ConvertUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -19,15 +21,16 @@ public class CurrentPriceService {
     @Autowired
     private CurrentPriceManager currentPriceManager;
     public BigDecimal getSpotIndexByContractName(String contractName){
-        String assetName = AssetExtraProperties.getAssetNameByContractName(contractName);
-        if (null == assetName) {
+        String assetName = ConvertUtils.getAssetNameByContractName(contractName);
+        if (StringUtils.isEmpty(assetName)) {
+            log.error("no such asset, contractName={}", contractName);
             return null;
         }
         return getSpotIndexByAssetName(assetName);
     }
 
     public BigDecimal getSpotIndexByAssetId(long assetId){
-        String assetName = AssetExtraProperties.getNameByAssetId(assetId);
+        String assetName = AssetTypeEnum.getAssetNameByAssetId((int)assetId);
         return getSpotIndexByAssetName(assetName);
     }
 
@@ -38,7 +41,7 @@ public class CurrentPriceService {
 
     public BigDecimal getSpotIndexByAssetName(String assetName){
         List<TickerDTO> tickerDTOS = currentPriceManager.getSpotIndexes();
-        if (null == assetName) {
+        if (StringUtils.isEmpty(assetName)) {
             log.error("no such asset, assetName={}", assetName);
             return null;
         }
