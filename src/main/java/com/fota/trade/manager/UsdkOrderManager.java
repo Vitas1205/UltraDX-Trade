@@ -6,7 +6,7 @@ import com.fota.asset.domain.UserCapitalDTO;
 import com.fota.asset.domain.enums.AssetOperationTypeEnum;
 import com.fota.asset.domain.enums.AssetTypeEnum;
 import com.fota.asset.service.AssetService;
-import com.fota.asset.service.AssetWriteService;
+import com.fota.trade.service.internal.AssetWriteService;
 import com.fota.common.Result;
 import com.fota.common.utils.LogUtil;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
