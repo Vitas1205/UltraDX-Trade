@@ -2,6 +2,7 @@ package com.fota.trade.util;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.fota.asset.domain.enums.AssetTypeEnum;
 import com.fota.common.enums.FotaApplicationEnum;
 import com.fota.trade.UpdateOrderItem;
 import com.fota.trade.client.PlaceContractOrderDTO;
@@ -193,5 +194,14 @@ public class ConvertUtils {
             contractOrderDO.setCloseType(contractOrderDO.getOrderType());
         }
         return contractOrderDO;
+    }
+
+    public static String getAssetNameByContractName(String contractName){
+        int assetId = AssetTypeEnum.getAssetIdByContractName(contractName);
+        String assetName = AssetTypeEnum.getAssetNameByAssetId(assetId);
+        if (AssetTypeEnum.UNKNOW.getDesc().equals(assetName)) {
+            return null;
+        }
+        return assetName;
     }
 }
