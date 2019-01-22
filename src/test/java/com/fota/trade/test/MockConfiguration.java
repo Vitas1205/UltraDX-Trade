@@ -2,8 +2,7 @@ package com.fota.trade.test;
 
 import com.fota.risk.client.manager.RelativeRiskLevelManager;
 import com.fota.trade.manager.CurrentPriceService;
-import com.fota.trade.manager.RocketMqManager;
-import com.fota.trade.mapper.ContractOrderMapper;
+import com.fota.trade.mapper.trade.ContractOrderMapper;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
@@ -11,7 +10,6 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.exception.RemotingException;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

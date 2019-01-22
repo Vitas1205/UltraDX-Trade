@@ -11,9 +11,9 @@ import com.fota.trade.domain.ContractMatchedOrderDO;
 import com.fota.trade.domain.dto.ProcessNoEnforceResult;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.dto.DeleverageDTO;
-import com.fota.trade.mapper.ContractMatchedOrderMapper;
-import com.fota.trade.mapper.ContractOrderMapper;
-import com.fota.trade.mapper.UserPositionMapper;
+import com.fota.trade.mapper.trade.ContractMatchedOrderMapper;
+import com.fota.trade.mapper.trade.ContractOrderMapper;
+import com.fota.trade.mapper.trade.UserPositionMapper;
 import com.fota.trade.msg.ContractDealedMessage;
 import com.fota.trade.util.ContractUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -26,10 +26,6 @@ import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
 import static com.fota.trade.common.BizExceptionEnum.UPDATE_POSITION;

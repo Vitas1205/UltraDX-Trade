@@ -1,6 +1,6 @@
 package com.fota.trade.manager;
 
-import com.fota.trade.mapper.UsdkMatchedOrderMapper;
+import com.fota.trade.mapper.trade.UsdkMatchedOrderMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;

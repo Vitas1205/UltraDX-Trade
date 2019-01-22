@@ -1,7 +1,7 @@
 package com.fota.trade.manager;
 
 import com.fota.trade.domain.ContractMatchedOrderDO;
-import com.fota.trade.mapper.ContractMatchedOrderMapper;
+import com.fota.trade.mapper.trade.ContractMatchedOrderMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;

@@ -1,4 +1,4 @@
-package com.fota.trade.mapper;
+package com.fota.trade.mapper.trade;
 
 import com.fota.trade.domain.BaseQuery;
 import com.fota.trade.domain.ContractMatchedOrderDO;

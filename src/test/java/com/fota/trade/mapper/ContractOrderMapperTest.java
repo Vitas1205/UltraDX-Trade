@@ -3,6 +3,7 @@ package com.fota.trade.mapper;
 import com.fota.trade.common.ParamUtil;
 import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.domain.query.ContractOrderQuery;
+import com.fota.trade.mapper.trade.ContractOrderMapper;
 import com.fota.trade.util.MockUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;

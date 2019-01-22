@@ -1,6 +1,5 @@
 package com.fota.trade.manager;
 
-import com.alibaba.fastjson.JSONObject;
 import com.fota.asset.domain.UserContractDTO;
 import com.fota.asset.domain.enums.AssetTypeEnum;
 import com.fota.asset.service.AssetService;
@@ -19,8 +18,8 @@ import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.common.TradeBizTypeEnum;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.*;
-import com.fota.trade.mapper.ContractOrderMapper;
-import com.fota.trade.mapper.UserPositionMapper;
+import com.fota.trade.mapper.trade.ContractOrderMapper;
+import com.fota.trade.mapper.trade.UserPositionMapper;
 import com.fota.trade.msg.BaseCancelReqMessage;
 import com.fota.trade.msg.BaseCanceledMessage;
 import com.fota.trade.msg.ContractPlaceOrderMessage;

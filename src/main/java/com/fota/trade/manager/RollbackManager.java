@@ -1,26 +1,17 @@
 package com.fota.trade.manager;
 
-import com.alibaba.fastjson.JSON;
-import com.fota.asset.domain.ContractDealer;
 import com.fota.asset.service.ContractService;
-import com.fota.trade.client.RollbackTask;
-import com.fota.trade.common.UpdatePositionResult;
-import com.fota.trade.domain.BaseQuery;
 import com.fota.trade.domain.ContractMatchedOrderDO;
-import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.domain.ResultCode;
-import com.fota.trade.mapper.ContractMatchedOrderMapper;
-import com.fota.trade.mapper.ContractOrderMapper;
-import com.fota.trade.mapper.UserPositionMapper;
+import com.fota.trade.mapper.trade.ContractMatchedOrderMapper;
+import com.fota.trade.mapper.trade.ContractOrderMapper;
+import com.fota.trade.mapper.trade.UserPositionMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
-import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
 /**
  * Created by Swifree on 2018/8/20.
