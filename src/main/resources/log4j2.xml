@@ -153,6 +153,36 @@
             <DefaultRolloverStrategy max="50"/>
         </RollingRandomAccessFile>
 
+        <RollingRandomAccessFile name="assetOperateSuccess" fileName="${fileName}/assetOperateSuccess.log" immediateFlush="false"
+                                 filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.assetOperateSuccess.gz">
+            <PatternLayout pattern="%d{yyyy-MM-dd 'at' HH:mm:ss z} [%t] %-5level %logger{36} - %msg%xEx%n" />
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="6" modulate="true" />
+                <SizeBasedTriggeringPolicy size="500 MB"/>
+            </Policies>
+            <!--<Filters>-->
+            <!--&lt;!&ndash; 只记录error级别信息 &ndash;&gt;-->
+            <!--<ThresholdFilter level="error" onMatch="ACCEPT" onMismatch="DENY" />-->
+            <!--</Filters>-->
+            <!-- 指定每天的最大压缩包个数，默认7个，超过了会覆盖之前的 -->
+            <DefaultRolloverStrategy max="50"/>
+        </RollingRandomAccessFile>
+
+        <RollingRandomAccessFile name="assetOperateFailed" fileName="${fileName}/assetOperateFailed.log" immediateFlush="false"
+                                 filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.assetOperateFailed.gz">
+            <PatternLayout pattern="%d{yyyy-MM-dd 'at' HH:mm:ss z} [%t] %-5level %logger{36} - %msg%xEx%n" />
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="6" modulate="true" />
+                <SizeBasedTriggeringPolicy size="50 MB"/>
+            </Policies>
+            <!--<Filters>-->
+            <!--&lt;!&ndash; 只记录error级别信息 &ndash;&gt;-->
+            <!--<ThresholdFilter level="error" onMatch="ACCEPT" onMismatch="DENY" />-->
+            <!--</Filters>-->
+            <!-- 指定每天的最大压缩包个数，默认7个，超过了会覆盖之前的 -->
+            <DefaultRolloverStrategy max="500"/>
+        </RollingRandomAccessFile>
+
     </Appenders>
 
 
@@ -192,6 +222,13 @@
         <!--现货指数只打印error日志-->
         <AsyncLogger name="com.fota.data.manager.IndexCacheManager" level="error">
             <AppenderRef ref="errorFile"/>
+        </AsyncLogger>
+
+        <AsyncLogger name="assetOperateSuccess" level="info" additivity="false" includeLocation="true">
+            <AppenderRef ref="assetOperateSuccess"/>
+        </AsyncLogger>
+        <AsyncLogger name="assetOperateFailed" level="info" additivity="false" includeLocation="true">
+            <AppenderRef ref="assetOperateFailed"/>
         </AsyncLogger>
 
     </Loggers>

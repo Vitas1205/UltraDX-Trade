@@ -4,7 +4,7 @@ import com.alibaba.dubbo.remoting.TimeoutException;
 import com.alibaba.fastjson.JSON;
 import com.fota.asset.domain.ContractAccountAddAmountDTO;
 import com.fota.asset.domain.enums.AssetOperationTypeEnum;
-import com.fota.asset.service.AssetWriteService;
+import com.fota.trade.service.internal.AssetWriteService;
 import com.fota.asset.service.ContractService;
 import com.fota.common.Result;
 import com.fota.common.utils.LogUtil;
