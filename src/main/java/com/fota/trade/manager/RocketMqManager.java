@@ -17,6 +17,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
+
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -58,6 +60,15 @@ public class RocketMqManager {
             LOGGER.error(JSON.toJSONString(mqMessage));
         }
         return suc;
+    }
+
+    public void sendMQ(String topic, String tag, String keys, String info) {
+        try {
+            producer.send(new Message(topic, tag, keys, info.getBytes(StandardCharsets.UTF_8)));
+            log.info("success send MQ to topic:{}, tag:{}, key:{}, data:{}", topic, tag, keys, info);
+        } catch (Exception e) {
+            log.error("failed to send MQ to topic:{}, tag:{}, key:{}, data:{}", topic, tag, keys, info, e);
+        }
     }
 
     public static boolean enableSendMQInfo(){
