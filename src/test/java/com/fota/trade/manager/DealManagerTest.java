@@ -5,7 +5,7 @@ import com.fota.asset.service.AssetService;
 import com.fota.trade.client.PostDealMessage;
 import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.domain.UserPositionDO;
-import com.fota.trade.mapper.UserPositionMapper;
+import com.fota.trade.mapper.trade.UserPositionMapper;
 import com.fota.trade.util.BasicUtils;
 import com.fota.trade.util.ContractUtils;
 import lombok.extern.slf4j.Slf4j;

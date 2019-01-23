@@ -6,6 +6,7 @@ import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderPriceTypeEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.domain.query.UsdkOrderQuery;
+import com.fota.trade.mapper.sharding.UsdkOrderMapper;
 import com.fota.trade.util.BasicUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;

@@ -1,10 +1,12 @@
 package com.fota.trade;
 
+import com.fota.asset.domain.enums.AssetTypeEnum;
 import com.fota.common.utils.LogUtil;
 import com.fota.trade.client.FailedRecord;
 import com.fota.trade.common.TradeBizTypeEnum;
 import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.util.BasicUtils;
+import com.fota.trade.util.ConvertUtils;
 import com.fota.trade.util.DistinctFilter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -98,6 +100,10 @@ public class BasicFunctionTest {
                 .collect(Collectors.toList());
         assert newList.size() == 2 && newList.contains(messageExt1) && newList.contains(messageExt2);
 
+    }
+    @Test
+    public void tmp(){
+        System.out.println(ConvertUtils.getAssetNameByContractName("BVI1901"));;
     }
 
 }
