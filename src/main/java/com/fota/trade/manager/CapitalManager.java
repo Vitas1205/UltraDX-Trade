@@ -104,7 +104,7 @@ public class CapitalManager {
                         addOrderLock.add(addWithdrawLock).toPlainString());
         String json = JSON.toJSONString(userCapitalVariationDTO);
         UUID id = UUID.randomUUID();
-        rocketMQManager.sendMessage("user-capital","variation", id.toString(),json);
+        rocketMQManager.sendMQ("user-capital","variation", id.toString(),json);
     }
 
     public void sendAddCapitalAmountMQ(List<CapitalAccountAddAmountDTO> list) {
