@@ -65,7 +65,7 @@ public class ShardingDataSourceConfig {
         SqlSessionFactoryBean factory = createSqlSessionFactoryBean();
         factory.setDataSource(dataSource);
         factory.setMapperLocations(new PathMatchingResourcePatternResolver()
-                .getResources("classpath:/mapper/*.xml"));
+                .getResources("classpath:/mapper/sharding/*.xml"));
         return factory.getObject();
     }
 

@@ -73,7 +73,7 @@ public class TradeDataSourceConfig {
         SqlSessionFactoryBean factory = createSqlSessionFactoryBean();
         factory.setDataSource(dataSource);
         factory.setMapperLocations(new PathMatchingResourcePatternResolver()
-                .getResources("classpath:/mapper/*.xml"));
+                .getResources("classpath:/mapper/trade/*.xml"));
         return factory.getObject();
     }
 
