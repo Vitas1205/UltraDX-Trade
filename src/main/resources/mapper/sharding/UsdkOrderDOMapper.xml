@@ -46,7 +46,7 @@
     </if>
   </select>
 
-  <select id="listByQuery" resultMap="BaseResultMap">
+  <select id="listByQuery" resultType="com.fota.trade.domain.UsdkOrderDO">
     select
     <include refid="Base_Column_List"/>
     from trade_usdt_order
