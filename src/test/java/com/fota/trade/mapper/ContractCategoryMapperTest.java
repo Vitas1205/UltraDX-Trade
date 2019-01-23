@@ -1,6 +1,7 @@
 package com.fota.trade.mapper;
 
 import com.fota.trade.domain.ContractCategoryDO;
+import com.fota.trade.mapper.trade.ContractCategoryMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
 import org.junit.Test;
@@ -10,8 +11,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
-import java.math.BigDecimal;
-import java.util.Date;
 import java.util.List;
 
 /**

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.fota.trade.mapper.asset.UserCapitalMapper">
+
+    <resultMap id="BaseResultMap" type="com.fota.trade.domain.UserCapitalDO" >
+        <id column="id" property="id" jdbcType="BIGINT" />
+        <result column="user_id" property="userId" jdbcType="BIGINT" />
+        <result column="asset_id" property="assetId" jdbcType="INTEGER" />
+        <result column="asset_name" property="assetName" jdbcType="VARCHAR" />
+        <result column="amount" property="amount" jdbcType="DECIMAL" />
+        <result column="withdraw_locked_amount" property="withdrawLockedAmount" jdbcType="DECIMAL" />
+        <result column="order_locked_amount" property="orderLockedAmount" jdbcType="DECIMAL" />
+        <result column="gmt_create" property="gmtCreate" jdbcType="TIMESTAMP" />
+        <result column="gmt_modified" property="gmtModified" jdbcType="TIMESTAMP" />
+        <result column="version" property="version" jdbcType="INTEGER" />
+    </resultMap>
+    <sql id="Base_Column_List" >
+        id,user_id,asset_id,asset_name,amount,withdraw_locked_amount,order_locked_amount,gmt_create,gmt_modified,version
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user_capital(user_id, asset_id, asset_name, amount,gmt_create, gmt_modified, version)
+        VALUES (#{userId},#{assetId},#{assetName},#{amount},now(),now(),#{version})
+    </insert>
+
+    <select id="getCapitalByAssetId"  resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM user_capital
+        WHERE user_id = #{userId} AND asset_id = #{assetId}
+    </select>
+
+    <select id="listByQuery"  resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM user_capital
+        WHERE asset_id = #{assetId}
+        order by gmt_create desc
+        limit #{startRow,jdbcType=INTEGER}, #{endRow,jdbcType=INTEGER}
+    </select>
+
+    <update id="addCapitalAmount" parameterType="com.fota.trade.domain.dto.CapitalAccountAddAmountDTO">
+        update user_capital
+        set gmt_modified = now()
+        <if test="addWithdrawLocked != null">
+            , withdraw_locked_amount = withdraw_locked_amount + #{addWithdrawLocked}
+        </if>
+        <if test="addOrderLocked != null">
+            , order_locked_amount = order_locked_amount + #{addOrderLocked}
+        </if>
+        <if test="addTotal != null">
+            , amount = amount + #{addTotal}
+        </if>
+        where user_id = #{userId} and asset_id = #{assetId}
+        <if test="addTotal != null">
+            and amount + #{addTotal} >= 0
+        </if>
+        <if test="addOrderLocked != null">
+            and order_locked_amount + #{addOrderLocked} >= 0
+        </if>
+        <if test="addWithdrawLocked != null">
+            and withdraw_locked_amount + #{addWithdrawLocked} >= 0
+        </if>
+        and withdraw_locked_amount + order_locked_amount
+        <if test="addOrderLocked != null">
+            + #{addOrderLocked}
+        </if>
+        <if test="addWithdrawLocked != null">
+            + #{addWithdrawLocked}
+        </if>
+        &lt;= amount
+        <if test="addTotal != null">
+            + #{addTotal}
+        </if>
+    </update>
+
+</mapper>

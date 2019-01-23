@@ -11,7 +11,7 @@ import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderPriceTypeEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.domain.enums.OrderTypeEnum;
-import com.fota.trade.mapper.UsdkOrderMapper;
+import com.fota.trade.mapper.sharding.UsdkOrderMapper;
 import com.fota.trade.service.impl.UsdkOrderServiceImpl;
 import com.fota.trade.util.BasicUtils;
 import org.junit.Assert;

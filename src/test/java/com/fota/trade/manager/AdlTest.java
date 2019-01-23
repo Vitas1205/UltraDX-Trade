@@ -4,7 +4,7 @@
 //import com.fota.trade.domain.ADLMatchedDTO;
 //import com.fota.trade.domain.ContractADLMatchDTO;
 //import com.fota.trade.domain.ContractOrderDO;
-//import com.fota.trade.mapper.ContractOrderMapper;
+//import com.fota.trade.mapper.sharding.ContractOrderMapper;
 //import com.fota.trade.util.BasicUtils;
 //import com.fota.trade.util.ConvertUtils;
 //import com.fota.trade.util.MockUtils;

@@ -6,7 +6,7 @@ import com.fota.asset.domain.UserCapitalDTO;
 import com.fota.asset.domain.enums.AssetOperationTypeEnum;
 import com.fota.asset.domain.enums.AssetTypeEnum;
 import com.fota.asset.service.AssetService;
-import com.fota.asset.service.AssetWriteService;
+import com.fota.trade.service.internal.AssetWriteService;
 import com.fota.common.Result;
 import com.fota.common.utils.LogUtil;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
@@ -19,8 +19,8 @@ import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderTypeEnum;
-import com.fota.trade.mapper.UsdkMatchedOrderMapper;
-import com.fota.trade.mapper.UsdkOrderMapper;
+import com.fota.trade.mapper.sharding.UsdkMatchedOrderMapper;
+import com.fota.trade.mapper.sharding.UsdkOrderMapper;
 import com.fota.trade.msg.*;
 import com.fota.trade.util.*;
 import com.google.common.base.Joiner;
@@ -164,8 +164,10 @@ public class UsdkOrderManager {
                 errorMsg = ResultCodeEnum.COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage();
             }
             //查询账户可用余额
-            for(UserCapitalDTO userCapitalDTO : list){
+            boolean capitalEnough = false;
+            for(UserCapitalDTO userCapitalDTO : list) {
                 if (userCapitalDTO.getAssetId() == assetTypeId){
+                    capitalEnough = true;
                     BigDecimal amount = new BigDecimal(userCapitalDTO.getAmount());
                     BigDecimal lockedAmount = new BigDecimal(userCapitalDTO.getLockedAmount());
                     BigDecimal availableAmount = amount.subtract(lockedAmount);
@@ -206,6 +208,9 @@ public class UsdkOrderManager {
                         throw new BusinessException(errorCode, errorMsg);
                     }
                 }
+            }
+            if (!capitalEnough) {
+                throw new BusinessException(errorCode, errorMsg);
             }
         } else if (usdkOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()){
             //强平单处理

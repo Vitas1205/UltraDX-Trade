@@ -9,7 +9,7 @@ import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.query.UserPositionQuery;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.RedisManager;
-import com.fota.trade.mapper.ContractMatchedOrderMapper;
+import com.fota.trade.mapper.sharding.ContractMatchedOrderMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 import org.junit.runner.RunWith;

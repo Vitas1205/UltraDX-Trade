@@ -1,9 +1,8 @@
-package com.fota.trade.mapper;
+package com.fota.trade.mapper.sharding;
 
 import com.fota.trade.domain.UsdkMatchedOrderDO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-import org.springframework.stereotype.Component;
 
 import java.util.Date;
 import java.util.List;

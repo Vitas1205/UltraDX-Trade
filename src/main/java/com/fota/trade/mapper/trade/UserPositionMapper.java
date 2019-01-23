@@ -1,4 +1,4 @@
-package com.fota.trade.mapper;
+package com.fota.trade.mapper.trade;
 
 import com.fota.trade.domain.UserPositionDO;
 import org.apache.ibatis.annotations.*;
