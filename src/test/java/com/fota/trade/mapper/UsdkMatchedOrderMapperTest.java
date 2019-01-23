@@ -4,7 +4,7 @@ import com.fota.trade.common.BeanUtils;
 import com.fota.trade.domain.UsdkMatchedOrderDO;
 import com.fota.trade.domain.UsdkMatchedOrderDTO;
 import com.fota.trade.domain.UsdkMatchedOrderTradeDTOPage;
-import com.fota.trade.mapper.trade.UsdkMatchedOrderMapper;
+import com.fota.trade.mapper.sharding.UsdkMatchedOrderMapper;
 import com.fota.trade.service.UsdkOrderService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Before;

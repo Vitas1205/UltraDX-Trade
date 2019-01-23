@@ -13,7 +13,7 @@ import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
 import com.fota.trade.domain.enums.OrderTypeEnum;
 import com.fota.trade.manager.ContractOrderManager;
-import com.fota.trade.mapper.trade.ContractOrderMapper;
+import com.fota.trade.mapper.sharding.ContractOrderMapper;
 import com.fota.trade.mapper.trade.UserPositionMapper;
 import com.fota.trade.service.impl.ContractAccountServiceImpl;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;

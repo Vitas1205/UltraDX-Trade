@@ -1,11 +1,12 @@
 package com.fota.trade.mapper;
 
 import com.fota.trade.domain.ContractCategoryDO;
-import com.fota.trade.domain.ContractOrderDO;
+import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.trade.domain.UserCapitalDO;
 import com.fota.trade.mapper.asset.UserCapitalMapper;
+import com.fota.trade.mapper.sharding.ContractOrderMapper;
+import com.fota.trade.mapper.sharding.UsdkOrderMapper;
 import com.fota.trade.mapper.trade.ContractCategoryMapper;
-import com.fota.trade.mapper.trade.ContractOrderMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
 import org.junit.Test;
@@ -38,6 +39,9 @@ public class UserCapitalMapperTest {
     @Resource
     private ContractOrderMapper contractOrderMapper;
 
+    @Resource
+    private UsdkOrderMapper usdkOrderMapper;
+
     @Test
     public void testQuery() {
         UserCapitalDO userCapitalDO = userCapitalMapper.getCapitalByAssetId(200L, 2);
@@ -56,9 +60,11 @@ public class UserCapitalMapperTest {
         param.put("userId", 200L);
         param.put("startRow", 0);
         param.put("endRow", 100);
-        List<ContractOrderDO> list = contractOrderMapper.listByQuery(param);
+        List<UsdkOrderDO> list = usdkOrderMapper.listByQuery(param);
         Assert.assertTrue(list != null);
     }
+
+
 
 
 

@@ -18,7 +18,7 @@ import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.common.TradeBizTypeEnum;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.*;
-import com.fota.trade.mapper.trade.ContractOrderMapper;
+import com.fota.trade.mapper.sharding.ContractOrderMapper;
 import com.fota.trade.mapper.trade.UserPositionMapper;
 import com.fota.trade.msg.BaseCancelReqMessage;
 import com.fota.trade.msg.BaseCanceledMessage;

@@ -2,7 +2,7 @@ package com.fota.trade.test;
 
 import com.fota.risk.client.manager.RelativeRiskLevelManager;
 import com.fota.trade.manager.CurrentPriceService;
-import com.fota.trade.mapper.trade.ContractOrderMapper;
+import com.fota.trade.mapper.sharding.ContractOrderMapper;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;

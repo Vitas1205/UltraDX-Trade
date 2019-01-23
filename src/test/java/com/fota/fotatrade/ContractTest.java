@@ -16,7 +16,7 @@ import com.fota.trade.manager.ADLManager;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.mapper.trade.ContractCategoryMapper;
-import com.fota.trade.mapper.trade.ContractOrderMapper;
+import com.fota.trade.mapper.sharding.ContractOrderMapper;
 import com.fota.trade.mapper.trade.UserPositionMapper;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
 import lombok.extern.slf4j.Slf4j;

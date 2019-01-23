@@ -3,7 +3,7 @@ package com.fota.trade.mapper;
 import com.fota.trade.common.BeanUtils;
 import com.fota.trade.domain.ContractMatchedOrderDO;
 import com.fota.trade.domain.ContractMatchedOrderDTO;
-import com.fota.trade.mapper.trade.ContractMatchedOrderMapper;
+import com.fota.trade.mapper.sharding.ContractMatchedOrderMapper;
 import com.fota.trade.service.ContractOrderService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Before;

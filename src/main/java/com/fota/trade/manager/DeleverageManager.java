@@ -8,7 +8,7 @@ import com.fota.trade.common.*;
 import com.fota.trade.domain.ContractMatchedOrderDO;
 import com.fota.trade.domain.UserPositionDO;
 import com.fota.trade.dto.DeleverageDTO;
-import com.fota.trade.mapper.trade.ContractMatchedOrderMapper;
+import com.fota.trade.mapper.sharding.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.trade.UserPositionMapper;
 import com.fota.trade.msg.ContractDealedMessage;
 import com.fota.trade.msg.DeleveragedMessage;

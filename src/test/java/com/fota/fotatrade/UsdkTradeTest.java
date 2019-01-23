@@ -4,7 +4,7 @@ import com.fota.trade.domain.UsdkOrderDTO;
 import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.manager.UsdkOrderManager;
-import com.fota.trade.mapper.trade.UsdkOrderMapper;
+import com.fota.trade.mapper.sharding.UsdkOrderMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 import org.junit.runner.RunWith;

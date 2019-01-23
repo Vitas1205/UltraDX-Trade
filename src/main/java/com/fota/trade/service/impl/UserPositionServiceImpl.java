@@ -19,7 +19,7 @@ import com.fota.trade.domain.query.UserPositionQuery;
 import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.mapper.trade.ContractCategoryMapper;
-import com.fota.trade.mapper.trade.ContractMatchedOrderMapper;
+import com.fota.trade.mapper.sharding.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.trade.UserPositionMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

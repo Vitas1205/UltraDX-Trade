@@ -14,7 +14,7 @@ import com.fota.trade.client.UserLevelEnum;
 import com.fota.trade.common.ResultCodeEnum;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderTypeEnum;
-import com.fota.trade.mapper.trade.UsdkOrderMapper;
+import com.fota.trade.mapper.sharding.UsdkOrderMapper;
 import com.fota.trade.util.MonitorLogManager;
 import org.junit.Before;
 import org.junit.Ignore;

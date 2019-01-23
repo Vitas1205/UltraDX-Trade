@@ -10,7 +10,7 @@ import com.fota.trade.domain.enums.ContractStatusEnum;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.manager.RollbackManager;
 import com.fota.trade.mapper.trade.ContractCategoryMapper;
-import com.fota.trade.mapper.trade.ContractMatchedOrderMapper;
+import com.fota.trade.mapper.sharding.ContractMatchedOrderMapper;
 import com.fota.trade.service.ContractCategoryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

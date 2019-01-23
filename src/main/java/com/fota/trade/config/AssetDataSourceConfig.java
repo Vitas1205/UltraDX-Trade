@@ -61,13 +61,11 @@ public class AssetDataSourceConfig {
         this.configurationCustomizers = configurationCustomizersProvider.getIfAvailable();
     }
 
-
-    @Bean(name = "asset")
+    @Bean(name="asset")
     @ConfigurationProperties("spring.datasource.druid.asset")
-    public DataSource asset() {
+    public DataSource asset(){
         return DataSourceBuilder.create().build();
     }
-
 
     @Bean(name = "assetSqlSessionFactory")
     public SqlSessionFactory assetSqlSessionFactory(@Qualifier("asset") DataSource dataSource) throws Exception {

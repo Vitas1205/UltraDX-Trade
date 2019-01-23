@@ -1,4 +1,4 @@
-package com.fota.trade.mapper.trade;
+package com.fota.trade.mapper.sharding;
 
 import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.mapper.common.BaseMapper;

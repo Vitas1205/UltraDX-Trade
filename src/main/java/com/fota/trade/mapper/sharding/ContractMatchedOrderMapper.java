@@ -1,14 +1,10 @@
-package com.fota.trade.mapper.trade;
+package com.fota.trade.mapper.sharding;
 
-import com.fota.trade.domain.BaseQuery;
 import com.fota.trade.domain.ContractMatchedOrderDO;
-import com.fota.trade.domain.ContractMatchedOrderDTO;
 import org.apache.ibatis.annotations.*;
 
-import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @Author: Harry Wang

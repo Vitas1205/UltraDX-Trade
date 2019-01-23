@@ -14,8 +14,6 @@ import org.mybatis.spring.boot.autoconfigure.SpringBootVFS;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -30,12 +28,13 @@ import java.util.List;
 
 /**
  * @author Gavin Shen
- * @Date 2019/1/22
+ * @Date 2019/1/23
  */
 @Slf4j
 @Configuration
-@MapperScan(basePackages = "com.fota.trade.mapper.trade", sqlSessionTemplateRef = "tradeSqlSessionTemplate")
-public class TradeDataSourceConfig {
+@MapperScan(basePackages = "com.fota.trade.mapper.sharding", sqlSessionTemplateRef = "shardingSqlSessionTemplate")
+public class ShardingDataSourceConfig {
+
 
     private final MybatisProperties properties;
 
@@ -47,7 +46,7 @@ public class TradeDataSourceConfig {
 
     private final List<ConfigurationCustomizer> configurationCustomizers;
 
-    public TradeDataSourceConfig(MybatisProperties properties,
+    public ShardingDataSourceConfig(MybatisProperties properties,
                                  ObjectProvider<Interceptor[]> interceptorsProvider,
                                  ResourceLoader resourceLoader,
                                  ObjectProvider<DatabaseIdProvider> databaseIdProvider,
@@ -59,17 +58,10 @@ public class TradeDataSourceConfig {
         this.configurationCustomizers = configurationCustomizersProvider.getIfAvailable();
     }
 
-    @Bean(name = "fota")
-    @Primary
-    @ConfigurationProperties("spring.datasource.druid.trade")
-    public DataSource fota() {
-        return DataSourceBuilder.create().build();
-    }
 
-
-    @Bean(name = "tradeSqlSessionFactory")
+    @Bean(name = "shardingSqlSessionFactory")
     @Primary
-    public SqlSessionFactory tradeSqlSessionFactory(@Qualifier("fota") DataSource dataSource) throws Exception {
+    public SqlSessionFactory shardingSqlSessionFactory(@Qualifier("dataSource") DataSource dataSource) throws Exception {
         SqlSessionFactoryBean factory = createSqlSessionFactoryBean();
         factory.setDataSource(dataSource);
         factory.setMapperLocations(new PathMatchingResourcePatternResolver()
@@ -78,8 +70,8 @@ public class TradeDataSourceConfig {
     }
 
 
-    @Bean(name = "tradeSqlSessionTemplate")
-    public SqlSessionTemplate tradeSqlSessionTemplate(@Qualifier("tradeSqlSessionFactory") SqlSessionFactory sqlSessionFactory) {
+    @Bean(name = "shardingSqlSessionTemplate")
+    public SqlSessionTemplate tradeSqlSessionTemplate(@Qualifier("shardingSqlSessionFactory") SqlSessionFactory sqlSessionFactory) {
         ExecutorType executorType = this.properties.getExecutorType();
         if (executorType != null) {
             return new SqlSessionTemplate(sqlSessionFactory, executorType);
@@ -126,7 +118,5 @@ public class TradeDataSourceConfig {
         }
         return factory;
     }
-
-
 
 }
