@@ -5,7 +5,7 @@ import com.fota.risk.client.manager.RelativeRiskLevelManager;
 import com.fota.trade.ADLConsumer;
 import com.fota.trade.domain.ContractADLMatchDTO;
 import com.fota.trade.manager.CurrentPriceService;
-import com.fota.trade.mapper.ContractOrderMapper;
+import com.fota.trade.mapper.sharding.ContractOrderMapper;
 import com.fota.trade.test.BaseTest;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.message.MessageExt;

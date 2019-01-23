@@ -1,4 +1,4 @@
-package com.fota.trade.mapper;
+package com.fota.trade.mapper.asset;
 
 import com.fota.asset.domain.CapitalAccountAddAmountDTO;
 import com.fota.trade.domain.UserCapitalDO;

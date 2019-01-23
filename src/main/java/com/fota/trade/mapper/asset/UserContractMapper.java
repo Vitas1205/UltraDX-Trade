@@ -1,4 +1,4 @@
-package com.fota.trade.mapper;
+package com.fota.trade.mapper.asset;
 
 import com.fota.trade.domain.UserContractDO;
 import com.fota.trade.mapper.common.BaseMapper;

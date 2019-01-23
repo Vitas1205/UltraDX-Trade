@@ -3,6 +3,7 @@ package com.fota.trade.mapper;
 import com.fota.trade.common.ParamUtil;
 import com.fota.trade.domain.UserPositionDO;
 import com.fota.trade.domain.query.UserPositionQuery;
+import com.fota.trade.mapper.trade.UserPositionMapper;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

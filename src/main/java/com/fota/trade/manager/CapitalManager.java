@@ -4,14 +4,13 @@ import com.alibaba.fastjson.JSON;
 import com.fota.asset.domain.*;
 import com.fota.trade.domain.UserCapitalDO;
 import com.fota.trade.domain.UserContractDO;
-import com.fota.trade.mapper.UserCapitalMapper;
-import com.fota.trade.mapper.UserContractMapper;
+import com.fota.trade.mapper.asset.UserCapitalMapper;
+import com.fota.trade.mapper.asset.UserContractMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
