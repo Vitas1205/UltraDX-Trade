@@ -4,6 +4,7 @@ import com.fota.trade.domain.ContractCategoryDO;
 import com.fota.trade.domain.UsdkOrderDO;
 import com.fota.trade.domain.UserCapitalDO;
 import com.fota.trade.mapper.asset.UserCapitalMapper;
+import com.fota.trade.mapper.sharding.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.sharding.ContractOrderMapper;
 import com.fota.trade.mapper.sharding.UsdkOrderMapper;
 import com.fota.trade.mapper.trade.ContractCategoryMapper;
@@ -42,6 +43,9 @@ public class UserCapitalMapperTest {
     @Resource
     private UsdkOrderMapper usdkOrderMapper;
 
+    @Resource
+    private ContractMatchedOrderMapper contractMatchedOrderMapper;
+
     @Test
     public void testQuery() {
         UserCapitalDO userCapitalDO = userCapitalMapper.getCapitalByAssetId(200L, 2);
@@ -62,6 +66,12 @@ public class UserCapitalMapperTest {
         param.put("endRow", 100);
         List<UsdkOrderDO> list = usdkOrderMapper.listByQuery(param);
         Assert.assertTrue(list != null);
+    }
+
+
+    @Test
+    public void testInsert() {
+        contractMatchedOrderMapper.insert()
     }
 
 
