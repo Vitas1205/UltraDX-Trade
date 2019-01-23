@@ -21,8 +21,8 @@
     </constructor>
   </resultMap>
   <sql id="Base_Column_List" >
-    id, gmt_create, gmt_modified, user_id, asset_id, asset_name, order_direction, order_type, 
-    total_amount, unfilled_amount, price, fee, status, average_price, order_context
+    id, gmt_create as gmtCreate, gmt_modified as gmtModified, user_id as userId, asset_id as assetId, asset_name as assetName, order_direction as orderDirection, order_type as orderType,
+    total_amount as totalAmount, unfilled_amount as unfilledAmount, price, fee, status, average_price as averagePrice, order_context as orderContext
   </sql>
 
   <select id="countByQuery" resultType="java.lang.Integer">

@@ -69,10 +69,10 @@ public class UserCapitalMapperTest {
     }
 
 
-    @Test
-    public void testInsert() {
-        contractMatchedOrderMapper.insert()
-    }
+//    @Test
+//    public void testInsert() {
+//        contractMatchedOrderMapper.insert()
+//    }
 
 
 
