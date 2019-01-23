@@ -164,8 +164,10 @@ public class UsdkOrderManager {
                 errorMsg = ResultCodeEnum.COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage();
             }
             //查询账户可用余额
-            for(UserCapitalDTO userCapitalDTO : list){
+            boolean capitalEnough = false;
+            for(UserCapitalDTO userCapitalDTO : list) {
                 if (userCapitalDTO.getAssetId() == assetTypeId){
+                    capitalEnough = true;
                     BigDecimal amount = new BigDecimal(userCapitalDTO.getAmount());
                     BigDecimal lockedAmount = new BigDecimal(userCapitalDTO.getLockedAmount());
                     BigDecimal availableAmount = amount.subtract(lockedAmount);
@@ -206,6 +208,9 @@ public class UsdkOrderManager {
                         throw new BusinessException(errorCode, errorMsg);
                     }
                 }
+            }
+            if (!capitalEnough) {
+                throw new BusinessException(errorCode, errorMsg);
             }
         } else if (usdkOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()){
             //强平单处理
