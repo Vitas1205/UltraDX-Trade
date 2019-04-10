@@ -835,7 +835,7 @@ public class UsdkOrderManager {
 
     public BigDecimal getFeeRateByBrokerId(Long brokerId){
         List<BrokerrFeeRateDO> list = brokerUsdkOrderFeeListManager.getFeeRateList();
-        Optional<BrokerrFeeRateDO> optional = list.stream().filter(x->x.getBrokerId() == brokerId).findFirst();
+        Optional<BrokerrFeeRateDO> optional = list.stream().filter(x->x.getBrokerId().equals(brokerId)).findFirst();
         if (optional.isPresent()){
             return optional.get().getFeeRate();
         } else {
