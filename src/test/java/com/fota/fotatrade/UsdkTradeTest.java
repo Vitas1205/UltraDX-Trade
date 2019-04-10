@@ -1,7 +1,10 @@
 package com.fota.fotatrade;
 
+import com.fota.trade.config.BrokerUsdkOrderFeeRateConfig;
+import com.fota.trade.domain.BrokerrFeeRateDO;
 import com.fota.trade.domain.UsdkOrderDTO;
 import com.fota.trade.domain.UsdkOrderDO;
+import com.fota.trade.manager.BrokerUsdkOrderFeeListManager;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.manager.UsdkOrderManager;
 import com.fota.trade.mapper.sharding.UsdkOrderMapper;
@@ -16,7 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * @Author: Harry Wang
@@ -119,5 +124,17 @@ public class UsdkTradeTest {
 //            usdkOrderDO2.setStatus(OrderStatusEnum.MATCH.getCode());
 //            usdkOrderMapper.updateStatus(usdkOrderDO2);
 //        }
+    }
+
+    @Autowired
+    private BrokerUsdkOrderFeeListManager brokerUsdkOrderFeeListManager;
+
+    @Test
+    public void getFeeRateListTest(){
+        List<BrokerrFeeRateDO> list = brokerUsdkOrderFeeListManager.getFeeRateList();
+        Long brokerId = 2L;
+        Optional<BrokerrFeeRateDO> optional = list.stream().filter(x->x.getBrokerId() == brokerId).findFirst();
+        BigDecimal feeRate = optional.get().getFeeRate();
+        assert feeRate!=null;
     }
 }

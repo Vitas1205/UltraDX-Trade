@@ -120,6 +120,9 @@ public class BeanUtils {
         if (usdkOrderDTO.getGmtModified() != null) {
             usdkOrderDO.setGmtModified(usdkOrderDTO.getGmtModified());
         }
+        if (usdkOrderDTO.getBrokerId() != null){
+            usdkOrderDO.setBrokerId(usdkOrderDTO.getBrokerId());
+        }
         usdkOrderDO.setUserId(usdkOrderDTO.getUserId());
         usdkOrderDO.setAssetId(usdkOrderDTO.getAssetId());
         usdkOrderDO.setAssetName(usdkOrderDTO.getAssetName());

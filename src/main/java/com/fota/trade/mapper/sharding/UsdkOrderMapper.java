@@ -25,13 +25,13 @@ public interface UsdkOrderMapper {
         "asset_id, asset_name, ",
         "order_direction, order_type, ",
         "total_amount, unfilled_amount, ",
-        "price, fee, status, average_price, order_context)",
+        "price, fee, status, average_price, order_context, broker_id)",
         "values (#{id,jdbcType=BIGINT}, #{gmtCreate}, #{gmtModified}, ",
         "#{userId,jdbcType=BIGINT}, ",
         "#{assetId,jdbcType=INTEGER}, #{assetName,jdbcType=VARCHAR}, ",
         "#{orderDirection,jdbcType=TINYINT}, #{orderType,jdbcType=TINYINT}, ",
         "#{totalAmount,jdbcType=DECIMAL}, #{unfilledAmount,jdbcType=DECIMAL}, ",
-        "#{price,jdbcType=DECIMAL}, #{fee,jdbcType=DECIMAL}, #{status,jdbcType=INTEGER}, #{averagePrice,jdbcType=DECIMAL}, #{orderContext,jdbcType=VARCHAR})"
+        "#{price,jdbcType=DECIMAL}, #{fee,jdbcType=DECIMAL}, #{status,jdbcType=INTEGER}, #{averagePrice,jdbcType=DECIMAL}, #{orderContext,jdbcType=VARCHAR}, #{brokerId})"
     })
     int insert(UsdkOrderDO record);
 
@@ -41,7 +41,7 @@ public interface UsdkOrderMapper {
     @Select({
             "select",
             "id, gmt_create, gmt_modified, user_id, asset_id, asset_name, order_direction, ",
-            "order_type, total_amount, unfilled_amount, price, fee, status, average_price, order_context, order_context",
+            "order_type, total_amount, unfilled_amount, price, fee, status, average_price, order_context, order_context, broker_id",
             "from trade_usdt_order",
             "where id = #{id,jdbcType=BIGINT} and user_id =  #{userId,jdbcType=BIGINT}"
     })

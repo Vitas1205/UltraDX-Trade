@@ -6,6 +6,7 @@ import com.fota.asset.domain.UserCapitalDTO;
 import com.fota.asset.domain.enums.AssetOperationTypeEnum;
 import com.fota.asset.domain.enums.AssetTypeEnum;
 import com.fota.asset.service.AssetService;
+import com.fota.asset.util.CoinTradingPairUtil;
 import com.fota.trade.service.internal.AssetWriteService;
 import com.fota.common.Result;
 import com.fota.common.utils.LogUtil;
@@ -38,8 +39,10 @@ import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static com.fota.trade.PriceTypeEnum.MARKET_PRICE;
 import static com.fota.trade.PriceTypeEnum.SPECIFIED_PRICE;
@@ -50,6 +53,7 @@ import static com.fota.trade.domain.enums.OrderStatusEnum.COMMIT;
 import static com.fota.trade.domain.enums.OrderStatusEnum.PART_MATCH;
 import static com.fota.trade.domain.enums.OrderTypeEnum.*;
 import static com.fota.trade.msg.TopicConstants.*;
+import static java.math.BigDecimal.ZERO;
 import static java.util.stream.Collectors.*;
 
 
@@ -80,6 +84,12 @@ public class UsdkOrderManager {
     private RealTimeEntrustManager realTimeEntrustManager;
     @Autowired
     private MonitorLogManager monitorLogManager;
+    @Autowired
+    private BrokerUsdkOrderFeeListManager brokerUsdkOrderFeeListManager;
+    @Autowired
+    private RedisManager redisManager;
+
+    private static BigDecimal defaultFee = new BigDecimal("0.0005");
 
     //TODO 优化: 先更新账户，再insert订单，而不是先insert订单再更新账户
     @Transactional(rollbackFor={Throwable.class})
@@ -117,7 +127,9 @@ public class UsdkOrderManager {
         Integer orderDirection = usdkOrderDO.getOrderDirection();
         List<UserCapitalDTO> list = assetService.getUserCapital(userId);
         profiler.complelete("getUserCapital");
-        usdkOrderDO.setFee(usdkFee);
+        //todo 获取手续费费率
+        BigDecimal feeRete = getFeeRateByBrokerId(usdkOrderDTO.getBrokerId());
+        usdkOrderDO.setFee(feeRete);
         usdkOrderDO.setStatus(COMMIT.getCode());
         usdkOrderDO.setUnfilledAmount(usdkOrderDO.getTotalAmount());
         long transferTime = System.currentTimeMillis();
@@ -260,7 +272,6 @@ public class UsdkOrderManager {
         Long userId = placeOrderRequest.getUserId();
         String username = placeOrderRequest.getUserName();
         String ipAddress = placeOrderRequest.getIp();
-        BigDecimal fee = placeOrderRequest.getUserLevel().getFeeRate();
 
         List<UserCapitalDTO> userCapitalDTOList = assetService.getUserCapital(userId);
         if (CollectionUtils.isEmpty(userCapitalDTOList)) {
@@ -268,6 +279,7 @@ public class UsdkOrderManager {
         }
 
         for(PlaceCoinOrderDTO placeCoinOrderDTO : reqList){
+            BigDecimal fee = getFeeRateByBrokerId(placeCoinOrderDTO.getBrokerId());
             Integer assetId = Integer.valueOf(String.valueOf(placeCoinOrderDTO.getSubjectId()));
             Long orderId = BasicUtils.generateId();
             PlaceOrderResult placeOrderResult = new PlaceOrderResult();
@@ -290,6 +302,7 @@ public class UsdkOrderManager {
             usdkOrderDTO.setTotalAmount(placeCoinOrderDTO.getTotalAmount());
             usdkOrderDTO.setUnfilledAmount(placeCoinOrderDTO.getTotalAmount());
             usdkOrderDTO.setPrice(placeCoinOrderDTO.getPrice());
+            usdkOrderDTO.setBrokerId(placeCoinOrderDTO.getBrokerId());
             usdkOrderDTO.setGmtCreate(new Date(transferTime));
             usdkOrderDTO.setGmtModified(new Date(transferTime));
             usdkOrderDTO.setOrderContext(newMap);
@@ -463,6 +476,7 @@ public class UsdkOrderManager {
         placeOrderMessage.setOrderDirection(usdkOrderDO.getOrderDirection());
         placeOrderMessage.setOrderType(usdkOrderDO.getOrderType());
         placeOrderMessage.setPrice(usdkOrderDO.getPrice());
+        placeOrderMessage.setBrokerId(usdkOrderDO.getBrokerId());
         return placeOrderMessage;
     }
 
@@ -745,17 +759,25 @@ public class UsdkOrderManager {
         BigDecimal addLockedAsset = filledAmount;
         BigDecimal addTotalAsset = filledAmount;
         List<CapitalAccountAddAmountDTO> updateList = new ArrayList<>();
+
+        Integer tradingPairId = usdkMatchedOrderDTO.getAssetId();
+        Integer baseAssetId = CoinTradingPairUtil.getBaseAssetId(tradingPairId);
+        Integer quoteAssetId = CoinTradingPairUtil.getQuoteAssetId(tradingPairId);
         if (!askUsdkOrder.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
             //卖方BTC账户增加
+            //现货交易收取手续费
+            BigDecimal fee = getFeeRateByBrokerId(askUsdkOrder.getBrokerId()).multiply(addAskTotalBTC);
+            recordUsdkOrderFee(askUsdkOrder.getBrokerId(), fee, quoteAssetId);
+
             CapitalAccountAddAmountDTO askBtcCapital = new CapitalAccountAddAmountDTO();
             askBtcCapital.setUserId(askUsdkOrder.getUserId());
-            askBtcCapital.setAssetId(AssetTypeEnum.BTC.getCode());
-            askBtcCapital.setAddTotal(addAskTotalBTC);
+            askBtcCapital.setAssetId(quoteAssetId);
+            askBtcCapital.setAddTotal(addAskTotalBTC.subtract(fee));
             updateList.add(askBtcCapital);
             //卖方对应资产账户的冻结和总金额减少
             CapitalAccountAddAmountDTO askMatchAssetCapital = new CapitalAccountAddAmountDTO();
             askMatchAssetCapital.setUserId(askUsdkOrder.getUserId());
-            askMatchAssetCapital.setAssetId(usdkMatchedOrderDTO.getAssetId());
+            askMatchAssetCapital.setAssetId(baseAssetId);
             askMatchAssetCapital.setAddTotal(addTotalAsset.negate());
             askMatchAssetCapital.setAddOrderLocked(addLockedAsset.negate());
             updateList.add(askMatchAssetCapital);
@@ -764,15 +786,19 @@ public class UsdkOrderManager {
             //买方BTC账户总金额和冻结减少
             CapitalAccountAddAmountDTO bidBtcCapital = new CapitalAccountAddAmountDTO();
             bidBtcCapital.setUserId(bidUsdkOrder.getUserId());
-            bidBtcCapital.setAssetId(AssetTypeEnum.BTC.getCode());
+            bidBtcCapital.setAssetId(quoteAssetId);
             bidBtcCapital.setAddTotal(addTotalBTC.negate());
             bidBtcCapital.setAddOrderLocked(addLockedBTC.negate());
             updateList.add(bidBtcCapital);
             //买方对应资产账户总金额增加
+            //现货交易收取手续费
+            BigDecimal fee = getFeeRateByBrokerId(bidUsdkOrder.getBrokerId()).multiply(addBidTotalAsset);
+            recordUsdkOrderFee(bidUsdkOrder.getBrokerId(), fee, baseAssetId);
+
             CapitalAccountAddAmountDTO bidMatchAssetCapital = new CapitalAccountAddAmountDTO();
             bidMatchAssetCapital.setUserId(bidUsdkOrder.getUserId());
-            bidMatchAssetCapital.setAssetId(usdkMatchedOrderDTO.getAssetId());
-            bidMatchAssetCapital.setAddTotal(addBidTotalAsset);
+            bidMatchAssetCapital.setAssetId(baseAssetId);
+            bidMatchAssetCapital.setAddTotal(addBidTotalAsset.subtract(fee));
             updateList.add(bidMatchAssetCapital);
         }
         Result<Boolean> updateRet;
@@ -804,6 +830,27 @@ public class UsdkOrderManager {
         ThreadContextUtil.setPostTask(runnable);
 
         return ResultCode.success();
+    }
+
+
+    public BigDecimal getFeeRateByBrokerId(Long brokerId){
+        List<BrokerrFeeRateDO> list = brokerUsdkOrderFeeListManager.getFeeRateList();
+        Optional<BrokerrFeeRateDO> optional = list.stream().filter(x->x.getBrokerId() == brokerId).findFirst();
+        if (optional.isPresent()){
+            return optional.get().getFeeRate();
+        } else {
+            return defaultFee;
+        }
+    }
+
+    public void recordUsdkOrderFee(Long brokerId, BigDecimal fee, Integer assetId){
+        if (fee.compareTo(ZERO) > 0){
+            String dateStr = new SimpleDateFormat("yyyyMMdd").format(new Date());
+            Double currentFee = redisManager.counter(Constant.USDK_TODAY_FEE + brokerId + assetId + dateStr, fee);
+            if (null == currentFee) {
+                log.error("recordUsdkOrderFee failed, fee={}", fee);
+            }
+        }
     }
 
     private void postProcessOrder(UsdkOrderDO usdkOrderDO, BigDecimal filledAmount, long matchId) {
