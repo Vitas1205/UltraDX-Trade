@@ -140,7 +140,7 @@ public class UsdkOrderManager {
         }
         if (usdkOrderDO.getOrderType() != OrderTypeEnum.ENFORCE.getCode()){
             BigDecimal totalAmount = usdkOrderDO.getTotalAmount();
-            Result<BigDecimal> checkPriceRes = computeAndCheckOrderPrice(usdkOrderDO.getPrice(), usdkOrderDO.getOrderType(), usdkOrderDO.getOrderDirection(), usdkOrderDO.getAssetId());
+            Result<BigDecimal> checkPriceRes = computeAndCheckOrderPrice(usdkOrderDO.getPrice(), usdkOrderDO.getOrderType(), usdkOrderDO.getOrderDirection(), CoinTradingPairUtil.getBaseAssetId(usdkOrderDO.getAssetId()));
             profiler.complelete("computeAndCheckOrderPrice");
             if (usdkOrderDO.getOrderType() == RIVAL.getCode()) {
                 usdkOrderDO.setOrderType(LIMIT.getCode());
@@ -306,7 +306,6 @@ public class UsdkOrderManager {
             usdkOrderDTO.setTotalAmount(placeCoinOrderDTO.getTotalAmount());
             usdkOrderDTO.setUnfilledAmount(placeCoinOrderDTO.getTotalAmount());
             usdkOrderDTO.setPrice(placeCoinOrderDTO.getPrice());
-            usdkOrderDTO.setBrokerId(placeCoinOrderDTO.getBrokerId());
             usdkOrderDTO.setGmtCreate(new Date(transferTime));
             usdkOrderDTO.setGmtModified(new Date(transferTime));
             usdkOrderDTO.setOrderContext(newMap);
@@ -319,7 +318,7 @@ public class UsdkOrderManager {
             usdkOrderDOList.add(usdkOrderDO);
             if (usdkOrderDTO.getOrderType() != OrderTypeEnum.ENFORCE.getCode()){
                 BigDecimal totalAmount = usdkOrderDTO.getTotalAmount();
-                Result<BigDecimal> checkPriceRes = computeAndCheckOrderPrice(usdkOrderDTO.getPrice(), usdkOrderDTO.getOrderType(), usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getAssetId());
+                Result<BigDecimal> checkPriceRes = computeAndCheckOrderPrice(usdkOrderDTO.getPrice(), usdkOrderDTO.getOrderType(), usdkOrderDTO.getOrderDirection(), CoinTradingPairUtil.getBaseAssetId(usdkOrderDTO.getAssetId()));
                 profiler.complelete("computeAndCheckOrderPrice");
                 if (usdkOrderDTO.getOrderType() == RIVAL.getCode()) {
                     usdkOrderDTO.setOrderType(LIMIT.getCode());
@@ -351,42 +350,46 @@ public class UsdkOrderManager {
             //todo assetId修改
             Map<Integer, UserCapitalDTO> userCapitalDTOMap = userCapitalDTOList.stream()
                     .collect(toMap(UserCapitalDTO::getAssetId, Function.identity()));
-            UserCapitalDTO btcCapital = userCapitalDTOMap.get(AssetTypeEnum.BTC.getCode());
+            //UserCapitalDTO btcCapital = userCapitalDTOMap.get(AssetTypeEnum.BTC.getCode());
 
             Map<Integer, List<UsdkOrderDO>> mapByOrderDirection = usdkOrderDOList.stream()
                     .collect(groupingBy(UsdkOrderDO::getOrderDirection));
             for (Map.Entry<Integer, List<UsdkOrderDO>> entry : mapByOrderDirection.entrySet()) {
                 Integer orderDirection = entry.getKey();
+                Map<Integer, List<UsdkOrderDO>> mapByAssetId = entry.getValue()
+                        .stream()
+                        .collect(groupingBy(UsdkOrderDO::getAssetId));
                 if (orderDirection == BID.getCode()) {
-                    if (Objects.isNull(btcCapital) || Objects.isNull(btcCapital.getAmount())) {
-                        return Result.fail(COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(),
-                                COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
-                    } else {
-                        BigDecimal amount = new BigDecimal(btcCapital.getAmount());
-                        BigDecimal lockedAmount = StringUtils.isEmpty(btcCapital.getLockedAmount()) ? BigDecimal.ZERO : new BigDecimal(btcCapital.getLockedAmount());
-                        BigDecimal availableAmount = amount.subtract(lockedAmount);
-                        BigDecimal totalPrice = entry.getValue().stream()
-                                .map(usdkOrderDO -> usdkOrderDO.getTotalAmount().multiply(usdkOrderDO.getPrice()))
-                                .reduce(BigDecimal::add)
-                                .orElse(BigDecimal.ZERO);
-                        if (totalPrice.compareTo(availableAmount) > 0) {
-                            return Result.fail(COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(),
-                                    COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
-                        }
-                    }
-                } else if (orderDirection == ASK.getCode()) {
-                    Map<Integer, List<UsdkOrderDO>> mapByAssetId = entry.getValue()
-                            .stream()
-                            .collect(groupingBy(UsdkOrderDO::getAssetId));
                     for (Map.Entry<Integer, List<UsdkOrderDO>> askEntry : mapByAssetId.entrySet()) {
                         Integer assetId = askEntry.getKey();
-                        UserCapitalDTO userCapitalDTO = userCapitalDTOMap.get(assetId);
+                        UserCapitalDTO userCapitalDTO = userCapitalDTOMap.get(CoinTradingPairUtil.getQuoteAssetId(assetId));
                         if (Objects.isNull(userCapitalDTO) || Objects.isNull(userCapitalDTO.getAmount())) {
                             return Result.fail(COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(),
                                     COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
                         } else {
                             BigDecimal amount = new BigDecimal(userCapitalDTO.getAmount());
-                            BigDecimal lockedAmount = StringUtils.isEmpty(userCapitalDTO.getLockedAmount()) ? BigDecimal.ZERO : new BigDecimal(btcCapital.getLockedAmount());
+                            BigDecimal lockedAmount = StringUtils.isEmpty(userCapitalDTO.getLockedAmount()) ? BigDecimal.ZERO : new BigDecimal(userCapitalDTO.getLockedAmount());
+                            BigDecimal availableAmount = amount.subtract(lockedAmount);
+                            BigDecimal totalPrice = entry.getValue().stream()
+                                    .map(usdkOrderDO -> usdkOrderDO.getTotalAmount().multiply(usdkOrderDO.getPrice()))
+                                    .reduce(BigDecimal::add)
+                                    .orElse(BigDecimal.ZERO);
+                            if (totalPrice.compareTo(availableAmount) > 0) {
+                                return Result.fail(COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(),
+                                        COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
+                            }
+                        }
+                    }
+                } else if (orderDirection == ASK.getCode()) {
+                    for (Map.Entry<Integer, List<UsdkOrderDO>> askEntry : mapByAssetId.entrySet()) {
+                        Integer assetId = askEntry.getKey();
+                        UserCapitalDTO userCapitalDTO = userCapitalDTOMap.get(CoinTradingPairUtil.getBaseAssetId(assetId));
+                        if (Objects.isNull(userCapitalDTO) || Objects.isNull(userCapitalDTO.getAmount())) {
+                            return Result.fail(COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(),
+                                    COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
+                        } else {
+                            BigDecimal amount = new BigDecimal(userCapitalDTO.getAmount());
+                            BigDecimal lockedAmount = StringUtils.isEmpty(userCapitalDTO.getLockedAmount()) ? BigDecimal.ZERO : new BigDecimal(userCapitalDTO.getLockedAmount());
                             BigDecimal availableAmount = amount.subtract(lockedAmount);
                             BigDecimal askedTotalAmount = askEntry.getValue()
                                     .stream()
