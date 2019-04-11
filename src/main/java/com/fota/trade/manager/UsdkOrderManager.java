@@ -23,6 +23,7 @@ import com.fota.trade.domain.enums.OrderTypeEnum;
 import com.fota.trade.mapper.sharding.UsdkMatchedOrderMapper;
 import com.fota.trade.mapper.sharding.UsdkOrderMapper;
 import com.fota.trade.msg.*;
+import com.fota.trade.service.internal.MarketAccountListService;
 import com.fota.trade.util.*;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
@@ -88,6 +89,8 @@ public class UsdkOrderManager {
     private BrokerUsdkOrderFeeListManager brokerUsdkOrderFeeListManager;
     @Autowired
     private RedisManager redisManager;
+    @Autowired
+    private MarketAccountListService marketAccountListService;
 
     private static BigDecimal defaultFee = new BigDecimal("0.0005");
 
@@ -128,7 +131,13 @@ public class UsdkOrderManager {
         List<UserCapitalDTO> list = assetService.getUserCapital(userId);
         profiler.complelete("getUserCapital");
         //todo 获取手续费费率
-        BigDecimal feeRate = getFeeRateByBrokerId(usdkOrderDTO.getBrokerId());
+        BigDecimal feeRate;
+        boolean isMarket = marketAccountListService.contains(userId);
+        if (isMarket) {
+            feeRate = BigDecimal.ZERO;
+        } else {
+            feeRate = getFeeRateByBrokerId(usdkOrderDTO.getBrokerId());
+        }
         usdkOrderDO.setFee(feeRate);
         usdkOrderDO.setStatus(COMMIT.getCode());
         usdkOrderDO.setUnfilledAmount(usdkOrderDO.getTotalAmount());
@@ -280,7 +289,6 @@ public class UsdkOrderManager {
         }
 
         for(PlaceCoinOrderDTO placeCoinOrderDTO : reqList){
-            BigDecimal fee = getFeeRateByBrokerId(placeCoinOrderDTO.getBrokerId());
             Integer assetId = Integer.valueOf(String.valueOf(placeCoinOrderDTO.getSubjectId()));
             Long orderId = BasicUtils.generateId();
             PlaceOrderResult placeOrderResult = new PlaceOrderResult();
@@ -298,8 +306,13 @@ public class UsdkOrderManager {
             usdkOrderDTO.setAssetName(placeCoinOrderDTO.getSubjectName());
             usdkOrderDTO.setOrderDirection(placeCoinOrderDTO.getOrderDirection());
             usdkOrderDTO.setOrderType(placeCoinOrderDTO.getOrderType());
-            //todo
-            BigDecimal feeRate = getFeeRateByBrokerId(placeCoinOrderDTO.getBrokerId());
+            BigDecimal feeRate;
+            boolean isMarket = marketAccountListService.contains(userId);
+            if (isMarket) {
+                feeRate = BigDecimal.ZERO;
+            } else {
+                feeRate = getFeeRateByBrokerId(placeCoinOrderDTO.getBrokerId());
+            }
             usdkOrderDTO.setFee(feeRate);
             usdkOrderDTO.setBrokerId(placeCoinOrderDTO.getBrokerId());
             usdkOrderDTO.setStatus(COMMIT.getCode());
