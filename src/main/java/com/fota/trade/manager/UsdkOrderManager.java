@@ -128,8 +128,8 @@ public class UsdkOrderManager {
         List<UserCapitalDTO> list = assetService.getUserCapital(userId);
         profiler.complelete("getUserCapital");
         //todo 获取手续费费率
-        BigDecimal feeRete = getFeeRateByBrokerId(usdkOrderDTO.getBrokerId());
-        usdkOrderDO.setFee(feeRete);
+        BigDecimal feeRate = getFeeRateByBrokerId(usdkOrderDTO.getBrokerId());
+        usdkOrderDO.setFee(feeRate);
         usdkOrderDO.setStatus(COMMIT.getCode());
         usdkOrderDO.setUnfilledAmount(usdkOrderDO.getTotalAmount());
         long transferTime = System.currentTimeMillis();
@@ -164,13 +164,14 @@ public class UsdkOrderManager {
             BigDecimal entrustValue;
             int errorCode;
             String errorMsg;
+
             if (orderDirection == OrderDirectionEnum.BID.getCode()){
-                assetTypeId = AssetTypeEnum.BTC.getCode();
+                assetTypeId = CoinTradingPairUtil.getQuoteAssetId(assetId);
                 entrustValue = orderValue;
                 errorCode = ResultCodeEnum.CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode();
                 errorMsg = ResultCodeEnum.CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage();
             }else {
-                assetTypeId = assetId;
+                assetTypeId = CoinTradingPairUtil.getBaseAssetId(assetId);
                 entrustValue = usdkOrderDO.getTotalAmount();
                 errorCode = ResultCodeEnum.COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode();
                 errorMsg = ResultCodeEnum.COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage();
@@ -297,7 +298,10 @@ public class UsdkOrderManager {
             usdkOrderDTO.setAssetName(placeCoinOrderDTO.getSubjectName());
             usdkOrderDTO.setOrderDirection(placeCoinOrderDTO.getOrderDirection());
             usdkOrderDTO.setOrderType(placeCoinOrderDTO.getOrderType());
-            usdkOrderDTO.setFee(fee);
+            //todo
+            BigDecimal feeRate = getFeeRateByBrokerId(placeCoinOrderDTO.getBrokerId());
+            usdkOrderDTO.setFee(feeRate);
+            usdkOrderDTO.setBrokerId(placeCoinOrderDTO.getBrokerId());
             usdkOrderDTO.setStatus(COMMIT.getCode());
             usdkOrderDTO.setTotalAmount(placeCoinOrderDTO.getTotalAmount());
             usdkOrderDTO.setUnfilledAmount(placeCoinOrderDTO.getTotalAmount());
@@ -344,6 +348,7 @@ public class UsdkOrderManager {
         }
 
         try {
+            //todo assetId修改
             Map<Integer, UserCapitalDTO> userCapitalDTOMap = userCapitalDTOList.stream()
                     .collect(toMap(UserCapitalDTO::getAssetId, Function.identity()));
             UserCapitalDTO btcCapital = userCapitalDTOMap.get(AssetTypeEnum.BTC.getCode());
