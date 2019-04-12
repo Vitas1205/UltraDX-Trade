@@ -618,11 +618,11 @@ public class UsdkOrderManager {
             Integer assetId = 0;
             BigDecimal unlockAmount ;
             if (orderDirection == OrderDirectionEnum.BID.getCode()){
-                assetId = AssetTypeEnum.BTC.getCode();
+                assetId = CoinTradingPairUtil.getQuoteAssetId(usdkOrderDO.getAssetId());
                 BigDecimal price = usdkOrderDO.getPrice();
                 unlockAmount = unfilledAmount.multiply(price);
             }else {
-                assetId = usdkOrderDO.getAssetId();
+                assetId = CoinTradingPairUtil.getBaseAssetId(usdkOrderDO.getAssetId());
                 unlockAmount = unfilledAmount;
             }
             //解冻Coin钱包账户
@@ -631,16 +631,16 @@ public class UsdkOrderManager {
                 CapitalAccountAddAmountDTO capitalAccountAddAmountDTO = new CapitalAccountAddAmountDTO();
                 capitalAccountAddAmountDTO.setAddOrderLocked(unlockAmount.negate());
                 capitalAccountAddAmountDTO.setUserId(userId);
-                capitalAccountAddAmountDTO.setAssetId(CoinTradingPairUtil.getBaseAssetId(assetId));
+                capitalAccountAddAmountDTO.setAssetId(assetId);
                 updateLockedAmountRet = assetWriteService.addCapitalAmount(capitalAccountAddAmountDTO, String.valueOf(orderId), AssetOperationTypeEnum.USDT_EXCHANGE_CANCLE_ORDER.getCode());
             }catch (Exception e){
-                parameter.put("assetId", CoinTradingPairUtil.getBaseAssetId(assetId));
+                parameter.put("assetId", assetId);
                 parameter.put("lockedAmount", unlockAmount.negate().toString());
                 LogUtil.error( TradeBizTypeEnum.COIN_CANCEL_ORDER.toString(), String.valueOf(orderId), parameter, "Asset RPC Error!, assetWriteService.addCapitalAmount.updateLockedAmount exception", e);
                 throw new BizException(BIZ_ERROR.getCode(),"cancelOrder assetWriteService.addCapitalAmount exception");
             }
             if (!updateLockedAmountRet.isSuccess() || !updateLockedAmountRet.getData()){
-                parameter.put("assetId", CoinTradingPairUtil.getBaseAssetId(assetId));
+                parameter.put("assetId", assetId);
                 parameter.put("lockedAmount", unlockAmount.negate().toString());
                 LogUtil.error( TradeBizTypeEnum.COIN_CANCEL_ORDER.toString(), String.valueOf(orderId), parameter, "errorCode:"+ updateLockedAmountRet.getCode() + ", errorMsg:"+ updateLockedAmountRet.getMessage());
                 throw new BizException(BIZ_ERROR.getCode(),"cancelOrder assetWriteService.addCapitalAmount failed");
