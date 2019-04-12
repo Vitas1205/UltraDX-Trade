@@ -634,13 +634,13 @@ public class UsdkOrderManager {
                 capitalAccountAddAmountDTO.setAssetId(CoinTradingPairUtil.getBaseAssetId(assetId));
                 updateLockedAmountRet = assetWriteService.addCapitalAmount(capitalAccountAddAmountDTO, String.valueOf(orderId), AssetOperationTypeEnum.USDT_EXCHANGE_CANCLE_ORDER.getCode());
             }catch (Exception e){
-                parameter.put("assetId", assetId);
+                parameter.put("assetId", CoinTradingPairUtil.getBaseAssetId(assetId));
                 parameter.put("lockedAmount", unlockAmount.negate().toString());
                 LogUtil.error( TradeBizTypeEnum.COIN_CANCEL_ORDER.toString(), String.valueOf(orderId), parameter, "Asset RPC Error!, assetWriteService.addCapitalAmount.updateLockedAmount exception", e);
                 throw new BizException(BIZ_ERROR.getCode(),"cancelOrder assetWriteService.addCapitalAmount exception");
             }
             if (!updateLockedAmountRet.isSuccess() || !updateLockedAmountRet.getData()){
-                parameter.put("assetId", assetId);
+                parameter.put("assetId", CoinTradingPairUtil.getBaseAssetId(assetId));
                 parameter.put("lockedAmount", unlockAmount.negate().toString());
                 LogUtil.error( TradeBizTypeEnum.COIN_CANCEL_ORDER.toString(), String.valueOf(orderId), parameter, "errorCode:"+ updateLockedAmountRet.getCode() + ", errorMsg:"+ updateLockedAmountRet.getMessage());
                 throw new BizException(BIZ_ERROR.getCode(),"cancelOrder assetWriteService.addCapitalAmount failed");
