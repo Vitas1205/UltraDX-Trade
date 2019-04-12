@@ -53,7 +53,7 @@ public interface UsdkOrderMapper {
     @Select({
             "select",
             "id, gmt_create, gmt_modified, user_id, asset_id, asset_name, order_direction, ",
-            "order_type, total_amount, unfilled_amount, price, fee, status, average_price, order_context",
+            "order_type, total_amount, unfilled_amount, price, fee, status, average_price, order_context, broker_id",
             "from trade_usdt_order",
             "where user_id =  #{userId,jdbcType=BIGINT} and status in (8,9)"
     })

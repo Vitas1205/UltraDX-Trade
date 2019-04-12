@@ -111,12 +111,13 @@ public class UsdkOrderManager {
         criteriaMap.put("orderStatus", Arrays.asList(COMMIT.getCode(), PART_MATCH.getCode()));
         int count = usdkOrderMapper.countByQuery(criteriaMap);
         profiler.complelete("count 8,9 orders");
-        if (count >= 200) {
+        Long userId = usdkOrderDTO.getUserId();
+        boolean isMarket = marketAccountListService.contains(userId);
+        if ((isMarket && count >= 5000) || (!isMarket && count >= 100)) {
             log.warn("user: {} too much {} orders", usdkOrderDTO.getUserId(),
                     AssetTypeEnum.getAssetNameByAssetId(usdkOrderDTO.getAssetId()));
             return Result.fail(TOO_MUCH_ORDERS.getCode(), TOO_MUCH_ORDERS.getMessage());
         }
-
         UsdkOrderDO usdkOrderDO = com.fota.trade.common.BeanUtils.copy(usdkOrderDTO);
         Map<String, Object> newMap = new HashMap<>();
         if (usdkOrderDTO.getOrderContext() !=null){
@@ -126,13 +127,12 @@ public class UsdkOrderManager {
         usdkOrderDTO.setOrderContext(newMap);
         usdkOrderDO.setOrderContext(JSONObject.toJSONString(usdkOrderDTO.getOrderContext()));
         Integer assetId = usdkOrderDO.getAssetId();
-        Long userId = usdkOrderDO.getUserId();
+
         Integer orderDirection = usdkOrderDO.getOrderDirection();
         List<UserCapitalDTO> list = assetService.getUserCapital(userId);
         profiler.complelete("getUserCapital");
         //todo 获取手续费费率
         BigDecimal feeRate;
-        boolean isMarket = marketAccountListService.contains(userId);
         if (isMarket) {
             feeRate = BigDecimal.ZERO;
         } else {
