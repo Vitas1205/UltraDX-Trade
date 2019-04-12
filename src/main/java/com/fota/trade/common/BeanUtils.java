@@ -236,7 +236,7 @@ public class BeanUtils {
             usdkMatchedOrderDO.setMatchUserId(usdkMatchedOrderDTO.getAskUserId());
         }
 
-        usdkMatchedOrderDO.setAssetName(AssetTypeEnum.getAssetNameByAssetId(usdkMatchedOrderDTO.getAssetId()));
+        usdkMatchedOrderDO.setAssetName(usdkMatchedOrderDTO.getAssetName());
         usdkMatchedOrderDO.setAssetId(usdkMatchedOrderDTO.getAssetId());
 
         usdkMatchedOrderDO.setFilledAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
