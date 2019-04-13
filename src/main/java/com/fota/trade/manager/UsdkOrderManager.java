@@ -92,7 +92,7 @@ public class UsdkOrderManager {
     @Autowired
     private MarketAccountListService marketAccountListService;
 
-    private static BigDecimal defaultFee = new BigDecimal("0.0005");
+    private static BigDecimal defaultFee = new BigDecimal("0.001");
 
     //TODO 优化: 先更新账户，再insert订单，而不是先insert订单再更新账户
     @Transactional(rollbackFor={Throwable.class})
@@ -854,7 +854,7 @@ public class UsdkOrderManager {
     }
 
 
-    public BigDecimal getFeeRateByBrokerId(Long brokerId){
+    private BigDecimal getFeeRateByBrokerId(Long brokerId){
         List<BrokerrFeeRateDO> list = brokerUsdkOrderFeeListManager.getFeeRateList();
         Optional<BrokerrFeeRateDO> optional = list.stream().filter(x->x.getBrokerId().equals(brokerId)).findFirst();
         if (optional.isPresent()){
