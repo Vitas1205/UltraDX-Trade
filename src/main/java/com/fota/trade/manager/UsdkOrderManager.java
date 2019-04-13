@@ -149,7 +149,7 @@ public class UsdkOrderManager {
         }
         if (usdkOrderDO.getOrderType() != OrderTypeEnum.ENFORCE.getCode()){
             BigDecimal totalAmount = usdkOrderDO.getTotalAmount();
-            Result<BigDecimal> checkPriceRes = computeAndCheckOrderPrice(usdkOrderDO.getPrice(), usdkOrderDO.getOrderType(), usdkOrderDO.getOrderDirection(), CoinTradingPairUtil.getBaseAssetId(usdkOrderDO.getAssetId()));
+            Result<BigDecimal> checkPriceRes = computeAndCheckOrderPrice(usdkOrderDO.getPrice(), usdkOrderDO.getOrderType(), usdkOrderDO.getOrderDirection(), usdkOrderDO.getAssetId());
             profiler.complelete("computeAndCheckOrderPrice");
             if (usdkOrderDO.getOrderType() == RIVAL.getCode()) {
                 usdkOrderDO.setOrderType(LIMIT.getCode());
