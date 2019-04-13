@@ -5,6 +5,7 @@ import com.fota.asset.domain.CapitalAccountAddAmountDTO;
 import com.fota.asset.domain.UserCapitalDTO;
 import com.fota.asset.domain.enums.AssetOperationTypeEnum;
 import com.fota.asset.domain.enums.AssetTypeEnum;
+import com.fota.asset.domain.enums.AssetTypeForUsdtEnum;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.util.CoinTradingPairUtil;
 import com.fota.trade.service.internal.AssetWriteService;
@@ -149,7 +150,7 @@ public class UsdkOrderManager {
         }
         if (usdkOrderDO.getOrderType() != OrderTypeEnum.ENFORCE.getCode()){
             BigDecimal totalAmount = usdkOrderDO.getTotalAmount();
-            Result<BigDecimal> checkPriceRes = computeAndCheckOrderPrice(usdkOrderDO.getPrice(), usdkOrderDO.getOrderType(), usdkOrderDO.getOrderDirection(), usdkOrderDO.getAssetId());
+            Result<BigDecimal> checkPriceRes = computeAndCheckOrderPrice(usdkOrderDO.getPrice(), usdkOrderDO.getOrderType(), usdkOrderDO.getOrderDirection(), usdkOrderDO.getAssetId(), usdkOrderDO.getBrokerId());
             profiler.complelete("computeAndCheckOrderPrice");
             if (usdkOrderDO.getOrderType() == RIVAL.getCode()) {
                 usdkOrderDO.setOrderType(LIMIT.getCode());
@@ -331,7 +332,7 @@ public class UsdkOrderManager {
             usdkOrderDOList.add(usdkOrderDO);
             if (usdkOrderDTO.getOrderType() != OrderTypeEnum.ENFORCE.getCode()){
                 BigDecimal totalAmount = usdkOrderDTO.getTotalAmount();
-                Result<BigDecimal> checkPriceRes = computeAndCheckOrderPrice(usdkOrderDTO.getPrice(), usdkOrderDTO.getOrderType(), usdkOrderDTO.getOrderDirection(), CoinTradingPairUtil.getBaseAssetId(usdkOrderDTO.getAssetId()));
+                Result<BigDecimal> checkPriceRes = computeAndCheckOrderPrice(usdkOrderDTO.getPrice(), usdkOrderDTO.getOrderType(), usdkOrderDTO.getOrderDirection(), CoinTradingPairUtil.getBaseAssetId(usdkOrderDTO.getAssetId()), usdkOrderDTO.getBrokerId());
                 profiler.complelete("computeAndCheckOrderPrice");
                 if (usdkOrderDTO.getOrderType() == RIVAL.getCode()) {
                     usdkOrderDTO.setOrderType(LIMIT.getCode());
@@ -501,10 +502,13 @@ public class UsdkOrderManager {
         return placeOrderMessage;
     }
 
-    private Result<BigDecimal> computeAndCheckOrderPrice(BigDecimal orderPrice, int orderType, int orderDirection, int assetId){
-
-        Integer scale = AssetTypeEnum.getUsdkPricePrecisionByAssetId(assetId);
-
+    private Result<BigDecimal> computeAndCheckOrderPrice(BigDecimal orderPrice, int orderType, int orderDirection, int assetId, Long brokerId){
+        Integer scale;
+        if (brokerId != null && brokerId >1){
+            scale = AssetTypeForUsdtEnum.getUsdkPricePrecisionByAssetId(CoinTradingPairUtil.getBaseAssetId(assetId));
+        } else {
+            scale = AssetTypeEnum.getUsdkPricePrecisionByAssetId(assetId);
+        }
         if (orderType == PriceTypeEnum.RIVAL_PRICE.getCode()){
 
             List<CompetitorsPriceDTO> competitorsPriceList = realTimeEntrustManager.getUsdtCompetitorsPriceOrder();
