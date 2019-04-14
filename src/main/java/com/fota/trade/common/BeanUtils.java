@@ -120,6 +120,9 @@ public class BeanUtils {
         if (usdkOrderDTO.getGmtModified() != null) {
             usdkOrderDO.setGmtModified(usdkOrderDTO.getGmtModified());
         }
+        if (usdkOrderDTO.getBrokerId() != null){
+            usdkOrderDO.setBrokerId(usdkOrderDTO.getBrokerId());
+        }
         usdkOrderDO.setUserId(usdkOrderDTO.getUserId());
         usdkOrderDO.setAssetId(usdkOrderDTO.getAssetId());
         usdkOrderDO.setAssetName(usdkOrderDTO.getAssetName());
@@ -233,7 +236,7 @@ public class BeanUtils {
             usdkMatchedOrderDO.setMatchUserId(usdkMatchedOrderDTO.getAskUserId());
         }
 
-        usdkMatchedOrderDO.setAssetName(AssetTypeEnum.getAssetNameByAssetId(usdkMatchedOrderDTO.getAssetId()));
+        usdkMatchedOrderDO.setAssetName(usdkMatchedOrderDTO.getAssetName());
         usdkMatchedOrderDO.setAssetId(usdkMatchedOrderDTO.getAssetId());
 
         usdkMatchedOrderDO.setFilledAmount(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()));
