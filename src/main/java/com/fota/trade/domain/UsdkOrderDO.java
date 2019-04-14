@@ -28,6 +28,7 @@ public class UsdkOrderDO {
     private Integer status;
     private BigDecimal averagePrice;
     private String orderContext;
+    private Long brokerId;
 
     public boolean fillAmount(BigDecimal filledAmount) {
         if (unfilledAmount.compareTo(filledAmount) < 0) {

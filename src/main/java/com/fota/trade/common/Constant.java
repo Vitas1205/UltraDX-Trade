@@ -42,4 +42,5 @@ public class Constant {
     public static final String REDIS_USDT_ORDER_FOR_MATCH_HASH = "usdt_order_for_match_hash";
     public static final String REDIS_CONTRACT_ORDER_FOR_MATCH_HASH = "contract_order_for_match_hash";
     public static final String REDIS_TODAY_FEE = "trade_contract_match_fee";
+    public static final String USDK_TODAY_FEE = "trade_usdk_match_fee";
 }

@@ -1,14 +1,17 @@
 package com.fota.trade.service.impl;
 
 import com.fota.asset.service.CapitalService;
+import com.fota.asset.util.CoinTradingPairUtil;
 import com.fota.common.Page;
 import com.fota.common.Result;
 import com.fota.common.enums.FotaApplicationEnum;
 import com.fota.trade.client.*;
+import com.fota.trade.client.constants.Constants;
 import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderTypeEnum;
+import com.fota.trade.manager.BrokerUsdkOrderFeeListManager;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.manager.UsdkOrderManager;
 import com.fota.trade.mapper.sharding.ContractMatchedOrderMapper;
@@ -23,10 +26,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.math.BigDecimal;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -62,6 +63,11 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
 
     @Autowired
     private UsdkMatchedOrderMapper usdkMatchedOrderMapper;
+
+    @Autowired
+    private BrokerUsdkOrderFeeListManager brokerUsdkOrderFeeListManager;
+
+    private static BigDecimal defaultFee = new BigDecimal("0.001");
 
     @Autowired
     private CapitalService capitalService;
@@ -358,25 +364,39 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
 
         List<UsdkMatchedOrderDO> usdkMatchedOrders = null;
         List<UsdkMatchedOrderTradeDTO> list = new ArrayList<>();
+
         try {
             usdkMatchedOrders = usdkMatchedOrderMapper.listByUserId(userId, assetIds, startRow, endRow, startTimeD, endTimeD);
             if (null != usdkMatchedOrders && usdkMatchedOrders.size() > 0){
                 for (UsdkMatchedOrderDO temp : usdkMatchedOrders){
                     UsdkMatchedOrderTradeDTO tempTarget = new UsdkMatchedOrderTradeDTO();
-
+                    BigDecimal feeRate = getFeeRateByBrokerId(temp.getBrokerId());
                     if (OrderDirectionEnum.ASK.getCode() == temp.getOrderDirection()){
                         tempTarget.setAskOrderId(temp.getOrderId());
                         tempTarget.setAskOrderPrice(temp.getOrderPrice()==null?"0":temp.getOrderPrice().toString());
                         tempTarget.setAskUserId(temp.getUserId());
                         tempTarget.setBidUserId(temp.getMatchUserId());
+                        tempTarget.setFee(feeRate.multiply(temp.getFilledPrice()).multiply(temp.getFilledAmount())
+                                .setScale(Constants.feePrecision, BigDecimal.ROUND_DOWN)
+                                .toPlainString());
+                        if (temp.getAssetName().split("/").length > 1){
+                            tempTarget.setFeeAssetUnit(temp.getAssetName().split("/")[1]);
+                        }
+
                     }else {
                         tempTarget.setBidOrderId(temp.getOrderId());
                         tempTarget.setBidOrderPrice(temp.getOrderPrice()==null?"0":temp.getOrderPrice().toString());
                         tempTarget.setBidUserId(temp.getUserId());
                         tempTarget.setAskUserId(temp.getMatchUserId());
+                        tempTarget.setFee(feeRate.multiply(temp.getFilledAmount())
+                                .setScale(Constants.feePrecision, BigDecimal.ROUND_DOWN)
+                                .toPlainString());
+                        if (temp.getAssetName().split("/").length > 1){
+                            tempTarget.setFeeAssetUnit(temp.getAssetName().split("/")[0]);
+                        }
                     }
 
-                    tempTarget.setAssetName(temp.getAssetName());
+                    tempTarget.setAssetName(temp.getAssetName().split("/")[0]);
                     tempTarget.setUsdkMatchedOrderId(temp.getId());
                     //tempTarget.setFee(temp.getFee().toString());
                     tempTarget.setFilledAmount(temp.getFilledAmount());
@@ -392,6 +412,16 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         }
         usdkMatchedOrderTradeDTOPage.setData(list);
         return usdkMatchedOrderTradeDTOPage;
+    }
+
+    private BigDecimal getFeeRateByBrokerId(Long brokerId){
+        List<BrokerrFeeRateDO> list = brokerUsdkOrderFeeListManager.getFeeRateList();
+        Optional<BrokerrFeeRateDO> optional = list.stream().filter(x->x.getBrokerId().equals(brokerId)).findFirst();
+        if (optional.isPresent()){
+            return optional.get().getFeeRate();
+        } else {
+            return defaultFee;
+        }
     }
 
     /**

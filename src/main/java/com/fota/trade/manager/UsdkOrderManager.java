@@ -5,7 +5,9 @@ import com.fota.asset.domain.CapitalAccountAddAmountDTO;
 import com.fota.asset.domain.UserCapitalDTO;
 import com.fota.asset.domain.enums.AssetOperationTypeEnum;
 import com.fota.asset.domain.enums.AssetTypeEnum;
+import com.fota.asset.domain.enums.AssetTypeForUsdtEnum;
 import com.fota.asset.service.AssetService;
+import com.fota.asset.util.CoinTradingPairUtil;
 import com.fota.trade.service.internal.AssetWriteService;
 import com.fota.common.Result;
 import com.fota.common.utils.LogUtil;
@@ -22,6 +24,7 @@ import com.fota.trade.domain.enums.OrderTypeEnum;
 import com.fota.trade.mapper.sharding.UsdkMatchedOrderMapper;
 import com.fota.trade.mapper.sharding.UsdkOrderMapper;
 import com.fota.trade.msg.*;
+import com.fota.trade.service.internal.MarketAccountListService;
 import com.fota.trade.util.*;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
@@ -38,8 +41,10 @@ import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static com.fota.trade.PriceTypeEnum.MARKET_PRICE;
 import static com.fota.trade.PriceTypeEnum.SPECIFIED_PRICE;
@@ -50,6 +55,7 @@ import static com.fota.trade.domain.enums.OrderStatusEnum.COMMIT;
 import static com.fota.trade.domain.enums.OrderStatusEnum.PART_MATCH;
 import static com.fota.trade.domain.enums.OrderTypeEnum.*;
 import static com.fota.trade.msg.TopicConstants.*;
+import static java.math.BigDecimal.ZERO;
 import static java.util.stream.Collectors.*;
 
 
@@ -80,6 +86,14 @@ public class UsdkOrderManager {
     private RealTimeEntrustManager realTimeEntrustManager;
     @Autowired
     private MonitorLogManager monitorLogManager;
+    @Autowired
+    private BrokerUsdkOrderFeeListManager brokerUsdkOrderFeeListManager;
+    @Autowired
+    private RedisManager redisManager;
+    @Autowired
+    private MarketAccountListService marketAccountListService;
+
+    private static BigDecimal defaultFee = new BigDecimal("0.001");
 
     //TODO 优化: 先更新账户，再insert订单，而不是先insert订单再更新账户
     @Transactional(rollbackFor={Throwable.class})
@@ -98,12 +112,13 @@ public class UsdkOrderManager {
         criteriaMap.put("orderStatus", Arrays.asList(COMMIT.getCode(), PART_MATCH.getCode()));
         int count = usdkOrderMapper.countByQuery(criteriaMap);
         profiler.complelete("count 8,9 orders");
-        if (count >= 200) {
+        Long userId = usdkOrderDTO.getUserId();
+        boolean isMarket = marketAccountListService.contains(userId);
+        if ((isMarket && count >= 5000) || (!isMarket && count >= 100)) {
             log.warn("user: {} too much {} orders", usdkOrderDTO.getUserId(),
                     AssetTypeEnum.getAssetNameByAssetId(usdkOrderDTO.getAssetId()));
             return Result.fail(TOO_MUCH_ORDERS.getCode(), TOO_MUCH_ORDERS.getMessage());
         }
-
         UsdkOrderDO usdkOrderDO = com.fota.trade.common.BeanUtils.copy(usdkOrderDTO);
         Map<String, Object> newMap = new HashMap<>();
         if (usdkOrderDTO.getOrderContext() !=null){
@@ -113,11 +128,18 @@ public class UsdkOrderManager {
         usdkOrderDTO.setOrderContext(newMap);
         usdkOrderDO.setOrderContext(JSONObject.toJSONString(usdkOrderDTO.getOrderContext()));
         Integer assetId = usdkOrderDO.getAssetId();
-        Long userId = usdkOrderDO.getUserId();
+
         Integer orderDirection = usdkOrderDO.getOrderDirection();
         List<UserCapitalDTO> list = assetService.getUserCapital(userId);
         profiler.complelete("getUserCapital");
-        usdkOrderDO.setFee(usdkFee);
+        //todo 获取手续费费率
+        BigDecimal feeRate;
+        if (isMarket) {
+            feeRate = BigDecimal.ZERO;
+        } else {
+            feeRate = getFeeRateByBrokerId(usdkOrderDTO.getBrokerId());
+        }
+        usdkOrderDO.setFee(feeRate);
         usdkOrderDO.setStatus(COMMIT.getCode());
         usdkOrderDO.setUnfilledAmount(usdkOrderDO.getTotalAmount());
         long transferTime = System.currentTimeMillis();
@@ -128,7 +150,7 @@ public class UsdkOrderManager {
         }
         if (usdkOrderDO.getOrderType() != OrderTypeEnum.ENFORCE.getCode()){
             BigDecimal totalAmount = usdkOrderDO.getTotalAmount();
-            Result<BigDecimal> checkPriceRes = computeAndCheckOrderPrice(usdkOrderDO.getPrice(), usdkOrderDO.getOrderType(), usdkOrderDO.getOrderDirection(), usdkOrderDO.getAssetId());
+            Result<BigDecimal> checkPriceRes = computeAndCheckOrderPrice(usdkOrderDO.getPrice(), usdkOrderDO.getOrderType(), usdkOrderDO.getOrderDirection(), usdkOrderDO.getAssetId(), usdkOrderDO.getBrokerId());
             profiler.complelete("computeAndCheckOrderPrice");
             if (usdkOrderDO.getOrderType() == RIVAL.getCode()) {
                 usdkOrderDO.setOrderType(LIMIT.getCode());
@@ -152,13 +174,14 @@ public class UsdkOrderManager {
             BigDecimal entrustValue;
             int errorCode;
             String errorMsg;
+
             if (orderDirection == OrderDirectionEnum.BID.getCode()){
-                assetTypeId = AssetTypeEnum.BTC.getCode();
+                assetTypeId = CoinTradingPairUtil.getQuoteAssetId(assetId);
                 entrustValue = orderValue;
                 errorCode = ResultCodeEnum.CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode();
                 errorMsg = ResultCodeEnum.CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage();
             }else {
-                assetTypeId = assetId;
+                assetTypeId = CoinTradingPairUtil.getBaseAssetId(assetId);
                 entrustValue = usdkOrderDO.getTotalAmount();
                 errorCode = ResultCodeEnum.COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode();
                 errorMsg = ResultCodeEnum.COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage();
@@ -260,7 +283,6 @@ public class UsdkOrderManager {
         Long userId = placeOrderRequest.getUserId();
         String username = placeOrderRequest.getUserName();
         String ipAddress = placeOrderRequest.getIp();
-        BigDecimal fee = placeOrderRequest.getUserLevel().getFeeRate();
 
         List<UserCapitalDTO> userCapitalDTOList = assetService.getUserCapital(userId);
         if (CollectionUtils.isEmpty(userCapitalDTOList)) {
@@ -285,7 +307,15 @@ public class UsdkOrderManager {
             usdkOrderDTO.setAssetName(placeCoinOrderDTO.getSubjectName());
             usdkOrderDTO.setOrderDirection(placeCoinOrderDTO.getOrderDirection());
             usdkOrderDTO.setOrderType(placeCoinOrderDTO.getOrderType());
-            usdkOrderDTO.setFee(fee);
+            BigDecimal feeRate;
+            boolean isMarket = marketAccountListService.contains(userId);
+            if (isMarket) {
+                feeRate = BigDecimal.ZERO;
+            } else {
+                feeRate = getFeeRateByBrokerId(placeCoinOrderDTO.getBrokerId());
+            }
+            usdkOrderDTO.setFee(feeRate);
+            usdkOrderDTO.setBrokerId(placeCoinOrderDTO.getBrokerId());
             usdkOrderDTO.setStatus(COMMIT.getCode());
             usdkOrderDTO.setTotalAmount(placeCoinOrderDTO.getTotalAmount());
             usdkOrderDTO.setUnfilledAmount(placeCoinOrderDTO.getTotalAmount());
@@ -302,7 +332,7 @@ public class UsdkOrderManager {
             usdkOrderDOList.add(usdkOrderDO);
             if (usdkOrderDTO.getOrderType() != OrderTypeEnum.ENFORCE.getCode()){
                 BigDecimal totalAmount = usdkOrderDTO.getTotalAmount();
-                Result<BigDecimal> checkPriceRes = computeAndCheckOrderPrice(usdkOrderDTO.getPrice(), usdkOrderDTO.getOrderType(), usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getAssetId());
+                Result<BigDecimal> checkPriceRes = computeAndCheckOrderPrice(usdkOrderDTO.getPrice(), usdkOrderDTO.getOrderType(), usdkOrderDTO.getOrderDirection(), CoinTradingPairUtil.getBaseAssetId(usdkOrderDTO.getAssetId()), usdkOrderDTO.getBrokerId());
                 profiler.complelete("computeAndCheckOrderPrice");
                 if (usdkOrderDTO.getOrderType() == RIVAL.getCode()) {
                     usdkOrderDTO.setOrderType(LIMIT.getCode());
@@ -331,44 +361,49 @@ public class UsdkOrderManager {
         }
 
         try {
+            //todo assetId修改
             Map<Integer, UserCapitalDTO> userCapitalDTOMap = userCapitalDTOList.stream()
                     .collect(toMap(UserCapitalDTO::getAssetId, Function.identity()));
-            UserCapitalDTO btcCapital = userCapitalDTOMap.get(AssetTypeEnum.BTC.getCode());
+            //UserCapitalDTO btcCapital = userCapitalDTOMap.get(AssetTypeEnum.BTC.getCode());
 
             Map<Integer, List<UsdkOrderDO>> mapByOrderDirection = usdkOrderDOList.stream()
                     .collect(groupingBy(UsdkOrderDO::getOrderDirection));
             for (Map.Entry<Integer, List<UsdkOrderDO>> entry : mapByOrderDirection.entrySet()) {
                 Integer orderDirection = entry.getKey();
+                Map<Integer, List<UsdkOrderDO>> mapByAssetId = entry.getValue()
+                        .stream()
+                        .collect(groupingBy(UsdkOrderDO::getAssetId));
                 if (orderDirection == BID.getCode()) {
-                    if (Objects.isNull(btcCapital) || Objects.isNull(btcCapital.getAmount())) {
-                        return Result.fail(COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(),
-                                COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
-                    } else {
-                        BigDecimal amount = new BigDecimal(btcCapital.getAmount());
-                        BigDecimal lockedAmount = StringUtils.isEmpty(btcCapital.getLockedAmount()) ? BigDecimal.ZERO : new BigDecimal(btcCapital.getLockedAmount());
-                        BigDecimal availableAmount = amount.subtract(lockedAmount);
-                        BigDecimal totalPrice = entry.getValue().stream()
-                                .map(usdkOrderDO -> usdkOrderDO.getTotalAmount().multiply(usdkOrderDO.getPrice()))
-                                .reduce(BigDecimal::add)
-                                .orElse(BigDecimal.ZERO);
-                        if (totalPrice.compareTo(availableAmount) > 0) {
-                            return Result.fail(COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(),
-                                    COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
-                        }
-                    }
-                } else if (orderDirection == ASK.getCode()) {
-                    Map<Integer, List<UsdkOrderDO>> mapByAssetId = entry.getValue()
-                            .stream()
-                            .collect(groupingBy(UsdkOrderDO::getAssetId));
                     for (Map.Entry<Integer, List<UsdkOrderDO>> askEntry : mapByAssetId.entrySet()) {
                         Integer assetId = askEntry.getKey();
-                        UserCapitalDTO userCapitalDTO = userCapitalDTOMap.get(assetId);
+                        UserCapitalDTO userCapitalDTO = userCapitalDTOMap.get(CoinTradingPairUtil.getQuoteAssetId(assetId));
                         if (Objects.isNull(userCapitalDTO) || Objects.isNull(userCapitalDTO.getAmount())) {
                             return Result.fail(COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(),
                                     COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
                         } else {
                             BigDecimal amount = new BigDecimal(userCapitalDTO.getAmount());
-                            BigDecimal lockedAmount = StringUtils.isEmpty(userCapitalDTO.getLockedAmount()) ? BigDecimal.ZERO : new BigDecimal(btcCapital.getLockedAmount());
+                            BigDecimal lockedAmount = StringUtils.isEmpty(userCapitalDTO.getLockedAmount()) ? BigDecimal.ZERO : new BigDecimal(userCapitalDTO.getLockedAmount());
+                            BigDecimal availableAmount = amount.subtract(lockedAmount);
+                            BigDecimal totalPrice = entry.getValue().stream()
+                                    .map(usdkOrderDO -> usdkOrderDO.getTotalAmount().multiply(usdkOrderDO.getPrice()))
+                                    .reduce(BigDecimal::add)
+                                    .orElse(BigDecimal.ZERO);
+                            if (totalPrice.compareTo(availableAmount) > 0) {
+                                return Result.fail(COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(),
+                                        COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
+                            }
+                        }
+                    }
+                } else if (orderDirection == ASK.getCode()) {
+                    for (Map.Entry<Integer, List<UsdkOrderDO>> askEntry : mapByAssetId.entrySet()) {
+                        Integer assetId = askEntry.getKey();
+                        UserCapitalDTO userCapitalDTO = userCapitalDTOMap.get(CoinTradingPairUtil.getBaseAssetId(assetId));
+                        if (Objects.isNull(userCapitalDTO) || Objects.isNull(userCapitalDTO.getAmount())) {
+                            return Result.fail(COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(),
+                                    COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
+                        } else {
+                            BigDecimal amount = new BigDecimal(userCapitalDTO.getAmount());
+                            BigDecimal lockedAmount = StringUtils.isEmpty(userCapitalDTO.getLockedAmount()) ? BigDecimal.ZERO : new BigDecimal(userCapitalDTO.getLockedAmount());
                             BigDecimal availableAmount = amount.subtract(lockedAmount);
                             BigDecimal askedTotalAmount = askEntry.getValue()
                                     .stream()
@@ -463,13 +498,17 @@ public class UsdkOrderManager {
         placeOrderMessage.setOrderDirection(usdkOrderDO.getOrderDirection());
         placeOrderMessage.setOrderType(usdkOrderDO.getOrderType());
         placeOrderMessage.setPrice(usdkOrderDO.getPrice());
+        placeOrderMessage.setBrokerId(usdkOrderDO.getBrokerId());
         return placeOrderMessage;
     }
 
-    private Result<BigDecimal> computeAndCheckOrderPrice(BigDecimal orderPrice, int orderType, int orderDirection, int assetId){
-
-        Integer scale = AssetTypeEnum.getUsdkPricePrecisionByAssetId(assetId);
-
+    private Result<BigDecimal> computeAndCheckOrderPrice(BigDecimal orderPrice, int orderType, int orderDirection, int assetId, Long brokerId){
+        Integer scale;
+        if (brokerId != null && brokerId >1){
+            scale = AssetTypeForUsdtEnum.getUsdkPricePrecisionByAssetId(CoinTradingPairUtil.getBaseAssetId(assetId));
+        } else {
+            scale = AssetTypeEnum.getUsdkPricePrecisionByAssetId(assetId);
+        }
         if (orderType == PriceTypeEnum.RIVAL_PRICE.getCode()){
 
             List<CompetitorsPriceDTO> competitorsPriceList = realTimeEntrustManager.getUsdtCompetitorsPriceOrder();
@@ -583,11 +622,11 @@ public class UsdkOrderManager {
             Integer assetId = 0;
             BigDecimal unlockAmount ;
             if (orderDirection == OrderDirectionEnum.BID.getCode()){
-                assetId = AssetTypeEnum.BTC.getCode();
+                assetId = CoinTradingPairUtil.getQuoteAssetId(usdkOrderDO.getAssetId());
                 BigDecimal price = usdkOrderDO.getPrice();
                 unlockAmount = unfilledAmount.multiply(price);
             }else {
-                assetId = usdkOrderDO.getAssetId();
+                assetId = CoinTradingPairUtil.getBaseAssetId(usdkOrderDO.getAssetId());
                 unlockAmount = unfilledAmount;
             }
             //解冻Coin钱包账户
@@ -745,17 +784,25 @@ public class UsdkOrderManager {
         BigDecimal addLockedAsset = filledAmount;
         BigDecimal addTotalAsset = filledAmount;
         List<CapitalAccountAddAmountDTO> updateList = new ArrayList<>();
+
+        Integer tradingPairId = usdkMatchedOrderDTO.getAssetId();
+        Integer baseAssetId = CoinTradingPairUtil.getBaseAssetId(tradingPairId);
+        Integer quoteAssetId = CoinTradingPairUtil.getQuoteAssetId(tradingPairId);
         if (!askUsdkOrder.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
             //卖方BTC账户增加
+            //现货交易收取手续费
+            BigDecimal fee = getFeeRateByBrokerId(askUsdkOrder.getBrokerId()).multiply(addAskTotalBTC);
+            recordUsdkOrderFee(askUsdkOrder.getBrokerId(), fee, quoteAssetId);
+
             CapitalAccountAddAmountDTO askBtcCapital = new CapitalAccountAddAmountDTO();
             askBtcCapital.setUserId(askUsdkOrder.getUserId());
-            askBtcCapital.setAssetId(AssetTypeEnum.BTC.getCode());
-            askBtcCapital.setAddTotal(addAskTotalBTC);
+            askBtcCapital.setAssetId(quoteAssetId);
+            askBtcCapital.setAddTotal(addAskTotalBTC.subtract(fee));
             updateList.add(askBtcCapital);
             //卖方对应资产账户的冻结和总金额减少
             CapitalAccountAddAmountDTO askMatchAssetCapital = new CapitalAccountAddAmountDTO();
             askMatchAssetCapital.setUserId(askUsdkOrder.getUserId());
-            askMatchAssetCapital.setAssetId(usdkMatchedOrderDTO.getAssetId());
+            askMatchAssetCapital.setAssetId(baseAssetId);
             askMatchAssetCapital.setAddTotal(addTotalAsset.negate());
             askMatchAssetCapital.setAddOrderLocked(addLockedAsset.negate());
             updateList.add(askMatchAssetCapital);
@@ -764,15 +811,19 @@ public class UsdkOrderManager {
             //买方BTC账户总金额和冻结减少
             CapitalAccountAddAmountDTO bidBtcCapital = new CapitalAccountAddAmountDTO();
             bidBtcCapital.setUserId(bidUsdkOrder.getUserId());
-            bidBtcCapital.setAssetId(AssetTypeEnum.BTC.getCode());
+            bidBtcCapital.setAssetId(quoteAssetId);
             bidBtcCapital.setAddTotal(addTotalBTC.negate());
             bidBtcCapital.setAddOrderLocked(addLockedBTC.negate());
             updateList.add(bidBtcCapital);
             //买方对应资产账户总金额增加
+            //现货交易收取手续费
+            BigDecimal fee = getFeeRateByBrokerId(bidUsdkOrder.getBrokerId()).multiply(addBidTotalAsset);
+            recordUsdkOrderFee(bidUsdkOrder.getBrokerId(), fee, baseAssetId);
+
             CapitalAccountAddAmountDTO bidMatchAssetCapital = new CapitalAccountAddAmountDTO();
             bidMatchAssetCapital.setUserId(bidUsdkOrder.getUserId());
-            bidMatchAssetCapital.setAssetId(usdkMatchedOrderDTO.getAssetId());
-            bidMatchAssetCapital.setAddTotal(addBidTotalAsset);
+            bidMatchAssetCapital.setAssetId(baseAssetId);
+            bidMatchAssetCapital.setAddTotal(addBidTotalAsset.subtract(fee));
             updateList.add(bidMatchAssetCapital);
         }
         Result<Boolean> updateRet;
@@ -804,6 +855,27 @@ public class UsdkOrderManager {
         ThreadContextUtil.setPostTask(runnable);
 
         return ResultCode.success();
+    }
+
+
+    private BigDecimal getFeeRateByBrokerId(Long brokerId){
+        List<BrokerrFeeRateDO> list = brokerUsdkOrderFeeListManager.getFeeRateList();
+        Optional<BrokerrFeeRateDO> optional = list.stream().filter(x->x.getBrokerId().equals(brokerId)).findFirst();
+        if (optional.isPresent()){
+            return optional.get().getFeeRate();
+        } else {
+            return defaultFee;
+        }
+    }
+
+    public void recordUsdkOrderFee(Long brokerId, BigDecimal fee, Integer assetId){
+        if (fee.compareTo(ZERO) > 0){
+            String dateStr = new SimpleDateFormat("yyyyMMdd").format(new Date());
+            Double currentFee = redisManager.counter(Constant.USDK_TODAY_FEE + brokerId + assetId + dateStr, fee);
+            if (null == currentFee) {
+                log.error("recordUsdkOrderFee failed, fee={}", fee);
+            }
+        }
     }
 
     private void postProcessOrder(UsdkOrderDO usdkOrderDO, BigDecimal filledAmount, long matchId) {
