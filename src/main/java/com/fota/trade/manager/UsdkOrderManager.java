@@ -791,7 +791,8 @@ public class UsdkOrderManager {
         if (!askUsdkOrder.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
             //卖方BTC账户增加
             //现货交易收取手续费
-            BigDecimal fee = getFeeRateByBrokerId(askUsdkOrder.getBrokerId()).multiply(addAskTotalBTC);
+            BigDecimal askFeeRate = askUsdkOrder.getFee() == null ? BigDecimal.ZERO : askUsdkOrder.getFee();
+            BigDecimal fee = askFeeRate.multiply(addAskTotalBTC);
             recordUsdkOrderFee(askUsdkOrder.getBrokerId(), fee, quoteAssetId);
 
             CapitalAccountAddAmountDTO askBtcCapital = new CapitalAccountAddAmountDTO();
@@ -817,7 +818,8 @@ public class UsdkOrderManager {
             updateList.add(bidBtcCapital);
             //买方对应资产账户总金额增加
             //现货交易收取手续费
-            BigDecimal fee = getFeeRateByBrokerId(bidUsdkOrder.getBrokerId()).multiply(addBidTotalAsset);
+            BigDecimal bidFeeRate = bidUsdkOrder.getFee() == null ? BigDecimal.ZERO : bidUsdkOrder.getFee();
+            BigDecimal fee = bidFeeRate.multiply(addBidTotalAsset);
             recordUsdkOrderFee(bidUsdkOrder.getBrokerId(), fee, baseAssetId);
 
             CapitalAccountAddAmountDTO bidMatchAssetCapital = new CapitalAccountAddAmountDTO();
