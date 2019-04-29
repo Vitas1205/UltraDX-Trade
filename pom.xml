@@ -170,7 +170,7 @@
         <dependency>
 			<groupId>com.fota</groupId>
 			<artifactId>asset-client</artifactId>
-			<version>1.0.12</version>
+			<version>1.0.18-SNAPSHOT</version>
             <exclusions>
                 <exclusion>
                     <artifactId>lombok</artifactId>
