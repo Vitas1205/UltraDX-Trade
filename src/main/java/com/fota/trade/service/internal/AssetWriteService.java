@@ -55,18 +55,14 @@ public class AssetWriteService {
             ret.setData(false);
             return ret.error(ResultCodeEnum.ILLEGAL_PARAM);
         }
-        boolean result;
         try {
-            result = capitalManager.batchAddCapitalAmount(list, refId, sourceId);
-            if (result) {
-                capitalManager.sendAddCapitalAmountMQ(list);
-            }
+            capitalManager.batchAddCapitalAmount(list, refId, sourceId);
         }catch (Exception e) {
             assetFailedLog.error("batchAddCapitalAmount failed! rollback batchAddCapitalAmount. sourceId: {}, refId:{}, requestData:{}",sourceId, refId, list, e);
             ret.setData(false);
             return ret.error(ResultCodeEnum.SERVICE_EXCEPTION);
         }
-        return ret.success(result);
+        return ret.success(true);
     }
 
     public Result<Boolean> addContractAmount(ContractAccountAddAmountDTO contractAccountAddAmountDTO, String refId, Integer sourceId) {
