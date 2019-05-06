@@ -18,6 +18,7 @@ import com.fota.trade.mapper.sharding.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.sharding.UsdkMatchedOrderMapper;
 import com.fota.trade.mapper.sharding.UsdkOrderMapper;
 import com.fota.trade.service.UsdkOrderService;
+import com.fota.trade.service.internal.MarketAccountListService;
 import com.fota.trade.util.DateUtil;
 import com.fota.trade.util.Profiler;
 import com.fota.trade.util.ThreadContextUtil;
@@ -66,6 +67,9 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
 
     @Autowired
     private BrokerUsdkOrderFeeListManager brokerUsdkOrderFeeListManager;
+
+    @Autowired
+    private MarketAccountListService marketAccountListService;
 
     private static BigDecimal defaultFee = new BigDecimal("0.001");
 
@@ -370,7 +374,13 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
             if (null != usdkMatchedOrders && usdkMatchedOrders.size() > 0){
                 for (UsdkMatchedOrderDO temp : usdkMatchedOrders){
                     UsdkMatchedOrderTradeDTO tempTarget = new UsdkMatchedOrderTradeDTO();
-                    BigDecimal feeRate = getFeeRateByBrokerId(temp.getBrokerId());
+                    boolean isMarket = marketAccountListService.contains(userId);
+                    BigDecimal feeRate;
+                    if (isMarket) {
+                        feeRate = BigDecimal.ZERO;
+                    } else {
+                        feeRate = getFeeRateByBrokerId(temp.getBrokerId());
+                    }
                     if (OrderDirectionEnum.ASK.getCode() == temp.getOrderDirection()){
                         tempTarget.setAskOrderId(temp.getOrderId());
                         tempTarget.setAskOrderPrice(temp.getOrderPrice()==null?"0":temp.getOrderPrice().toString());
