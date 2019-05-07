@@ -66,6 +66,10 @@ public class AssetDataSourceConfig {
     public DataSource asset(){
         return DataSourceBuilder.create().build();
     }
+    @Bean
+    public PlatformTransactionManager assetTransactionManager(@Qualifier("asset") DataSource assetDataSource) {
+        return new DataSourceTransactionManager(assetDataSource);
+    }
 
     @Bean(name = "assetSqlSessionFactory")
     public SqlSessionFactory assetSqlSessionFactory(@Qualifier("asset") DataSource dataSource) throws Exception {

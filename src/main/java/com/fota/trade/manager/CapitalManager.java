@@ -82,7 +82,7 @@ public class CapitalManager {
         return false;
     }
 
-    @Transactional(transactionManager = "assetTransactionManager", rollbackFor = Exception.class, propagation = Propagation.REQUIRES_NEW)
+    @Transactional(transactionManager = "assetTransactionManager", rollbackFor = Exception.class, propagation = Propagation.REQUIRED)
     public void batchAddCapitalAmount(List<CapitalAccountAddAmountDTO> list, String refId, Integer sourceId) {
         List<CapitalAccountAddAmountDTO> sortList = list.stream()
                 .sorted(Comparator.comparing(CapitalAccountAddAmountDTO::getUserId))
