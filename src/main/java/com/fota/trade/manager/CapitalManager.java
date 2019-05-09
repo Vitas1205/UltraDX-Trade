@@ -11,6 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
@@ -80,17 +82,18 @@ public class CapitalManager {
         return false;
     }
 
-    public boolean batchAddCapitalAmount(List<CapitalAccountAddAmountDTO> list, String refId, Integer sourceId) {
+    @Transactional(transactionManager = "assetTransactionManager", rollbackFor = Exception.class, propagation = Propagation.REQUIRED)
+    public void batchAddCapitalAmount(List<CapitalAccountAddAmountDTO> list, String refId, Integer sourceId) {
         List<CapitalAccountAddAmountDTO> sortList = list.stream()
                 .sorted(Comparator.comparing(CapitalAccountAddAmountDTO::getUserId))
                 .collect(Collectors.toList());
-        for (CapitalAccountAddAmountDTO capitalAccountAddAmountDTO : sortList) {
+        for (int i = 0;i<sortList.size();i++) {
+            CapitalAccountAddAmountDTO capitalAccountAddAmountDTO = sortList.get(i);
             boolean singleResult = addCapitalAmount(capitalAccountAddAmountDTO, refId, sourceId);
             if (!singleResult) {
-                throw new RuntimeException("addCapitalAmount failed");
+                throw new RuntimeException("addCapitalAmount failed, index={}"+ i);
             }
         }
-        return true;
     }
 
     public void sendAddCapitalAmountMQ(CapitalAccountAddAmountDTO capitalAccountAddAmountDTO) {

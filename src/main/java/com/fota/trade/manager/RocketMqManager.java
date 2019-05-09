@@ -38,7 +38,7 @@ public class RocketMqManager {
     @Autowired
     private DefaultMQProducer producer;
 
-    private long timeout = 1000;
+    private long timeout = 3000;
 
     private static final Logger LOGGER = LoggerFactory.getLogger("sendMQMessageFailed");
 

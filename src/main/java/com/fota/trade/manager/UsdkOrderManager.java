@@ -766,6 +766,15 @@ public class UsdkOrderManager {
         }
         profiler.complelete("update usdt order");
 
+        //写成交记录
+        UsdkMatchedOrderDO askMatchRecordDO = com.fota.trade.common.BeanUtils.extractUsdtRecord(usdkMatchedOrderDTO, OrderDirectionEnum.ASK.getCode());
+        UsdkMatchedOrderDO bidMatchRecordDO = com.fota.trade.common.BeanUtils.extractUsdtRecord(usdkMatchedOrderDTO, OrderDirectionEnum.BID.getCode());
+        int ret = usdkMatchedOrder.insert(Arrays.asList(askMatchRecordDO, bidMatchRecordDO));
+        profiler.complelete("insert match record");
+        if (ret < 2){
+            LogUtil.error( TradeBizTypeEnum.COIN_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), Arrays.asList(askMatchRecordDO, bidMatchRecordDO), "usdkMatchedOrder.insert failed");
+            throw new RuntimeException("usdkMatchedOrder.insert failed");
+        }
 
 
         // 买币 bid +totalAsset = filledAmount - filledAmount * feeRate
@@ -838,17 +847,9 @@ public class UsdkOrderManager {
         }
         if (!updateRet.isSuccess() || !updateRet.getData()) {
             LogUtil.error( TradeBizTypeEnum.COIN_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), updateList, "errorCode:"+ updateRet.getCode() + ", errorMsg:"+ updateRet.getMessage());
-            throw new BizException(BIZ_ERROR.getCode(), "assetWriteService.batchAddCapitalAmount failed, updateList:{}" + updateList);
+            throw new BizException(BIZ_ERROR.getCode(), "assetWriteService.batchAddCapitalAmount failed, updateList:{}" + updateList+ "updateRet="+updateRet);
         }
-        UsdkMatchedOrderDO askMatchRecordDO = com.fota.trade.common.BeanUtils.extractUsdtRecord(usdkMatchedOrderDTO, OrderDirectionEnum.ASK.getCode());
-        UsdkMatchedOrderDO bidMatchRecordDO = com.fota.trade.common.BeanUtils.extractUsdtRecord(usdkMatchedOrderDTO, OrderDirectionEnum.BID.getCode());
-        // 保存订单数据到数据库
-        int ret = usdkMatchedOrder.insert(Arrays.asList(askMatchRecordDO, bidMatchRecordDO));
-            profiler.complelete("insert match record");
-        if (ret < 2){
-            LogUtil.error( TradeBizTypeEnum.COIN_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), Arrays.asList(askMatchRecordDO, bidMatchRecordDO), "usdkMatchedOrder.insert failed");
-            throw new RuntimeException("usdkMatchedOrder.insert failed");
-        }
+
         long matchId = usdkMatchedOrderDTO.getId();
         Runnable runnable = () -> {
             postProcessOrder(askUsdkOrder, filledAmount, matchId);
