@@ -506,7 +506,7 @@ public class UsdkOrderManager {
         Integer scale;
         if (brokerId != null && brokerId >1){
 //            scale = AssetTypeForUsdtEnum.getUsdkPricePrecisionByAssetId(CoinTradingPairUtil.getBaseAssetId(assetId));
-            CoinTradingPairUtil.getPricePrecisionByTradingPairId(assetId);
+            scale = CoinTradingPairUtil.getPricePrecisionByTradingPairId(assetId);
         } else {
             scale = AssetTypeEnum.getUsdkPricePrecisionByAssetId(assetId);
         }
