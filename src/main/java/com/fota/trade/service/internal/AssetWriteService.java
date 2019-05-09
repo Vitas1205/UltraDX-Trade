@@ -62,6 +62,7 @@ public class AssetWriteService {
             ret.setData(false);
             return ret.error(ResultCodeEnum.SERVICE_EXCEPTION.getCode(), e.getMessage());
         }
+        capitalManager.sendAddCapitalAmountMQ(list);
         return ret.success(true);
     }
 
