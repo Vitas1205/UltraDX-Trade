@@ -552,7 +552,7 @@ public class ContractOrderManager {
 
         UserContractDTO userContractDTO = assetService.getContractAccount(userId);
         if (null == userContractDTO) {
-            log.error("null userContractDTO, userId={}", userId);
+            log.warn("null userContractDTO, userId={}", userId);
             return null;
         }
 

@@ -33,6 +33,7 @@ import java.util.List;
 import static com.fota.trade.client.BizTypeEnum.COIN;
 import static com.fota.trade.client.BizTypeEnum.CONTRACT;
 import static com.fota.trade.common.Constant.MQ_REPET_JUDGE_KEY_MATCH;
+import static com.fota.trade.common.ResultCodeEnum.BIZ_ERROR;
 import static com.fota.trade.common.ResultCodeEnum.ILLEGAL_PARAM;
 import static com.fota.trade.common.TradeBizTypeEnum.*;
 
@@ -81,7 +82,7 @@ public class MatchedConsumer {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group + "_"+ topic);
         consumer.setInstanceName(clientInstanceName);
         consumer.setNamesrvAddr(namesrvAddr);
-        consumer.setMaxReconsumeTimes(0);
+        consumer.setMaxReconsumeTimes(3);
         //这里设置的是一个consumer的消费策略
         //CONSUME_FROM_LAST_OFFSET 默认策略，从该队列最尾开始消费，即跳过历史消息
         //CONSUME_FROM_FIRST_OFFSET 从队列最开始开始消费，即历史消息（还储存在broker的）全部消费一遍
@@ -135,7 +136,7 @@ public class MatchedConsumer {
 
             if (!resultCode.isSuccess()) {
                 logErrorMsg(bizType, "resultCode="+resultCode, messageExt);
-                if (resultCode.getCode() == ILLEGAL_PARAM.getCode()) {
+                if (resultCode.getCode() == ILLEGAL_PARAM.getCode() || BIZ_ERROR.getCode() == resultCode.getCode()) {
                     return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
                 }
                 redisManager.del(existKey);

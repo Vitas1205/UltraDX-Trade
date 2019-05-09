@@ -19,6 +19,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
@@ -67,6 +69,12 @@ public class ShardingDataSourceConfig {
         factory.setMapperLocations(new PathMatchingResourcePatternResolver()
                 .getResources("classpath:/mapper/sharding/*.xml"));
         return factory.getObject();
+    }
+
+    @Bean
+    @Primary
+    public PlatformTransactionManager shardingtransactionManager(@Qualifier("dataSource")DataSource dataSource) {
+        return new DataSourceTransactionManager(dataSource);
     }
 
 
