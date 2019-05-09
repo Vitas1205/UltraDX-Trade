@@ -87,10 +87,11 @@ public class CapitalManager {
         List<CapitalAccountAddAmountDTO> sortList = list.stream()
                 .sorted(Comparator.comparing(CapitalAccountAddAmountDTO::getUserId))
                 .collect(Collectors.toList());
-        for (CapitalAccountAddAmountDTO capitalAccountAddAmountDTO : sortList) {
+        for (int i = 0;i<sortList.size();i++) {
+            CapitalAccountAddAmountDTO capitalAccountAddAmountDTO = sortList.get(i);
             boolean singleResult = addCapitalAmount(capitalAccountAddAmountDTO, refId, sourceId);
             if (!singleResult) {
-                throw new RuntimeException("addCapitalAmount failed");
+                throw new RuntimeException("addCapitalAmount failed, index={}"+ i);
             }
         }
     }

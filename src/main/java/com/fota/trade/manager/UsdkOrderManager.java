@@ -847,7 +847,7 @@ public class UsdkOrderManager {
         }
         if (!updateRet.isSuccess() || !updateRet.getData()) {
             LogUtil.error( TradeBizTypeEnum.COIN_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), updateList, "errorCode:"+ updateRet.getCode() + ", errorMsg:"+ updateRet.getMessage());
-            throw new BizException(BIZ_ERROR.getCode(), "assetWriteService.batchAddCapitalAmount failed, updateList:{}" + updateList);
+            throw new BizException(BIZ_ERROR.getCode(), "assetWriteService.batchAddCapitalAmount failed, updateList:{}" + updateList+ "updateRet="+updateRet);
         }
 
         long matchId = usdkMatchedOrderDTO.getId();

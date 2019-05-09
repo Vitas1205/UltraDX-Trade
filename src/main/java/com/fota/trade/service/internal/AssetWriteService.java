@@ -60,7 +60,7 @@ public class AssetWriteService {
         }catch (Exception e) {
             assetFailedLog.error("batchAddCapitalAmount failed! rollback batchAddCapitalAmount. sourceId: {}, refId:{}, requestData:{}",sourceId, refId, list, e);
             ret.setData(false);
-            return ret.error(ResultCodeEnum.SERVICE_EXCEPTION);
+            return ret.error(ResultCodeEnum.SERVICE_EXCEPTION.getCode(), e.getMessage());
         }
         return ret.success(true);
     }
