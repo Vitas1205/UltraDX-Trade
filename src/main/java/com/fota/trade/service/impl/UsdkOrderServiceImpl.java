@@ -396,7 +396,8 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
                         }
                     }
 
-                    tempTarget.setAssetName(temp.getAssetName().split("/")[0]);
+                    tempTarget.setAssetName(temp.getAssetName());
+                    tempTarget.setAssetId((long)temp.getAssetId());
                     tempTarget.setUsdkMatchedOrderId(temp.getId());
                     //tempTarget.setFee(temp.getFee().toString());
                     tempTarget.setFilledAmount(temp.getFilledAmount());
