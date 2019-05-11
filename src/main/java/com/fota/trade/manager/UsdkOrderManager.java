@@ -505,7 +505,8 @@ public class UsdkOrderManager {
     private Result<BigDecimal> computeAndCheckOrderPrice(BigDecimal orderPrice, int orderType, int orderDirection, int assetId, Long brokerId){
         Integer scale;
         if (brokerId != null && brokerId >1){
-            scale = AssetTypeForUsdtEnum.getUsdkPricePrecisionByAssetId(CoinTradingPairUtil.getBaseAssetId(assetId));
+//            scale = AssetTypeForUsdtEnum.getUsdkPricePrecisionByAssetId(CoinTradingPairUtil.getBaseAssetId(assetId));
+            scale = CoinTradingPairUtil.getPricePrecisionByTradingPairId(assetId);
         } else {
             scale = AssetTypeEnum.getUsdkPricePrecisionByAssetId(assetId);
         }
