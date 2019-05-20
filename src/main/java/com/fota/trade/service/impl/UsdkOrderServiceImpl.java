@@ -177,6 +177,11 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
     @Override
     public com.fota.common.Result<Long> orderReturnId(UsdkOrderDTO usdkOrderDTO, Map<String, String> userInfoMap) {
         com.fota.common.Result<Long> result = new com.fota.common.Result<Long>();
+        if (!usdkOrderManager.checkSpotOrderPriceLimit(usdkOrderDTO.getBrokerId(), usdkOrderDTO.getAssetId(), usdkOrderDTO.getPrice(), usdkOrderDTO.getOrderDirection())) {
+            result.setCode(ResultCodeEnum.ORDER_PRICE_LIMIT_CHECK_FAILED.getCode());
+            result.setMessage(ResultCodeEnum.ORDER_PRICE_LIMIT_CHECK_FAILED.getMessage());
+            return result;
+        }
         try {
             result = usdkOrderManager.placeOrder(usdkOrderDTO, userInfoMap);
             if (result.isSuccess()) {
@@ -217,6 +222,9 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         for (PlaceCoinOrderDTO placeCoinOrderDTO : reqList){
             if (placeCoinOrderDTO.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
                 return result.error(ResultCodeEnum.ORDER_TYPE_ERROR.getCode(), ResultCodeEnum.ORDER_TYPE_ERROR.getMessage());
+            }
+            if (!usdkOrderManager.checkSpotOrderPriceLimit(placeCoinOrderDTO.getBrokerId(), placeCoinOrderDTO.getSubjectId(), placeCoinOrderDTO.getPrice(), placeCoinOrderDTO.getOrderDirection())) {
+                return result.error(ResultCodeEnum.ORDER_PRICE_LIMIT_CHECK_FAILED.getCode(), ResultCodeEnum.ORDER_PRICE_LIMIT_CHECK_FAILED.getMessage());
             }
         }
         try{
