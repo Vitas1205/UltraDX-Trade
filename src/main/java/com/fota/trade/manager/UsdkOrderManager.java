@@ -919,9 +919,11 @@ public class UsdkOrderManager {
             //value: max, min, isValid
             String[] valueArr = value.split(",");
             //限制最高买价 最低卖价
-            if (Boolean.parseBoolean(valueArr[2])) {
-                ret = !((orderDirection.equals(OrderDirectionEnum.BID.getCode()) && price.compareTo(new BigDecimal(valueArr[0])) > 0) ||
-                        (orderDirection.equals(OrderDirectionEnum.ASK.getCode()) && price.compareTo(new BigDecimal(valueArr[1])) < 0));
+            boolean fail = Boolean.parseBoolean(valueArr[2]) &&
+                    ((orderDirection.equals(OrderDirectionEnum.BID.getCode()) && price.compareTo(new BigDecimal(valueArr[0])) > 0) ||
+                            (orderDirection.equals(OrderDirectionEnum.ASK.getCode()) && price.compareTo(new BigDecimal(valueArr[1])) < 0));
+            if (fail) {
+                ret = false;
             }
         } catch (Exception e) {
             log.error("checkSpotOrderPriceLimit error", e);
