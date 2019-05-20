@@ -917,13 +917,15 @@ public class UsdkOrderManager {
         try {
             String value = redisManager.get(RedisKeyUtil.getSpotOrderPriceLimit(brokerId, tradingPairId.intValue()));
             //value: max, min, isValid
-            String[] valueArr = value.split(",");
-            //限制最高买价 最低卖价
-            boolean fail = Boolean.parseBoolean(valueArr[2]) &&
-                    ((orderDirection.equals(OrderDirectionEnum.BID.getCode()) && price.compareTo(new BigDecimal(valueArr[0])) > 0) ||
-                            (orderDirection.equals(OrderDirectionEnum.ASK.getCode()) && price.compareTo(new BigDecimal(valueArr[1])) < 0));
-            if (fail) {
-                ret = false;
+            if (StringUtils.isNotBlank(value)) {
+                String[] valueArr = value.split(",");
+                //限制最高买价 最低卖价
+                boolean fail = Boolean.parseBoolean(valueArr[2]) &&
+                        ((orderDirection.equals(OrderDirectionEnum.BID.getCode()) && price.compareTo(new BigDecimal(valueArr[0])) > 0) ||
+                                (orderDirection.equals(OrderDirectionEnum.ASK.getCode()) && price.compareTo(new BigDecimal(valueArr[1])) < 0));
+                if (fail) {
+                    ret = false;
+                }
             }
         } catch (Exception e) {
             log.error("checkSpotOrderPriceLimit error", e);
