@@ -922,9 +922,9 @@ public class UsdkOrderManager {
                 //限制最高买价 最低卖价
                 if (Boolean.parseBoolean(valueArr[2])) {
                     if (orderDirection.equals(OrderDirectionEnum.BID.getCode()) && price.compareTo(new BigDecimal(valueArr[0])) > 0) {
-                        result.success(Long.valueOf(valueArr[0])).error(ResultCodeEnum.ORDER_PRICE_LIMIT_CHECK_BID_FAILED.getCode(), ResultCodeEnum.ORDER_PRICE_LIMIT_CHECK_BID_FAILED.getMessage());
+                        result.error(ResultCodeEnum.ORDER_PRICE_LIMIT_CHECK_BID_FAILED.getCode(), valueArr[0]);
                     } else if (orderDirection.equals(OrderDirectionEnum.ASK.getCode()) && price.compareTo(new BigDecimal(valueArr[1])) < 0) {
-                        result.success(Long.valueOf(valueArr[1])).error(ResultCodeEnum.ORDER_PRICE_LIMIT_CHECK_ASK_FAILED.getCode(), ResultCodeEnum.ORDER_PRICE_LIMIT_CHECK_ASK_FAILED.getMessage());
+                        result.error(ResultCodeEnum.ORDER_PRICE_LIMIT_CHECK_ASK_FAILED.getCode(), valueArr[1]);
                     }
 
                 }
