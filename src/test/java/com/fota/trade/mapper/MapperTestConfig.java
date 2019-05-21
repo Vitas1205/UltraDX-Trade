@@ -1,6 +1,6 @@
 package com.fota.trade.mapper;
 
-import com.fota.trade.config.DataSourceConfig;
+
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -13,6 +13,5 @@ import org.springframework.context.annotation.Import;
 @Configuration
 @ComponentScan(basePackages = {"com.fota.trade.mapper"})
 @EnableAutoConfiguration
-@Import(DataSourceConfig.class)
 public class MapperTestConfig {
 }
