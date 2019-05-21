@@ -82,13 +82,21 @@ public class CapitalManager {
         return false;
     }
 
+    private static final Comparator<CapitalAccountAddAmountDTO> comparator = (a,b) -> {
+        if (a.getUserId() > b.getUserId()) {
+            return 1;
+        }
+        if (a.getUserId() < b.getUserId()){
+            return -1;
+        }
+        return a.getAssetId().compareTo(b.getAssetId());
+    };
+
     @Transactional(transactionManager = "assetTransactionManager", rollbackFor = Exception.class, propagation = Propagation.REQUIRED)
     public void batchAddCapitalAmount(List<CapitalAccountAddAmountDTO> list, String refId, Integer sourceId) {
-        List<CapitalAccountAddAmountDTO> sortList = list.stream()
-                .sorted(Comparator.comparing(CapitalAccountAddAmountDTO::getUserId))
-                .collect(Collectors.toList());
-        for (int i = 0;i<sortList.size();i++) {
-            CapitalAccountAddAmountDTO capitalAccountAddAmountDTO = sortList.get(i);
+        list.sort(comparator);
+        for (int i = 0;i<list.size();i++) {
+            CapitalAccountAddAmountDTO capitalAccountAddAmountDTO = list.get(i);
             boolean singleResult = addCapitalAmount(capitalAccountAddAmountDTO, refId, sourceId);
             if (!singleResult) {
                 throw new RuntimeException("addCapitalAmount failed, index={}"+ i);
