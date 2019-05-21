@@ -910,28 +910,30 @@ public class UsdkOrderManager {
      * @param tradingPairId
      * @param price
      * @param orderDirection
-     * @return true-成功 false-校验失败
+     * @return
      */
-    public boolean checkSpotOrderPriceLimit(Long brokerId, Number tradingPairId, BigDecimal price, Integer orderDirection) {
-        boolean ret = true;
+    public Result<Long> checkSpotOrderPriceLimit(Long brokerId, Number tradingPairId, BigDecimal price, Integer orderDirection) {
+        Result<Long> result = new Result<>();
         try {
             String value = redisManager.get(RedisKeyUtil.getSpotOrderPriceLimit(brokerId, tradingPairId.intValue()));
             //value: max, min, isValid
             if (StringUtils.isNotBlank(value)) {
                 String[] valueArr = value.split(",");
                 //限制最高买价 最低卖价
-                boolean fail = Boolean.parseBoolean(valueArr[2]) &&
-                        ((orderDirection.equals(OrderDirectionEnum.BID.getCode()) && price.compareTo(new BigDecimal(valueArr[0])) > 0) ||
-                                (orderDirection.equals(OrderDirectionEnum.ASK.getCode()) && price.compareTo(new BigDecimal(valueArr[1])) < 0));
-                if (fail) {
-                    ret = false;
+                if (Boolean.parseBoolean(valueArr[2])) {
+                    if (orderDirection.equals(OrderDirectionEnum.BID.getCode()) && price.compareTo(new BigDecimal(valueArr[0])) > 0) {
+                        result.success(Long.valueOf(valueArr[0])).error(ResultCodeEnum.ORDER_PRICE_LIMIT_CHECK_BID_FAILED.getCode(), ResultCodeEnum.ORDER_PRICE_LIMIT_CHECK_BID_FAILED.getMessage());
+                    } else if (orderDirection.equals(OrderDirectionEnum.ASK.getCode()) && price.compareTo(new BigDecimal(valueArr[1])) < 0) {
+                        result.success(Long.valueOf(valueArr[1])).error(ResultCodeEnum.ORDER_PRICE_LIMIT_CHECK_ASK_FAILED.getCode(), ResultCodeEnum.ORDER_PRICE_LIMIT_CHECK_ASK_FAILED.getMessage());
+                    }
+
                 }
             }
         } catch (Exception e) {
             log.error("checkSpotOrderPriceLimit error", e);
         }
 
-        return ret;
+        return result;
     }
 
 }
