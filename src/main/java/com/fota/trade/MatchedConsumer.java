@@ -136,7 +136,7 @@ public class MatchedConsumer {
 
             if (!resultCode.isSuccess()) {
                 logErrorMsg(bizType, "resultCode="+resultCode, messageExt);
-                if (resultCode.getCode() == ILLEGAL_PARAM.getCode() || BIZ_ERROR.getCode() == resultCode.getCode()) {
+                if (resultCode.getCode() == ILLEGAL_PARAM.getCode()) {
                     return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
                 }
                 redisManager.del(existKey);
