@@ -170,7 +170,7 @@
         <dependency>
 			<groupId>com.fota</groupId>
 			<artifactId>asset-client</artifactId>
-			<version>1.0.20</version>
+			<version>1.0.22</version>
             <exclusions>
                 <exclusion>
                     <artifactId>lombok</artifactId>
@@ -188,13 +188,13 @@
 		<dependency>
 			<groupId>com.fota</groupId>
 			<artifactId>trade-client</artifactId>
-			<version>1.1.4</version>
+			<version>1.1.5</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.fota</groupId>
 			<artifactId>common-client</artifactId>
-			<version>1.0.8</version>
+			<version>1.2.0</version>
 		</dependency>
 
 		<dependency>

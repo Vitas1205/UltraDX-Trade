@@ -22,6 +22,7 @@
     <bean id="userPositionService" class="com.fota.trade.service.impl.UserPositionServiceImpl" />
     <bean id="contractOrderService" class="com.fota.trade.service.impl.ContractOrderServiceImpl" />
     <bean id="userContractLeverService" class="com.fota.trade.service.impl.UserContractLeverServiceImpl" />
+    <bean id="cacheService" class="com.fota.trade.service.impl.CacheServiceImpl" />
 
     <dubbo:service interface="com.fota.trade.service.ContractCategoryService"  ref="contractCategoryService" />
     <dubbo:service interface="com.fota.trade.service.UsdkOrderService"  ref="usdkOrderService" />
@@ -31,6 +32,7 @@
     </dubbo:service>
     <dubbo:service interface="com.fota.trade.service.UserContractLeverService" ref="userContractLeverService" />
     <dubbo:service interface="com.fota.trade.service.ContractAccountService" ref="contractAccountService" />
+    <dubbo:service interface="com.fota.trade.service.CacheService" ref="cacheService" />
 
     <dubbo:reference interface="com.fota.asset.service.AssetService" id="AssetService"/>
     <dubbo:reference interface="com.fota.asset.service.CapitalService" id="capitalService"  />
