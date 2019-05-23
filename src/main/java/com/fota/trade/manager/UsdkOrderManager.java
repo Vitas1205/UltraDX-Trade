@@ -8,6 +8,7 @@ import com.fota.asset.domain.enums.AssetTypeEnum;
 import com.fota.asset.domain.enums.AssetTypeForUsdtEnum;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.util.CoinTradingPairUtil;
+import com.fota.common.utils.RedisKeyUtil;
 import com.fota.trade.service.internal.AssetWriteService;
 import com.fota.common.Result;
 import com.fota.common.utils.LogUtil;
@@ -901,6 +902,42 @@ public class UsdkOrderManager {
 
     private int doUpdateUsdkOrder(long userId, long id, BigDecimal filledAmount, BigDecimal filledPrice, Date gmtModified) {
         return usdkOrderMapper.updateByFilledAmount(userId, id, filledAmount, filledPrice, gmtModified);
+    }
+
+    /**
+     *
+     * @param brokerId
+     * @param tradingPairId
+     * @param price
+     * @param orderDirection
+     * @return
+     */
+    public Result<Long> checkSpotOrderPriceLimit(Long brokerId, Number tradingPairId, BigDecimal price, Integer orderDirection) {
+        Result<Long> result = new Result<>();
+        if (brokerId == null || tradingPairId == null || price == null || orderDirection == null) {
+            log.error("checkSpotOrderPriceLimit param illegal brokerId={} tradingPairId={} price={} orderDirection={}", brokerId, tradingPairId, price, orderDirection);
+            return result;
+        }
+        try {
+            String value = redisManager.get(RedisKeyUtil.getSpotOrderPriceLimit(brokerId, tradingPairId.intValue()));
+            //value: max, min, isValid
+            if (StringUtils.isNotBlank(value)) {
+                String[] valueArr = value.split(",");
+                //限制最高买价 最低卖价
+                if (Boolean.parseBoolean(valueArr[2])) {
+                    if (orderDirection.equals(OrderDirectionEnum.BID.getCode()) && price.compareTo(new BigDecimal(valueArr[0])) > 0) {
+                        result.error(ResultCodeEnum.ORDER_PRICE_LIMIT_CHECK_BID_FAILED.getCode(), valueArr[0]);
+                    } else if (orderDirection.equals(OrderDirectionEnum.ASK.getCode()) && price.compareTo(new BigDecimal(valueArr[1])) < 0) {
+                        result.error(ResultCodeEnum.ORDER_PRICE_LIMIT_CHECK_ASK_FAILED.getCode(), valueArr[1]);
+                    }
+
+                }
+            }
+        } catch (Exception e) {
+            log.error("checkSpotOrderPriceLimit error", e);
+        }
+
+        return result;
     }
 
 }
