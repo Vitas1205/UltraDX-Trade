@@ -926,7 +926,7 @@ public class UsdkOrderManager {
     public Result<Long> checkSpotOrderPriceLimit(Long brokerId, Number tradingPairId, BigDecimal price, Integer orderDirection) {
         Result<Long> result = new Result<>();
         if (brokerId == null || tradingPairId == null || price == null || orderDirection == null) {
-            log.error("checkSpotOrderPriceLimit param illegal brokerId={} tradingPairId={} price={} orderDirection={}", brokerId, tradingPairId, price, orderDirection);
+            log.warn("checkSpotOrderPriceLimit param illegal brokerId={} tradingPairId={} price={} orderDirection={}", brokerId, tradingPairId, price, orderDirection);
             return result;
         }
         try {
