@@ -558,12 +558,6 @@ public class UsdkOrderManager {
         if (null == orderPrice || orderPrice.compareTo(BigDecimal.ZERO) <= 0 || orderPrice.scale() > scale){
             return Result.fail(AMOUNT_ILLEGAL.getCode(), AMOUNT_ILLEGAL.getMessage());
         }
-
-        Result<Long> result1 = this.checkSpotOrderPriceLimit(brokerId, assetId, orderPrice, orderDirection);
-        if (!result1.isSuccess()) {
-            return Result.fail(result1.getCode(), result1.getMessage());
-        }
-
         return Result.suc(orderPrice);
     }
     private int insertUsdkOrder(UsdkOrderDO usdkOrderDO) {
