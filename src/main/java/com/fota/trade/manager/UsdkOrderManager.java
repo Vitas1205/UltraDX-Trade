@@ -5,13 +5,14 @@ import com.fota.asset.domain.CapitalAccountAddAmountDTO;
 import com.fota.asset.domain.UserCapitalDTO;
 import com.fota.asset.domain.enums.AssetOperationTypeEnum;
 import com.fota.asset.domain.enums.AssetTypeEnum;
-import com.fota.asset.domain.enums.AssetTypeForUsdtEnum;
 import com.fota.asset.service.AssetService;
 import com.fota.asset.util.CoinTradingPairUtil;
-import com.fota.common.utils.RedisKeyUtil;
-import com.fota.trade.service.internal.AssetWriteService;
 import com.fota.common.Result;
+import com.fota.common.manager.BrokerAssetManager;
+import com.fota.common.manager.BrokerTradingPairManager;
+import com.fota.common.manager.FotaAssetManager;
 import com.fota.common.utils.LogUtil;
+import com.fota.common.utils.RedisKeyUtil;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
 import com.fota.trade.PriceTypeEnum;
 import com.fota.trade.client.CancelTypeEnum;
@@ -25,8 +26,12 @@ import com.fota.trade.domain.enums.OrderTypeEnum;
 import com.fota.trade.mapper.sharding.UsdkMatchedOrderMapper;
 import com.fota.trade.mapper.sharding.UsdkOrderMapper;
 import com.fota.trade.msg.*;
+import com.fota.trade.service.internal.AssetWriteService;
 import com.fota.trade.service.internal.MarketAccountListService;
-import com.fota.trade.util.*;
+import com.fota.trade.util.BasicUtils;
+import com.fota.trade.util.MonitorLogManager;
+import com.fota.trade.util.Profiler;
+import com.fota.trade.util.ThreadContextUtil;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
@@ -45,7 +50,6 @@ import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static com.fota.trade.PriceTypeEnum.MARKET_PRICE;
 import static com.fota.trade.PriceTypeEnum.SPECIFIED_PRICE;
@@ -94,6 +98,15 @@ public class UsdkOrderManager {
     @Autowired
     private MarketAccountListService marketAccountListService;
 
+    @Autowired
+    private FotaAssetManager fotaAssetManager;
+
+    @Autowired
+    private BrokerAssetManager brokerAssetManager;
+
+    @Autowired
+    private BrokerTradingPairManager brokerTradingPairManager;
+
     private static BigDecimal defaultFee = new BigDecimal("0.001");
 
     //TODO 优化: 先更新账户，再insert订单，而不是先insert订单再更新账户
@@ -117,7 +130,7 @@ public class UsdkOrderManager {
         boolean isMarket = marketAccountListService.contains(userId);
         if ((isMarket && count >= 5000) || (!isMarket && count >= 100)) {
             log.warn("user: {} too much {} orders", usdkOrderDTO.getUserId(),
-                    AssetTypeEnum.getAssetNameByAssetId(usdkOrderDTO.getAssetId()));
+                    fotaAssetManager.getAssetNameById(usdkOrderDTO.getAssetId()));
             return Result.fail(TOO_MUCH_ORDERS.getCode(), TOO_MUCH_ORDERS.getMessage());
         }
         UsdkOrderDO usdkOrderDO = com.fota.trade.common.BeanUtils.copy(usdkOrderDTO);
@@ -430,7 +443,7 @@ public class UsdkOrderManager {
                 int count = usdkOrderMapper.countByQuery(criteriaMap);
                 profiler.complelete("count 8,9 orders");
                 if (entry.getValue().size() + count > 200) {
-                    log.warn("user: {} too much {} orders", userId, AssetTypeEnum.getAssetNameByAssetId(entry.getKey().intValue()));
+                    log.warn("user: {} too much {} orders", userId, fotaAssetManager.getAssetNameById(entry.getKey().intValue()));
                     return Result.fail(TOO_MUCH_ORDERS.getCode(), TOO_MUCH_ORDERS.getMessage());
                 }
             }
@@ -515,13 +528,7 @@ public class UsdkOrderManager {
     }
 
     private Result<BigDecimal> computeAndCheckOrderPrice(BigDecimal orderPrice, int orderType, int orderDirection, int assetId, Long brokerId){
-        Integer scale;
-        if (brokerId != null && brokerId >1){
-//            scale = AssetTypeForUsdtEnum.getUsdkPricePrecisionByAssetId(CoinTradingPairUtil.getBaseAssetId(assetId));
-            scale = CoinTradingPairUtil.getPricePrecisionByTradingPairId(assetId);
-        } else {
-            scale = AssetTypeEnum.getUsdkPricePrecisionByAssetId(assetId);
-        }
+        int scale = brokerTradingPairManager.getTradingPairById((long) assetId).getTradingPricePrecision();
         if (orderType == PriceTypeEnum.RIVAL_PRICE.getCode()){
 
             List<CompetitorsPriceDTO> competitorsPriceList = realTimeEntrustManager.getUsdtCompetitorsPriceOrder();

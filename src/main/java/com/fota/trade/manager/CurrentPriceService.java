@@ -1,6 +1,6 @@
 package com.fota.trade.manager;
 
-import com.fota.asset.domain.enums.AssetTypeEnum;
+import com.fota.common.manager.FotaAssetManager;
 import com.fota.data.domain.TickerDTO;
 import com.fota.trade.util.ConvertUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +20,10 @@ import java.util.List;
 public class CurrentPriceService {
     @Autowired
     private CurrentPriceManager currentPriceManager;
+
+    @Autowired
+    private FotaAssetManager fotaAssetManager;
+
     public BigDecimal getSpotIndexByContractName(String contractName){
         String assetName = ConvertUtils.getAssetNameByContractName(contractName);
         if (StringUtils.isEmpty(assetName)) {
@@ -30,7 +34,7 @@ public class CurrentPriceService {
     }
 
     public BigDecimal getSpotIndexByAssetId(long assetId){
-        String assetName = AssetTypeEnum.getAssetNameByAssetId((int)assetId);
+        String assetName = fotaAssetManager.getAssetNameById((int) assetId);
         return getSpotIndexByAssetName(assetName);
     }
 
