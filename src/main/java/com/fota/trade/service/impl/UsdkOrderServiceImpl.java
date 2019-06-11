@@ -1,7 +1,6 @@
 package com.fota.trade.service.impl;
 
 import com.fota.asset.service.CapitalService;
-import com.fota.asset.util.CoinTradingPairUtil;
 import com.fota.common.Page;
 import com.fota.common.Result;
 import com.fota.common.enums.FotaApplicationEnum;

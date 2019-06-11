@@ -1,7 +1,5 @@
 package com.fota.trade.mapper.common;
 
-import org.apache.ibatis.annotations.Delete;
-
 /**
  * @author Gavin Shen
  * @Date 2018/7/5

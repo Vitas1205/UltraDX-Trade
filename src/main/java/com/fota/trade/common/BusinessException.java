@@ -1,7 +1,6 @@
 package com.fota.trade.common;
 
 import lombok.Data;
-import lombok.Getter;
 
 /**
  * @Author: Harry Wang

@@ -1,7 +1,8 @@
 package com.fota.trade.mapper.sharding;
 
 import com.fota.trade.domain.ContractMatchedOrderDO;
-import org.apache.ibatis.annotations.*;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.Date;
 import java.util.List;

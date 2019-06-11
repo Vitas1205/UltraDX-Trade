@@ -1,6 +1,5 @@
 package com.fota.trade.util;
 
-import org.junit.Test;
 import org.springframework.transaction.annotation.Transactional;
 
 /**

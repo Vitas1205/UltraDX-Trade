@@ -4,19 +4,19 @@ import com.alibaba.fastjson.JSON;
 import com.fota.common.Result;
 import com.fota.common.enums.FotaApplicationEnum;
 import com.fota.trade.DeleverageConsumer;
-import com.fota.trade.dto.DeleverageDTO;
-import com.fota.trade.manager.DeleverageManager;
 import com.fota.trade.client.PlaceContractOrderDTO;
 import com.fota.trade.client.PlaceOrderRequest;
 import com.fota.trade.client.UserLevelEnum;
 import com.fota.trade.common.Constant;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.PositionStatusEnum;
+import com.fota.trade.dto.DeleverageDTO;
 import com.fota.trade.manager.ADLManager;
 import com.fota.trade.manager.ContractOrderManager;
+import com.fota.trade.manager.DeleverageManager;
 import com.fota.trade.manager.RedisManager;
-import com.fota.trade.mapper.trade.ContractCategoryMapper;
 import com.fota.trade.mapper.sharding.ContractOrderMapper;
+import com.fota.trade.mapper.trade.ContractCategoryMapper;
 import com.fota.trade.mapper.trade.UserPositionMapper;
 import com.fota.trade.service.impl.ContractOrderServiceImpl;
 import lombok.extern.slf4j.Slf4j;
@@ -34,9 +34,7 @@ import java.util.stream.Collectors;
 import static com.fota.trade.common.TestConfig.userId;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.BID;
-import static com.fota.trade.domain.enums.OrderTypeEnum.ENFORCE;
-import static com.fota.trade.domain.enums.OrderTypeEnum.LIMIT;
-import static com.fota.trade.domain.enums.OrderTypeEnum.PASSIVE;
+import static com.fota.trade.domain.enums.OrderTypeEnum.*;
 
 /**
  * @Author: Harry Wang

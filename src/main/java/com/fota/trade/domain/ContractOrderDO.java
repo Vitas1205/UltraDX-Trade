@@ -1,7 +1,5 @@
 package com.fota.trade.domain;
 
-import com.fota.common.utils.CommonUtils;
-import com.fota.trade.domain.enums.OrderStatusEnum;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -10,7 +8,6 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 import static com.fota.trade.domain.enums.OrderStatusEnum.*;
-import static com.fota.trade.domain.enums.OrderStatusEnum.CANCEL;
 
 @Data
 @AllArgsConstructor
