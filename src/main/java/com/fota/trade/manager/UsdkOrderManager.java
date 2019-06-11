@@ -6,8 +6,8 @@ import com.fota.asset.domain.UserCapitalDTO;
 import com.fota.asset.domain.enums.AssetOperationTypeEnum;
 import com.fota.asset.domain.enums.AssetTypeEnum;
 import com.fota.asset.service.AssetService;
-import com.fota.asset.util.CoinTradingPairUtil;
 import com.fota.common.Result;
+import com.fota.common.domain.config.BrokerTradingPairConfig;
 import com.fota.common.manager.BrokerAssetManager;
 import com.fota.common.manager.BrokerTradingPairManager;
 import com.fota.common.manager.FotaAssetManager;
@@ -189,13 +189,14 @@ public class UsdkOrderManager {
             int errorCode;
             String errorMsg;
 
+            BrokerTradingPairConfig tradingPairConfig = brokerTradingPairManager.getTradingPairById(assetId.longValue());
             if (orderDirection == OrderDirectionEnum.BID.getCode()){
-                assetTypeId = CoinTradingPairUtil.getQuoteAssetId(assetId);
+                assetTypeId = tradingPairConfig.getQuoteId();
                 entrustValue = orderValue;
                 errorCode = ResultCodeEnum.CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode();
                 errorMsg = ResultCodeEnum.CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage();
             }else {
-                assetTypeId = CoinTradingPairUtil.getBaseAssetId(assetId);
+                assetTypeId = tradingPairConfig.getBaseId();
                 entrustValue = usdkOrderDO.getTotalAmount();
                 errorCode = ResultCodeEnum.COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode();
                 errorMsg = ResultCodeEnum.COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage();
@@ -390,7 +391,8 @@ public class UsdkOrderManager {
                 if (orderDirection == BID.getCode()) {
                     for (Map.Entry<Integer, List<UsdkOrderDO>> askEntry : mapByAssetId.entrySet()) {
                         Integer assetId = askEntry.getKey();
-                        UserCapitalDTO userCapitalDTO = userCapitalDTOMap.get(CoinTradingPairUtil.getQuoteAssetId(assetId));
+                        BrokerTradingPairConfig tradingPairConfig = brokerTradingPairManager.getTradingPairById(assetId.longValue());
+                        UserCapitalDTO userCapitalDTO = userCapitalDTOMap.get(tradingPairConfig.getQuoteId());
                         if (Objects.isNull(userCapitalDTO) || Objects.isNull(userCapitalDTO.getAmount())) {
                             return Result.fail(COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(),
                                     COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
@@ -411,7 +413,8 @@ public class UsdkOrderManager {
                 } else if (orderDirection == ASK.getCode()) {
                     for (Map.Entry<Integer, List<UsdkOrderDO>> askEntry : mapByAssetId.entrySet()) {
                         Integer assetId = askEntry.getKey();
-                        UserCapitalDTO userCapitalDTO = userCapitalDTOMap.get(CoinTradingPairUtil.getBaseAssetId(assetId));
+                        BrokerTradingPairConfig tradingPairConfig = brokerTradingPairManager.getTradingPairById(assetId.longValue());
+                        UserCapitalDTO userCapitalDTO = userCapitalDTOMap.get(tradingPairConfig.getBaseId());
                         if (Objects.isNull(userCapitalDTO) || Objects.isNull(userCapitalDTO.getAmount())) {
                             return Result.fail(COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(),
                                     COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
@@ -641,12 +644,13 @@ public class UsdkOrderManager {
             Integer orderDirection = usdkOrderDO.getOrderDirection();
             Integer assetId = 0;
             BigDecimal unlockAmount ;
+            BrokerTradingPairConfig tradingPairConfig = brokerTradingPairManager.getTradingPairById(usdkOrderDO.getAssetId().longValue());
             if (orderDirection == OrderDirectionEnum.BID.getCode()){
-                assetId = CoinTradingPairUtil.getQuoteAssetId(usdkOrderDO.getAssetId());
+                assetId = tradingPairConfig.getQuoteId();
                 BigDecimal price = usdkOrderDO.getPrice();
                 unlockAmount = unfilledAmount.multiply(price);
             }else {
-                assetId = CoinTradingPairUtil.getBaseAssetId(usdkOrderDO.getAssetId());
+                assetId = tradingPairConfig.getBaseId();
                 unlockAmount = unfilledAmount;
             }
             //解冻Coin钱包账户
@@ -815,8 +819,9 @@ public class UsdkOrderManager {
         List<CapitalAccountAddAmountDTO> updateList = new ArrayList<>();
 
         Integer tradingPairId = usdkMatchedOrderDTO.getAssetId();
-        Integer baseAssetId = CoinTradingPairUtil.getBaseAssetId(tradingPairId);
-        Integer quoteAssetId = CoinTradingPairUtil.getQuoteAssetId(tradingPairId);
+        BrokerTradingPairConfig tradingPairConfig = brokerTradingPairManager.getTradingPairById(tradingPairId.longValue());
+        Integer baseAssetId = tradingPairConfig.getBaseId();
+        Integer quoteAssetId = tradingPairConfig.getQuoteId();
         if (!askUsdkOrder.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
             //卖方BTC账户增加
             //现货交易收取手续费
