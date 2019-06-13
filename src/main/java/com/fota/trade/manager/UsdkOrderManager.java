@@ -142,16 +142,16 @@ public class UsdkOrderManager {
         usdkOrderDTO.setOrderContext(newMap);
         usdkOrderDO.setOrderContext(JSONObject.toJSONString(usdkOrderDTO.getOrderContext()));
         Integer assetId = usdkOrderDO.getAssetId();
+        BrokerTradingPairConfig tradingPairConfig = brokerTradingPairManager.getTradingPairById(assetId.longValue());
 
         Integer orderDirection = usdkOrderDO.getOrderDirection();
         List<UserCapitalDTO> list = assetService.getUserCapital(userId);
         profiler.complelete("getUserCapital");
-        //todo 获取手续费费率
         BigDecimal feeRate;
         if (isMarket) {
             feeRate = BigDecimal.ZERO;
         } else {
-            feeRate = getFeeRateByBrokerId(usdkOrderDTO.getBrokerId());
+            feeRate = getFeeRateByBrokerId(usdkOrderDTO.getBrokerId(), assetId);
         }
         usdkOrderDO.setFee(feeRate);
         usdkOrderDO.setStatus(COMMIT.getCode());
@@ -189,7 +189,6 @@ public class UsdkOrderManager {
             int errorCode;
             String errorMsg;
 
-            BrokerTradingPairConfig tradingPairConfig = brokerTradingPairManager.getTradingPairById(assetId.longValue());
             if (orderDirection == OrderDirectionEnum.BID.getCode()){
                 assetTypeId = tradingPairConfig.getQuoteId();
                 entrustValue = orderValue;
@@ -327,7 +326,7 @@ public class UsdkOrderManager {
             if (isMarket) {
                 feeRate = BigDecimal.ZERO;
             } else {
-                feeRate = getFeeRateByBrokerId(placeCoinOrderDTO.getBrokerId());
+                feeRate = getFeeRateByBrokerId(placeCoinOrderDTO.getBrokerId(), assetId);
             }
             usdkOrderDTO.setFee(feeRate);
             usdkOrderDTO.setBrokerId(placeCoinOrderDTO.getBrokerId());
@@ -886,11 +885,11 @@ public class UsdkOrderManager {
     }
 
 
-    private BigDecimal getFeeRateByBrokerId(Long brokerId){
-        List<BrokerrFeeRateDO> list = brokerUsdkOrderFeeListManager.getFeeRateList();
-        Optional<BrokerrFeeRateDO> optional = list.stream().filter(x->x.getBrokerId().equals(brokerId)).findFirst();
-        if (optional.isPresent()){
-            return optional.get().getFeeRate();
+    private BigDecimal getFeeRateByBrokerId(Long brokerId, long tradingPairId){
+        BrokerTradingPairConfig tradingPairConfig = brokerTradingPairManager.getTradingPairById(tradingPairId);
+
+        if (Objects.equals(brokerId, tradingPairConfig.getBrokerId())){
+            return tradingPairConfig.getFeeRate();
         } else {
             return defaultFee;
         }
