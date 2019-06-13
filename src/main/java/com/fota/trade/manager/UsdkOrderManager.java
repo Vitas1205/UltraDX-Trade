@@ -163,6 +163,10 @@ public class UsdkOrderManager {
         }
         if (usdkOrderDO.getOrderType() != OrderTypeEnum.ENFORCE.getCode()){
             BigDecimal totalAmount = usdkOrderDO.getTotalAmount();
+            Result checkValidAmountResult = checkOrderAmount(userId, usdkOrderDO.getBrokerId(), usdkOrderDO.getAssetId(), totalAmount, usdkOrderDO.getOrderDirection());
+            if (!checkValidAmountResult.isSuccess()) {
+                return checkValidAmountResult;
+            }
             Result<BigDecimal> checkPriceRes = computeAndCheckOrderPriceWrapped(usdkOrderDO.getPrice(), usdkOrderDO.getOrderType(), usdkOrderDO.getOrderDirection(), usdkOrderDO.getAssetId(), usdkOrderDO.getBrokerId());
             profiler.complelete("computeAndCheckOrderPrice");
             if (usdkOrderDO.getOrderType() == RIVAL.getCode()) {
@@ -525,6 +529,38 @@ public class UsdkOrderManager {
                 return Result.fail(result1.getCode(), result1.getMessage());
             }
         }
+        return result;
+    }
+
+    private Result checkOrderAmount(Long userId, Long brokerId, int tradingPairId, BigDecimal amount, int orderDirection) {
+        Result result = Result.create();
+        BrokerTradingPairConfig tradingPairConfig = brokerTradingPairManager.getTradingPairById((long) tradingPairId);
+        if (Objects.nonNull(tradingPairConfig.getMinTradingAmount())) {
+            if (amount.compareTo(tradingPairConfig.getMinTradingAmount()) < 0) {
+                return Result.fail(LESS_THAN_MIN_AMOUNT.getCode(), LESS_THAN_MIN_AMOUNT.getMessage());
+            }
+        }
+        if (Objects.nonNull(tradingPairConfig.getMaxTradingAmount())) {
+            if (amount.compareTo(tradingPairConfig.getMaxTradingAmount()) > 0) {
+                return Result.fail(MORE_THAN_MAX_AMOUNT.getCode(), MORE_THAN_MAX_AMOUNT.getMessage());
+            }
+        }
+        if (orderDirection == ASK.getCode()) {
+            if (Objects.nonNull(tradingPairConfig.getMaxDailyShortTradingAmount())) {
+                Double value = redisManager.incr(RedisKey.getUsdkDailyMaxShortAmountKey(userId), amount.doubleValue());
+                if (Objects.isNull(value) || value > tradingPairConfig.getMaxDailyShortTradingAmount().doubleValue()) {
+                    return Result.fail(MORE_THAN_MAX_DAILY_ASK_AMOUNT.getCode(), MORE_THAN_MAX_DAILY_ASK_AMOUNT.getMessage());
+                }
+            }
+        } else if (orderDirection == BID.getCode()) {
+            if (Objects.nonNull(tradingPairConfig.getMaxDailyLongTradingAmount())) {
+                Double value = redisManager.incr(RedisKey.getUsdkDailyMaxLongAmountKey(userId), amount.doubleValue());
+                if (Objects.isNull(value) || value > tradingPairConfig.getMaxDailyLongTradingAmount().doubleValue()) {
+                    return Result.fail(MORE_THAN_MAX_DAIY_BID_AMOUNT.getCode(), MORE_THAN_MAX_DAIY_BID_AMOUNT.getMessage());
+                }
+            }
+        }
+
         return result;
     }
 

@@ -543,6 +543,16 @@ public class RedisManager {
         return ops.increment(key, value);
     }
 
+    public Double incr(String key, double value) {
+        try {
+            Double result = redisTemplate.opsForValue().increment(key, value);
+            return result;
+        } catch (Exception e) {
+            log.error("incr error.", e);
+            return null;
+        }
+    }
+
     public Long dec(String key, long value) {
         ValueOperations<String, Object> ops = redisTemplate.opsForValue();
         return ops.increment(key, value);
