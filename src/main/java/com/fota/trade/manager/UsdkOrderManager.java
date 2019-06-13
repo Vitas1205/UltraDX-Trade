@@ -12,7 +12,6 @@ import com.fota.common.manager.BrokerAssetManager;
 import com.fota.common.manager.BrokerTradingPairManager;
 import com.fota.common.manager.FotaAssetManager;
 import com.fota.common.utils.LogUtil;
-import com.fota.common.utils.RedisKeyUtil;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
 import com.fota.trade.PriceTypeEnum;
 import com.fota.trade.client.CancelTypeEnum;
@@ -941,18 +940,13 @@ public class UsdkOrderManager {
             return result;
         }
         try {
-            String value = redisManager.get(RedisKeyUtil.getSpotOrderPriceLimit(brokerId, tradingPairId.intValue()));
-            //value: max, min, isValid
-            if (StringUtils.isNotBlank(value)) {
-                String[] valueArr = value.split(",");
-                //限制最高买价 最低卖价
-                if (Boolean.parseBoolean(valueArr[2])) {
-                    if (orderDirection.equals(OrderDirectionEnum.BID.getCode()) && price.compareTo(new BigDecimal(valueArr[0])) > 0) {
-                        result.error(ResultCodeEnum.ORDER_PRICE_LIMIT_CHECK_BID_FAILED.getCode(), valueArr[0]);
-                    } else if (orderDirection.equals(OrderDirectionEnum.ASK.getCode()) && price.compareTo(new BigDecimal(valueArr[1])) < 0) {
-                        result.error(ResultCodeEnum.ORDER_PRICE_LIMIT_CHECK_ASK_FAILED.getCode(), valueArr[1]);
-                    }
-
+            //限制最高买价 最低卖价
+            BrokerTradingPairConfig tradingPairConfig = brokerTradingPairManager.getTradingPairById(tradingPairId.longValue());
+            if (tradingPairConfig.isTradingPriceLimitEnabled()) {
+                if (orderDirection.equals(OrderDirectionEnum.BID.getCode()) && price.compareTo(tradingPairConfig.getMaxLongTradingPrice()) > 0) {
+                    result.error(ResultCodeEnum.ORDER_PRICE_LIMIT_CHECK_BID_FAILED.getCode(), tradingPairConfig.getMaxLongTradingPrice().toPlainString());
+                } else if (orderDirection.equals(OrderDirectionEnum.ASK.getCode()) && price.compareTo(tradingPairConfig.getMinShortTradingPrice()) < 0) {
+                    result.error(ResultCodeEnum.ORDER_PRICE_LIMIT_CHECK_ASK_FAILED.getCode(), tradingPairConfig.getMinShortTradingPrice().toPlainString());
                 }
             }
         } catch (Exception e) {
