@@ -545,12 +545,12 @@ public class UsdkOrderManager {
         BrokerTradingPairConfig tradingPairConfig = brokerTradingPairManager.getTradingPairById((long) tradingPairId);
         if (Objects.nonNull(tradingPairConfig.getMinTradingAmount())) {
             if (amount.compareTo(tradingPairConfig.getMinTradingAmount()) < 0) {
-                return Result.fail(LESS_THAN_MIN_AMOUNT.getCode(), LESS_THAN_MIN_AMOUNT.getMessage());
+                return Result.fail(LESS_THAN_MIN_AMOUNT.getCode(), tradingPairConfig.getMinTradingAmount().stripTrailingZeros().toPlainString());
             }
         }
         if (Objects.nonNull(tradingPairConfig.getMaxTradingAmount())) {
             if (amount.compareTo(tradingPairConfig.getMaxTradingAmount()) > 0) {
-                return Result.fail(MORE_THAN_MAX_AMOUNT.getCode(), MORE_THAN_MAX_AMOUNT.getMessage());
+                return Result.fail(MORE_THAN_MAX_AMOUNT.getCode(), tradingPairConfig.getMaxTradingAmount().stripTrailingZeros().toPlainString());
             }
         }
 //        if (orderDirection == ASK.getCode()) {
