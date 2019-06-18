@@ -323,14 +323,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         if (pageSize <= 0) {
             pageSize = 20;
         }
-        Date startTimeD = null, endTimeD = null;
-        if (startTime != null){
-            startTimeD = DateUtil.LongTurntoDate(startTime);
-        }
-        if (endTime != null){
-            endTimeD = DateUtil.LongTurntoDate(endTime);
-        }
-        log.info("getListByUserId userId {} startTime {}, endTime {}", userId, startTimeD, endTimeD);
+        log.info("getListByUserId userId {} startTime {}, endTime {}", userId, startTime, endTime);
 
         UsdkMatchedOrderTradeDTOPage usdkMatchedOrderTradeDTOPage = new UsdkMatchedOrderTradeDTOPage();
         usdkMatchedOrderTradeDTOPage.setPageNo(pageNo);
@@ -338,7 +331,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
 
         int count = 0;
         try {
-            count = usdkMatchedOrderMapper.countByUserId(userId, assetIds, startTimeD, endTimeD);
+            count = usdkMatchedOrderMapper.countByUserId(userId, assetIds, startTime, endTime);
         } catch (Exception e) {
             log.error("usdkMatchedOrderMapper.countByUserId({})", userId, e);
             return usdkMatchedOrderTradeDTOPage;
@@ -354,7 +347,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         List<UsdkMatchedOrderTradeDTO> list = new ArrayList<>();
 
         try {
-            usdkMatchedOrders = usdkMatchedOrderMapper.listByUserId(userId, assetIds, startRow, endRow, startTimeD, endTimeD);
+            usdkMatchedOrders = usdkMatchedOrderMapper.listByUserId(userId, assetIds, startRow, endRow, startTime, endTime);
             if (null != usdkMatchedOrders && usdkMatchedOrders.size() > 0){
                 for (UsdkMatchedOrderDO temp : usdkMatchedOrders){
                     UsdkMatchedOrderTradeDTO tempTarget = new UsdkMatchedOrderTradeDTO();
