@@ -323,7 +323,18 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         if (pageSize <= 0) {
             pageSize = 20;
         }
+        // todo 因为涉及到需要和数据库里面的date进行比较，
         log.info("getListByUserId userId {} startTime {}, endTime {}", userId, startTime, endTime);
+        if (startTime != null) {
+            if (startTime.toString().length() == 13) {
+                startTime = startTime/1000;
+            }
+        }
+        if (endTime != null) {
+            if (endTime.toString().length() == 13) {
+                endTime = endTime/1000;
+            }
+        }
 
         UsdkMatchedOrderTradeDTOPage usdkMatchedOrderTradeDTOPage = new UsdkMatchedOrderTradeDTOPage();
         usdkMatchedOrderTradeDTOPage.setPageNo(pageNo);
