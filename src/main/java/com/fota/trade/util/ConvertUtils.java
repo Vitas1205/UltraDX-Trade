@@ -7,7 +7,6 @@ import com.fota.common.enums.FotaApplicationEnum;
 import com.fota.trade.UpdateOrderItem;
 import com.fota.trade.client.PlaceContractOrderDTO;
 import com.fota.trade.client.PlaceOrderRequest;
-import com.fota.trade.client.UserLevelEnum;
 import com.fota.trade.common.BeanUtils;
 import com.fota.trade.domain.ADLMatchedDTO;
 import com.fota.trade.domain.ContractMatchedOrderDO;
@@ -17,8 +16,10 @@ import com.fota.trade.msg.ContractDealedMessage;
 import com.fota.trade.msg.ContractPlaceOrderMessage;
 
 import java.math.BigDecimal;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
 import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;

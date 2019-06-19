@@ -4,7 +4,6 @@ import com.alibaba.fastjson.JSON;
 import com.fota.trade.client.FailedRecord;
 import com.fota.trade.dto.DeleverageDTO;
 import com.fota.trade.manager.*;
-import com.fota.trade.msg.ContractDealedMessage;
 import com.fota.trade.util.BasicUtils;
 import com.fota.trade.util.DistinctFilter;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +33,6 @@ import java.util.stream.Collectors;
 import static com.fota.trade.client.ADLPhaseEnum.*;
 import static com.fota.trade.client.FailedRecord.NOT_RETRY;
 import static com.fota.trade.client.FailedRecord.RETRY;
-import static com.fota.trade.msg.TopicConstants.MCH_CONTRACT_ADL;
 import static com.fota.trade.msg.TopicConstants.TRD_CONTRACT_DELEVERAGE;
 
 

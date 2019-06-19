@@ -2,14 +2,14 @@ package com.fota.trade.util;
 
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
-import java.net.URL;
-import java.net.URLConnection;
-import java.io.IOException;
-import java.net.MalformedURLException;
 
 /**
  * @Author huangtao 2018/7/12 下午4:04

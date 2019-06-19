@@ -5,12 +5,12 @@ import com.fota.asset.domain.CapitalAccountAddAmountDTO;
 import com.fota.asset.domain.UserCapitalDTO;
 import com.fota.asset.domain.enums.AssetOperationTypeEnum;
 import com.fota.asset.domain.enums.AssetTypeEnum;
-import com.fota.asset.domain.enums.AssetTypeForUsdtEnum;
 import com.fota.asset.service.AssetService;
-import com.fota.asset.util.CoinTradingPairUtil;
-import com.fota.common.utils.RedisKeyUtil;
-import com.fota.trade.service.internal.AssetWriteService;
 import com.fota.common.Result;
+import com.fota.common.domain.config.BrokerTradingPairConfig;
+import com.fota.common.manager.BrokerAssetManager;
+import com.fota.common.manager.BrokerTradingPairManager;
+import com.fota.common.manager.FotaAssetManager;
 import com.fota.common.utils.LogUtil;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
 import com.fota.trade.PriceTypeEnum;
@@ -25,8 +25,12 @@ import com.fota.trade.domain.enums.OrderTypeEnum;
 import com.fota.trade.mapper.sharding.UsdkMatchedOrderMapper;
 import com.fota.trade.mapper.sharding.UsdkOrderMapper;
 import com.fota.trade.msg.*;
+import com.fota.trade.service.internal.AssetWriteService;
 import com.fota.trade.service.internal.MarketAccountListService;
-import com.fota.trade.util.*;
+import com.fota.trade.util.BasicUtils;
+import com.fota.trade.util.MonitorLogManager;
+import com.fota.trade.util.Profiler;
+import com.fota.trade.util.ThreadContextUtil;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
@@ -45,7 +49,6 @@ import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static com.fota.trade.PriceTypeEnum.MARKET_PRICE;
 import static com.fota.trade.PriceTypeEnum.SPECIFIED_PRICE;
@@ -94,6 +97,15 @@ public class UsdkOrderManager {
     @Autowired
     private MarketAccountListService marketAccountListService;
 
+    @Autowired
+    private FotaAssetManager fotaAssetManager;
+
+    @Autowired
+    private BrokerAssetManager brokerAssetManager;
+
+    @Autowired
+    private BrokerTradingPairManager brokerTradingPairManager;
+
     private static BigDecimal defaultFee = new BigDecimal("0.001");
 
     //TODO 优化: 先更新账户，再insert订单，而不是先insert订单再更新账户
@@ -117,7 +129,7 @@ public class UsdkOrderManager {
         boolean isMarket = marketAccountListService.contains(userId);
         if ((isMarket && count >= 5000) || (!isMarket && count >= 100)) {
             log.warn("user: {} too much {} orders", usdkOrderDTO.getUserId(),
-                    AssetTypeEnum.getAssetNameByAssetId(usdkOrderDTO.getAssetId()));
+                    fotaAssetManager.getAssetNameById(usdkOrderDTO.getAssetId()));
             return Result.fail(TOO_MUCH_ORDERS.getCode(), TOO_MUCH_ORDERS.getMessage());
         }
         UsdkOrderDO usdkOrderDO = com.fota.trade.common.BeanUtils.copy(usdkOrderDTO);
@@ -129,16 +141,16 @@ public class UsdkOrderManager {
         usdkOrderDTO.setOrderContext(newMap);
         usdkOrderDO.setOrderContext(JSONObject.toJSONString(usdkOrderDTO.getOrderContext()));
         Integer assetId = usdkOrderDO.getAssetId();
+        BrokerTradingPairConfig tradingPairConfig = brokerTradingPairManager.getTradingPairById(assetId.longValue());
 
         Integer orderDirection = usdkOrderDO.getOrderDirection();
         List<UserCapitalDTO> list = assetService.getUserCapital(userId);
         profiler.complelete("getUserCapital");
-        //todo 获取手续费费率
         BigDecimal feeRate;
         if (isMarket) {
             feeRate = BigDecimal.ZERO;
         } else {
-            feeRate = getFeeRateByBrokerId(usdkOrderDTO.getBrokerId());
+            feeRate = getFeeRateByBrokerId(usdkOrderDTO.getBrokerId(), assetId);
         }
         usdkOrderDO.setFee(feeRate);
         usdkOrderDO.setStatus(COMMIT.getCode());
@@ -151,6 +163,12 @@ public class UsdkOrderManager {
         }
         if (usdkOrderDO.getOrderType() != OrderTypeEnum.ENFORCE.getCode()){
             BigDecimal totalAmount = usdkOrderDO.getTotalAmount();
+            if (!marketAccountListService.contains(userId)) {
+                Result checkValidAmountResult = checkOrderAmount(userId, usdkOrderDO.getBrokerId(), usdkOrderDO.getAssetId(), totalAmount, usdkOrderDO.getOrderDirection());
+                if (!checkValidAmountResult.isSuccess()) {
+                    return checkValidAmountResult;
+                }
+            }
             Result<BigDecimal> checkPriceRes = computeAndCheckOrderPriceWrapped(usdkOrderDO.getPrice(), usdkOrderDO.getOrderType(), usdkOrderDO.getOrderDirection(), usdkOrderDO.getAssetId(), usdkOrderDO.getBrokerId());
             profiler.complelete("computeAndCheckOrderPrice");
             if (usdkOrderDO.getOrderType() == RIVAL.getCode()) {
@@ -177,12 +195,12 @@ public class UsdkOrderManager {
             String errorMsg;
 
             if (orderDirection == OrderDirectionEnum.BID.getCode()){
-                assetTypeId = CoinTradingPairUtil.getQuoteAssetId(assetId);
+                assetTypeId = tradingPairConfig.getQuoteId();
                 entrustValue = orderValue;
                 errorCode = ResultCodeEnum.CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode();
                 errorMsg = ResultCodeEnum.CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage();
             }else {
-                assetTypeId = CoinTradingPairUtil.getBaseAssetId(assetId);
+                assetTypeId = tradingPairConfig.getBaseId();
                 entrustValue = usdkOrderDO.getTotalAmount();
                 errorCode = ResultCodeEnum.COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode();
                 errorMsg = ResultCodeEnum.COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage();
@@ -313,7 +331,7 @@ public class UsdkOrderManager {
             if (isMarket) {
                 feeRate = BigDecimal.ZERO;
             } else {
-                feeRate = getFeeRateByBrokerId(placeCoinOrderDTO.getBrokerId());
+                feeRate = getFeeRateByBrokerId(placeCoinOrderDTO.getBrokerId(), assetId);
             }
             usdkOrderDTO.setFee(feeRate);
             usdkOrderDTO.setBrokerId(placeCoinOrderDTO.getBrokerId());
@@ -333,6 +351,12 @@ public class UsdkOrderManager {
             usdkOrderDOList.add(usdkOrderDO);
             if (usdkOrderDTO.getOrderType() != OrderTypeEnum.ENFORCE.getCode()){
                 BigDecimal totalAmount = usdkOrderDTO.getTotalAmount();
+                if (!marketAccountListService.contains(userId)) {
+                    Result checkValidAmountResult = checkOrderAmount(userId, usdkOrderDO.getBrokerId(), usdkOrderDO.getAssetId(), totalAmount, usdkOrderDO.getOrderDirection());
+                    if (!checkValidAmountResult.isSuccess()) {
+                        return checkValidAmountResult;
+                    }
+                }
                 Result<BigDecimal> checkPriceRes = computeAndCheckOrderPriceWrapped(usdkOrderDTO.getPrice(), usdkOrderDTO.getOrderType(), usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getAssetId(), usdkOrderDTO.getBrokerId());
                 profiler.complelete("computeAndCheckOrderPrice");
                 if (usdkOrderDTO.getOrderType() == RIVAL.getCode()) {
@@ -377,7 +401,8 @@ public class UsdkOrderManager {
                 if (orderDirection == BID.getCode()) {
                     for (Map.Entry<Integer, List<UsdkOrderDO>> askEntry : mapByAssetId.entrySet()) {
                         Integer assetId = askEntry.getKey();
-                        UserCapitalDTO userCapitalDTO = userCapitalDTOMap.get(CoinTradingPairUtil.getQuoteAssetId(assetId));
+                        BrokerTradingPairConfig tradingPairConfig = brokerTradingPairManager.getTradingPairById(assetId.longValue());
+                        UserCapitalDTO userCapitalDTO = userCapitalDTOMap.get(tradingPairConfig.getQuoteId());
                         if (Objects.isNull(userCapitalDTO) || Objects.isNull(userCapitalDTO.getAmount())) {
                             return Result.fail(COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(),
                                     COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
@@ -398,7 +423,8 @@ public class UsdkOrderManager {
                 } else if (orderDirection == ASK.getCode()) {
                     for (Map.Entry<Integer, List<UsdkOrderDO>> askEntry : mapByAssetId.entrySet()) {
                         Integer assetId = askEntry.getKey();
-                        UserCapitalDTO userCapitalDTO = userCapitalDTOMap.get(CoinTradingPairUtil.getBaseAssetId(assetId));
+                        BrokerTradingPairConfig tradingPairConfig = brokerTradingPairManager.getTradingPairById(assetId.longValue());
+                        UserCapitalDTO userCapitalDTO = userCapitalDTOMap.get(tradingPairConfig.getBaseId());
                         if (Objects.isNull(userCapitalDTO) || Objects.isNull(userCapitalDTO.getAmount())) {
                             return Result.fail(COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getCode(),
                                     COIN_CAPITAL_ACCOUNT_AMOUNT_NOT_ENOUGH.getMessage());
@@ -430,7 +456,7 @@ public class UsdkOrderManager {
                 int count = usdkOrderMapper.countByQuery(criteriaMap);
                 profiler.complelete("count 8,9 orders");
                 if (entry.getValue().size() + count > 200) {
-                    log.warn("user: {} too much {} orders", userId, AssetTypeEnum.getAssetNameByAssetId(entry.getKey().intValue()));
+                    log.warn("user: {} too much {} orders", userId, fotaAssetManager.getAssetNameById(entry.getKey().intValue()));
                     return Result.fail(TOO_MUCH_ORDERS.getCode(), TOO_MUCH_ORDERS.getMessage());
                 }
             }
@@ -514,14 +540,40 @@ public class UsdkOrderManager {
         return result;
     }
 
-    private Result<BigDecimal> computeAndCheckOrderPrice(BigDecimal orderPrice, int orderType, int orderDirection, int assetId, Long brokerId){
-        Integer scale;
-        if (brokerId != null && brokerId >1){
-//            scale = AssetTypeForUsdtEnum.getUsdkPricePrecisionByAssetId(CoinTradingPairUtil.getBaseAssetId(assetId));
-            scale = CoinTradingPairUtil.getPricePrecisionByTradingPairId(assetId);
-        } else {
-            scale = AssetTypeEnum.getUsdkPricePrecisionByAssetId(assetId);
+    private Result checkOrderAmount(Long userId, Long brokerId, int tradingPairId, BigDecimal amount, int orderDirection) {
+        Result result = Result.create();
+        BrokerTradingPairConfig tradingPairConfig = brokerTradingPairManager.getTradingPairById((long) tradingPairId);
+        if (Objects.nonNull(tradingPairConfig.getMinTradingAmount())) {
+            if (amount.compareTo(tradingPairConfig.getMinTradingAmount()) < 0) {
+                return Result.fail(LESS_THAN_MIN_AMOUNT.getCode(), tradingPairConfig.getMinTradingAmount().stripTrailingZeros().toPlainString());
+            }
         }
+        if (Objects.nonNull(tradingPairConfig.getMaxTradingAmount())) {
+            if (amount.compareTo(tradingPairConfig.getMaxTradingAmount()) > 0) {
+                return Result.fail(MORE_THAN_MAX_AMOUNT.getCode(), tradingPairConfig.getMaxTradingAmount().stripTrailingZeros().toPlainString());
+            }
+        }
+//        if (orderDirection == ASK.getCode()) {
+//            if (Objects.nonNull(tradingPairConfig.getMaxDailyShortTradingAmount())) {
+//                Double value = redisManager.incr(RedisKey.getUsdkDailyMaxShortAmountKey(userId), amount.doubleValue());
+//                if (Objects.isNull(value) || value > tradingPairConfig.getMaxDailyShortTradingAmount().doubleValue()) {
+//                    return Result.fail(MORE_THAN_MAX_DAILY_ASK_AMOUNT.getCode(), MORE_THAN_MAX_DAILY_ASK_AMOUNT.getMessage());
+//                }
+//            }
+//        } else if (orderDirection == BID.getCode()) {
+//            if (Objects.nonNull(tradingPairConfig.getMaxDailyLongTradingAmount())) {
+//                Double value = redisManager.incr(RedisKey.getUsdkDailyMaxLongAmountKey(userId), amount.doubleValue());
+//                if (Objects.isNull(value) || value > tradingPairConfig.getMaxDailyLongTradingAmount().doubleValue()) {
+//                    return Result.fail(MORE_THAN_MAX_DAIY_BID_AMOUNT.getCode(), MORE_THAN_MAX_DAIY_BID_AMOUNT.getMessage());
+//                }
+//            }
+//        }
+
+        return result;
+    }
+
+    private Result<BigDecimal> computeAndCheckOrderPrice(BigDecimal orderPrice, int orderType, int orderDirection, int assetId, Long brokerId){
+        int scale = brokerTradingPairManager.getTradingPairById((long) assetId).getTradingPricePrecision();
         if (orderType == PriceTypeEnum.RIVAL_PRICE.getCode()){
 
             List<CompetitorsPriceDTO> competitorsPriceList = realTimeEntrustManager.getUsdtCompetitorsPriceOrder();
@@ -634,12 +686,13 @@ public class UsdkOrderManager {
             Integer orderDirection = usdkOrderDO.getOrderDirection();
             Integer assetId = 0;
             BigDecimal unlockAmount ;
+            BrokerTradingPairConfig tradingPairConfig = brokerTradingPairManager.getTradingPairById(usdkOrderDO.getAssetId().longValue());
             if (orderDirection == OrderDirectionEnum.BID.getCode()){
-                assetId = CoinTradingPairUtil.getQuoteAssetId(usdkOrderDO.getAssetId());
+                assetId = tradingPairConfig.getQuoteId();
                 BigDecimal price = usdkOrderDO.getPrice();
                 unlockAmount = unfilledAmount.multiply(price);
             }else {
-                assetId = CoinTradingPairUtil.getBaseAssetId(usdkOrderDO.getAssetId());
+                assetId = tradingPairConfig.getBaseId();
                 unlockAmount = unfilledAmount;
             }
             //解冻Coin钱包账户
@@ -808,8 +861,9 @@ public class UsdkOrderManager {
         List<CapitalAccountAddAmountDTO> updateList = new ArrayList<>();
 
         Integer tradingPairId = usdkMatchedOrderDTO.getAssetId();
-        Integer baseAssetId = CoinTradingPairUtil.getBaseAssetId(tradingPairId);
-        Integer quoteAssetId = CoinTradingPairUtil.getQuoteAssetId(tradingPairId);
+        BrokerTradingPairConfig tradingPairConfig = brokerTradingPairManager.getTradingPairById(tradingPairId.longValue());
+        Integer baseAssetId = tradingPairConfig.getBaseId();
+        Integer quoteAssetId = tradingPairConfig.getQuoteId();
         if (!askUsdkOrder.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
             //卖方BTC账户增加
             //现货交易收取手续费
@@ -874,11 +928,11 @@ public class UsdkOrderManager {
     }
 
 
-    private BigDecimal getFeeRateByBrokerId(Long brokerId){
-        List<BrokerrFeeRateDO> list = brokerUsdkOrderFeeListManager.getFeeRateList();
-        Optional<BrokerrFeeRateDO> optional = list.stream().filter(x->x.getBrokerId().equals(brokerId)).findFirst();
-        if (optional.isPresent()){
-            return optional.get().getFeeRate();
+    private BigDecimal getFeeRateByBrokerId(Long brokerId, long tradingPairId){
+        BrokerTradingPairConfig tradingPairConfig = brokerTradingPairManager.getTradingPairById(tradingPairId);
+
+        if (Objects.equals(brokerId, tradingPairConfig.getBrokerId())){
+            return tradingPairConfig.getFeeRate();
         } else {
             return defaultFee;
         }
@@ -930,18 +984,13 @@ public class UsdkOrderManager {
             return result;
         }
         try {
-            String value = redisManager.get(RedisKeyUtil.getSpotOrderPriceLimit(brokerId, tradingPairId.intValue()));
-            //value: max, min, isValid
-            if (StringUtils.isNotBlank(value)) {
-                String[] valueArr = value.split(",");
-                //限制最高买价 最低卖价
-                if (Boolean.parseBoolean(valueArr[2])) {
-                    if (orderDirection.equals(OrderDirectionEnum.BID.getCode()) && price.compareTo(new BigDecimal(valueArr[0])) > 0) {
-                        result.error(ResultCodeEnum.ORDER_PRICE_LIMIT_CHECK_BID_FAILED.getCode(), valueArr[0]);
-                    } else if (orderDirection.equals(OrderDirectionEnum.ASK.getCode()) && price.compareTo(new BigDecimal(valueArr[1])) < 0) {
-                        result.error(ResultCodeEnum.ORDER_PRICE_LIMIT_CHECK_ASK_FAILED.getCode(), valueArr[1]);
-                    }
-
+            //限制最高买价 最低卖价
+            BrokerTradingPairConfig tradingPairConfig = brokerTradingPairManager.getTradingPairById(tradingPairId.longValue());
+            if (tradingPairConfig.isTradingPriceLimitEnabled()) {
+                if (orderDirection.equals(OrderDirectionEnum.BID.getCode()) && price.compareTo(tradingPairConfig.getMaxLongTradingPrice()) > 0) {
+                    result.error(ResultCodeEnum.ORDER_PRICE_LIMIT_CHECK_BID_FAILED.getCode(), tradingPairConfig.getMaxLongTradingPrice().toPlainString());
+                } else if (orderDirection.equals(OrderDirectionEnum.ASK.getCode()) && price.compareTo(tradingPairConfig.getMinShortTradingPrice()) < 0) {
+                    result.error(ResultCodeEnum.ORDER_PRICE_LIMIT_CHECK_ASK_FAILED.getCode(), tradingPairConfig.getMinShortTradingPrice().toPlainString());
                 }
             }
         } catch (Exception e) {

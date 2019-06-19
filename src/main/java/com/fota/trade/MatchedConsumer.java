@@ -30,12 +30,10 @@ import java.io.UnsupportedEncodingException;
 import java.time.Duration;
 import java.util.List;
 
-import static com.fota.trade.client.BizTypeEnum.COIN;
-import static com.fota.trade.client.BizTypeEnum.CONTRACT;
 import static com.fota.trade.common.Constant.MQ_REPET_JUDGE_KEY_MATCH;
-import static com.fota.trade.common.ResultCodeEnum.BIZ_ERROR;
 import static com.fota.trade.common.ResultCodeEnum.ILLEGAL_PARAM;
-import static com.fota.trade.common.TradeBizTypeEnum.*;
+import static com.fota.trade.common.TradeBizTypeEnum.COIN_DEAL;
+import static com.fota.trade.common.TradeBizTypeEnum.CONTRACT_DEAL;
 
 /**
  * @Author: Harry Wang

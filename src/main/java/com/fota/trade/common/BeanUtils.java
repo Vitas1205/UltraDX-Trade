@@ -1,20 +1,17 @@
 package com.fota.trade.common;
 
-import com.alibaba.fastjson.JSONObject;
-import com.fota.asset.domain.enums.AssetTypeEnum;
-import com.fota.trade.client.PlaceOrderRequest;
 import com.fota.trade.domain.*;
 import org.springframework.beans.BeansException;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 import static com.fota.trade.client.constants.MatchedOrderStatus.VALID;
 import static com.fota.trade.domain.enums.OrderDirectionEnum.ASK;
-import static com.fota.trade.domain.enums.OrderStatusEnum.COMMIT;
-import static com.fota.trade.domain.enums.OrderTypeEnum.LIMIT;
 
 /**
  * @author Gavin Shen

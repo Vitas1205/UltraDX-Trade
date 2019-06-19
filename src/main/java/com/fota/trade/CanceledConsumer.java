@@ -1,10 +1,8 @@
 package com.fota.trade;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fota.common.utils.LogUtil;
-import com.fota.trade.client.BizTypeEnum;
 import com.fota.trade.common.TradeBizTypeEnum;
 import com.fota.trade.domain.MQMessage;
 import com.fota.trade.domain.ResultCode;
@@ -29,16 +27,12 @@ import org.springframework.util.CollectionUtils;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import static com.fota.trade.client.BizTypeEnum.COIN;
-import static com.fota.trade.client.BizTypeEnum.CONTRACT;
 import static com.fota.trade.common.ResultCodeEnum.ILLEGAL_PARAM;
 import static com.fota.trade.common.TradeBizTypeEnum.COIN_CANCEL_ORDER;
 import static com.fota.trade.common.TradeBizTypeEnum.CONTRACT_CANCEL_ORDER;
-import static com.fota.trade.msg.TopicConstants.MCH_COIN_CANCEL_RST;
 import static com.fota.trade.msg.TopicConstants.MCH_CONTRACT_CANCEL_RST;
 
 @Slf4j

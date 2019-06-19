@@ -1,7 +1,9 @@
 package com.fota.trade.util;
 
 import com.alibaba.fastjson.JSONObject;
-import com.fota.trade.domain.*;
+import com.fota.trade.domain.ContractOrderDO;
+import com.fota.trade.domain.UsdkOrderDO;
+import com.fota.trade.domain.UserPositionDO;
 import com.fota.trade.domain.enums.OrderTypeEnum;
 import com.fota.trade.service.internal.MarketAccountListService;
 import org.slf4j.Logger;

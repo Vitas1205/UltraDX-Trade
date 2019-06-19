@@ -1,20 +1,16 @@
 package com.fota.trade.service.impl;
 
-import com.fota.asset.service.CapitalService;
-import com.fota.asset.util.CoinTradingPairUtil;
 import com.fota.common.Page;
 import com.fota.common.Result;
 import com.fota.common.enums.FotaApplicationEnum;
+import com.fota.common.manager.BrokerTradingPairManager;
 import com.fota.trade.client.*;
 import com.fota.trade.client.constants.Constants;
 import com.fota.trade.common.*;
 import com.fota.trade.domain.*;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderTypeEnum;
-import com.fota.trade.manager.BrokerUsdkOrderFeeListManager;
-import com.fota.trade.manager.RedisManager;
 import com.fota.trade.manager.UsdkOrderManager;
-import com.fota.trade.mapper.sharding.ContractMatchedOrderMapper;
 import com.fota.trade.mapper.sharding.UsdkMatchedOrderMapper;
 import com.fota.trade.mapper.sharding.UsdkOrderMapper;
 import com.fota.trade.service.UsdkOrderService;
@@ -28,7 +24,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -48,38 +47,22 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
 
     private static final Logger log = LoggerFactory.getLogger(UsdkOrderServiceImpl.class);
 
-    private static final Logger tradeLog = LoggerFactory.getLogger("trade");
-
     @Autowired
     private UsdkOrderMapper usdkOrderMapper;
-
-    @Autowired
-    private ContractMatchedOrderMapper contractMatchedOrderMapper;
 
     @Autowired
     private UsdkOrderManager usdkOrderManager;
 
     @Autowired
-    private RedisManager redisManager;
-
-    @Autowired
     private UsdkMatchedOrderMapper usdkMatchedOrderMapper;
-
-    @Autowired
-    private BrokerUsdkOrderFeeListManager brokerUsdkOrderFeeListManager;
 
     @Autowired
     private MarketAccountListService marketAccountListService;
 
-    private static BigDecimal defaultFee = new BigDecimal("0.001");
-
     @Autowired
-    private CapitalService capitalService;
-    private CapitalService getService() {
-        return capitalService;
-    }
+    private BrokerTradingPairManager brokerTradingPairManager;
 
-    ExecutorService executorService = Executors.newWorkStealingPool();
+    private ExecutorService executorService = Executors.newWorkStealingPool();
 
 
     @Override
@@ -340,14 +323,18 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         if (pageSize <= 0) {
             pageSize = 20;
         }
-        Date startTimeD = null, endTimeD = null;
-        if (startTime != null){
-            startTimeD = DateUtil.LongTurntoDate(startTime);
+        // todo 因为涉及到需要和数据库里面的date进行比较，
+        log.info("getListByUserId userId {} startTime {}, endTime {}", userId, startTime, endTime);
+        if (startTime != null) {
+            if (startTime.toString().length() == 13) {
+                startTime = startTime/1000;
+            }
         }
-        if (endTime != null){
-            endTimeD = DateUtil.LongTurntoDate(endTime);
+        if (endTime != null) {
+            if (endTime.toString().length() == 13) {
+                endTime = endTime/1000;
+            }
         }
-        log.info("getListByUserId userId {} startTime {}, endTime {}", userId, startTimeD, endTimeD);
 
         UsdkMatchedOrderTradeDTOPage usdkMatchedOrderTradeDTOPage = new UsdkMatchedOrderTradeDTOPage();
         usdkMatchedOrderTradeDTOPage.setPageNo(pageNo);
@@ -355,7 +342,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
 
         int count = 0;
         try {
-            count = usdkMatchedOrderMapper.countByUserId(userId, assetIds, startTimeD, endTimeD);
+            count = usdkMatchedOrderMapper.countByUserId(userId, assetIds, startTime, endTime);
         } catch (Exception e) {
             log.error("usdkMatchedOrderMapper.countByUserId({})", userId, e);
             return usdkMatchedOrderTradeDTOPage;
@@ -371,7 +358,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         List<UsdkMatchedOrderTradeDTO> list = new ArrayList<>();
 
         try {
-            usdkMatchedOrders = usdkMatchedOrderMapper.listByUserId(userId, assetIds, startRow, endRow, startTimeD, endTimeD);
+            usdkMatchedOrders = usdkMatchedOrderMapper.listByUserId(userId, assetIds, startRow, endRow, startTime, endTime);
             if (null != usdkMatchedOrders && usdkMatchedOrders.size() > 0){
                 for (UsdkMatchedOrderDO temp : usdkMatchedOrders){
                     UsdkMatchedOrderTradeDTO tempTarget = new UsdkMatchedOrderTradeDTO();
@@ -380,7 +367,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
                     if (isMarket) {
                         feeRate = BigDecimal.ZERO;
                     } else {
-                        feeRate = getFeeRateByBrokerId(temp.getBrokerId());
+                        feeRate = getFeeRateByBrokerId(temp.getBrokerId(), temp.getAssetId());
                     }
                     if (OrderDirectionEnum.ASK.getCode() == temp.getOrderDirection()){
                         tempTarget.setAskOrderId(temp.getOrderId());
@@ -426,14 +413,8 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         return usdkMatchedOrderTradeDTOPage;
     }
 
-    private BigDecimal getFeeRateByBrokerId(Long brokerId){
-        List<BrokerrFeeRateDO> list = brokerUsdkOrderFeeListManager.getFeeRateList();
-        Optional<BrokerrFeeRateDO> optional = list.stream().filter(x->x.getBrokerId().equals(brokerId)).findFirst();
-        if (optional.isPresent()){
-            return optional.get().getFeeRate();
-        } else {
-            return defaultFee;
-        }
+    private BigDecimal getFeeRateByBrokerId(Long brokerId, Integer assetId){
+        return brokerTradingPairManager.getTradingPairById(assetId.longValue()).getFeeRate();
     }
 
     /**

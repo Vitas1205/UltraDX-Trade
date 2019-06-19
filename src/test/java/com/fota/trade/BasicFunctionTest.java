@@ -1,6 +1,5 @@
 package com.fota.trade;
 
-import com.fota.asset.domain.enums.AssetTypeEnum;
 import com.fota.common.utils.LogUtil;
 import com.fota.trade.client.FailedRecord;
 import com.fota.trade.common.TradeBizTypeEnum;
