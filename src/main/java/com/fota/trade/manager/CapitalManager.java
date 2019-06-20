@@ -1,7 +1,8 @@
 package com.fota.trade.manager;
 
 import com.alibaba.fastjson.JSON;
-import com.fota.asset.domain.*;
+import com.fota.asset.domain.CapitalAccountAddAmountDTO;
+import com.fota.asset.domain.UserCapitalVariationDTO;
 import com.fota.trade.domain.UserCapitalDO;
 import com.fota.trade.domain.UserContractDO;
 import com.fota.trade.mapper.asset.UserCapitalMapper;
@@ -16,8 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 /**
  * @author Gavin Shen

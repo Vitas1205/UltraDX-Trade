@@ -1,17 +1,12 @@
 package com.fota.trade.service;
 
-import com.fota.asset.domain.enums.AssetTypeEnum;
-import com.fota.trade.common.TestConfig;
 import com.fota.trade.domain.UserContractLeverDTO;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.stereotype.Service;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
-
-import javax.annotation.Resource;
 
 import java.util.Arrays;
 import java.util.List;

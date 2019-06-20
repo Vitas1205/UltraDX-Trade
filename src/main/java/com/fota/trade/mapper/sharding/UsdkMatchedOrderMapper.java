@@ -17,8 +17,8 @@ import java.util.List;
 public interface UsdkMatchedOrderMapper {
     int insert(List<UsdkMatchedOrderDO> list);
 
-    int countByUserId(@Param("userId") Long userId, @Param("assetIds") List<Long> assetIds, @Param("startTime") Date startTime, @Param("endTime") Date endTime);
+    int countByUserId(@Param("userId") Long userId, @Param("assetIds") List<Long> assetIds, @Param("startTime") Long startTime, @Param("endTime") Long endTime);
 
     List<UsdkMatchedOrderDO> listByUserId(@Param("userId") Long userId, @Param("assetIds") List<Long> assetIds, @Param("startRow") Integer startRow, @Param("endRow") Integer endRow,
-                                          @Param("startTime") Date startTime, @Param("endTime") Date endTime);
+                                          @Param("startTime") Long startTime, @Param("endTime") Long endTime);
 }

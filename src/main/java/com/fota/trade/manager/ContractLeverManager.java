@@ -2,8 +2,8 @@ package com.fota.trade.manager;
 
 import com.fota.trade.domain.ContractCategoryDO;
 import com.fota.trade.domain.UserContractLeverDO;
-import com.fota.trade.mapper.trade.ContractCategoryMapper;
 import com.fota.trade.mapper.sharding.ContractOrderMapper;
+import com.fota.trade.mapper.trade.ContractCategoryMapper;
 import com.fota.trade.mapper.trade.UserContractLeverMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

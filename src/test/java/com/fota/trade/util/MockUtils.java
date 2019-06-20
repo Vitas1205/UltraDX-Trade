@@ -3,7 +3,6 @@ package com.fota.trade.util;
 import com.fota.trade.client.constants.Constants;
 import com.fota.trade.common.Constant;
 import com.fota.trade.domain.ADLMatchedDTO;
-import com.fota.trade.domain.ContractADLMatchDTO;
 import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.domain.enums.OrderDirectionEnum;
 import com.fota.trade.domain.enums.OrderStatusEnum;
@@ -11,7 +10,6 @@ import org.springframework.beans.BeanUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Arrays;
 import java.util.Date;
 
 import static com.fota.trade.common.TestConfig.contractId;

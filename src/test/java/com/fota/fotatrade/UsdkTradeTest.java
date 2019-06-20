@@ -1,9 +1,8 @@
 package com.fota.fotatrade;
 
-import com.fota.trade.config.BrokerUsdkOrderFeeRateConfig;
 import com.fota.trade.domain.BrokerrFeeRateDO;
-import com.fota.trade.domain.UsdkOrderDTO;
 import com.fota.trade.domain.UsdkOrderDO;
+import com.fota.trade.domain.UsdkOrderDTO;
 import com.fota.trade.manager.BrokerUsdkOrderFeeListManager;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.manager.UsdkOrderManager;

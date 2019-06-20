@@ -52,10 +52,10 @@
         </if>
 
         <if test="endTime != null">
-            and gmt_create &lt; #{endTime}
+            and gmt_create &lt; FROM_UNIXTIME(#{endTime})
         </if>
         <if test="startTime != null">
-            and gmt_create &gt;= #{startTime}
+            and gmt_create &gt;= FROM_UNIXTIME(#{startTime})
         </if>
 
     </select>
@@ -72,10 +72,10 @@
             </foreach>
         </if>
         <if test="endTime != null">
-            and gmt_create &lt; #{endTime}
+            and gmt_create &lt; FROM_UNIXTIME(#{endTime})
         </if>
         <if test="startTime != null">
-            and gmt_create &gt;= #{startTime}
+            and gmt_create &gt;= FROM_UNIXTIME(#{startTime})
         </if>
         order by gmt_create DESC, id
         limit #{startRow}, #{endRow}
