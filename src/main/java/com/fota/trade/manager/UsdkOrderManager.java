@@ -128,7 +128,7 @@ public class UsdkOrderManager {
         Long userId = usdkOrderDTO.getUserId();
         boolean isMarket = marketAccountListService.contains(userId);
         if ((isMarket && count >= 5000) || (!isMarket && count >= 100)) {
-            log.warn("user: {} too much orders", usdkOrderDTO.getUserId());
+            log.warn("user: {} too much {} orders", usdkOrderDTO.getUserId(), usdkOrderDTO.getAssetId());
             return Result.fail(TOO_MUCH_ORDERS.getCode(), TOO_MUCH_ORDERS.getMessage());
         }
         UsdkOrderDO usdkOrderDO = com.fota.trade.common.BeanUtils.copy(usdkOrderDTO);
@@ -455,7 +455,7 @@ public class UsdkOrderManager {
                 int count = usdkOrderMapper.countByQuery(criteriaMap);
                 profiler.complelete("count 8,9 orders");
                 if (entry.getValue().size() + count > 200) {
-                    log.warn("user: {} too much orders", userId);
+                    log.warn("user: {} too much {} orders", userId, entry.getKey());
                     return Result.fail(TOO_MUCH_ORDERS.getCode(), TOO_MUCH_ORDERS.getMessage());
                 }
             }
