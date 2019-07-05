@@ -79,7 +79,7 @@ public class CanceledConsumer {
         DefaultMQPushConsumer defaultMQPushConsumer = new DefaultMQPushConsumer(group + "_" +topic);
         defaultMQPushConsumer.setInstanceName(clientInstanceName);
         defaultMQPushConsumer.setNamesrvAddr(namesrvAddr);
-        defaultMQPushConsumer.setMaxReconsumeTimes(3);
+        defaultMQPushConsumer.setMaxReconsumeTimes(16);
         defaultMQPushConsumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         defaultMQPushConsumer.setConsumeMessageBatchMaxSize(1);
         defaultMQPushConsumer.setVipChannelEnabled(false);
