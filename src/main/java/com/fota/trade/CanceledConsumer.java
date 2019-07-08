@@ -79,7 +79,7 @@ public class CanceledConsumer {
         DefaultMQPushConsumer defaultMQPushConsumer = new DefaultMQPushConsumer(group + "_" +topic);
         defaultMQPushConsumer.setInstanceName(clientInstanceName);
         defaultMQPushConsumer.setNamesrvAddr(namesrvAddr);
-        defaultMQPushConsumer.setMaxReconsumeTimes(3);
+        defaultMQPushConsumer.setMaxReconsumeTimes(16);
         defaultMQPushConsumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         defaultMQPushConsumer.setConsumeMessageBatchMaxSize(1);
         defaultMQPushConsumer.setVipChannelEnabled(false);
@@ -103,7 +103,6 @@ public class CanceledConsumer {
         String tag = messageExt.getTags();
 
         try {
-
             byte[] bodyByte = messageExt.getBody();
             String bodyStr = new String(bodyByte, StandardCharsets.UTF_8);
             BaseCanceledMessage res = BasicUtils.exeWhitoutError(() -> JSON.parseObject(bodyStr, BaseCanceledMessage.class));
@@ -125,7 +124,6 @@ public class CanceledConsumer {
                 resultCode = contractOrderManager.cancelOrderByMessage(res);
             }
             if (!resultCode.isSuccess()) {
-
                 if (resultCode.getCode() == ILLEGAL_PARAM.getCode()) {
                     logErrorMsg(bizType, "resultCode=" + resultCode, messageExt);
                     return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;

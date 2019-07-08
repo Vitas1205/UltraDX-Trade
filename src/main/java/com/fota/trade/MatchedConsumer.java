@@ -80,7 +80,7 @@ public class MatchedConsumer {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group + "_"+ topic);
         consumer.setInstanceName(clientInstanceName);
         consumer.setNamesrvAddr(namesrvAddr);
-        consumer.setMaxReconsumeTimes(3);
+        consumer.setMaxReconsumeTimes(16);
         //这里设置的是一个consumer的消费策略
         //CONSUME_FROM_LAST_OFFSET 默认策略，从该队列最尾开始消费，即跳过历史消息
         //CONSUME_FROM_FIRST_OFFSET 从队列最开始开始消费，即历史消息（还储存在broker的）全部消费一遍
