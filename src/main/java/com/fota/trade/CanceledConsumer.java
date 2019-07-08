@@ -134,11 +134,6 @@ public class CanceledConsumer {
             return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
         } catch (Exception e) {
             logErrorMsg(bizType, messageExt, e);
-            // todo 非正常情况下出现的撤单失败，把失败的订单保持起来，定时任务去重试
-            // 现货还是期货、orderId（用于查询这个订单的状态）、topic、tag、key、message
-            // bizType:COIN_CANCEL_ORDER,^_traceId:601287347634942,^_param:MQMessage(topic=match_coin_cancel_rst, tag=coin, key=601287347634942,
-            // message={"code":"SUCCESS","subjectId":2200001,"userId":521562,"orderId":601287347634942,"unfilledAmount":44531,"totalAmount":44531,"averagePrice":null,"success":true,"status":4}
-
             return ConsumeConcurrentlyStatus.RECONSUME_LATER;
         }
     }
