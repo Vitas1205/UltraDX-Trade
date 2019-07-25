@@ -105,6 +105,7 @@ public class BeanUtils {
         usdkOrderDTO.setFee(usdkOrderDO.getFee());
         usdkOrderDTO.setStatus(usdkOrderDO.getStatus());
         usdkOrderDTO.setAveragePrice(usdkOrderDO.getAveragePrice());
+        usdkOrderDTO.setBrokerId(usdkOrderDO.getBrokerId());
         return usdkOrderDTO;
     }
 
@@ -133,6 +134,7 @@ public class BeanUtils {
         usdkOrderDO.setFee(usdkOrderDTO.getFee());
         usdkOrderDO.setStatus(usdkOrderDTO.getStatus());
         usdkOrderDO.setAveragePrice(usdkOrderDTO.getAveragePrice());
+        usdkOrderDO.setBrokerId(usdkOrderDTO.getBrokerId());
         return usdkOrderDO;
     }
 
@@ -224,6 +226,7 @@ public class BeanUtils {
             usdkMatchedOrderDO.setOrderId(usdkMatchedOrderDTO.getAskOrderId());
             usdkMatchedOrderDO.setUserId(usdkMatchedOrderDTO.getAskUserId());
             usdkMatchedOrderDO.setMatchUserId(usdkMatchedOrderDTO.getBidUserId());
+            usdkMatchedOrderDO.setBrokerId(usdkMatchedOrderDTO.getBidBrokerId());
         }else {
             if (usdkMatchedOrderDTO.getBidOrderPrice() != null){
                 usdkMatchedOrderDO.setOrderPrice(new BigDecimal(usdkMatchedOrderDTO.getBidOrderPrice()));
@@ -231,6 +234,7 @@ public class BeanUtils {
             usdkMatchedOrderDO.setOrderId(usdkMatchedOrderDTO.getBidOrderId());
             usdkMatchedOrderDO.setUserId(usdkMatchedOrderDTO.getBidUserId());
             usdkMatchedOrderDO.setMatchUserId(usdkMatchedOrderDTO.getAskUserId());
+            usdkMatchedOrderDO.setBrokerId(usdkMatchedOrderDTO.getAskBrokerId());
         }
 
         usdkMatchedOrderDO.setAssetName(usdkMatchedOrderDTO.getAssetName());
@@ -240,6 +244,7 @@ public class BeanUtils {
         usdkMatchedOrderDO.setFilledPrice(new BigDecimal(usdkMatchedOrderDTO.getFilledPrice()));
         usdkMatchedOrderDO.setMatchType(usdkMatchedOrderDTO.getMatchType());
         usdkMatchedOrderDO.setGmtCreate(usdkMatchedOrderDTO.getGmtCreate());
+
         return usdkMatchedOrderDO;
     }
 
