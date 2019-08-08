@@ -47,6 +47,22 @@ public class AssetWriteService {
         return ret.success(result);
     }
 
+    public Result<Boolean> addCapitalAmountWithoutLocked(CapitalAccountAddAmountDTO capitalAccountAddAmountDTO, String refId, Integer sourceId) {
+        Result<Boolean> ret = new Result<>();
+        if (Objects.isNull(capitalAccountAddAmountDTO) || Objects.isNull(refId) || Objects.isNull(sourceId)
+                || Objects.isNull(capitalAccountAddAmountDTO.getAssetId())
+                || Objects.isNull(capitalAccountAddAmountDTO.getUserId())) {
+            assetLog.error("request para is null, sourceId: {}, refId:{}, requestData:{}", sourceId, refId, capitalAccountAddAmountDTO);
+            ret.setData(false);
+            return ret.error(ResultCodeEnum.ILLEGAL_PARAM);
+        }
+        boolean result = capitalManager.addCapitalAmountWithoutLocked(capitalAccountAddAmountDTO, refId, sourceId);
+        if (result) {
+            capitalManager.sendAddCapitalAmountMQ(capitalAccountAddAmountDTO);
+        }
+        return ret.success(result);
+    }
+
     public Result<Boolean> batchAddCapitalAmount(List<CapitalAccountAddAmountDTO> list, String refId, Integer sourceId) {
         Result<Boolean> ret = new Result<>();
         if (Objects.isNull(list) || Objects.isNull(refId) || Objects.isNull(sourceId)

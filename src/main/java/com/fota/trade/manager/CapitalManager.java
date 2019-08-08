@@ -85,6 +85,24 @@ public class CapitalManager {
         return false;
     }
 
+    public boolean addCapitalAmountWithoutLocked(CapitalAccountAddAmountDTO capitalAccountAddAmountDTO, String refId, Integer sourceId) {
+        try {
+            int result = userCapitalMapper.addCapitalAmountWithoutLocked(capitalAccountAddAmountDTO);
+            if (result > 0) {
+                assetSuccessLog.info("success add Capital amount! sourceId: {}, refId:{}, requestData:{}",
+                        sourceId, refId, capitalAccountAddAmountDTO);
+                return true;
+            }else {
+                assetFailedLog.error("fail to add Capital amount! sourceId: {}, refId:{}, requestData:{}",
+                        sourceId, refId, capitalAccountAddAmountDTO);
+            }
+        } catch (Exception e) {
+            assetFailedLog.error("userCapitalMapper.addCapitalAmount failed with exception, sourceId: {}, refId:{}, requestData: {},"
+                    , sourceId, refId, capitalAccountAddAmountDTO, e);
+        }
+        return false;
+    }
+
     private static final Comparator<CapitalAccountAddAmountDTO> comparator = (a,b) -> {
         if (a.getUserId() > b.getUserId()) {
             return 1;

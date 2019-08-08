@@ -23,4 +23,5 @@ public interface UserCapitalMapper extends BaseMapper<UserCapitalDO> {
 
     int addCapitalAmount(CapitalAccountAddAmountDTO capitalAccountAddAmountDTO);
 
+    int addCapitalAmountWithoutLocked(CapitalAccountAddAmountDTO capitalAccountAddAmountDTO);
 }
