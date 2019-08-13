@@ -701,9 +701,6 @@ public class UsdkOrderManager {
                 capitalAccountAddAmountDTO.setAddOrderLocked(unlockAmount.negate());
                 capitalAccountAddAmountDTO.setUserId(userId);
                 capitalAccountAddAmountDTO.setAssetId(assetId);
-
-                log.info("capitalAccountAddAmountDTO is {}", capitalAccountAddAmountDTO.toString());
-
                 updateLockedAmountRet = assetWriteService.addCapitalAmountWithoutLocked(capitalAccountAddAmountDTO, String.valueOf(orderId), AssetOperationTypeEnum.USDT_EXCHANGE_CANCLE_ORDER.getCode());
             }catch (Exception e){
                 parameter.put("assetId", assetId);
