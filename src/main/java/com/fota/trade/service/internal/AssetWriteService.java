@@ -47,6 +47,13 @@ public class AssetWriteService {
         return ret.success(result);
     }
 
+    /**
+     * 撤单逻辑变更， 撤单的时候，不会校验amount是否为负，可以直接进行撤单
+     * @param capitalAccountAddAmountDTO capitalAccountAddAmountDTO
+     * @param refId ref id
+     * @param sourceId source id
+     * @return insert result
+     */
     public Result<Boolean> addCapitalAmountWithoutLocked(CapitalAccountAddAmountDTO capitalAccountAddAmountDTO, String refId, Integer sourceId) {
         Result<Boolean> ret = new Result<>();
         if (Objects.isNull(capitalAccountAddAmountDTO) || Objects.isNull(refId) || Objects.isNull(sourceId)
