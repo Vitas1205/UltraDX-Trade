@@ -87,9 +87,6 @@
             , amount = amount + #{addTotal}
         </if>
         where user_id = #{userId} and asset_id = #{assetId}
-        <if test="addTotal != null">
-            and amount + #{addTotal} >= 0
-        </if>
         <if test="addWithdrawLocked != null">
             and withdraw_locked_amount + #{addWithdrawLocked} >= 0
         </if>
