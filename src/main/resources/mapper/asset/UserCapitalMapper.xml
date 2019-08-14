@@ -87,19 +87,11 @@
             , amount = amount + #{addTotal}
         </if>
         where user_id = #{userId} and asset_id = #{assetId}
+        <if test="addTotal != null">
+            and amount + #{addTotal} >= 0
+        </if>
         <if test="addWithdrawLocked != null">
             and withdraw_locked_amount + #{addWithdrawLocked} >= 0
-        </if>
-        and withdraw_locked_amount + order_locked_amount
-        <if test="addOrderLocked != null">
-            + #{addOrderLocked}
-        </if>
-        <if test="addWithdrawLocked != null">
-            + #{addWithdrawLocked}
-        </if>
-        &lt;= amount
-        <if test="addTotal != null">
-            + #{addTotal}
         </if>
     </update>
 
