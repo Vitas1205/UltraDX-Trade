@@ -671,7 +671,6 @@ public class UsdkOrderManager {
      */
     @Transactional(rollbackFor = Exception.class)
     public ResultCode cancelOrderByMessage(BaseCanceledMessage baseCanceledMessage) {
-        log.info("begin cancle order. {}", baseCanceledMessage.toString());
 
         ResultCode resultCode;
         Integer toStatus = baseCanceledMessage.getStatus();
@@ -703,8 +702,6 @@ public class UsdkOrderManager {
                 capitalAccountAddAmountDTO.setAddOrderLocked(unlockAmount.negate());
                 capitalAccountAddAmountDTO.setUserId(userId);
                 capitalAccountAddAmountDTO.setAssetId(assetId);
-
-                log.info("begin cancle order. {}", capitalAccountAddAmountDTO.toString());
 
                 updateLockedAmountRet = assetWriteService.addCapitalAmountWithoutLocked(capitalAccountAddAmountDTO, String.valueOf(orderId), AssetOperationTypeEnum.USDT_EXCHANGE_CANCLE_ORDER.getCode());
             }catch (Exception e){
