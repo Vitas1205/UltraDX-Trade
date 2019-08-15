@@ -23,6 +23,7 @@ import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.math.BigDecimal;
@@ -38,6 +39,7 @@ import static org.mockito.Mockito.when;
  * @author huangtao 2018/8/23 下午6:41
  */
 @RunWith(SpringRunner.class)
+@SpringBootTest
 public class UsdkOrderManagerTest {
 
     private UsdkMatchedOrderService usdkMatchedOrderService;
@@ -117,5 +119,32 @@ public class UsdkOrderManagerTest {
     @Ignore
     public void test_send_cancel_msg() {
         usdkOrderManager.sendCancelReq(Arrays.asList(715669044238909L, 751658069641829L), 282L);
+    }
+
+
+    @Test
+    public void testCheckSpotOrderPriceLimit()
+    {
+
+    }
+
+    @Test
+    public void testCheckBidPriceLimit()
+    {
+        BigDecimal price = new BigDecimal(100);
+//        BigDecimal standardPrice = new BigDecimal(110);
+//        BigDecimal percent = new BigDecimal(0.01);
+//        BigDecimal maxPrice = new BigDecimal(200);
+
+        BigDecimal standardPrice = new BigDecimal(90);
+        BigDecimal percent = new BigDecimal(0.1);
+        BigDecimal maxPrice = new BigDecimal(200);
+
+        Result result = usdkOrderManager.checkBidPriceLimit(price, standardPrice, percent, maxPrice);
+
+        System.out.println("result is " + result.getCode());
+
+        BigDecimal standardPrice1 = usdkOrderManager.getUsdtLatestPrice(1);
+        System.out.println("result is " + standardPrice1);
     }
 }
