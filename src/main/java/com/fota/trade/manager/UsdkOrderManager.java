@@ -1140,7 +1140,7 @@ public class UsdkOrderManager {
         BigDecimal bigPercent = new BigDecimal(0);
         if(null != percent)
         {
-            bigPercent =  percent.divide(new BigDecimal(100)).add(new BigDecimal(1));
+            bigPercent =  new BigDecimal(1).subtract(percent.divide(new BigDecimal(100)));
         }
         BigDecimal limitPrice = new BigDecimal(0);
         //如果限定价格不为空

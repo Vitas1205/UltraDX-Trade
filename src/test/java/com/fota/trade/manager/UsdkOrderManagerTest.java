@@ -39,7 +39,6 @@ import static org.mockito.Mockito.when;
  * @author huangtao 2018/8/23 下午6:41
  */
 @RunWith(SpringRunner.class)
-@SpringBootTest
 public class UsdkOrderManagerTest {
 
     private UsdkMatchedOrderService usdkMatchedOrderService;
@@ -131,20 +130,17 @@ public class UsdkOrderManagerTest {
     @Test
     public void testCheckBidPriceLimit()
     {
-        BigDecimal price = new BigDecimal(100);
+        BigDecimal price = new BigDecimal(0.55);
 //        BigDecimal standardPrice = new BigDecimal(110);
 //        BigDecimal percent = new BigDecimal(0.01);
 //        BigDecimal maxPrice = new BigDecimal(200);
 
-        BigDecimal standardPrice = new BigDecimal(90);
-        BigDecimal percent = new BigDecimal(0.1);
-        BigDecimal maxPrice = new BigDecimal(200);
+        BigDecimal standardPrice = null;
+        BigDecimal percent = new BigDecimal(20);
+        BigDecimal maxPrice = new BigDecimal(1000000);
 
         Result result = usdkOrderManager.checkBidPriceLimit(price, standardPrice, percent, maxPrice);
 
         System.out.println("result is " + result.getCode());
-
-        BigDecimal standardPrice1 = usdkOrderManager.getUsdtLatestPrice(1);
-        System.out.println("result is " + standardPrice1);
     }
 }
