@@ -997,12 +997,12 @@ public class UsdkOrderManager {
             if (tradingPairConfig.isTradingPriceLimitEnabled()) {
                 if (orderDirection.equals(OrderDirectionEnum.BID.getCode())) {
                     BigDecimal standardPrice = getLimitPrice(tradingPairConfig, orderDirection, tradingPairId);
-                    BigDecimal percent = tradingPairConfig.getMaxLongTradingPriceRate();
+                    BigDecimal percent = tradingPairConfig.getMaxBuyPriceRate();
                     BigDecimal maxPrice = tradingPairConfig.getMaxLongTradingPrice();
                     return checkBidPriceLimit(price, standardPrice, percent, maxPrice);
                 } else if (orderDirection.equals(OrderDirectionEnum.ASK.getCode())) {
                     BigDecimal standardPrice = getLimitPrice(tradingPairConfig, orderDirection, tradingPairId);
-                    BigDecimal percent = tradingPairConfig.getMinShortTradingPriceRate();
+                    BigDecimal percent = tradingPairConfig.getMinSellPriceRate();
                     BigDecimal minPrice = tradingPairConfig.getMinShortTradingPrice();
                     return checkAskPriceLimit(price, standardPrice, percent, minPrice);
                 }
