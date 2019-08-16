@@ -8,10 +8,12 @@ import com.fota.asset.domain.enums.AssetTypeEnum;
 import com.fota.asset.service.AssetService;
 import com.fota.common.Result;
 import com.fota.common.domain.config.BrokerTradingPairConfig;
+import com.fota.common.domain.enums.TradingPriceRateTypeEnum;
 import com.fota.common.manager.BrokerAssetManager;
 import com.fota.common.manager.BrokerTradingPairManager;
 import com.fota.common.manager.FotaAssetManager;
 import com.fota.common.utils.LogUtil;
+import com.fota.ticker.entrust.RealTimeEntrust;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
 import com.fota.trade.PriceTypeEnum;
 import com.fota.trade.client.CancelTypeEnum;
@@ -44,6 +46,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import javax.xml.stream.events.StartDocument;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
@@ -102,6 +105,9 @@ public class UsdkOrderManager {
 
     @Autowired
     private BrokerAssetManager brokerAssetManager;
+
+    @Autowired
+    private RealTimeEntrust realTimeEntrust;
 
     @Autowired
     private BrokerTradingPairManager brokerTradingPairManager;
@@ -168,7 +174,7 @@ public class UsdkOrderManager {
                     return checkValidAmountResult;
                 }
             }
-            Result<BigDecimal> checkPriceRes = computeAndCheckOrderPriceWrapped(usdkOrderDO.getPrice(), usdkOrderDO.getOrderType(), usdkOrderDO.getOrderDirection(), usdkOrderDO.getAssetId(), usdkOrderDO.getBrokerId());
+            Result<BigDecimal> checkPriceRes = computeAndCheckOrderPriceWrapped(usdkOrderDO.getPrice(), usdkOrderDO.getOrderType(), usdkOrderDO.getOrderDirection(), usdkOrderDO.getAssetId(), usdkOrderDO.getBrokerId(), isMarket);
             profiler.complelete("computeAndCheckOrderPrice");
             if (usdkOrderDO.getOrderType() == RIVAL.getCode()) {
                 usdkOrderDO.setOrderType(LIMIT.getCode());
@@ -356,7 +362,7 @@ public class UsdkOrderManager {
                         return checkValidAmountResult;
                     }
                 }
-                Result<BigDecimal> checkPriceRes = computeAndCheckOrderPriceWrapped(usdkOrderDTO.getPrice(), usdkOrderDTO.getOrderType(), usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getAssetId(), usdkOrderDTO.getBrokerId());
+                Result<BigDecimal> checkPriceRes = computeAndCheckOrderPriceWrapped(usdkOrderDTO.getPrice(), usdkOrderDTO.getOrderType(), usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getAssetId(), usdkOrderDTO.getBrokerId() ,isMarket);
                 profiler.complelete("computeAndCheckOrderPrice");
                 if (usdkOrderDTO.getOrderType() == RIVAL.getCode()) {
                     usdkOrderDTO.setOrderType(LIMIT.getCode());
@@ -528,10 +534,10 @@ public class UsdkOrderManager {
         return placeOrderMessage;
     }
 
-    private Result<BigDecimal> computeAndCheckOrderPriceWrapped(BigDecimal orderPrice, int orderType, int orderDirection, int assetId, Long brokerId) {
+    private Result<BigDecimal> computeAndCheckOrderPriceWrapped(BigDecimal orderPrice, int orderType, int orderDirection, int assetId, Long brokerId, boolean isMarket) {
         Result<BigDecimal> result = this.computeAndCheckOrderPrice(orderPrice, orderType, orderDirection, assetId, brokerId);
         if (result.isSuccess()) {
-            Result<Long> result1 = this.checkSpotOrderPriceLimit(brokerId, assetId, result.getData(), orderDirection);
+            Result<Long> result1 = this.checkSpotOrderPriceLimit(brokerId, assetId, result.getData(), orderDirection, isMarket);
             if (!result1.isSuccess()) {
                 return Result.fail(result1.getCode(), result1.getMessage());
             }
@@ -969,27 +975,64 @@ public class UsdkOrderManager {
     }
 
     /**
-     *
+     * 后台灵活上币会将限制条件写入对象中，apolo进行推送。
      * @param brokerId
      * @param tradingPairId
      * @param price
      * @param orderDirection
      * @return
      */
-    public Result<Long> checkSpotOrderPriceLimit(Long brokerId, Number tradingPairId, BigDecimal price, Integer orderDirection) {
+    public Result<Long> checkSpotOrderPriceLimit(Long brokerId, int tradingPairId, BigDecimal price, Integer orderDirection, boolean isMarket) {
         Result<Long> result = new Result<>();
-        if (brokerId == null || tradingPairId == null || price == null || orderDirection == null) {
+        result.setCode(0);
+        if (brokerId == null || price == null || orderDirection == null) {
             log.warn("checkSpotOrderPriceLimit param illegal brokerId={} tradingPairId={} price={} orderDirection={}", brokerId, tradingPairId, price, orderDirection);
             return result;
         }
+        if(isMarket)
+        {
+            return result;
+        }
+
         try {
             //限制最高买价 最低卖价
-            BrokerTradingPairConfig tradingPairConfig = brokerTradingPairManager.getTradingPairById(tradingPairId.longValue());
+            Long tradingPairIdLong = Long.valueOf(tradingPairId);
+            BrokerTradingPairConfig tradingPairConfig = brokerTradingPairManager.getTradingPairById(tradingPairIdLong);
+            log.info("check order price, tradingPairId {}, price {}, orderdirection {} tradingPairConfig {}", tradingPairId, price, orderDirection, tradingPairConfig.toString());
+
             if (tradingPairConfig.isTradingPriceLimitEnabled()) {
-                if (orderDirection.equals(OrderDirectionEnum.BID.getCode()) && price.compareTo(tradingPairConfig.getMaxLongTradingPrice()) > 0) {
-                    result.error(ResultCodeEnum.ORDER_PRICE_LIMIT_CHECK_BID_FAILED.getCode(), tradingPairConfig.getMaxLongTradingPrice().toPlainString());
-                } else if (orderDirection.equals(OrderDirectionEnum.ASK.getCode()) && price.compareTo(tradingPairConfig.getMinShortTradingPrice()) < 0) {
-                    result.error(ResultCodeEnum.ORDER_PRICE_LIMIT_CHECK_ASK_FAILED.getCode(), tradingPairConfig.getMinShortTradingPrice().toPlainString());
+                if (orderDirection.equals(OrderDirectionEnum.BID.getCode())) {
+                    BigDecimal standardPrice = null;
+                    BigDecimal percent = null;
+                    BigDecimal maxPrice = null;
+                    //根据前台传过来的类型来判断使用固定值还是百分比
+                    if(tradingPairConfig.isTradingFixedPriceLimitEnabled())
+                    {
+                        maxPrice = tradingPairConfig.getMaxLongTradingPrice();
+                    }
+                    if(tradingPairConfig.isTradingPriceRateLimitEnabled())
+                    {
+                        standardPrice = getLimitPrice(tradingPairConfig, orderDirection, tradingPairId);
+                        percent = tradingPairConfig.getMaxLongTradingPriceRate();
+                    }
+
+                    return checkBidPriceLimit(price, standardPrice, percent, maxPrice);
+                } else if (orderDirection.equals(OrderDirectionEnum.ASK.getCode())) {
+                    BigDecimal standardPrice = null;
+                    BigDecimal percent =  null;
+                    BigDecimal minPrice = null;
+                    //根据前台传过来的类型来判断使用固定值还是百分比
+                    if(tradingPairConfig.isTradingFixedPriceLimitEnabled())
+                    {
+                        minPrice = tradingPairConfig.getMinShortTradingPrice();
+                    }
+                    if(tradingPairConfig.isTradingPriceRateLimitEnabled())
+                    {
+                        standardPrice = getLimitPrice(tradingPairConfig, orderDirection, tradingPairId);
+                        percent = tradingPairConfig.getMinShortTradingPriceRate();
+                    }
+
+                    return checkAskPriceLimit(price, standardPrice, percent, minPrice);
                 }
             }
         } catch (Exception e) {
@@ -999,6 +1042,162 @@ public class UsdkOrderManager {
         return result;
     }
 
+    public BigDecimal getLimitPrice(BrokerTradingPairConfig tradingPairConfig,  Integer orderDirection, int assetId)
+    {
+        if(tradingPairConfig.getTradingPriceRateType() == TradingPriceRateTypeEnum.ASK_BID_CURRENT_PRICE.getCode())
+        {
+            return getcurrentPrice(orderDirection, assetId);
+        }
+        else if(tradingPairConfig.getTradingPriceRateType() == TradingPriceRateTypeEnum.LATEST_PRICE.getCode())
+        {
+            //最新成交价
+            return getUsdtLatestPrice(assetId);
+        }
+        else
+        {
+            return null;
+        }
+    }
+
+    /**
+     * get usdt latest price
+     * @param assetId
+     * @return
+     */
+    public BigDecimal getUsdtLatestPrice(int assetId)
+    {
+        BigDecimal usdtLatestPrice = realTimeEntrustManager.getUsdtLatestPrice(assetId);
+        if(ZERO.equals(usdtLatestPrice))
+        {
+            return null;
+        }
+        else
+        {
+            return usdtLatestPrice;
+        }
+    }
+
+    /**
+     * 获取买一卖一价
+     * @param orderDirectionType
+     * @param assetId
+     * @return
+     */
+    public BigDecimal getcurrentPrice(Integer orderDirectionType, int assetId)
+    {
+        if(null == orderDirectionType)
+        {
+            return null;
+        }
+        //获取USDT买一卖一价
+        List<CompetitorsPriceDTO> competitorsPriceDTOList = realTimeEntrust.getUsdtCompetitorsPriceOrder();
+        //获取买一卖一价
+        Optional<CompetitorsPriceDTO> competitorsPriceDTOOptional = competitorsPriceDTOList
+                .stream()
+                .filter(competitorsPrice -> orderDirectionType.equals(competitorsPrice.getOrderDirection()) && competitorsPrice.getId() == assetId)
+                .findFirst();
+
+        if (competitorsPriceDTOOptional.isPresent() && competitorsPriceDTOOptional.get().getPrice().compareTo(BigDecimal.ZERO) > 0) {
+            return competitorsPriceDTOOptional.get().getPrice();
+        }
+        return null;
+    }
+
+    /**
+     * check bid price X<=min(B*(1+C%) ， A)
+     * @return
+     */
+    public Result<Long> checkBidPriceLimit(BigDecimal price, BigDecimal standardPrice, BigDecimal percent, BigDecimal maxPrice)
+    {
+        log.debug("begin check bid price limit. price {}, standard price {}, percent {}, max price {}.", price, standardPrice, percent, maxPrice);
+        Result<Long> result = new Result<>();
+        result.setCode(0);
+        //如果限定价格和标准价格均为空，则不进行校验
+        if(null == standardPrice && null == maxPrice)
+        {
+            return result;
+        }
+        BigDecimal bigPercent = new BigDecimal(0);
+        if(null != percent)
+        {
+            bigPercent =  percent.divide(new BigDecimal(100)).add(new BigDecimal(1));
+        }
+        BigDecimal limitPrice = new BigDecimal(Integer.MAX_VALUE);
+        //如果限定价格不为空
+        if(null != maxPrice && null == standardPrice)
+        {
+            limitPrice = maxPrice;
+        }
+        //如果标准价格不为空
+        if(null == maxPrice && null != standardPrice)
+        {
+            limitPrice = standardPrice.multiply(bigPercent);
+        }
+        //如果两者都不为空
+        if(null != maxPrice && null != standardPrice)
+        {
+            limitPrice = maxPrice.min(standardPrice.multiply(bigPercent));
+        }
+
+        if(price.compareTo(limitPrice) > 0)
+        {
+            result.error(ResultCodeEnum.ORDER_PRICE_LIMIT_CHECK_BID_FAILED.getCode(), limitPrice.toPlainString());
+        }
+        else
+        {
+            result.setCode(0);
+        }
+
+        return result;
+    }
+
+    /**
+     * check ask price Y>=Max(E*(1-F%), D)
+     * @return
+     */
+    public Result<Long> checkAskPriceLimit(BigDecimal price, BigDecimal standardPrice, BigDecimal percent, BigDecimal minPrice)
+    {
+        log.debug("begin check ask price limit. price {}, standard price {}, percent {}, max price {}.", price, standardPrice, percent, minPrice);
+        Result<Long> result = new Result<>();
+        result.setCode(0);
+        //如果限定价格和标准价格均为空，则不进行校验
+        if(null == standardPrice && null == minPrice)
+        {
+            return result;
+        }
+        BigDecimal bigPercent = new BigDecimal(0);
+        if(null != percent)
+        {
+            bigPercent =  new BigDecimal(1).subtract(percent.divide(new BigDecimal(100)));
+        }
+        BigDecimal limitPrice = new BigDecimal(0);
+        //如果限定价格不为空
+        if(null != minPrice && null == standardPrice)
+        {
+            limitPrice = minPrice;
+        }
+        //如果标准价格不为空
+        if(null == minPrice && null != standardPrice)
+        {
+            limitPrice = standardPrice.multiply(bigPercent);
+        }
+        //如果两者都不为空
+        if(null != minPrice && null != standardPrice)
+        {
+            limitPrice = minPrice.max(standardPrice.multiply(bigPercent));
+        }
+
+        if(price.compareTo(limitPrice) < 0)
+        {
+            result.error(ResultCodeEnum.ORDER_PRICE_LIMIT_CHECK_ASK_FAILED.getCode(), limitPrice.toPlainString());
+        }
+        else
+        {
+            result.setCode(0);
+        }
+
+        return result;
+    }
 }
 
 
