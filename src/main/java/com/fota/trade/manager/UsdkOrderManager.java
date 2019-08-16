@@ -174,7 +174,7 @@ public class UsdkOrderManager {
                     return checkValidAmountResult;
                 }
             }
-            Result<BigDecimal> checkPriceRes = computeAndCheckOrderPriceWrapped(usdkOrderDO.getPrice(), usdkOrderDO.getOrderType(), usdkOrderDO.getOrderDirection(), usdkOrderDO.getAssetId(), usdkOrderDO.getBrokerId());
+            Result<BigDecimal> checkPriceRes = computeAndCheckOrderPriceWrapped(usdkOrderDO.getPrice(), usdkOrderDO.getOrderType(), usdkOrderDO.getOrderDirection(), usdkOrderDO.getAssetId(), usdkOrderDO.getBrokerId(), isMarket);
             profiler.complelete("computeAndCheckOrderPrice");
             if (usdkOrderDO.getOrderType() == RIVAL.getCode()) {
                 usdkOrderDO.setOrderType(LIMIT.getCode());
@@ -362,7 +362,7 @@ public class UsdkOrderManager {
                         return checkValidAmountResult;
                     }
                 }
-                Result<BigDecimal> checkPriceRes = computeAndCheckOrderPriceWrapped(usdkOrderDTO.getPrice(), usdkOrderDTO.getOrderType(), usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getAssetId(), usdkOrderDTO.getBrokerId());
+                Result<BigDecimal> checkPriceRes = computeAndCheckOrderPriceWrapped(usdkOrderDTO.getPrice(), usdkOrderDTO.getOrderType(), usdkOrderDTO.getOrderDirection(), usdkOrderDTO.getAssetId(), usdkOrderDTO.getBrokerId() ,isMarket);
                 profiler.complelete("computeAndCheckOrderPrice");
                 if (usdkOrderDTO.getOrderType() == RIVAL.getCode()) {
                     usdkOrderDTO.setOrderType(LIMIT.getCode());
@@ -534,10 +534,10 @@ public class UsdkOrderManager {
         return placeOrderMessage;
     }
 
-    private Result<BigDecimal> computeAndCheckOrderPriceWrapped(BigDecimal orderPrice, int orderType, int orderDirection, int assetId, Long brokerId) {
+    private Result<BigDecimal> computeAndCheckOrderPriceWrapped(BigDecimal orderPrice, int orderType, int orderDirection, int assetId, Long brokerId, boolean isMarket) {
         Result<BigDecimal> result = this.computeAndCheckOrderPrice(orderPrice, orderType, orderDirection, assetId, brokerId);
         if (result.isSuccess()) {
-            Result<Long> result1 = this.checkSpotOrderPriceLimit(brokerId, assetId, result.getData(), orderDirection);
+            Result<Long> result1 = this.checkSpotOrderPriceLimit(brokerId, assetId, result.getData(), orderDirection, isMarket);
             if (!result1.isSuccess()) {
                 return Result.fail(result1.getCode(), result1.getMessage());
             }
@@ -982,12 +982,18 @@ public class UsdkOrderManager {
      * @param orderDirection
      * @return
      */
-    public Result<Long> checkSpotOrderPriceLimit(Long brokerId, int tradingPairId, BigDecimal price, Integer orderDirection) {
+    public Result<Long> checkSpotOrderPriceLimit(Long brokerId, int tradingPairId, BigDecimal price, Integer orderDirection, boolean isMarket) {
         Result<Long> result = new Result<>();
+        result.setCode(0);
         if (brokerId == null || price == null || orderDirection == null) {
             log.warn("checkSpotOrderPriceLimit param illegal brokerId={} tradingPairId={} price={} orderDirection={}", brokerId, tradingPairId, price, orderDirection);
             return result;
         }
+        if(isMarket)
+        {
+            return result;
+        }
+
         try {
             //限制最高买价 最低卖价
             Long tradingPairIdLong = Long.valueOf(tradingPairId);
