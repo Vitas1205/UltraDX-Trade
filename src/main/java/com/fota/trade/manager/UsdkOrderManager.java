@@ -998,7 +998,7 @@ public class UsdkOrderManager {
             //限制最高买价 最低卖价
             Long tradingPairIdLong = Long.valueOf(tradingPairId);
             BrokerTradingPairConfig tradingPairConfig = brokerTradingPairManager.getTradingPairById(tradingPairIdLong);
-            log.info("check order price, tradingPairId {}, price {}, orderdirection {} tradingPairConfig {}", tradingPairId, price, orderDirection, tradingPairConfig.toString());
+            log.debug("check order price, tradingPairId {}, price {}, orderdirection {} tradingPairConfig {}", tradingPairId, price, orderDirection, tradingPairConfig.toString());
 
             if (tradingPairConfig.isTradingPriceLimitEnabled()) {
                 if (orderDirection.equals(OrderDirectionEnum.BID.getCode())) {
@@ -1109,7 +1109,7 @@ public class UsdkOrderManager {
      */
     public Result<Long> checkBidPriceLimit(BigDecimal price, BigDecimal standardPrice, BigDecimal percent, BigDecimal maxPrice)
     {
-        log.info("begin check bid price limit. price {}, standard price {}, percent {}, max price {}.", price, standardPrice, percent, maxPrice);
+        log.debug("begin check bid price limit. price {}, standard price {}, percent {}, max price {}.", price, standardPrice, percent, maxPrice);
         Result<Long> result = new Result<>();
         result.setCode(0);
         //如果限定价格和标准价格均为空，则不进行校验
@@ -1157,7 +1157,7 @@ public class UsdkOrderManager {
      */
     public Result<Long> checkAskPriceLimit(BigDecimal price, BigDecimal standardPrice, BigDecimal percent, BigDecimal minPrice)
     {
-        log.info("begin check ask price limit. price {}, standard price {}, percent {}, max price {}.", price, standardPrice, percent, minPrice);
+        log.debug("begin check ask price limit. price {}, standard price {}, percent {}, max price {}.", price, standardPrice, percent, minPrice);
         Result<Long> result = new Result<>();
         result.setCode(0);
         //如果限定价格和标准价格均为空，则不进行校验
