@@ -998,7 +998,7 @@ public class UsdkOrderManager {
             //限制最高买价 最低卖价
             Long tradingPairIdLong = Long.valueOf(tradingPairId);
             BrokerTradingPairConfig tradingPairConfig = brokerTradingPairManager.getTradingPairById(tradingPairIdLong);
-            log.debug("check order price, tradingPairId {}, price {}, orderdirection {} tradingPairConfig {}", tradingPairId, price, orderDirection, tradingPairConfig.toString());
+            log.info("check order price, tradingPairId {}, price {}, orderdirection {} tradingPairConfig {}", tradingPairId, price, orderDirection, tradingPairConfig.toString());
 
             if (tradingPairConfig.isTradingPriceLimitEnabled()) {
                 if (orderDirection.equals(OrderDirectionEnum.BID.getCode())) {
