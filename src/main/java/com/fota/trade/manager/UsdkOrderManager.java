@@ -975,7 +975,7 @@ public class UsdkOrderManager {
     }
 
     /**
-     *后台会将价格限制写入到redis， 该处从redis中读出限制，然后做判断。
+     * 后台灵活上币会将限制条件写入对象中，apolo进行推送。
      * @param brokerId
      * @param tradingPairId
      * @param price
@@ -996,14 +996,36 @@ public class UsdkOrderManager {
 
             if (tradingPairConfig.isTradingPriceLimitEnabled()) {
                 if (orderDirection.equals(OrderDirectionEnum.BID.getCode())) {
-                    BigDecimal standardPrice = getLimitPrice(tradingPairConfig, orderDirection, tradingPairId);
-                    BigDecimal percent = tradingPairConfig.getMaxBuyPriceRate();
-                    BigDecimal maxPrice = tradingPairConfig.getMaxLongTradingPrice();
+                    BigDecimal standardPrice = null;
+                    BigDecimal percent = null;
+                    BigDecimal maxPrice = null;
+                    //根据前台传过来的类型来判断使用固定值还是百分比
+                    if(tradingPairConfig.isTradingFixedPriceLimitEnabled())
+                    {
+                        maxPrice = tradingPairConfig.getMaxLongTradingPrice();
+                    }
+                    if(tradingPairConfig.isTradingPriceRateLimitEnabled())
+                    {
+                        standardPrice = getLimitPrice(tradingPairConfig, orderDirection, tradingPairId);
+                        percent = tradingPairConfig.getMaxLongTradingPriceRate();
+                    }
+
                     return checkBidPriceLimit(price, standardPrice, percent, maxPrice);
                 } else if (orderDirection.equals(OrderDirectionEnum.ASK.getCode())) {
-                    BigDecimal standardPrice = getLimitPrice(tradingPairConfig, orderDirection, tradingPairId);
-                    BigDecimal percent = tradingPairConfig.getMinSellPriceRate();
-                    BigDecimal minPrice = tradingPairConfig.getMinShortTradingPrice();
+                    BigDecimal standardPrice = null;
+                    BigDecimal percent =  null;
+                    BigDecimal minPrice = null;
+                    //根据前台传过来的类型来判断使用固定值还是百分比
+                    if(tradingPairConfig.isTradingFixedPriceLimitEnabled())
+                    {
+                        minPrice = tradingPairConfig.getMinShortTradingPrice();
+                    }
+                    if(tradingPairConfig.isTradingPriceRateLimitEnabled())
+                    {
+                        standardPrice = getLimitPrice(tradingPairConfig, orderDirection, tradingPairId);
+                        percent = tradingPairConfig.getMinShortTradingPriceRate();
+                    }
+
                     return checkAskPriceLimit(price, standardPrice, percent, minPrice);
                 }
             }
