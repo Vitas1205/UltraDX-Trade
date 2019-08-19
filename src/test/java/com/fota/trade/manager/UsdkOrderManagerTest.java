@@ -23,6 +23,7 @@ import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.math.BigDecimal;
@@ -117,5 +118,29 @@ public class UsdkOrderManagerTest {
     @Ignore
     public void test_send_cancel_msg() {
         usdkOrderManager.sendCancelReq(Arrays.asList(715669044238909L, 751658069641829L), 282L);
+    }
+
+
+    @Test
+    public void testCheckSpotOrderPriceLimit()
+    {
+
+    }
+
+    @Test
+    public void testCheckBidPriceLimit()
+    {
+        BigDecimal price = new BigDecimal(0.55);
+//        BigDecimal standardPrice = new BigDecimal(110);
+//        BigDecimal percent = new BigDecimal(0.01);
+//        BigDecimal maxPrice = new BigDecimal(200);
+
+        BigDecimal standardPrice = null;
+        BigDecimal percent = new BigDecimal(20);
+        BigDecimal maxPrice = new BigDecimal(1000000);
+
+        Result result = usdkOrderManager.checkBidPriceLimit(price, standardPrice, percent, maxPrice);
+
+        System.out.println("result is " + result.getCode());
     }
 }
