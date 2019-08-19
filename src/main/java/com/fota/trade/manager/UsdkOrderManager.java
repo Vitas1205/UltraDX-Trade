@@ -677,6 +677,7 @@ public class UsdkOrderManager {
      */
     @Transactional(rollbackFor = Exception.class)
     public ResultCode cancelOrderByMessage(BaseCanceledMessage baseCanceledMessage) {
+
         ResultCode resultCode;
         Integer toStatus = baseCanceledMessage.getStatus();
         long userId=baseCanceledMessage.getUserId();
@@ -707,7 +708,8 @@ public class UsdkOrderManager {
                 capitalAccountAddAmountDTO.setAddOrderLocked(unlockAmount.negate());
                 capitalAccountAddAmountDTO.setUserId(userId);
                 capitalAccountAddAmountDTO.setAssetId(assetId);
-                updateLockedAmountRet = assetWriteService.addCapitalAmount(capitalAccountAddAmountDTO, String.valueOf(orderId), AssetOperationTypeEnum.USDT_EXCHANGE_CANCLE_ORDER.getCode());
+
+                updateLockedAmountRet = assetWriteService.addCapitalAmountWithoutLocked(capitalAccountAddAmountDTO, String.valueOf(orderId), AssetOperationTypeEnum.USDT_EXCHANGE_CANCLE_ORDER.getCode());
             }catch (Exception e){
                 parameter.put("assetId", assetId);
                 parameter.put("lockedAmount", unlockAmount.negate().toString());
@@ -936,7 +938,7 @@ public class UsdkOrderManager {
     private BigDecimal getFeeRateByBrokerId(Long brokerId, long tradingPairId){
         BrokerTradingPairConfig tradingPairConfig = brokerTradingPairManager.getTradingPairById(tradingPairId);
 
-        if (Objects.equals(brokerId, tradingPairConfig.getBrokerId())){
+        if (tradingPairConfig != null && Objects.equals(brokerId, tradingPairConfig.getBrokerId())){
             return tradingPairConfig.getFeeRate();
         } else {
             return defaultFee;

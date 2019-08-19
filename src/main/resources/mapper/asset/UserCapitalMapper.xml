@@ -74,4 +74,25 @@
         </if>
     </update>
 
+    <update id="addCapitalAmountWithoutLocked">
+        update user_capital
+        set gmt_modified = now()
+        <if test="addWithdrawLocked != null">
+            , withdraw_locked_amount = withdraw_locked_amount + #{addWithdrawLocked}
+        </if>
+        <if test="addOrderLocked != null">
+            , order_locked_amount = order_locked_amount + #{addOrderLocked}
+        </if>
+        <if test="addTotal != null">
+            , amount = amount + #{addTotal}
+        </if>
+        where user_id = #{userId} and asset_id = #{assetId}
+        <if test="addTotal != null">
+            and amount + #{addTotal} >= 0
+        </if>
+        <if test="addWithdrawLocked != null">
+            and withdraw_locked_amount + #{addWithdrawLocked} >= 0
+        </if>
+    </update>
+
 </mapper>

@@ -47,6 +47,29 @@ public class AssetWriteService {
         return ret.success(result);
     }
 
+    /**
+     * 撤单逻辑变更， 撤单的时候，不会校验amount是否为负，可以直接进行撤单
+     * @param capitalAccountAddAmountDTO capitalAccountAddAmountDTO
+     * @param refId ref id
+     * @param sourceId source id
+     * @return insert result
+     */
+    public Result<Boolean> addCapitalAmountWithoutLocked(CapitalAccountAddAmountDTO capitalAccountAddAmountDTO, String refId, Integer sourceId) {
+        Result<Boolean> ret = new Result<>();
+        if (Objects.isNull(capitalAccountAddAmountDTO) || Objects.isNull(refId) || Objects.isNull(sourceId)
+                || Objects.isNull(capitalAccountAddAmountDTO.getAssetId())
+                || Objects.isNull(capitalAccountAddAmountDTO.getUserId())) {
+            assetLog.error("request para is null, sourceId: {}, refId:{}, requestData:{}", sourceId, refId, capitalAccountAddAmountDTO);
+            ret.setData(false);
+            return ret.error(ResultCodeEnum.ILLEGAL_PARAM);
+        }
+        boolean result = capitalManager.addCapitalAmountWithoutLocked(capitalAccountAddAmountDTO, refId, sourceId);
+        if (result) {
+            capitalManager.sendAddCapitalAmountMQ(capitalAccountAddAmountDTO);
+        }
+        return ret.success(result);
+    }
+
     public Result<Boolean> batchAddCapitalAmount(List<CapitalAccountAddAmountDTO> list, String refId, Integer sourceId) {
         Result<Boolean> ret = new Result<>();
         if (Objects.isNull(list) || Objects.isNull(refId) || Objects.isNull(sourceId)
