@@ -938,7 +938,7 @@ public class UsdkOrderManager {
     private BigDecimal getFeeRateByBrokerId(Long brokerId, long tradingPairId){
         BrokerTradingPairConfig tradingPairConfig = brokerTradingPairManager.getTradingPairById(tradingPairId);
 
-        if (Objects.equals(brokerId, tradingPairConfig.getBrokerId())){
+        if (tradingPairConfig != null && Objects.equals(brokerId, tradingPairConfig.getBrokerId())){
             return tradingPairConfig.getFeeRate();
         } else {
             return defaultFee;
