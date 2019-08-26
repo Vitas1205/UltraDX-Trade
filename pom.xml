@@ -200,7 +200,7 @@
 		<dependency>
 			<groupId>com.fota</groupId>
 			<artifactId>common-client</artifactId>
-			<version>1.2.0</version>
+			<version>1.2.3-SNAPSHOT</version>
 		</dependency>
 
 		<dependency>
