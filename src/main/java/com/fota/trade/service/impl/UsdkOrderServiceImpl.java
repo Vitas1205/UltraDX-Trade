@@ -317,6 +317,12 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
 
     @Override
     public UsdkMatchedOrderTradeDTOPage getUsdkMatchRecord(Long userId, List<Long> assetIds, Integer pageNo, Integer pageSize, Long startTime, Long endTime) {
+        // todo 如果是做市账号，不显示成交的数据
+        boolean isMarket = marketAccountListService.contains(userId);
+        if (isMarket) {
+            return new UsdkMatchedOrderTradeDTOPage();
+        }
+
         if (pageNo <= 0) {
             pageNo = 1;
         }
@@ -362,7 +368,6 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
             if (null != usdkMatchedOrders && usdkMatchedOrders.size() > 0){
                 for (UsdkMatchedOrderDO temp : usdkMatchedOrders){
                     UsdkMatchedOrderTradeDTO tempTarget = new UsdkMatchedOrderTradeDTO();
-                    boolean isMarket = marketAccountListService.contains(userId);
                     BigDecimal feeRate;
                     if (isMarket) {
                         feeRate = BigDecimal.ZERO;
