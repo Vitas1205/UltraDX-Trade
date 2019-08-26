@@ -2,12 +2,15 @@ package com.fota.trade.manager;
 
 import com.alibaba.dubbo.remoting.TimeoutException;
 import com.alibaba.fastjson.JSON;
+import com.fota.account.domain.UserBaseDTO;
+import com.fota.account.service.UserBaseService;
 import com.fota.asset.domain.ContractAccountAddAmountDTO;
 import com.fota.asset.domain.enums.AssetOperationTypeEnum;
 import com.fota.asset.service.ContractService;
 import com.fota.common.Result;
 import com.fota.common.utils.LogUtil;
 import com.fota.trade.UpdateOrderItem;
+import com.fota.trade.client.BusinessTypeEnum;
 import com.fota.trade.client.FailedRecord;
 import com.fota.trade.client.PostDealPhaseEnum;
 import com.fota.trade.common.Constant;
@@ -111,6 +114,9 @@ public class DealManager {
 
     @Autowired
     private MonitorLogManager monitorLogManager;
+
+    @Autowired
+    private UserBaseService userBaseService;
 
 
     private static final Logger UPDATE_POSITION_FAILED_LOGGER = LoggerFactory.getLogger("updatePositionFailed");
@@ -659,6 +665,13 @@ public class DealManager {
         postMatchMessage.setFilledAmount(filledAmount);
         postMatchMessage.setFilledPrice(filledPrice);
         postMatchMessage.setMatchId(matchId);
+        //set brokerId businessType feeRate
+        UserBaseDTO userBaseDTO = userBaseService.getUserBaseInfoByUserId(contractOrderDO.getUserId());
+        if(null != userBaseDTO && null != userBaseDTO.getBrokerId()) {
+            postMatchMessage.setBrokerId(userBaseDTO.getBrokerId());
+        }
+        postMatchMessage.setBusinessType(BusinessTypeEnum.CONTRACT);
+
         return postMatchMessage;
     }
     private void sendDealMessage(long matchId, ContractOrderDO contractOrderDO, BigDecimal filledAmount, BigDecimal filledPrice) {

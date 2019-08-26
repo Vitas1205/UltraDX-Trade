@@ -16,6 +16,7 @@ import com.fota.common.utils.LogUtil;
 import com.fota.ticker.entrust.RealTimeEntrust;
 import com.fota.ticker.entrust.entity.CompetitorsPriceDTO;
 import com.fota.trade.PriceTypeEnum;
+import com.fota.trade.client.BusinessTypeEnum;
 import com.fota.trade.client.CancelTypeEnum;
 import com.fota.trade.client.PlaceCoinOrderDTO;
 import com.fota.trade.client.PlaceOrderRequest;
@@ -967,6 +968,10 @@ public class UsdkOrderManager {
         coinDealedMessage.setFilledAmount(filledAmount);
         coinDealedMessage.setFilledPrice(usdkOrderDO.getPrice());
         coinDealedMessage.setMatchId(matchId);
+        //set brokerId businessType feeRate
+        coinDealedMessage.setBrokerId(usdkOrderDO.getBrokerId());
+        coinDealedMessage.setBusinessType(BusinessTypeEnum.SPOT);
+        coinDealedMessage.setFeeRate(usdkOrderDO.getFee());
 
         rocketMqManager.sendMessage(TRD_COIN_DEAL, usdkOrderDO.getAssetId()+"", matchId + "_" + usdkOrderDO.getId(), coinDealedMessage);
     }
