@@ -101,7 +101,7 @@ public class RocketMqManager {
             }
             if (SEND_OK == ret.getSendStatus()) {
                 if (enableSendMQInfo()) {
-                        log.error("send message success, mqMessage={}, ret={}", mqMessage, ret);
+                    LOGGER.error("send message success, mqMessage={}, ret={}", mqMessage, ret);
                 }
                 return true;
             }else {
