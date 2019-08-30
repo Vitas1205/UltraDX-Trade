@@ -103,6 +103,7 @@ public class RocketMqManager {
                 if (enableSendMQInfo()) {
                     LOGGER.error("send message success, mqMessage={}, ret={}", mqMessage, ret);
                 }
+                LOGGER.error("send message success, mqMessage={}, ret={}", mqMessage, ret);
                 return true;
             }else {
                 log.error("send message failed, mqMessage={}, ret={}", message, JSON.toJSONString(ret));
