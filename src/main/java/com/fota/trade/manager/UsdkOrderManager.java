@@ -152,11 +152,15 @@ public class UsdkOrderManager {
         Integer orderDirection = usdkOrderDO.getOrderDirection();
         List<UserCapitalDTO> list = assetService.getUserCapital(userId);
         profiler.complelete("getUserCapital");
-        BigDecimal feeRate;
+        BigDecimal feeRate = usdkOrderDO.getFee();
         if (isMarket) {
             feeRate = BigDecimal.ZERO;
         } else {
-            feeRate = getFeeRateByBrokerId(usdkOrderDTO.getBrokerId(), assetId);
+            //feeRate = getFeeRateByBrokerId(usdkOrderDTO.getBrokerId(), assetId);
+            if(null == feeRate)
+            {
+                feeRate = defaultFee;
+            }
         }
         usdkOrderDO.setFee(feeRate);
         usdkOrderDO.setStatus(COMMIT.getCode());
