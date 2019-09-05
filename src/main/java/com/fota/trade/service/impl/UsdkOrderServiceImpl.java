@@ -150,6 +150,9 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
 
     @Override
     public ResultCode order(UsdkOrderDTO usdkOrderDTO, Map<String, String> userInfoMap) {
+
+        log.error("order:{}, userInfoMap:{}", usdkOrderDTO, userInfoMap);
+
         com.fota.common.Result<Long> result = orderReturnId(usdkOrderDTO, userInfoMap);
         if (result.isSuccess()) {
             return ResultCode.success();
