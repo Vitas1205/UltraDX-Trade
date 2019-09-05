@@ -931,8 +931,8 @@ public class UsdkOrderManager {
 
         long matchId = usdkMatchedOrderDTO.getId();
         Runnable runnable = () -> {
-            postProcessOrder(askUsdkOrder, filledAmount, matchId);
-            postProcessOrder(bidUsdkOrder, filledAmount, matchId);
+            postProcessOrder(askUsdkOrder, filledAmount, filledPrice, matchId);
+            postProcessOrder(bidUsdkOrder, filledAmount, filledPrice, matchId);
         };
         ThreadContextUtil.setPostTask(runnable);
 
@@ -960,7 +960,7 @@ public class UsdkOrderManager {
         }
     }
 
-    private void postProcessOrder(UsdkOrderDO usdkOrderDO, BigDecimal filledAmount, long matchId) {
+    private void postProcessOrder(UsdkOrderDO usdkOrderDO, BigDecimal filledAmount, BigDecimal filledPrice, long matchId) {
         monitorLogManager.coinDealOrderInfo(usdkOrderDO, filledAmount);
         CoinDealedMessage coinDealedMessage = new CoinDealedMessage();
         coinDealedMessage.setUserId(usdkOrderDO.getUserId());
@@ -976,6 +976,7 @@ public class UsdkOrderManager {
         coinDealedMessage.setBrokerId(usdkOrderDO.getBrokerId());
         coinDealedMessage.setBusinessType(BusinessTypeEnum.SPOT);
         coinDealedMessage.setFeeRate(usdkOrderDO.getFee());
+        coinDealedMessage.setFilledPriceTwo(filledPrice);
 
         rocketMqManager.sendMessage(TRD_COIN_DEAL, usdkOrderDO.getAssetId()+"", matchId + "_" + usdkOrderDO.getId(), coinDealedMessage);
     }
