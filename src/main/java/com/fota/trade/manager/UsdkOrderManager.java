@@ -9,6 +9,7 @@ import com.fota.asset.service.AssetService;
 import com.fota.common.Result;
 import com.fota.common.domain.config.BrokerTradingPairConfig;
 import com.fota.common.domain.enums.TradingPriceRateTypeEnum;
+import com.fota.common.enums.BusinessTypeEnum;
 import com.fota.common.manager.BrokerAssetManager;
 import com.fota.common.manager.BrokerTradingPairManager;
 import com.fota.common.manager.FotaAssetManager;
@@ -151,11 +152,15 @@ public class UsdkOrderManager {
         Integer orderDirection = usdkOrderDO.getOrderDirection();
         List<UserCapitalDTO> list = assetService.getUserCapital(userId);
         profiler.complelete("getUserCapital");
-        BigDecimal feeRate;
+        BigDecimal feeRate = usdkOrderDO.getFee();
         if (isMarket) {
             feeRate = BigDecimal.ZERO;
         } else {
-            feeRate = getFeeRateByBrokerId(usdkOrderDTO.getBrokerId(), assetId);
+            //feeRate = getFeeRateByBrokerId(usdkOrderDTO.getBrokerId(), assetId);
+            if(null == feeRate)
+            {
+                feeRate = defaultFee;
+            }
         }
         usdkOrderDO.setFee(feeRate);
         usdkOrderDO.setStatus(COMMIT.getCode());
@@ -926,8 +931,8 @@ public class UsdkOrderManager {
 
         long matchId = usdkMatchedOrderDTO.getId();
         Runnable runnable = () -> {
-            postProcessOrder(askUsdkOrder, filledAmount, matchId);
-            postProcessOrder(bidUsdkOrder, filledAmount, matchId);
+            postProcessOrder(askUsdkOrder, filledAmount, filledPrice, matchId);
+            postProcessOrder(bidUsdkOrder, filledAmount, filledPrice, matchId);
         };
         ThreadContextUtil.setPostTask(runnable);
 
@@ -955,7 +960,7 @@ public class UsdkOrderManager {
         }
     }
 
-    private void postProcessOrder(UsdkOrderDO usdkOrderDO, BigDecimal filledAmount, long matchId) {
+    private void postProcessOrder(UsdkOrderDO usdkOrderDO, BigDecimal filledAmount, BigDecimal filledPrice, long matchId) {
         monitorLogManager.coinDealOrderInfo(usdkOrderDO, filledAmount);
         CoinDealedMessage coinDealedMessage = new CoinDealedMessage();
         coinDealedMessage.setUserId(usdkOrderDO.getUserId());
@@ -967,6 +972,11 @@ public class UsdkOrderManager {
         coinDealedMessage.setFilledAmount(filledAmount);
         coinDealedMessage.setFilledPrice(usdkOrderDO.getPrice());
         coinDealedMessage.setMatchId(matchId);
+        //set brokerId businessType feeRate
+        coinDealedMessage.setBrokerId(usdkOrderDO.getBrokerId());
+        coinDealedMessage.setBusinessType(BusinessTypeEnum.SPOT);
+        coinDealedMessage.setFeeRate(usdkOrderDO.getFee());
+        coinDealedMessage.setFilledPriceTwo(filledPrice);
 
         rocketMqManager.sendMessage(TRD_COIN_DEAL, usdkOrderDO.getAssetId()+"", matchId + "_" + usdkOrderDO.getId(), coinDealedMessage);
     }
