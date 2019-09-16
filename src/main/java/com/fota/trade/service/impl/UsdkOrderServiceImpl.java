@@ -375,7 +375,9 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
                     if (isMarket) {
                         feeRate = BigDecimal.ZERO;
                     } else {
-                        feeRate = getFeeRateByBrokerId(temp.getBrokerId(), temp.getAssetId());
+                        feeRate = getFeeRateByOrderId(temp.getUserId(), temp.getOrderId());
+
+                        //feeRate = getFeeRateByBrokerId(temp.getBrokerId(), temp.getAssetId());
                     }
                     if (OrderDirectionEnum.ASK.getCode() == temp.getOrderDirection()){
                         tempTarget.setAskOrderId(temp.getOrderId());
@@ -419,6 +421,21 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         }
         usdkMatchedOrderTradeDTOPage.setData(list);
         return usdkMatchedOrderTradeDTOPage;
+    }
+
+    private BigDecimal getFeeRateByOrderId(Long userId, Long orderId) {
+        UsdkOrderDO usdkOrderDO = usdkOrderMapper.selectByUserIdAndId(userId, orderId);
+        if(null != usdkOrderDO) {
+            BigDecimal feeRate = usdkOrderDO.getFee();
+            if(null == feeRate) {
+                return BigDecimal.ZERO;
+            } else {
+                return feeRate;
+            }
+        }
+        else {
+            return BigDecimal.ZERO;
+        }
     }
 
     private BigDecimal getFeeRateByBrokerId(Long brokerId, Integer assetId){
