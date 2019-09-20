@@ -93,52 +93,6 @@ public class RedisTest {
             System.out.println(ret);
         }
     }
-
-    @Test
-    public void RedisGetTest(){
-        //从redis获取今天手续费
-        Date date = new Date();
-        SimpleDateFormat sdf1 =new SimpleDateFormat("yyyyMMdd");
-        SimpleDateFormat sdf2 =new SimpleDateFormat("H");
-        int hours = Integer.valueOf(sdf2.format(date));
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(date);
-        calendar.add(Calendar.DATE, 1);
-        String dateStr = hours < 18 ? sdf1.format(date) : sdf1.format(calendar.getTime());
-        Double fee = redisManager.get(Constant.REDIS_TODAY_FEE + dateStr);
-        BigDecimal totalFee;
-        if (fee == null){
-            totalFee = BigDecimal.ZERO;
-        } else {
-            totalFee = BigDecimal.valueOf(fee);
-        }
-        assert totalFee.compareTo(BigDecimal.ZERO) >= 0;
-    }
-
-    @Test
-    public void testRealTimeEntrust() {
-        //获取买一卖一价
-        BigDecimal askCurrentPrice = BigDecimal.ZERO;
-        BigDecimal bidCurrentPrice = BigDecimal.ZERO;
-        long contractId = 1002L;
-        List<CompetitorsPriceDTO> competitorsPriceList = realTimeEntrust.getContractCompetitorsPrice();
-            bidCurrentPrice = competitorsPriceList.stream()
-                    .filter(competitorsPrice ->
-                            competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
-                                    competitorsPrice.getId() == contractId)
-                    .findFirst()
-                    .orElse(new CompetitorsPriceDTO())
-                    .getPrice();
-            BigDecimal bidPositionEntrustAmount;
-            askCurrentPrice = competitorsPriceList.stream()
-                    .filter(competitorsPrice ->
-                            competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
-                                    competitorsPrice.getId() == contractId)
-                    .findFirst()
-                    .orElse(new CompetitorsPriceDTO())
-                    .getPrice();
-            BigDecimal askPositionEntrustAmount;
-    }
     @Test
     public void lockTest(){
         String lock = "TEST_LOCK";

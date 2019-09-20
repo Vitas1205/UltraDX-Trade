@@ -2,7 +2,6 @@ package com.fota.trade.test;
 
 import com.fota.risk.client.manager.RelativeRiskLevelManager;
 import com.fota.trade.manager.CurrentPriceService;
-import com.fota.trade.mapper.sharding.ContractOrderMapper;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
@@ -37,12 +36,6 @@ public class MockConfiguration {
     @Bean
     public CurrentPriceService currentPriceService(){
         return Mockito.mock(CurrentPriceService.class);
-    }
-
-    @Primary
-    @Bean
-    public ContractOrderMapper contractOrderMapper(){
-        return Mockito.mock(ContractOrderMapper.class);
     }
     @Primary
     @Bean

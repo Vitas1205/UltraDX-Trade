@@ -194,8 +194,8 @@ public class UsdkOrderManager {
             int ret = batchInsertUsdkOrder(Arrays.asList(usdkOrderDO));
             profiler.complelete("insertUsdkOrder");
             if (ret <= 0){
-                LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), String.valueOf(usdkOrderDO.getId()), usdkOrderDO,  "insert contractOrder failed");
-                throw new RuntimeException("insert contractOrder failed");
+                LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), String.valueOf(usdkOrderDO.getId()), usdkOrderDO,  "insert Order failed");
+                throw new RuntimeException("insert order failed");
             }
             orderId = usdkOrderDO.getId();
             BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
@@ -268,8 +268,8 @@ public class UsdkOrderManager {
             //强平单处理
             int ret = insertUsdkOrder(usdkOrderDO);
             if (ret <= 0){
-                LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), orderId.toString(), usdkOrderDO, "insert contractOrder failed");
-                throw new RuntimeException("insert contractOrder failed");
+                LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), orderId.toString(), usdkOrderDO, "insert order failed");
+                throw new RuntimeException("insert order failed");
             }
             BeanUtils.copyProperties(usdkOrderDO,usdkOrderDTO);
         }

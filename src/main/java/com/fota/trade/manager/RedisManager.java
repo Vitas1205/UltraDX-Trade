@@ -2,7 +2,6 @@ package com.fota.trade.manager;
 
 import com.alibaba.fastjson.JSONObject;
 import com.fota.trade.common.Constant;
-import com.fota.trade.domain.ContractOrderDTO;
 import com.fota.trade.domain.UsdkOrderDTO;
 import com.fota.trade.util.JsonUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -96,26 +95,6 @@ public class RedisManager {
         if (null != usdkOrderDTO && usdkOrderDTO.getId() != null){
             usdkOrderDTO.setOrderContext(null);
             hSet(Constant.REDIS_USDT_ORDER_FOR_MATCH_HASH, String.valueOf(usdkOrderDTO.getId()), JsonUtil.objectToJson(usdkOrderDTO));
-        }
-    }
-
-    public void contractOrderSave(ContractOrderDTO contractOrderDTO){
-        Long count = getCount("test_contract_pre_add");
-        String key = Constant.CONTRACT_ORDER_HEAD + count;
-        String usdkOrderDTOStr = JSONObject.toJSONString(contractOrderDTO);
-        log.info("-----key"+key);
-        log.info("-----value"+usdkOrderDTOStr);
-        set(key,usdkOrderDTOStr);
-    }
-
-    /**
-     * 把数据放到Redis
-     * @param contractOrderDTO
-     */
-    public void contractOrderSaveForMatch(ContractOrderDTO contractOrderDTO) {
-        if (null != contractOrderDTO && contractOrderDTO.getId() != null){
-            contractOrderDTO.setOrderContext(null);
-            hSet(Constant.REDIS_CONTRACT_ORDER_FOR_MATCH_HASH, String.valueOf(contractOrderDTO.getId()), JsonUtil.objectToJson(contractOrderDTO));
         }
     }
 

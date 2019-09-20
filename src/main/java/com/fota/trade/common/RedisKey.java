@@ -7,10 +7,6 @@ import java.time.LocalDate;
 @UtilityClass
 public class RedisKey {
 
-    public String getUserContractPositionExtraKey(Long userId) {
-        return String.format("trade:userContractPE:%d", userId);
-    }
-
     public String getUsdkDailyMaxShortAmountKey(Long userId) {
         return String.format("trade:usdkDailyMaxShortAmount:%s-%s", userId, LocalDate.now().toString());
     }

@@ -9,8 +9,4 @@ public enum  TradeBizTypeEnum {
     COIN_ORDER,
     COIN_CANCEL_ORDER,
     COIN_DEAL,
-    CONTRACT_ORDER,
-    CONTRACT_CANCEL_ORDER,
-    CONTRACT_DEAL,
-    CONTRACT_ADL
 }

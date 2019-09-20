@@ -39,40 +39,6 @@ public class BeanUtils {
         org.springframework.beans.BeanUtils.copyProperties(source, target);
     }
 
-
-    public static ContractCategoryDTO copy(ContractCategoryDO contractCategoryDO) {
-        ContractCategoryDTO contractCategoryDTO = new ContractCategoryDTO();
-        contractCategoryDTO.setId(contractCategoryDO.getId());
-        contractCategoryDTO.setGmtCreate(contractCategoryDO.getGmtCreate());
-        contractCategoryDTO.setGmtModified(contractCategoryDO.getGmtModified());
-        contractCategoryDTO.setContractName(contractCategoryDO.getContractName());
-        contractCategoryDTO.setAssetId(contractCategoryDO.getAssetId());
-        contractCategoryDTO.setAssetName(contractCategoryDO.getAssetName());
-//        contractCategoryDTO.setTotalAmount(contractCategoryDO.getTotalAmount());
-//        contractCategoryDTO.setUnfilledAmount(contractCategoryDO.getUnfilledAmount());
-        contractCategoryDTO.setDeliveryDate(contractCategoryDO.getDeliveryDate().getTime());
-        contractCategoryDTO.setStatus(contractCategoryDO.getStatus());
-        contractCategoryDTO.setContractType(contractCategoryDO.getContractType());
-        return contractCategoryDTO;
-    }
-
-    public static ContractCategoryDO copy(ContractCategoryDTO contractCategoryDTO) {
-        ContractCategoryDO contractCategoryDO = new ContractCategoryDO();
-        contractCategoryDO.setId((contractCategoryDTO.getId()));
-        contractCategoryDO.setGmtCreate(contractCategoryDTO.getGmtCreate());
-        contractCategoryDO.setGmtModified(contractCategoryDTO.getGmtModified());
-        contractCategoryDO.setContractName(contractCategoryDTO.getContractName());
-        contractCategoryDO.setAssetId(contractCategoryDTO.getAssetId());
-        contractCategoryDO.setAssetName(contractCategoryDTO.getAssetName());
-        contractCategoryDO.setTotalAmount(contractCategoryDO.getTotalAmount());
-        contractCategoryDO.setUnfilledAmount(contractCategoryDO.getUnfilledAmount());
-        contractCategoryDO.setDeliveryDate(new Date(contractCategoryDTO.getDeliveryDate()));
-        contractCategoryDO.setStatus(contractCategoryDTO.getStatus());
-        contractCategoryDO.setContractType(contractCategoryDTO.getContractType());
-        contractCategoryDO.setPrice(new BigDecimal("0.01"));
-        return contractCategoryDO;
-    }
-
 //    private Long id;
 //    private Date gmtCreate;
 //    private Date gmtModified;
@@ -136,82 +102,6 @@ public class BeanUtils {
         usdkOrderDO.setAveragePrice(usdkOrderDTO.getAveragePrice());
         usdkOrderDO.setBrokerId(usdkOrderDTO.getBrokerId());
         return usdkOrderDO;
-    }
-
-    public static com.fota.trade.domain.ContractOrderDTO copy(ContractOrderDO contractOrderDO) {
-        com.fota.trade.domain.ContractOrderDTO contractOrderDTO = new com.fota.trade.domain.ContractOrderDTO();
-        contractOrderDTO.setId(contractOrderDO.getId());
-        contractOrderDTO.setGmtCreate(contractOrderDO.getGmtCreate());
-        contractOrderDTO.setGmtModified(contractOrderDO.getGmtModified());
-        contractOrderDTO.setUserId(contractOrderDO.getUserId());
-        contractOrderDTO.setContractId(contractOrderDO.getContractId());
-        contractOrderDTO.setContractName(contractOrderDO.getContractName());
-        contractOrderDTO.setOrderDirection(contractOrderDO.getOrderDirection());
-        contractOrderDTO.setOrderType(contractOrderDO.getOrderType());
-        contractOrderDTO.setTotalAmount(contractOrderDO.getTotalAmount());
-        contractOrderDTO.setUnfilledAmount(contractOrderDO.getUnfilledAmount());
-        if (contractOrderDO.getPrice() != null){
-            contractOrderDTO.setPrice(contractOrderDO.getPrice());
-        }
-        contractOrderDTO.setCloseType(contractOrderDO.getCloseType());
-        contractOrderDTO.setFee(contractOrderDO.getFee());
-        contractOrderDTO.setStatus(contractOrderDO.getStatus());
-        contractOrderDTO.setAveragePrice(contractOrderDO.getAveragePrice());
-        return contractOrderDTO;
-    }
-
-
-
-    public static UserPositionDTO copy(UserPositionDO userPositionDO) {
-        UserPositionDTO userPositionDTO = new UserPositionDTO();
-        userPositionDTO.setId(userPositionDO.getId());
-        userPositionDTO.setGmtCreate(userPositionDO.getGmtCreate().getTime());
-        userPositionDTO.setGmtModified(userPositionDO.getGmtModified().getTime());
-        userPositionDTO.setUserId(userPositionDO.getUserId());
-        userPositionDTO.setContractId(userPositionDO.getContractId());
-        userPositionDTO.setContractName(userPositionDO.getContractName());
-        userPositionDTO.setPositionType(userPositionDO.getPositionType());
-        userPositionDTO.setAveragePrice(userPositionDO.getAveragePrice().toPlainString());
-        userPositionDTO.setAmount(userPositionDO.getUnfilledAmount());
-        userPositionDTO.setContractSize(BigDecimal.ONE);
-        userPositionDTO.setFeeRate(userPositionDO.getFeeRate());
-        return userPositionDTO;
-    }
-
-    public static ContractMatchedOrderDO extractContractMatchedRecord(ContractMatchedOrderDTO contractMatchedOrderDTO, int orderDirection, BigDecimal fee, Integer closeType) {
-        ContractMatchedOrderDO res = new ContractMatchedOrderDO();
-        res.setGmtCreate(contractMatchedOrderDTO.getGmtCreate())
-                .setMatchId(contractMatchedOrderDTO.getId())
-                .setMatchType(contractMatchedOrderDTO.getMatchType())
-                .setOrderDirection(orderDirection)
-                .setStatus(VALID)
-                .setFilledAmount(contractMatchedOrderDTO.getFilledAmount())
-                .setFilledPrice(new BigDecimal(contractMatchedOrderDTO.getFilledPrice()))
-                .setContractId(contractMatchedOrderDTO.getContractId())
-                .setContractName(contractMatchedOrderDTO.getContractName());
-
-        res.setFee(fee);
-        res.setCloseType(closeType);
-
-        BigDecimal askPrice = null, bidPrice = null;
-        if (!StringUtils.isEmpty(contractMatchedOrderDTO.getAskOrderPrice())){
-            askPrice = new BigDecimal(contractMatchedOrderDTO.getAskOrderPrice());
-        }
-        if (!StringUtils.isEmpty(contractMatchedOrderDTO.getBidOrderPrice())){
-            bidPrice = new BigDecimal(contractMatchedOrderDTO.getBidOrderPrice());
-        }
-        if (ASK.getCode() == orderDirection) {
-            res.setUserId(contractMatchedOrderDTO.getAskUserId());
-            res.setOrderId(contractMatchedOrderDTO.getAskOrderId());
-            res.setOrderPrice(askPrice);
-            res.setMatchUserId(contractMatchedOrderDTO.getBidUserId());
-        }else {
-            res.setUserId(contractMatchedOrderDTO.getBidUserId());
-            res.setOrderId(contractMatchedOrderDTO.getBidOrderId());
-            res.setOrderPrice(bidPrice);
-            res.setMatchUserId(contractMatchedOrderDTO.getAskUserId());
-        }
-        return res;
     }
 
     public static UsdkMatchedOrderDO extractUsdtRecord(UsdkMatchedOrderDTO usdkMatchedOrderDTO, int orderDirec, Long brokerId) {

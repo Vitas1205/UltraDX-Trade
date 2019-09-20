@@ -24,15 +24,6 @@ public class CurrentPriceService {
     @Autowired
     private FotaAssetManager fotaAssetManager;
 
-    public BigDecimal getSpotIndexByContractName(String contractName){
-        String assetName = ConvertUtils.getAssetNameByContractName(contractName);
-        if (StringUtils.isEmpty(assetName)) {
-            log.error("no such asset, contractName={}", contractName);
-            return null;
-        }
-        return getSpotIndexByAssetName(assetName);
-    }
-
     public BigDecimal getSpotIndexByAssetId(long assetId){
         String assetName = fotaAssetManager.getAssetNameById((int) assetId);
         return getSpotIndexByAssetName(assetName);

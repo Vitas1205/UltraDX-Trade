@@ -30,16 +30,6 @@ public class RealTimeEntrustManager {
      * @return
      */
 
-    @Cacheable(value = "competitorsPriceOrder", sync = true)
-    public List<CompetitorsPriceDTO> getContractCompetitorsPriceOrder() {
-        return realTimeEntrust.getContractCompetitorsPriceOrder();
-    }
-
-    @CacheEvict("competitorsPriceOrder")
-    @Scheduled(fixedRate = 500)
-    public void deleteContractCompetitorsPriceOrder() {
-    }
-
     @Cacheable(value = "usdtPriceOrder", sync = true)
     public List<CompetitorsPriceDTO> getUsdtCompetitorsPriceOrder() {
         return realTimeEntrust.getUsdtCompetitorsPriceOrder();

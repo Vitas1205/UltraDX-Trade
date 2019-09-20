@@ -12,11 +12,7 @@ public enum TagsTypeEnum {
     /**
      * USDK成交
      */
-    USDK(1, "usdk"),
-    /**
-     * 合约成交
-     */
-    CONTRACT(1, "contract"),
+    USDK(1, "usdk")
     ;
 
     @Getter

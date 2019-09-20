@@ -66,28 +66,6 @@ public class TradeDataSourceConfig {
         return DataSourceBuilder.create().build();
     }
 
-
-    @Bean(name = "tradeSqlSessionFactory")
-    @Primary
-    public SqlSessionFactory tradeSqlSessionFactory(@Qualifier("fota") DataSource dataSource) throws Exception {
-        SqlSessionFactoryBean factory = createSqlSessionFactoryBean();
-        factory.setDataSource(dataSource);
-        factory.setMapperLocations(new PathMatchingResourcePatternResolver()
-                .getResources("classpath:/mapper/trade/*.xml"));
-        return factory.getObject();
-    }
-
-
-    @Bean(name = "tradeSqlSessionTemplate")
-    public SqlSessionTemplate tradeSqlSessionTemplate(@Qualifier("tradeSqlSessionFactory") SqlSessionFactory sqlSessionFactory) {
-        ExecutorType executorType = this.properties.getExecutorType();
-        if (executorType != null) {
-            return new SqlSessionTemplate(sqlSessionFactory, executorType);
-        } else {
-            return new SqlSessionTemplate(sqlSessionFactory);
-        }
-    }
-
     private SqlSessionFactoryBean createSqlSessionFactoryBean() {
         SqlSessionFactoryBean factory = new SqlSessionFactoryBean();
         factory.setVfs(SpringBootVFS.class);

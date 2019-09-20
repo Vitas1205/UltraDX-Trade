@@ -6,7 +6,6 @@ import com.fota.common.utils.LogUtil;
 import com.fota.trade.common.TradeBizTypeEnum;
 import com.fota.trade.domain.MQMessage;
 import com.fota.trade.domain.ResultCode;
-import com.fota.trade.manager.ContractOrderManager;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.manager.UsdkOrderManager;
 import com.fota.trade.msg.BaseCanceledMessage;
@@ -32,8 +31,6 @@ import java.util.List;
 
 import static com.fota.trade.common.ResultCodeEnum.ILLEGAL_PARAM;
 import static com.fota.trade.common.TradeBizTypeEnum.COIN_CANCEL_ORDER;
-import static com.fota.trade.common.TradeBizTypeEnum.CONTRACT_CANCEL_ORDER;
-import static com.fota.trade.msg.TopicConstants.MCH_CONTRACT_CANCEL_RST;
 
 @Slf4j
 @Component
@@ -51,16 +48,12 @@ public class CanceledConsumer {
     private String clientInstanceName;
 
     @Autowired
-    private ContractOrderManager contractOrderManager;
-
-    @Autowired
     private UsdkOrderManager usdkOrderManager;
 
     @Autowired
     private ObjectMapper objectMapper;
 
     DefaultMQPushConsumer coinCanceledConsumer;
-    DefaultMQPushConsumer contractCanceledConsumer;
 
     private static final int removeSucced = 1;
 
@@ -68,10 +61,6 @@ public class CanceledConsumer {
     public void init() throws MQClientException {
         coinCanceledConsumer = initCancelConsumer(TopicConstants.MCH_COIN_CANCEL_RST, (msgs, context) -> {
             return consumerCancelMessage(msgs, context, TradeBizTypeEnum.COIN_CANCEL_ORDER);
-        });
-
-        contractCanceledConsumer = initCancelConsumer(MCH_CONTRACT_CANCEL_RST,  (msgs, context) -> {
-            return consumerCancelMessage(msgs, context, TradeBizTypeEnum.CONTRACT_CANCEL_ORDER);
         });
     }
 
@@ -120,8 +109,6 @@ public class CanceledConsumer {
             ResultCode resultCode = null;
             if (COIN_CANCEL_ORDER.equals(bizType)) {
                 resultCode = usdkOrderManager.cancelOrderByMessage(res);
-            } else if (CONTRACT_CANCEL_ORDER.equals(bizType)) {
-                resultCode = contractOrderManager.cancelOrderByMessage(res);
             }
             if (!resultCode.isSuccess()) {
                 if (resultCode.getCode() == ILLEGAL_PARAM.getCode()) {
@@ -154,7 +141,6 @@ public class CanceledConsumer {
     @PreDestroy
     public void destory() {
         coinCanceledConsumer.shutdown();
-        contractCanceledConsumer.shutdown();
     }
 }
 

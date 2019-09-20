@@ -3,7 +3,6 @@ package com.fota.trade;
 import com.fota.common.utils.LogUtil;
 import com.fota.trade.client.FailedRecord;
 import com.fota.trade.common.TradeBizTypeEnum;
-import com.fota.trade.domain.ContractOrderDO;
 import com.fota.trade.util.BasicUtils;
 import com.fota.trade.util.ConvertUtils;
 import com.fota.trade.util.DistinctFilter;
@@ -26,38 +25,6 @@ import java.util.stream.Stream;
  */
 @Slf4j
 public class BasicFunctionTest {
-
-    @Test
-    public void testSort(){
-
-        ContractOrderDO contractOrderDO = new ContractOrderDO();
-        contractOrderDO.setUserId(315L);
-        contractOrderDO.setId(1L);
-
-        ContractOrderDO  contractOrderDO1= new ContractOrderDO();
-        contractOrderDO1.setUserId(314L);
-        contractOrderDO1.setId(2L);
-        List<ContractOrderDO> contractOrderDOS = new ArrayList<>();
-        contractOrderDOS.add(contractOrderDO);
-        contractOrderDOS.add(contractOrderDO1);
-
-        Collections.sort(contractOrderDOS, (a, b) -> {
-            int c = a.getUserId().compareTo(b.getUserId());
-            return c;
-//            if (c!=0) {
-//                return c;
-//            }
-//            return a.getId().compareTo(b.getId());
-        });
-        Stream.of(2,1).sorted(Integer::compareTo)
-                .forEach(x -> System.out.println(x));
-        //获取锁
-        List<String> locks = contractOrderDOS.stream()
-        .map(x -> "POSITION_LOCK_"+ x.getUserId()+"_"+ x.getContractId())
-                .distinct()
-                .collect(Collectors.toList());
-        System.out.println(locks);
-    }
     @Test
     public void testFastJson(){
         MessageExt messageExt = new MessageExt();
@@ -99,10 +66,6 @@ public class BasicFunctionTest {
                 .collect(Collectors.toList());
         assert newList.size() == 2 && newList.contains(messageExt1) && newList.contains(messageExt2);
 
-    }
-    @Test
-    public void tmp(){
-        System.out.println(ConvertUtils.getAssetNameByContractName("BVI1901"));;
     }
 
 }

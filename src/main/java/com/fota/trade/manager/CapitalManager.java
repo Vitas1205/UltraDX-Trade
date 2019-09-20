@@ -4,9 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.fota.asset.domain.CapitalAccountAddAmountDTO;
 import com.fota.asset.domain.UserCapitalVariationDTO;
 import com.fota.trade.domain.UserCapitalDO;
-import com.fota.trade.domain.UserContractDO;
 import com.fota.trade.mapper.asset.UserCapitalMapper;
-import com.fota.trade.mapper.asset.UserContractMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,8 +33,6 @@ public class CapitalManager {
 
     @Resource
     private UserCapitalMapper userCapitalMapper;
-    @Resource
-    private UserContractMapper userContractMapper;
     @Autowired
     private RocketMqManager rocketMQManager;
 
@@ -55,13 +51,6 @@ public class CapitalManager {
                 userCapitalVariationDTO.setTimestamp(userCapitalDO.getGmtModified().getTime());
                 userCapitalVariationDTO.setLockedAmount(userCapitalDO.getOrderLockedAmount()
                         .add(userCapitalDO.getWithdrawLockedAmount()).toPlainString());
-            }
-        } else {
-            UserContractDO userContractDO = userContractMapper.getByUserId(userId);
-            if (userContractDO != null) {
-                userCapitalVariationDTO.setLockedAmount(userContractDO.getLockedAmount().toPlainString());
-                userCapitalVariationDTO.setTotalAmount(userContractDO.getAmount().toPlainString());
-                userCapitalVariationDTO.setTimestamp(userContractDO.getGmtModified().getTime());
             }
         }
         return userCapitalVariationDTO;

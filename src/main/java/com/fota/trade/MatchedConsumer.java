@@ -3,13 +3,11 @@ package com.fota.trade;
 import com.alibaba.fastjson.JSON;
 import com.fota.common.utils.LogUtil;
 import com.fota.trade.common.TradeBizTypeEnum;
-import com.fota.trade.domain.ContractMatchedOrderDTO;
 import com.fota.trade.domain.MQMessage;
 import com.fota.trade.domain.ResultCode;
 import com.fota.trade.domain.UsdkMatchedOrderDTO;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.msg.TopicConstants;
-import com.fota.trade.service.impl.ContractOrderServiceImpl;
 import com.fota.trade.service.impl.UsdkOrderServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
@@ -33,7 +31,6 @@ import java.util.List;
 import static com.fota.trade.common.Constant.MQ_REPET_JUDGE_KEY_MATCH;
 import static com.fota.trade.common.ResultCodeEnum.ILLEGAL_PARAM;
 import static com.fota.trade.common.TradeBizTypeEnum.COIN_DEAL;
-import static com.fota.trade.common.TradeBizTypeEnum.CONTRACT_DEAL;
 
 /**
  * @Author: Harry Wang
@@ -58,18 +55,11 @@ public class MatchedConsumer {
     private String clientInstanceName;
 
     DefaultMQPushConsumer coinMatchedConsumer;
-    DefaultMQPushConsumer contractMatchedConsumer;
-    @Autowired
-    private ContractOrderServiceImpl contractOrderService;
     @PostConstruct
     public void init() throws InterruptedException, MQClientException {
 
         coinMatchedConsumer = initMatchedConsumer(TopicConstants.MCH_COIN_MATCH,
                 (List<MessageExt> msgs, ConsumeConcurrentlyContext context) ->  consumeMatchedMessage(msgs, context, COIN_DEAL)
-        );
-
-        contractMatchedConsumer = initMatchedConsumer(TopicConstants.MCH_CONTRACT_MATCH,
-                (List<MessageExt> msgs, ConsumeConcurrentlyContext context) ->  consumeMatchedMessage(msgs, context, CONTRACT_DEAL)
         );
 
 
@@ -127,9 +117,6 @@ public class MatchedConsumer {
                 UsdkMatchedOrderDTO usdkMatchedOrderDTO = JSON.parseObject(bodyStr, UsdkMatchedOrderDTO.class);
                 resultCode = usdkOrderService.updateOrderByMatch(usdkMatchedOrderDTO);
 
-            } else if (CONTRACT_DEAL.equals(bizType)) {
-                ContractMatchedOrderDTO contractMatchedOrderDTO = JSON.parseObject(bodyStr, ContractMatchedOrderDTO.class);
-                resultCode = contractOrderService.updateOrderByMatch(contractMatchedOrderDTO);
             }
 
             if (!resultCode.isSuccess()) {
@@ -166,7 +153,6 @@ public class MatchedConsumer {
     @PreDestroy
     public void destory(){
         coinMatchedConsumer.shutdown();
-        contractMatchedConsumer.shutdown();
     }
 }
 

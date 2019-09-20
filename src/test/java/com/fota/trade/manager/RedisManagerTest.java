@@ -54,23 +54,4 @@ public class RedisManagerTest {
         /*Set set = redisManager.hSet("hSetTest_KEY", "01", "value1");
         log.info(set.toString());*/
     }
-
-    @Test
-    public void getContractCompetitorsPriceTest(){
-        long contractId = 1000L;
-        //获取买一卖一价
-        BigDecimal askCurrentPrice = BigDecimal.ZERO;
-        BigDecimal bidCurrentPrice = BigDecimal.ZERO;
-        try{
-            List<CompetitorsPriceDTO> competitorsPriceList = realTimeEntrust.getContractCompetitorsPrice();
-            askCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.ASK.getCode() &&
-                    competitorsPrice.getId() == contractId).limit(1).collect(toList()).get(0).getPrice();
-            bidCurrentPrice = competitorsPriceList.stream().filter(competitorsPrice -> competitorsPrice.getOrderDirection() == OrderDirectionEnum.BID.getCode() &&
-                    competitorsPrice.getId() == contractId).limit(1).collect(toList()).get(0).getPrice();
-            log.info("askCurrentPrice:{}",askCurrentPrice);
-            log.info("bidCurrentPrice:{}",bidCurrentPrice);
-        }catch (Exception e){
-            log.error("getContractBuyPriceSellPriceDTO failed{}",e);
-        }
-    }
 }
