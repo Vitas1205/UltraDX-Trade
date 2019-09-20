@@ -23,7 +23,6 @@
     <dubbo:service interface="com.fota.trade.service.UsdkOrderService"  ref="usdkOrderService" >
         <dubbo:method name="getRecoveryMetaData" timeout="100000"></dubbo:method>
     </dubbo:service>
-    <dubbo:service interface="com.fota.trade.service.UserPositionService" ref="userPositionService" />
     <dubbo:service interface="com.fota.trade.service.CacheService" ref="cacheService" />
 
     <dubbo:reference interface="com.fota.asset.service.AssetService" id="AssetService"/>
