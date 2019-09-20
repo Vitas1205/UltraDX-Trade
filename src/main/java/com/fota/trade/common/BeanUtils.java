@@ -214,6 +214,13 @@ public class BeanUtils {
         return res;
     }
 
+    public static UsdkMatchedOrderDO extractUsdtRecord(UsdkMatchedOrderDTO usdkMatchedOrderDTO, int orderDirec, Long brokerId) {
+        UsdkMatchedOrderDO usdkMatchedOrderDO = extractUsdtRecord(usdkMatchedOrderDTO, orderDirec);
+        usdkMatchedOrderDO.setBrokerId(brokerId);
+
+        return usdkMatchedOrderDO;
+    }
+
     public static UsdkMatchedOrderDO extractUsdtRecord(UsdkMatchedOrderDTO usdkMatchedOrderDTO, int orderDirec) {
         UsdkMatchedOrderDO usdkMatchedOrderDO = new UsdkMatchedOrderDO();
         usdkMatchedOrderDO.setMatchId(usdkMatchedOrderDTO.getId());
