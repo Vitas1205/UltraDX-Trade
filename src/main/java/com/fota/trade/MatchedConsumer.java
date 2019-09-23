@@ -65,17 +65,18 @@ public class MatchedConsumer {
     private String aclAccessKey;
 
     DefaultMQPushConsumer coinMatchedConsumer;
+
     @PostConstruct
     public void init() throws MQClientException {
 
         coinMatchedConsumer = initMatchedConsumer(TopicConstants.MCH_COIN_MATCH,
-                (List<MessageExt> msgs, ConsumeConcurrentlyContext context) ->  consumeMatchedMessage(msgs, context, COIN_DEAL)
+                (List<MessageExt> msgs, ConsumeConcurrentlyContext context) -> consumeMatchedMessage(msgs, context, COIN_DEAL)
         );
 
     }
 
     public DefaultMQPushConsumer initMatchedConsumer(String topic, MessageListenerConcurrently listenerConcurrently) throws MQClientException {
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group, new AclClientRPCHook(new SessionCredentials(aclAccessKey, aclSecretKey)), new AllocateMessageQueueAveragely());
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("GID_" + group + "_" + topic, new AclClientRPCHook(new SessionCredentials(aclAccessKey, aclSecretKey)), new AllocateMessageQueueAveragely());
         consumer.setInstanceName(clientInstanceName);
         consumer.setNamesrvAddr(namesrvAddr);
         consumer.setMaxReconsumeTimes(16);
@@ -93,7 +94,7 @@ public class MatchedConsumer {
         return consumer;
     }
 
-    public ConsumeConcurrentlyStatus consumeMatchedMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context, TradeBizTypeEnum bizType){
+    public ConsumeConcurrentlyStatus consumeMatchedMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context, TradeBizTypeEnum bizType) {
         if (CollectionUtils.isEmpty(msgs)) {
             log.error("message error!");
             return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
@@ -105,7 +106,7 @@ public class MatchedConsumer {
 
         ResultCode resultCode = null;
 
-        String existKey = MQ_REPET_JUDGE_KEY_MATCH  + mqKey;
+        String existKey = MQ_REPET_JUDGE_KEY_MATCH + mqKey;
         //判断是否已经成交
         boolean locked = redisManager.tryLock(existKey, Duration.ofHours(1));
         if (!locked) {
@@ -129,7 +130,7 @@ public class MatchedConsumer {
             }
 
             if (!resultCode.isSuccess()) {
-                logErrorMsg(bizType, "resultCode="+resultCode, messageExt);
+                logErrorMsg(bizType, "resultCode=" + resultCode, messageExt);
                 if (resultCode.getCode() == ILLEGAL_PARAM.getCode()) {
                     return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
                 }
@@ -147,20 +148,20 @@ public class MatchedConsumer {
     }
 
     public static void logErrorMsg(TradeBizTypeEnum bizType, MessageExt messageExt, Throwable t) {
-        String errorMsg = String.format("consumeTimes:%s ",  messageExt.getReconsumeTimes());
-        LogUtil.error( bizType, messageExt.getKeys(), MQMessage.of(messageExt),
+        String errorMsg = String.format("consumeTimes:%s ", messageExt.getReconsumeTimes());
+        LogUtil.error(bizType, messageExt.getKeys(), MQMessage.of(messageExt),
                 errorMsg, t);
     }
 
     public static void logErrorMsg(TradeBizTypeEnum bizType, String cause, MessageExt messageExt) {
         String errorMsg = String.format("cause:%s, consumeTimes:%s ", cause, messageExt.getReconsumeTimes());
-        LogUtil.error( bizType, messageExt.getKeys(), MQMessage.of(messageExt),
+        LogUtil.error(bizType, messageExt.getKeys(), MQMessage.of(messageExt),
                 errorMsg);
     }
 
 
     @PreDestroy
-    public void destory(){
+    public void destory() {
         coinMatchedConsumer.shutdown();
     }
 }

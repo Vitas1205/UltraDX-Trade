@@ -74,7 +74,7 @@ public class CanceledConsumer {
     }
 
     public DefaultMQPushConsumer initCancelConsumer(String topic, MessageListenerConcurrently messageListenerConcurrently) throws MQClientException {
-        DefaultMQPushConsumer defaultMQPushConsumer = new DefaultMQPushConsumer(group, new AclClientRPCHook(new SessionCredentials(aclAccessKey, aclSecretKey)), new AllocateMessageQueueAveragely());
+        DefaultMQPushConsumer defaultMQPushConsumer = new DefaultMQPushConsumer("GID_" + group + "_" + topic, new AclClientRPCHook(new SessionCredentials(aclAccessKey, aclSecretKey)), new AllocateMessageQueueAveragely());
 
         defaultMQPushConsumer.setInstanceName(clientInstanceName);
         defaultMQPushConsumer.setNamesrvAddr(namesrvAddr);
@@ -138,14 +138,14 @@ public class CanceledConsumer {
 
 
     private void logErrorMsg(TradeBizTypeEnum bizType, MessageExt messageExt, Throwable t) {
-        String errorMsg = String.format("consumeTimes:%s ",  messageExt.getReconsumeTimes());
-        LogUtil.error( bizType, messageExt.getKeys(), MQMessage.of(messageExt),
+        String errorMsg = String.format("consumeTimes:%s ", messageExt.getReconsumeTimes());
+        LogUtil.error(bizType, messageExt.getKeys(), MQMessage.of(messageExt),
                 errorMsg, t);
     }
 
     private void logErrorMsg(TradeBizTypeEnum bizType, String cause, MessageExt messageExt) {
         String errorMsg = String.format("cause:%s, consumeTimes:%s ", cause, messageExt.getReconsumeTimes());
-        LogUtil.error( bizType, messageExt.getKeys(), MQMessage.of(messageExt),
+        LogUtil.error(bizType, messageExt.getKeys(), MQMessage.of(messageExt),
                 errorMsg);
     }
 
