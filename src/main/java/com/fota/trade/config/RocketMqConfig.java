@@ -3,6 +3,7 @@ package com.fota.trade.config;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.SessionCredentials;
+import org.apache.rocketmq.client.AccessChannel;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -35,6 +36,7 @@ public class RocketMqConfig {
         producer.setNamesrvAddr(namesrvAddr);
         producer.setVipChannelEnabled(false);
         producer.setRetryTimesWhenSendFailed(3);  // 失败的情况重发3次
+        producer.setAccessChannel(AccessChannel.CLOUD);
         try {
             producer.start();
             log.info(String.format("RocketMQ: producer is start ! groupName:[%s],namesrvAddr:[%s]"

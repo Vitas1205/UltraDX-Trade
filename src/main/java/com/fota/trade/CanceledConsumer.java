@@ -14,6 +14,7 @@ import com.fota.trade.util.BasicUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.SessionCredentials;
+import org.apache.rocketmq.client.AccessChannel;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
@@ -83,6 +84,7 @@ public class CanceledConsumer {
         defaultMQPushConsumer.setVipChannelEnabled(false);
         defaultMQPushConsumer.subscribe(topic, "*");
         defaultMQPushConsumer.registerMessageListener(messageListenerConcurrently);
+        defaultMQPushConsumer.setAccessChannel(AccessChannel.CLOUD);
         //调用start()方法启动consumer
         defaultMQPushConsumer.start();
 

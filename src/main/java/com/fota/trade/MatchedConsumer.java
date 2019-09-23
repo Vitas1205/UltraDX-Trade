@@ -12,6 +12,7 @@ import com.fota.trade.service.impl.UsdkOrderServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.SessionCredentials;
+import org.apache.rocketmq.client.AccessChannel;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
@@ -87,6 +88,7 @@ public class MatchedConsumer {
         consumer.subscribe(topic, "*");
         consumer.setConsumeMessageBatchMaxSize(1);
         consumer.setMessageListener(listenerConcurrently);
+        consumer.setAccessChannel(AccessChannel.CLOUD);
         consumer.start();
         return consumer;
     }
