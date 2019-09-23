@@ -698,6 +698,9 @@ public class UsdkOrderManager {
             Integer assetId = 0;
             BigDecimal unlockAmount ;
             BrokerTradingPairConfig tradingPairConfig = brokerTradingPairManager.getTradingPairById(usdkOrderDO.getAssetId().longValue());
+            if (tradingPairConfig == null) {
+                log.error("tradingPairConfig is null!assetId:{}", usdkOrderDO.getAssetId());
+            }
             if (orderDirection == OrderDirectionEnum.BID.getCode()){
                 assetId = tradingPairConfig.getQuoteId();
                 BigDecimal price = usdkOrderDO.getPrice();
