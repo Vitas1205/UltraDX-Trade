@@ -12,10 +12,13 @@ import com.fota.trade.msg.BaseCanceledMessage;
 import com.fota.trade.msg.TopicConstants;
 import com.fota.trade.util.BasicUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.acl.common.AclClientRPCHook;
+import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -36,7 +39,6 @@ import static com.fota.trade.common.TradeBizTypeEnum.COIN_CANCEL_ORDER;
 @Component
 public class CanceledConsumer {
 
-
     @Autowired
     private RedisManager redisManager;
 
@@ -46,6 +48,12 @@ public class CanceledConsumer {
     private String group;
     @Value("${spring.rocketmq.instanceName}")
     private String clientInstanceName;
+
+    @Value("${spring.ones.acl.secretKey}")
+    private String aclSecretKey;
+
+    @Value("${spring.ones.acl.accessKey}")
+    private String aclAccessKey;
 
     @Autowired
     private UsdkOrderManager usdkOrderManager;
@@ -65,7 +73,8 @@ public class CanceledConsumer {
     }
 
     public DefaultMQPushConsumer initCancelConsumer(String topic, MessageListenerConcurrently messageListenerConcurrently) throws MQClientException {
-        DefaultMQPushConsumer defaultMQPushConsumer = new DefaultMQPushConsumer(group + "_" +topic);
+        DefaultMQPushConsumer defaultMQPushConsumer = new DefaultMQPushConsumer(group, new AclClientRPCHook(new SessionCredentials(aclAccessKey, aclSecretKey)), new AllocateMessageQueueAveragely());
+
         defaultMQPushConsumer.setInstanceName(clientInstanceName);
         defaultMQPushConsumer.setNamesrvAddr(namesrvAddr);
         defaultMQPushConsumer.setMaxReconsumeTimes(16);

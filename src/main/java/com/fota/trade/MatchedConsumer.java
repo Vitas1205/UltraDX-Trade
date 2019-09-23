@@ -10,10 +10,13 @@ import com.fota.trade.manager.RedisManager;
 import com.fota.trade.msg.TopicConstants;
 import com.fota.trade.service.impl.UsdkOrderServiceImpl;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.acl.common.AclClientRPCHook;
+import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -54,20 +57,24 @@ public class MatchedConsumer {
     @Value("${spring.rocketmq.instanceName}")
     private String clientInstanceName;
 
+    @Value("${spring.ones.acl.secretKey}")
+    private String aclSecretKey;
+
+    @Value("${spring.ones.acl.accessKey}")
+    private String aclAccessKey;
+
     DefaultMQPushConsumer coinMatchedConsumer;
     @PostConstruct
-    public void init() throws InterruptedException, MQClientException {
+    public void init() throws MQClientException {
 
         coinMatchedConsumer = initMatchedConsumer(TopicConstants.MCH_COIN_MATCH,
                 (List<MessageExt> msgs, ConsumeConcurrentlyContext context) ->  consumeMatchedMessage(msgs, context, COIN_DEAL)
         );
 
-
-
     }
 
     public DefaultMQPushConsumer initMatchedConsumer(String topic, MessageListenerConcurrently listenerConcurrently) throws MQClientException {
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group + "_"+ topic);
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group, new AclClientRPCHook(new SessionCredentials(aclAccessKey, aclSecretKey)), new AllocateMessageQueueAveragely());
         consumer.setInstanceName(clientInstanceName);
         consumer.setNamesrvAddr(namesrvAddr);
         consumer.setMaxReconsumeTimes(16);
