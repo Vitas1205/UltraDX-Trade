@@ -72,12 +72,11 @@ public class MatchedConsumer {
         coinMatchedConsumer = initMatchedConsumer(TopicConstants.MCH_COIN_MATCH,
                 (List<MessageExt> msgs, ConsumeConcurrentlyContext context) -> consumeMatchedMessage(msgs, context, COIN_DEAL)
         );
-
     }
 
     public DefaultMQPushConsumer initMatchedConsumer(String topic, MessageListenerConcurrently listenerConcurrently) throws MQClientException {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("GID_" + group + "_" + topic, new AclClientRPCHook(new SessionCredentials(aclAccessKey, aclSecretKey)), new AllocateMessageQueueAveragely());
-        consumer.setInstanceName(clientInstanceName);
+//        consumer.setInstanceName(clientInstanceName);
         consumer.setNamesrvAddr(namesrvAddr);
         consumer.setMaxReconsumeTimes(16);
         //这里设置的是一个consumer的消费策略
@@ -86,10 +85,10 @@ public class MatchedConsumer {
         //CONSUME_FROM_TIMESTAMP 从某个时间点开始消费，和setConsumeTimestamp()配合使用，默认是半个小时以前
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.setVipChannelEnabled(false);
-        consumer.subscribe(topic, "*");
         consumer.setConsumeMessageBatchMaxSize(1);
-        consumer.setMessageListener(listenerConcurrently);
         consumer.setAccessChannel(AccessChannel.CLOUD);
+        consumer.subscribe(topic, "*");
+        consumer.setMessageListener(listenerConcurrently);
         consumer.start();
         return consumer;
     }
