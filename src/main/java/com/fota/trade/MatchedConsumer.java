@@ -74,6 +74,7 @@ public class MatchedConsumer {
         consumer.subscribe(TopicConstants.MCH_COIN_MATCH, "*", new MessageListener() { //订阅多个 Tag
            @Override
             public Action consume(Message messageExt, ConsumeContext context) {
+               log.info("matchedConsumer mq,messageExt:{}", messageExt);
                if (messageExt==null) {
                    log.error("message error!");
                    return Action.CommitMessage;

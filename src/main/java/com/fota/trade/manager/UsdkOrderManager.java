@@ -722,7 +722,7 @@ public class UsdkOrderManager {
                 parameter.put("assetId", assetId);
                 parameter.put("lockedAmount", unlockAmount.negate().toString());
                 LogUtil.error( TradeBizTypeEnum.COIN_CANCEL_ORDER.toString(), String.valueOf(orderId), parameter, "Asset RPC Error!, assetWriteService.addCapitalAmount.updateLockedAmount exception", e);
-                throw new BizException(BIZ_ERROR.getCode(),"cancelOrder assetWriteService.addCapitalAmount exception");
+                throw new BizException(BIZ_ERROR.getCode(),"cancelOrder assetWriteSL79ervice.addCapitalAmount exception");
             }
             if (!updateLockedAmountRet.isSuccess() || !updateLockedAmountRet.getData()){
                 parameter.put("assetId", assetId);
