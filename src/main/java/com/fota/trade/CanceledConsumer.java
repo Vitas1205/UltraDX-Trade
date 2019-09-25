@@ -81,7 +81,6 @@ public class CanceledConsumer {
                 String mqKey = messageExt.getKey();
                 String tag = messageExt.getTag();
                 try {
-                    String bizType=COIN_CANCEL_ORDER.name();
                     byte[] bodyByte = messageExt.getBody();
                     String bodyStr = new String(bodyByte, StandardCharsets.UTF_8);
                     BaseCanceledMessage res = BasicUtils.exeWhitoutError(() -> JSON.parseObject(bodyStr, BaseCanceledMessage.class));
@@ -113,7 +112,7 @@ public class CanceledConsumer {
                 }
             }
         });
-
+        consumer.start();
     }
 
     private void logErrorMsg(TradeBizTypeEnum bizType, Message messageExt, Throwable t) {
