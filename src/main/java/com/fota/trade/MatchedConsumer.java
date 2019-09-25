@@ -74,7 +74,6 @@ public class MatchedConsumer {
         consumer.subscribe(TopicConstants.MCH_COIN_MATCH, "*", new MessageListener() { //订阅多个 Tag
            @Override
             public Action consume(Message messageExt, ConsumeContext context) {
-               log.info("matchedConsumer mq,messageExt:{}", messageExt);
                if (messageExt==null) {
                    log.error("message error!");
                    return Action.CommitMessage;
@@ -99,7 +98,6 @@ public class MatchedConsumer {
                        return Action.CommitMessage;
                    }
                    UsdkMatchedOrderDTO usdkMatchedOrderDTO = JSON.parseObject(bodyStr, UsdkMatchedOrderDTO.class);
-                   log.info("matchedConsumer mq,usdkMatchedOrderDTO:{}", usdkMatchedOrderDTO);
                    resultCode = usdkOrderService.updateOrderByMatch(usdkMatchedOrderDTO);
                    if (!resultCode.isSuccess()) {
                        logErrorMsg(COIN_DEAL, "resultCode=" + resultCode, messageExt);
