@@ -11,6 +11,7 @@ import com.fota.trade.manager.RedisManager;
 import com.fota.trade.msg.TopicConstants;
 import com.fota.trade.service.impl.UsdkOrderServiceImpl;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -114,7 +115,7 @@ public class MatchedConsumer {
                } catch (Exception e) {
                    logErrorMsg(COIN_DEAL, messageExt, e);
                    redisManager.del(existKey);
-                   return Action.CommitMessage;
+                   return Action.ReconsumeLater;
                }
             }
         });
