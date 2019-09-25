@@ -796,7 +796,6 @@ public class UsdkOrderManager {
 
     @Transactional(rollbackFor = Throwable.class)
     public ResultCode updateOrderByMatch(UsdkMatchedOrderDTO usdkMatchedOrderDTO) throws Exception {
-        log.info("updateOrderByMatch!usdkMatchedOrderDTO:{}", usdkMatchedOrderDTO);
         Profiler profiler =  null == ThreadContextUtil.getProfiler() ? new Profiler("UsdkOrderManager.updateOrderByMatch", usdkMatchedOrderDTO.getId().toString()) : ThreadContextUtil.getProfiler();
         if (usdkMatchedOrderDTO == null) {
             LogUtil.error( TradeBizTypeEnum.COIN_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), usdkMatchedOrderDTO, ResultCodeEnum.ILLEGAL_PARAM.getMessage());
@@ -807,7 +806,6 @@ public class UsdkOrderManager {
         UsdkOrderDO askUsdkOrder = usdkOrderMapper.selectByUserIdAndId(usdkMatchedOrderDTO.getAskUserId(), usdkMatchedOrderDTO.getAskOrderId());
         UsdkOrderDO bidUsdkOrder = usdkOrderMapper.selectByUserIdAndId(usdkMatchedOrderDTO.getBidUserId(), usdkMatchedOrderDTO.getBidOrderId());
         profiler.complelete("select order");
-        log.info("updateOrderByMatch!askUsdkOrder:{},bidUsdkOrder:{}", askUsdkOrder, bidUsdkOrder);
         if (null == askUsdkOrder ) {
             LogUtil.error( TradeBizTypeEnum.COIN_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), askUsdkOrder, "null askOrder!!! ");
             return ResultCode.error(ILLEGAL_PARAM.getCode(), "null askOrder!!! ");
@@ -853,7 +851,6 @@ public class UsdkOrderManager {
         UsdkMatchedOrderDO askMatchRecordDO = com.fota.trade.common.BeanUtils.extractUsdtRecord(usdkMatchedOrderDTO, OrderDirectionEnum.ASK.getCode(), askUsdkOrder.getBrokerId());
         UsdkMatchedOrderDO bidMatchRecordDO = com.fota.trade.common.BeanUtils.extractUsdtRecord(usdkMatchedOrderDTO, OrderDirectionEnum.BID.getCode(), bidUsdkOrder.getBrokerId());
         int ret = usdkMatchedOrder.insert(Arrays.asList(askMatchRecordDO, bidMatchRecordDO));
-        log.info("updateOrderByMatch! usdkMatchedOrder.insert({}, {}):{}", askMatchRecordDO, bidMatchRecordDO, ret);
         profiler.complelete("insert match record");
         if (ret < 2){
             LogUtil.error( TradeBizTypeEnum.COIN_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), Arrays.asList(askMatchRecordDO, bidMatchRecordDO), "usdkMatchedOrder.insert failed");
