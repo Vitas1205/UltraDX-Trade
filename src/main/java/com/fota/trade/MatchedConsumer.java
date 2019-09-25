@@ -99,6 +99,7 @@ public class MatchedConsumer {
                        return Action.CommitMessage;
                    }
                    UsdkMatchedOrderDTO usdkMatchedOrderDTO = JSON.parseObject(bodyStr, UsdkMatchedOrderDTO.class);
+                   log.info("matchedConsumer mq,usdkMatchedOrderDTO:{}", usdkMatchedOrderDTO);
                    resultCode = usdkOrderService.updateOrderByMatch(usdkMatchedOrderDTO);
                    if (!resultCode.isSuccess()) {
                        logErrorMsg(COIN_DEAL, "resultCode=" + resultCode, messageExt);
