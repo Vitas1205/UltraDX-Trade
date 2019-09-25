@@ -851,6 +851,7 @@ public class UsdkOrderManager {
         UsdkMatchedOrderDO askMatchRecordDO = com.fota.trade.common.BeanUtils.extractUsdtRecord(usdkMatchedOrderDTO, OrderDirectionEnum.ASK.getCode(), askUsdkOrder.getBrokerId());
         UsdkMatchedOrderDO bidMatchRecordDO = com.fota.trade.common.BeanUtils.extractUsdtRecord(usdkMatchedOrderDTO, OrderDirectionEnum.BID.getCode(), bidUsdkOrder.getBrokerId());
         int ret = usdkMatchedOrder.insert(Arrays.asList(askMatchRecordDO, bidMatchRecordDO));
+        log.info("usdkMatchedOrder.insert({}, {}):{}", askMatchRecordDO, bidMatchRecordDO, ret);
         profiler.complelete("insert match record");
         if (ret < 2){
             LogUtil.error( TradeBizTypeEnum.COIN_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), Arrays.asList(askMatchRecordDO, bidMatchRecordDO), "usdkMatchedOrder.insert failed");
