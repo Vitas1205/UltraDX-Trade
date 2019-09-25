@@ -108,7 +108,7 @@ public class CanceledConsumer {
                     return Action.CommitMessage;
                 } catch (Exception e) {
                     logErrorMsg(COIN_CANCEL_ORDER, messageExt, e);
-                    return Action.CommitMessage;
+                    return Action.ReconsumeLater;
                 }
             }
         });
