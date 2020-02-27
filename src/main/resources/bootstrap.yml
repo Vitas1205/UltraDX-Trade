@@ -3,10 +3,10 @@ spring:
     name: fota-trade
   cloud:
     zookeeper:
-      connect-string: ${ZOOKEEPER_SERVER:172.16.50.183:2181,172.16.50.184:2181,172.16.50.185:2181}
+      connect-string: ${ZOOKEEPER_SERVER:192.16.50.183:2181,192.16.50.184:2181,192.16.50.185:2181}
     config:
       profile: ${SPRING_PROFILE:daily}
-      label: master_attex
+      label: master_singapore
       discovery:
         enabled: true
         service-id: fota-config-server-zk
