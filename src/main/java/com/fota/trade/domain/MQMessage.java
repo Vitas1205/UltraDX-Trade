@@ -1,6 +1,5 @@
 package com.fota.trade.domain;
 
-import com.aliyun.openservices.ons.api.Message;
 import com.fota.common.utils.LogUtil;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -49,7 +48,7 @@ public class MQMessage {
         this.queueSelector = queueSelector;
         this.queueSelectorArg = queueSelectorArg;
     }
-    public static MQMessage of(Message messageExt) {
+    public static MQMessage of(MessageExt messageExt) {
         String body;
         try {
             body = new String(messageExt.getBody(), UTF8);
@@ -57,6 +56,6 @@ public class MQMessage {
             LogUtil.error( COMMON, null, messageExt.getBody(), "UnsupportedEncodingException "+UTF8);
             return null;
         }
-        return new MQMessage(messageExt.getTopic(), messageExt.getTag(), messageExt.getKey(), body);
+        return new MQMessage(messageExt.getTopic(), messageExt.getTags(), messageExt.getKeys(), body);
     }
 }

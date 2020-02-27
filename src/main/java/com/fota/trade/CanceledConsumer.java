@@ -1,7 +1,6 @@
 package com.fota.trade;
 
 import com.alibaba.fastjson.JSON;
-import com.aliyun.openservices.ons.api.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fota.common.utils.LogUtil;
 import com.fota.trade.common.TradeBizTypeEnum;
@@ -13,14 +12,22 @@ import com.fota.trade.msg.BaseCanceledMessage;
 import com.fota.trade.msg.TopicConstants;
 import com.fota.trade.util.BasicUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
+import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
+import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
+import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import java.nio.charset.StandardCharsets;
-import java.util.Properties;
+import java.util.List;
 
 import static com.fota.trade.common.ResultCodeEnum.ILLEGAL_PARAM;
 import static com.fota.trade.common.TradeBizTypeEnum.COIN_CANCEL_ORDER;
@@ -28,6 +35,7 @@ import static com.fota.trade.common.TradeBizTypeEnum.COIN_CANCEL_ORDER;
 @Slf4j
 @Component
 public class CanceledConsumer {
+
 
     @Autowired
     private RedisManager redisManager;
@@ -39,93 +47,100 @@ public class CanceledConsumer {
     @Value("${spring.rocketmq.instanceName}")
     private String clientInstanceName;
 
-    @Value("${spring.ones.acl.secretKey}")
-    private String aclSecretKey;
-
-    @Value("${spring.ones.acl.accessKey}")
-    private String aclAccessKey;
-
     @Autowired
     private UsdkOrderManager usdkOrderManager;
 
     @Autowired
     private ObjectMapper objectMapper;
 
+    DefaultMQPushConsumer coinCanceledConsumer;
 
     private static final int removeSucced = 1;
 
     @PostConstruct
     public void init() throws MQClientException {
-        Properties properties = new Properties();
-        // 您在控制台创建的 Group ID
-        properties.put(PropertyKeyConst.GROUP_ID, "GID_" + group + "_" +TopicConstants.MCH_COIN_CANCEL_RST);
-       // AccessKey 阿里云身份验证，在阿里云服务器管理控制台创建
-        properties.put(PropertyKeyConst.AccessKey, aclAccessKey);
-       // SecretKey 阿里云身份验证，在阿里云服务器管理控制台创建
-        properties.put(PropertyKeyConst.SecretKey, aclSecretKey);
-       // 设置 TCP 接入域名，到控制台的实例基本信息中查看
-        properties.put(PropertyKeyConst.NAMESRV_ADDR, namesrvAddr);
-        properties.put(PropertyKeyConst.MaxReconsumeTimes, 16);
-        // 集群订阅方式 (默认)
-        // properties.put(PropertyKeyConst.MessageModel, PropertyValueConst.CLUSTERING);
-        // 广播订阅方式
-        // properties.put(PropertyKeyConst.MessageModel, PropertyValueConst.BROADCASTING);
-        Consumer consumer = ONSFactory.createConsumer(properties);
-        consumer.subscribe(TopicConstants.MCH_COIN_CANCEL_RST, "*", new MessageListener() { //订阅多个 Tag
-            @Override
-            public Action consume(Message messageExt, ConsumeContext context) {
-                if (messageExt==null) {
-                    log.error("message error!");
-                    return Action.CommitMessage;
-                }
-                String mqKey = messageExt.getKey();
-                String tag = messageExt.getTag();
-                try {
-                    byte[] bodyByte = messageExt.getBody();
-                    String bodyStr = new String(bodyByte, StandardCharsets.UTF_8);
-                    BaseCanceledMessage res = BasicUtils.exeWhitoutError(() -> JSON.parseObject(bodyStr, BaseCanceledMessage.class));
-                    if (null == res) {
-                        logErrorMsg(COIN_CANCEL_ORDER, "resolve message failed, not retry", messageExt);
-                        return Action.CommitMessage;
-                    }
-                    if (!res.isSuccess()) {
-                        return Action.CommitMessage;
-                    }
-                    if (null == res.getUnfilledAmount() || null == res.getTotalAmount()) {
-                        logErrorMsg(COIN_CANCEL_ORDER, "illegal message, not retry",messageExt);
-                        return Action.CommitMessage;
-                    }
-                    ResultCode resultCode = null;
-                    resultCode = usdkOrderManager.cancelOrderByMessage(res);
-                    if (!resultCode.isSuccess()) {
-                        if (resultCode.getCode() == ILLEGAL_PARAM.getCode()) {
-                            logErrorMsg(COIN_CANCEL_ORDER, "resultCode=" + resultCode, messageExt);
-                            return Action.CommitMessage;
-                        }
-                        logErrorMsg(COIN_CANCEL_ORDER, "resultCode=" + resultCode, messageExt);
-                        return Action.ReconsumeLater;
-                    }
-                    return Action.CommitMessage;
-                } catch (Exception e) {
-                    logErrorMsg(COIN_CANCEL_ORDER, messageExt, e);
-                    return Action.ReconsumeLater;
-                }
-            }
+        coinCanceledConsumer = initCancelConsumer(TopicConstants.MCH_COIN_CANCEL_RST, (msgs, context) -> {
+            return consumerCancelMessage(msgs, context, TradeBizTypeEnum.COIN_CANCEL_ORDER);
         });
-        consumer.start();
     }
 
-    private void logErrorMsg(TradeBizTypeEnum bizType, Message messageExt, Throwable t) {
-        String errorMsg = String.format("consumeTimes:%s ", messageExt.getReconsumeTimes());
-        LogUtil.error(bizType, messageExt.getKey(), MQMessage.of(messageExt),
+    public DefaultMQPushConsumer initCancelConsumer(String topic, MessageListenerConcurrently messageListenerConcurrently) throws MQClientException {
+        DefaultMQPushConsumer defaultMQPushConsumer = new DefaultMQPushConsumer(group + "_" +topic);
+        defaultMQPushConsumer.setInstanceName(clientInstanceName);
+        defaultMQPushConsumer.setNamesrvAddr(namesrvAddr);
+        defaultMQPushConsumer.setMaxReconsumeTimes(16);
+        defaultMQPushConsumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
+        defaultMQPushConsumer.setConsumeMessageBatchMaxSize(1);
+        defaultMQPushConsumer.setVipChannelEnabled(false);
+        defaultMQPushConsumer.subscribe(topic, "*");
+        defaultMQPushConsumer.registerMessageListener(messageListenerConcurrently);
+        //调用start()方法启动consumer
+        defaultMQPushConsumer.start();
+
+        return defaultMQPushConsumer;
+
+    }
+
+    public ConsumeConcurrentlyStatus consumerCancelMessage(final List<MessageExt> msgs,
+                                                           final ConsumeConcurrentlyContext context, TradeBizTypeEnum bizType) {
+        if (CollectionUtils.isEmpty(msgs)) {
+            log.error("message error!");
+            return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+        }
+        MessageExt messageExt = msgs.get(0);
+        String mqKey = messageExt.getKeys();
+        String tag = messageExt.getTags();
+
+        try {
+            byte[] bodyByte = messageExt.getBody();
+            String bodyStr = new String(bodyByte, StandardCharsets.UTF_8);
+            BaseCanceledMessage res = BasicUtils.exeWhitoutError(() -> JSON.parseObject(bodyStr, BaseCanceledMessage.class));
+            if (null == res) {
+                logErrorMsg(bizType, "resolve message failed, not retry", messageExt);
+                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+            }
+            if (!res.isSuccess()) {
+                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+            }
+            if (null == res.getUnfilledAmount() || null == res.getTotalAmount()) {
+                logErrorMsg(bizType, "illegal message, not retry", messageExt);
+                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+            }
+            ResultCode resultCode = null;
+            if (COIN_CANCEL_ORDER.equals(bizType)) {
+                resultCode = usdkOrderManager.cancelOrderByMessage(res);
+            }
+            if (!resultCode.isSuccess()) {
+                if (resultCode.getCode() == ILLEGAL_PARAM.getCode()) {
+                    logErrorMsg(bizType, "resultCode=" + resultCode, messageExt);
+                    return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+                }
+                logErrorMsg(bizType, "resultCode=" + resultCode, messageExt);
+                return ConsumeConcurrentlyStatus.RECONSUME_LATER;
+            }
+            return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+        } catch (Exception e) {
+            logErrorMsg(bizType, messageExt, e);
+            return ConsumeConcurrentlyStatus.RECONSUME_LATER;
+        }
+    }
+
+
+    private void logErrorMsg(TradeBizTypeEnum bizType, MessageExt messageExt, Throwable t) {
+        String errorMsg = String.format("consumeTimes:%s ",  messageExt.getReconsumeTimes());
+        LogUtil.error( bizType, messageExt.getKeys(), MQMessage.of(messageExt),
                 errorMsg, t);
     }
 
-    private void logErrorMsg(TradeBizTypeEnum bizType, String cause, Message messageExt) {
+    private void logErrorMsg(TradeBizTypeEnum bizType, String cause, MessageExt messageExt) {
         String errorMsg = String.format("cause:%s, consumeTimes:%s ", cause, messageExt.getReconsumeTimes());
-        LogUtil.error(bizType, messageExt.getKey(), MQMessage.of(messageExt),
+        LogUtil.error( bizType, messageExt.getKeys(), MQMessage.of(messageExt),
                 errorMsg);
     }
 
+    @PreDestroy
+    public void destory() {
+        coinCanceledConsumer.shutdown();
+    }
 }
 
