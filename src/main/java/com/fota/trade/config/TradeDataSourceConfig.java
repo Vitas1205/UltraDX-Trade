@@ -34,7 +34,7 @@ import java.util.List;
  */
 @Slf4j
 @Configuration
-@MapperScan(basePackages = "com.fota.trade.mapper", sqlSessionTemplateRef = "tradeSqlSessionTemplate")
+@MapperScan(basePackages = "com.fota.trade.mapper.trade", sqlSessionTemplateRef = "tradeSqlSessionTemplate")
 public class TradeDataSourceConfig {
 
     private final MybatisProperties properties;
