@@ -6,20 +6,20 @@
         <result column="gmt_create"  property="gmtCreate" />
         <result column="gmt_modified"  property="gmtModified" />
 
-        <result column="order_id"  property="orderId" />
-        <result column="user_id"  property="userId" />
+        <result column="order_id" jdbcType="BIGINT" property="orderId" />
+        <result column="user_id" jdbcType="BIGINT" property="userId" />
         <result column="order_price"  property="orderPrice" />
         <result column="order_direction"  property="orderDirection" />
         <result column="close_type"  property="closeType" />
-        <result column="match_user_id"  property="matchUserId" />
+        <result column="match_user_id" jdbcType="BIGINT" property="matchUserId" />
 
-        <result column="match_id"  property="matchId" />
+        <result column="match_id" jdbcType="BIGINT" property="matchId" />
         <result column="match_type" property="matchType" />
         <result column="filled_price"  property="filledPrice" />
         <result column="filled_amount"  property="filledAmount" />
         <result column="asset_name"  property="assetName" />
-        <result column="asset_id"  property="assetId" />
-        <result column="broker_id"  property="brokerId" />
+        <result column="asset_id"  jdbcType="BIGINT" property="assetId" />
+        <result column="broker_id"  jdbcType="BIGINT" property="brokerId" />
     </resultMap>
     <insert id="insert" parameterType="com.fota.trade.domain.UsdkMatchedOrderDO">
         insert into trade_usdt_matched_record (gmt_create, gmt_modified
