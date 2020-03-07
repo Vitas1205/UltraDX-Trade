@@ -850,6 +850,9 @@ public class UsdkOrderManager {
         //写成交记录
         UsdkMatchedOrderDO askMatchRecordDO = com.fota.trade.common.BeanUtils.extractUsdtRecord(usdkMatchedOrderDTO, OrderDirectionEnum.ASK.getCode(), askUsdkOrder.getBrokerId());
         UsdkMatchedOrderDO bidMatchRecordDO = com.fota.trade.common.BeanUtils.extractUsdtRecord(usdkMatchedOrderDTO, OrderDirectionEnum.BID.getCode(), bidUsdkOrder.getBrokerId());
+
+        log.info("updateOrderByMatch!askMatchRecordDO:{}, bidMatchRecordDO:{}", askMatchRecordDO, bidMatchRecordDO);
+
         int ret = usdkMatchedOrder.insert(Arrays.asList(askMatchRecordDO, bidMatchRecordDO));
         profiler.complelete("insert match record");
         if (ret < 2){
