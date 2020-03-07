@@ -40,7 +40,7 @@ public class UsdkMatchedOrderDO {
 
     private String assetName;
 
-    private Long assetId;
+    private Integer assetId;
 
     private Long brokerId;
 }
