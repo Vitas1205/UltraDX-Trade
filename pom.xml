@@ -217,7 +217,7 @@
 		<dependency>
 			<groupId>com.fota</groupId>
 			<artifactId>common-spring-boot-starter</artifactId>
-			<version>1.0.5-SNAPSHOT</version>
+			<version>1.0.4-SPOT-SNAPSHOT</version>
 		</dependency>
 
 		<dependency>
