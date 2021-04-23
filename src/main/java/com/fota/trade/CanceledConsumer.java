@@ -47,6 +47,10 @@ public class CanceledConsumer {
     @Value("${spring.rocketmq.instanceName}")
     private String clientInstanceName;
 
+    @Value("${clientIP:127.0.0.1}")
+    private String clientIP;
+
+
     @Autowired
     private UsdkOrderManager usdkOrderManager;
 
@@ -68,6 +72,8 @@ public class CanceledConsumer {
         DefaultMQPushConsumer defaultMQPushConsumer = new DefaultMQPushConsumer(group + "_" +topic);
         defaultMQPushConsumer.setInstanceName(clientInstanceName);
         defaultMQPushConsumer.setNamesrvAddr(namesrvAddr);
+        defaultMQPushConsumer.setClientIP(clientIP);
+
         defaultMQPushConsumer.setMaxReconsumeTimes(16);
         defaultMQPushConsumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         defaultMQPushConsumer.setConsumeMessageBatchMaxSize(1);

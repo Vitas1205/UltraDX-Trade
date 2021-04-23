@@ -54,6 +54,9 @@ public class MatchedConsumer {
     @Value("${spring.rocketmq.instanceName}")
     private String clientInstanceName;
 
+    @Value("${clientIP:127.0.0.1}")
+    private String clientIP;
+
     DefaultMQPushConsumer coinMatchedConsumer;
     @PostConstruct
     public void init() throws InterruptedException, MQClientException {
@@ -70,6 +73,8 @@ public class MatchedConsumer {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group + "_"+ topic);
         consumer.setInstanceName(clientInstanceName);
         consumer.setNamesrvAddr(namesrvAddr);
+        consumer.setClientIP(clientIP);
+
         consumer.setMaxReconsumeTimes(16);
         //这里设置的是一个consumer的消费策略
         //CONSUME_FROM_LAST_OFFSET 默认策略，从该队列最尾开始消费，即跳过历史消息
@@ -77,6 +82,7 @@ public class MatchedConsumer {
         //CONSUME_FROM_TIMESTAMP 从某个时间点开始消费，和setConsumeTimestamp()配合使用，默认是半个小时以前
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.setVipChannelEnabled(false);
+
         consumer.subscribe(topic, "*");
         consumer.setConsumeMessageBatchMaxSize(1);
         consumer.setMessageListener(listenerConcurrently);
