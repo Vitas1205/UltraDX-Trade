@@ -380,13 +380,13 @@ public class UsdkOrderManager {
                 BigDecimal orderValue = totalAmount.multiply(price);
                 int assetTypeId = 0;
                 BigDecimal entrustValue;
-                if (usdkOrderDTO.getOrderDirection() == OrderDirectionEnum.BID.getCode()){
-                    assetTypeId = AssetTypeEnum.BTC.getCode();
-                    entrustValue = orderValue;
-                }else {
+//                if (usdkOrderDTO.getOrderDirection() == OrderDirectionEnum.BID.getCode()){
+//                    assetTypeId = AssetTypeEnum.BTC.getCode();
+//                    entrustValue = orderValue;
+//                }else {
                     assetTypeId = usdkOrderDTO.getAssetId();
                     entrustValue = usdkOrderDTO.getTotalAmount();
-                }
+//                }
                 if (map.get(assetTypeId) == null){
                     map.put(assetTypeId, BigDecimal.ZERO);
                 }
