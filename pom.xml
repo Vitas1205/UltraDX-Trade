@@ -170,7 +170,7 @@
 		<dependency>
 			<groupId>com.fota</groupId>
 			<artifactId>asset-client</artifactId>
-			<version>1.0.27</version>
+			<version>1.0.37-SPOT-SNAPSHOT</version>
 			<exclusions>
 				<exclusion>
 					<artifactId>lombok</artifactId>
@@ -188,7 +188,7 @@
 		<dependency>
 			<groupId>com.fota</groupId>
 			<artifactId>trade-client</artifactId>
-			<version>1.1.9</version>
+			<version>1.1.9-SPOT-SNAPSHOT</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.fota</groupId>
@@ -200,7 +200,7 @@
 		<dependency>
 			<groupId>com.fota</groupId>
 			<artifactId>common-client</artifactId>
-			<version>1.2.3-SNAPSHOT</version>
+			<version>1.2.6-SPOT-SNAPSHOT</version>
 		</dependency>
 
 		<dependency>
