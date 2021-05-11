@@ -463,6 +463,10 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
         }
     }
 
+    @Override
+    public List<Long> getTradeMatchUserId(UsdkMatchedOrderTradeQueryDTO queryDTO) {
+        return null;
+    }
 
 
 }
