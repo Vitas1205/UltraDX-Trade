@@ -504,7 +504,6 @@ public class UsdkOrderManager {
                     updateLockedAmountRet.getData() == null ||
                     !updateLockedAmountRet.getData()){
                 String detailMsg = updateLockedAmountRet == null ? "updateLockedAmountRet is null" : updateLockedAmountRet.getMessage();
-                LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), batchOrderId.toString(), capitalAccountAddAmountDTOS, detailMsg);
                 throw new Exception("assetWriteService.batchAddCapitalAmount failed");
             }
         }
