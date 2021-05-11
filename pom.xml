@@ -206,7 +206,7 @@
 		<dependency>
 			<groupId>com.fota</groupId>
 			<artifactId>account-client</artifactId>
-			<version>1.0.11</version>
+			<version>1.0.11-SPOT-SNAPSHOT</version>
 		</dependency>
 
 		<dependency>

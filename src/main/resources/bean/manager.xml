@@ -35,5 +35,6 @@
     <dubbo:reference interface="com.fota.risk.client.service.RelativeRiskLevelService" id="relativeRiskLevelService"/>
 
     <dubbo:reference interface="com.fota.account.service.UserBaseService" id="userBaseService"/>
+    <dubbo:reference interface="com.fota.account.service.UserVipService" id="userVipService"/>
 
 </beans>
