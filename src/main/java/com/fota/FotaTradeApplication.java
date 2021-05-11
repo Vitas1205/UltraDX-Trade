@@ -20,7 +20,7 @@ public class FotaTradeApplication {
 
 
     public static void main(String[] args) {
-        System.setProperty("rocketmq.client.logUseSlf4j", "true");
+        System.setProperty("rocketmq.client.logUseSlf4j", "false");
         SpringApplication.run(FotaTradeApplication.class, args);
     }
 
