@@ -496,7 +496,7 @@ public class UsdkOrderManager {
             try {
                 updateLockedAmountRet = assetWriteService.batchAddCapitalAmount(capitalAccountAddAmountDTOS, batchOrderId.toString(), AssetOperationTypeEnum.USDT_EXCHANGE_BATCH_PLACE_ORDER.getCode());
             }catch (Exception e){
-                LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), batchOrderId.toString(), capitalAccountAddAmountDTOS, "assetWriteService.batchAddCapitalAmount exception", e);
+                LogUtil.error( TradeBizTypeEnum.BATCH_COIN_ORDER.toString(), batchOrderId.toString(), capitalAccountAddAmountDTOS, "assetWriteService.batchAddCapitalAmount exception", e);
                 throw new RuntimeException("assetWriteService.batchAddCapitalAmount exception", e);
             }
             if (updateLockedAmountRet == null ||
@@ -504,6 +504,7 @@ public class UsdkOrderManager {
                     updateLockedAmountRet.getData() == null ||
                     !updateLockedAmountRet.getData()){
                 String detailMsg = updateLockedAmountRet == null ? "updateLockedAmountRet is null" : updateLockedAmountRet.getMessage();
+                LogUtil.error( TradeBizTypeEnum.BATCH_COIN_ORDER.toString(), batchOrderId.toString(), capitalAccountAddAmountDTOS, detailMsg);
                 throw new Exception("assetWriteService.batchAddCapitalAmount failed");
             }
         }

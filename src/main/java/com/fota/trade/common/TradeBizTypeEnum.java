@@ -6,6 +6,7 @@ package com.fota.trade.common;
  */
 public enum  TradeBizTypeEnum {
     COMMON,
+    BATCH_COIN_ORDER,
     COIN_ORDER,
     COIN_CANCEL_ORDER,
     COIN_DEAL,
