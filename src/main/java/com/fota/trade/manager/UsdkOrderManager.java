@@ -380,13 +380,27 @@ public class UsdkOrderManager {
                 BigDecimal orderValue = totalAmount.multiply(price);
                 int assetTypeId = 0;
                 BigDecimal entrustValue;
-//                if (usdkOrderDTO.getOrderDirection() == OrderDirectionEnum.BID.getCode()){
+
+                BrokerTradingPairConfig tradingPairConfig = brokerTradingPairManager.getTradingPairById(assetId.longValue());
+                Integer orderDirection = usdkOrderDTO.getOrderDirection();
+
+                if (orderDirection == OrderDirectionEnum.BID.getCode()){
+                    assetTypeId = tradingPairConfig.getQuoteId();
+                    entrustValue = orderValue;
+                }else {
+                    assetTypeId = tradingPairConfig.getBaseId();
+                    entrustValue = usdkOrderDO.getTotalAmount();
+                }
+
+
+                //                if (usdkOrderDTO.getOrderDirection() == OrderDirectionEnum.BID.getCode()){
 //                    assetTypeId = AssetTypeEnum.BTC.getCode();
 //                    entrustValue = orderValue;
 //                }else {
-                    assetTypeId = usdkOrderDTO.getAssetId();
-                    entrustValue = usdkOrderDTO.getTotalAmount();
+//                assetTypeId = usdkOrderDTO.getAssetId();
+//                entrustValue = usdkOrderDTO.getTotalAmount();
 //                }
+
                 if (map.get(assetTypeId) == null){
                     map.put(assetTypeId, BigDecimal.ZERO);
                 }
@@ -516,7 +530,7 @@ public class UsdkOrderManager {
             }
             Boolean sendRet = rocketMqManager.batchSendMessage(TopicConstants.TRD_COIN_ORDER, x -> x.getSubjectId() + "", x -> x.getUserId() + "_" + x.getOrderId(), placeOrderMessages);
             if (!sendRet){
-                LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), batchOrderId.toString(), placeOrderMessages, "batchSendMessage Failed");
+                LogUtil.error( TradeBizTypeEnum.BATCH_COIN_ORDER.toString(), batchOrderId.toString(), placeOrderMessages, "batchSendMessage Failed");
             }
         };
         ThreadContextUtil.setPostTask(postTask);
