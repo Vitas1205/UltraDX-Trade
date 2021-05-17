@@ -1,5 +1,6 @@
 package com.fota.trade.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.fota.common.Page;
 import com.fota.common.Result;
 import com.fota.common.enums.FotaApplicationEnum;
@@ -387,6 +388,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
                         tempTarget.setFee(feeRate.multiply(temp.getFilledPrice()).multiply(temp.getFilledAmount())
                                 .setScale(Constants.feePrecision, BigDecimal.ROUND_DOWN)
                                 .toPlainString());
+                        log.info("usdkMatchedOrderMapper error:{}", JSON.toJSONString(temp));
                         if (temp.getAssetName().split("/").length > 1){
                             tempTarget.setFeeAssetUnit(temp.getAssetName().split("/")[1]);
                         }
