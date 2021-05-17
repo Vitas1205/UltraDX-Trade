@@ -401,6 +401,8 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
                         tempTarget.setFee(feeRate.multiply(temp.getFilledAmount())
                                 .setScale(Constants.feePrecision, BigDecimal.ROUND_DOWN)
                                 .toPlainString());
+                        log.info("usdkMatchedOrderMapper bid error :{}", JSON.toJSONString(temp));
+
                         if (temp.getAssetName().split("/").length > 1){
                             tempTarget.setFeeAssetUnit(temp.getAssetName().split("/")[0]);
                         }
