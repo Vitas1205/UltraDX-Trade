@@ -120,6 +120,7 @@ public class UsdkOrderManager {
     @Transactional(rollbackFor={Throwable.class})
     public com.fota.common.Result<Long> placeOrder(UsdkOrderDTO usdkOrderDTO, Map<String, String> userInfoMap)throws Exception {
         Profiler profiler = new Profiler("UsdkOrderManager.placeOrder");
+        log.info("placeOrder info usdkOrderDTO:{}",JSON.toJSONString(usdkOrderDTO));
         ThreadContextUtil.setProfiler(profiler);
         String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
         String ipAddress = StringUtils.isEmpty(userInfoMap.get("ipAddress")) ? "" : userInfoMap.get("ipAddress");
@@ -293,7 +294,8 @@ public class UsdkOrderManager {
 
     @Transactional(rollbackFor={Throwable.class})
     public Result<List<PlaceOrderResult>> batchOrder(PlaceOrderRequest<PlaceCoinOrderDTO> placeOrderRequest) throws Exception{
-        Long batchOrderId = BasicUtils.generateId();
+
+       Long batchOrderId = BasicUtils.generateId();
         if (!placeOrderRequest.checkParam()){
             LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), batchOrderId.toString(), placeOrderRequest, "checkParam failed, placOrderRequest");
             return Result.fail(ILLEGAL_PARAM.getCode(), ILLEGAL_PARAM.getMessage());
@@ -303,6 +305,7 @@ public class UsdkOrderManager {
         Result<List<PlaceOrderResult>> result = new Result<>();
         List<PlaceOrderResult> respList = new ArrayList<>();
         List<PlaceCoinOrderDTO> reqList = placeOrderRequest.getPlaceOrderDTOS();
+        log.info("placeOrder info reqList:{}",JSON.toJSONString(reqList));
         List<UsdkOrderDO> usdkOrderDOList = new ArrayList<>();
         if (CollectionUtils.isEmpty(reqList) || reqList.size() > Constant.BATCH_ORDER_MAX_SIZE){
             log.warn("out of max order size");
