@@ -3,6 +3,7 @@ package com.fota.trade.task;
 import com.fota.account.domain.UserVipDTO;
 import com.fota.account.service.UserVipService;
 import com.fota.asset.domain.UserCapitalDTO;
+import com.fota.asset.domain.enums.AssetTypeEnum;
 import com.fota.asset.service.AssetService;
 import com.fota.trade.domain.UsdkMatchedOrderDO;
 import com.fota.trade.mapper.sharding.UsdkMatchedOrderMapper;
@@ -36,7 +37,7 @@ public class TradeAmountStatisticTask {
     /**
      * todo 统计的币种
      */
-    private final Long assetId = 1L;
+    private final Long assetId = (long) AssetTypeEnum.TWD.getCode();
 
     /**
      * 每天0时统计30天内交易总量和平台币锁仓量
