@@ -1,5 +1,6 @@
 package com.fota.trade.manager;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.fota.asset.domain.CapitalAccountAddAmountDTO;
 import com.fota.asset.domain.UserCapitalDTO;
@@ -119,6 +120,7 @@ public class UsdkOrderManager {
     @Transactional(rollbackFor={Throwable.class})
     public com.fota.common.Result<Long> placeOrder(UsdkOrderDTO usdkOrderDTO, Map<String, String> userInfoMap)throws Exception {
         Profiler profiler = new Profiler("UsdkOrderManager.placeOrder");
+        log.info("placeOrder info usdkOrderDTO:{}",JSON.toJSONString(usdkOrderDTO));
         ThreadContextUtil.setProfiler(profiler);
         String username = StringUtils.isEmpty(userInfoMap.get("username")) ? "" : userInfoMap.get("username");
         String ipAddress = StringUtils.isEmpty(userInfoMap.get("ipAddress")) ? "" : userInfoMap.get("ipAddress");
@@ -292,7 +294,8 @@ public class UsdkOrderManager {
 
     @Transactional(rollbackFor={Throwable.class})
     public Result<List<PlaceOrderResult>> batchOrder(PlaceOrderRequest<PlaceCoinOrderDTO> placeOrderRequest) throws Exception{
-        Long batchOrderId = BasicUtils.generateId();
+
+       Long batchOrderId = BasicUtils.generateId();
         if (!placeOrderRequest.checkParam()){
             LogUtil.error( TradeBizTypeEnum.COIN_ORDER.toString(), batchOrderId.toString(), placeOrderRequest, "checkParam failed, placOrderRequest");
             return Result.fail(ILLEGAL_PARAM.getCode(), ILLEGAL_PARAM.getMessage());
@@ -302,6 +305,7 @@ public class UsdkOrderManager {
         Result<List<PlaceOrderResult>> result = new Result<>();
         List<PlaceOrderResult> respList = new ArrayList<>();
         List<PlaceCoinOrderDTO> reqList = placeOrderRequest.getPlaceOrderDTOS();
+        log.info("placeOrder info reqList:{}",JSON.toJSONString(reqList));
         List<UsdkOrderDO> usdkOrderDOList = new ArrayList<>();
         if (CollectionUtils.isEmpty(reqList) || reqList.size() > Constant.BATCH_ORDER_MAX_SIZE){
             log.warn("out of max order size");
@@ -810,6 +814,7 @@ public class UsdkOrderManager {
 
     @Transactional(rollbackFor = Throwable.class)
     public ResultCode updateOrderByMatch(UsdkMatchedOrderDTO usdkMatchedOrderDTO) throws Exception {
+        log.info("updateOrderByMatch info:{}", JSON.toJSONString(usdkMatchedOrderDTO));
         Profiler profiler =  null == ThreadContextUtil.getProfiler() ? new Profiler("UsdkOrderManager.updateOrderByMatch", usdkMatchedOrderDTO.getId().toString()) : ThreadContextUtil.getProfiler();
         if (usdkMatchedOrderDTO == null) {
             LogUtil.error( TradeBizTypeEnum.COIN_DEAL.toString(), String.valueOf(usdkMatchedOrderDTO.getId()), usdkMatchedOrderDTO, ResultCodeEnum.ILLEGAL_PARAM.getMessage());
