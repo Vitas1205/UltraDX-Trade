@@ -33,6 +33,9 @@
     <if test="assetId > 0" >
       and asset_id=#{assetId,jdbcType=INTEGER}
     </if>
+    <if test="orderId > 0" >
+      and id=#{orderId,jdbcType=BIGINT}
+    </if>
     <if test="startTime != null">
       and gmt_create &gt;= #{startTime}
     </if>
