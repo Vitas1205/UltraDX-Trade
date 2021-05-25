@@ -42,9 +42,12 @@ public class TradeAmountStatisticTask {
     /**
      * 每天0时统计30天内交易总量和平台币锁仓量
      */
-    @Scheduled(cron = "0 0 0 * * ?")
+//    @Scheduled(cron = "0 0 0 * * ?")
+    @Scheduled(cron = "0 0/30 * * * ?")
     public void tradeAmountStatistic() {
+        log.info("tradeAmountStatistic task start!");
         List<UserCapitalDTO> userCapitalDTOList = assetService.getUserCapital(assetId);
+        log.info("userCapitalDTOList:{}",userCapitalDTOList);
         userCapitalDTOList.forEach(
                 e->{
                     Long userId = e.getUserId();
