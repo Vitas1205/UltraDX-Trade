@@ -30,7 +30,6 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Component
-@EnableScheduling
 public class TradeAmountStatisticTask {
 
     @Autowired
