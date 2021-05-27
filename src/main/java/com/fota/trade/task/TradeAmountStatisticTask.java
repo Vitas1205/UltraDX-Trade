@@ -62,7 +62,6 @@ public class TradeAmountStatisticTask {
         List<UserCapitalDTO> userCapitalDTOList = new ArrayList<>();
         for(Asset asset : assets){
             List<UserCapitalDTO> subUserCapitalDTOList = assetService.getUserCapital(Integer.valueOf(asset.getId()));
-            log.info("asset:{},subUserCapitalDTOList:{}", JSON.toJSONString(asset),JSON.toJSONString(subUserCapitalDTOList));
             if(!CollectionUtils.isEmpty(subUserCapitalDTOList)){
                 userCapitalDTOList.addAll(subUserCapitalDTOList);
             }
