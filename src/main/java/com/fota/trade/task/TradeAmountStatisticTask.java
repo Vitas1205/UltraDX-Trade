@@ -1,5 +1,6 @@
 package com.fota.trade.task;
 
+import com.alibaba.fastjson.JSON;
 import com.fota.account.domain.UserVipDTO;
 import com.fota.account.service.UserVipService;
 import com.fota.asset.domain.UserCapitalDTO;
@@ -61,6 +62,7 @@ public class TradeAmountStatisticTask {
         List<UserCapitalDTO> userCapitalDTOList = new ArrayList<>();
         for(Asset asset : assets){
             List<UserCapitalDTO> subUserCapitalDTOList = assetService.getUserCapital(asset.getId());
+            log.info("asset:{},subUserCapitalDTOList:{}", JSON.toJSONString(asset),JSON.toJSONString(subUserCapitalDTOList));
             if(!CollectionUtils.isEmpty(subUserCapitalDTOList)){
                 userCapitalDTOList.addAll(subUserCapitalDTOList);
             }
