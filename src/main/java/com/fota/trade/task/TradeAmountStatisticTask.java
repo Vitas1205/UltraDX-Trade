@@ -67,6 +67,7 @@ public class TradeAmountStatisticTask {
             }
         }
         Map<Long, List<UserCapitalDTO>> map = userCapitalDTOList.stream().collect(Collectors.groupingBy(UserCapitalDTO::getUserId));
+        taskLog.info("group map:{}",map);
         for(Map.Entry<Long, List<UserCapitalDTO>> entry : map.entrySet()){
             Long userId = entry.getKey();
             List<UserCapitalDTO> list = entry.getValue();
@@ -79,8 +80,8 @@ public class TradeAmountStatisticTask {
                             .subtract(new BigDecimal(userCapitalDTO.getLockedAmount()))
                             .setScale(4, RoundingMode.HALF_UP);
                 }
-                Long nowTime = LocalDateTime.now().toEpochSecond(ZoneOffset.of("+8"));
-                Long startTime = nowTime - 30 * 24 * 60 * 60;
+                Long nowTime = LocalDateTime.now().toInstant(ZoneOffset.of("+8")).toEpochMilli();
+                Long startTime = LocalDateTime.now().minusDays(30).toInstant(ZoneOffset.of("+8")).toEpochMilli();
                 List<UsdkMatchedOrderDO> usdkMatchedOrderDOList = usdkMatchedOrderMapper.listByUserId(userId, null, 0, Integer.MAX_VALUE, startTime, nowTime);
                 tradeAmount30days = usdkMatchedOrderDOList.stream()
                         .map(x -> x.getFilledAmount().multiply(x.getFilledPrice()).multiply(getRateByAssetName(x.getAssetName())))
