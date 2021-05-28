@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 
 @Component
 public class TradeAmountStatisticTask {
-    private static final Logger taskLog = LoggerFactory.getLogger(TradeAmountStatisticTask.class);
+    private static final Logger taskLog = LoggerFactory.getLogger("tradeAmountStatisticTask");
 
     @Autowired
     private AssetService assetService;
