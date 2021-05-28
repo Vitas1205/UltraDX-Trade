@@ -185,7 +185,7 @@
 
         <!-- 自定义日志配置 -->
         <RollingRandomAccessFile name="tradeAmountStatisticTask" fileName="${fileName}/tradeAmountStatisticTask.log" immediateFlush="false"
-                                 filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.tradeAmountStatisticTask">
+                                 filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.tradeAmountStatisticTask.gz">
             <PatternLayout pattern="%d{yyyy-MM-dd 'at' HH:mm:ss z} [%t] %-5level %logger{36} %L %M - %msg%xEx%n" />
             <Policies>
                 <TimeBasedTriggeringPolicy interval="6" modulate="true" />
@@ -245,6 +245,8 @@
         <AsyncLogger name="assetOperateFailed" level="info" additivity="false" includeLocation="true">
             <AppenderRef ref="assetOperateFailed"/>
         </AsyncLogger>
-
+        <AsyncLogger name="tradeAmountStatisticTask" level="info" additivity="false" includeLocation="true">
+            <AppenderRef ref="tradeAmountStatisticTask"/>
+        </AsyncLogger>
     </Loggers>
 </Configuration>
