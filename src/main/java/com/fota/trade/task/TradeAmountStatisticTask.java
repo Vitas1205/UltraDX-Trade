@@ -1,6 +1,5 @@
 package com.fota.trade.task;
 
-import com.alibaba.fastjson.JSON;
 import com.fota.account.domain.UserVipDTO;
 import com.fota.account.service.UserVipService;
 import com.fota.asset.domain.UserCapitalDTO;
@@ -14,9 +13,10 @@ import com.fota.trade.common.MatchedOrderConstants;
 import com.fota.trade.domain.UsdkMatchedOrderDO;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.mapper.sharding.UsdkMatchedOrderMapper;
-import lombok.extern.slf4j.Slf4j;
+import com.fota.trade.service.internal.AssetWriteService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
@@ -29,9 +29,9 @@ import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Slf4j
 @Component
 public class TradeAmountStatisticTask {
+    private static final Logger taskLog = LoggerFactory.getLogger(TradeAmountStatisticTask.class);
 
     @Autowired
     private AssetService assetService;
@@ -57,7 +57,7 @@ public class TradeAmountStatisticTask {
 //    @Scheduled(cron = "0 0 0 * * ?")
     @Scheduled(cron = "0 0/30 * * * ?")
     public void tradeAmountStatistic() {
-        log.info("tradeAmountStatistic task start!");
+        taskLog.info("tradeAmountStatistic task start!");
         List<Asset> assets = fotaAssetManager.getAllAssets();
         List<UserCapitalDTO> userCapitalDTOList = new ArrayList<>();
         for(Asset asset : assets){
@@ -66,7 +66,6 @@ public class TradeAmountStatisticTask {
                 userCapitalDTOList.addAll(subUserCapitalDTOList);
             }
         }
-        log.info("userCapitalDTOList:{}",userCapitalDTOList);
         Map<Long, List<UserCapitalDTO>> map = userCapitalDTOList.stream().collect(Collectors.groupingBy(UserCapitalDTO::getUserId));
         for(Map.Entry<Long, List<UserCapitalDTO>> entry : map.entrySet()){
             Long userId = entry.getKey();
@@ -94,7 +93,7 @@ public class TradeAmountStatisticTask {
             userVipDTO.setUserId(userId);
             userVipDTO.setTradeAmount30days(tradeAmount30days.toPlainString());
             userVipDTO.setLockedAmount(canUsedAmount.toPlainString());
-            log.info("userVipDTO:{}",userVipDTO);
+            taskLog.info("userVipDTO:{}",userVipDTO);
             userVipService.updateByUserId(userVipDTO);
         }
     }
@@ -102,7 +101,7 @@ public class TradeAmountStatisticTask {
     private BigDecimal getRateByAssetName(String assetName){
         Long brokerId = 508090L;
         HashMap<String, BigDecimal> rateMap = getExchangeRate(brokerId);
-        log.info("getExchangeRate:{}",rateMap);
+        taskLog.info("getExchangeRate:{}",rateMap);
         return rateMap.get(assetName+"/TWD");
     }
 
@@ -118,7 +117,7 @@ public class TradeAmountStatisticTask {
                     BigDecimal rateBd = new BigDecimal(rate);
                     exchangeRateMap.put(temp.getName(), rateBd);
                 }catch (Exception e){
-                    log.error("getExchangeRate error, BrokerTradingPairConfig:{}, brokerId:{}", temp, brokerId, e);
+                    taskLog.error("getExchangeRate error, BrokerTradingPairConfig:{}, brokerId:{}", temp, brokerId, e);
                 }
             }
         } else {
@@ -141,7 +140,7 @@ public class TradeAmountStatisticTask {
                     BigDecimal rateBd = new BigDecimal(rate);
                     exchangeRateMap.put(temp.getBaseName(), rateBd);
                 } catch (Exception e){
-                    log.error("getExchangeRate error, BrokerTradingPairConfig:{}, brokerId:{}", temp, brokerId, e);
+                    taskLog.error("getExchangeRate error, BrokerTradingPairConfig:{}, brokerId:{}", temp, brokerId, e);
                 }
             }
             exchangeRateMap.put(com.fota.asset.domain.enums.AssetTypeEnum.BTC.getDesc(), new BigDecimal("1"));
