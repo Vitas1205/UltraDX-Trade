@@ -103,7 +103,13 @@ public class TradeAmountStatisticTask {
         Long brokerId = 508090L;
         HashMap<String, BigDecimal> rateMap = getExchangeRate(brokerId);
         taskLog.info("getExchangeRate:{}",rateMap);
-        return rateMap.get(assetName+"/TWD");
+        String quoteName = assetName.split("/")[1];
+        if(AssetTypeEnum.TWD.getDesc().equals(quoteName)){
+            return rateMap.get(assetName);
+        }else{
+            return rateMap.get(assetName).multiply(rateMap.get(quoteName+"/TWD"));
+        }
+
     }
 
     private HashMap<String, BigDecimal> getExchangeRate(Long brokerId){
