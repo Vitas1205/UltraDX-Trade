@@ -96,17 +96,17 @@ public class TradeAmountStatisticTask {
                                 .subtract(new BigDecimal(userCapitalDTO.getLockedAmount()))
                                 .setScale(4, RoundingMode.HALF_UP);
                     }
-                    Long nowTime = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
-                    Long startTime = LocalDateTime.now().minusDays(30).toEpochSecond(ZoneOffset.UTC);
-                    List<UsdkMatchedOrderDO> usdkMatchedOrderDOList = usdkMatchedOrderMapper.listByUserId(userId, null, 0, Integer.MAX_VALUE, startTime, nowTime);
-                    if(!CollectionUtils.isEmpty(usdkMatchedOrderDOList)) {
-                        taskLog.info("usdkMatchedOrderDOList:{}",usdkMatchedOrderDOList);
-                        tradeAmount30days = usdkMatchedOrderDOList.stream()
-                                .map(x -> x.getFilledAmount().multiply(x.getFilledPrice()).multiply(getRateByAssetName(x.getAssetName())))
-                                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                                .setScale(4, RoundingMode.HALF_UP);
-                    }
+                }
 
+                Long nowTime = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
+                Long startTime = LocalDateTime.now().minusDays(30).toEpochSecond(ZoneOffset.UTC);
+                List<UsdkMatchedOrderDO> usdkMatchedOrderDOList = usdkMatchedOrderMapper.listByUserId(userId, null, 0, Integer.MAX_VALUE, startTime, nowTime);
+                if(!CollectionUtils.isEmpty(usdkMatchedOrderDOList)) {
+                    taskLog.info("usdkMatchedOrderDOList:{}",usdkMatchedOrderDOList);
+                    tradeAmount30days = usdkMatchedOrderDOList.stream()
+                            .map(x -> x.getFilledAmount().multiply(x.getFilledPrice()).multiply(getRateByAssetName(x.getAssetName())))
+                            .reduce(BigDecimal.ZERO, BigDecimal::add)
+                            .setScale(4, RoundingMode.HALF_UP);
                 }
 
                 UserVipDTO userVipDTO = new UserVipDTO();
