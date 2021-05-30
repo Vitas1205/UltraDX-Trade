@@ -13,7 +13,6 @@ import com.fota.trade.common.MatchedOrderConstants;
 import com.fota.trade.domain.UsdkMatchedOrderDO;
 import com.fota.trade.manager.RedisManager;
 import com.fota.trade.mapper.sharding.UsdkMatchedOrderMapper;
-import com.fota.trade.service.internal.AssetWriteService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +26,8 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 @Component
@@ -67,11 +68,25 @@ public class TradeAmountStatisticTask {
             }
         }
         Map<Long, List<UserCapitalDTO>> map = userCapitalDTOList.stream().collect(Collectors.groupingBy(UserCapitalDTO::getUserId));
-//        taskLog.info("group map:{}",map);
+        //多线程执行
+        ExecutorService threadPool = Executors.newFixedThreadPool(10);
         for(Map.Entry<Long, List<UserCapitalDTO>> entry : map.entrySet()){
             Long userId = entry.getKey();
             List<UserCapitalDTO> list = entry.getValue();
+            threadPool.execute(new StatisticTask(userId,list));
+        }
+    }
 
+    class StatisticTask implements Runnable{
+        private final Long userId;
+        private final List<UserCapitalDTO> list;
+        StatisticTask(Long userId, List<UserCapitalDTO> list){
+            this.userId = userId;
+            this.list = list;
+        }
+
+        @Override
+        public void run() {
             BigDecimal canUsedAmount = BigDecimal.ZERO;
             BigDecimal tradeAmount30days = BigDecimal.ZERO;
             for(UserCapitalDTO userCapitalDTO : list) {
@@ -83,11 +98,13 @@ public class TradeAmountStatisticTask {
                 Long nowTime = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
                 Long startTime = LocalDateTime.now().minusDays(30).toEpochSecond(ZoneOffset.UTC);
                 List<UsdkMatchedOrderDO> usdkMatchedOrderDOList = usdkMatchedOrderMapper.listByUserId(userId, null, 0, Integer.MAX_VALUE, startTime, nowTime);
-                taskLog.info("usdkMatchedOrderDOList:{}",usdkMatchedOrderDOList);
-                tradeAmount30days = usdkMatchedOrderDOList.stream()
-                        .map(x -> x.getFilledAmount().multiply(x.getFilledPrice()).multiply(getRateByAssetName(x.getAssetName())))
-                        .reduce(BigDecimal.ZERO, BigDecimal::add)
-                        .setScale(4, RoundingMode.HALF_UP);
+                if(!CollectionUtils.isEmpty(usdkMatchedOrderDOList)) {
+                    taskLog.info("usdkMatchedOrderDOList:{}",usdkMatchedOrderDOList);
+                    tradeAmount30days = usdkMatchedOrderDOList.stream()
+                            .map(x -> x.getFilledAmount().multiply(x.getFilledPrice()).multiply(getRateByAssetName(x.getAssetName())))
+                            .reduce(BigDecimal.ZERO, BigDecimal::add)
+                            .setScale(4, RoundingMode.HALF_UP);
+                }
 
             }
 
@@ -99,6 +116,8 @@ public class TradeAmountStatisticTask {
             userVipService.updateByUserId(userVipDTO);
         }
     }
+
+
 
     private BigDecimal getRateByAssetName(String assetName){
         Long brokerId = 508090L;
