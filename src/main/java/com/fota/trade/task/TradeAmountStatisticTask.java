@@ -80,8 +80,8 @@ public class TradeAmountStatisticTask {
                             .subtract(new BigDecimal(userCapitalDTO.getLockedAmount()))
                             .setScale(4, RoundingMode.HALF_UP);
                 }
-                Long nowTime = LocalDateTime.now().toInstant(ZoneOffset.of("+8")).toEpochMilli();
-                Long startTime = LocalDateTime.now().minusDays(30).toInstant(ZoneOffset.of("+8")).toEpochMilli();
+                Long nowTime = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
+                Long startTime = LocalDateTime.now().minusDays(30).toEpochSecond(ZoneOffset.UTC);
                 List<UsdkMatchedOrderDO> usdkMatchedOrderDOList = usdkMatchedOrderMapper.listByUserId(userId, null, 0, Integer.MAX_VALUE, startTime, nowTime);
                 taskLog.info("usdkMatchedOrderDOList:{}",usdkMatchedOrderDOList);
                 tradeAmount30days = usdkMatchedOrderDOList.stream()
