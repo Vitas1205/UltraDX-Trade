@@ -125,7 +125,12 @@ public class BeanUtils {
             usdkMatchedOrderDO.setUserId(usdkMatchedOrderDTO.getAskUserId());
             usdkMatchedOrderDO.setMatchUserId(usdkMatchedOrderDTO.getBidUserId());
             usdkMatchedOrderDO.setBrokerId(usdkMatchedOrderDTO.getAskBrokerId());
-            usdkMatchedOrderDO.setFee(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()).multiply(fee));
+            usdkMatchedOrderDO.setFee(
+                    new BigDecimal(StringUtils.isEmpty(usdkMatchedOrderDTO.getFilledAmount())?"0":usdkMatchedOrderDTO.getFilledAmount()).
+                            multiply(
+                                    new BigDecimal(StringUtils.isEmpty(usdkMatchedOrderDTO.getFilledPrice())?"0":usdkMatchedOrderDTO.getFilledPrice())
+                            ).multiply(fee)
+            );
         }else {
             if (usdkMatchedOrderDTO.getBidOrderPrice() != null){
                 usdkMatchedOrderDO.setOrderPrice(new BigDecimal(usdkMatchedOrderDTO.getBidOrderPrice()));
@@ -134,12 +139,7 @@ public class BeanUtils {
             usdkMatchedOrderDO.setUserId(usdkMatchedOrderDTO.getBidUserId());
             usdkMatchedOrderDO.setMatchUserId(usdkMatchedOrderDTO.getAskUserId());
             usdkMatchedOrderDO.setBrokerId(usdkMatchedOrderDTO.getBidBrokerId());
-            usdkMatchedOrderDO.setFee(
-                    new BigDecimal(StringUtils.isEmpty(usdkMatchedOrderDTO.getFilledAmount())?"0":usdkMatchedOrderDTO.getFilledAmount()).
-                    multiply(
-                            new BigDecimal(StringUtils.isEmpty(usdkMatchedOrderDTO.getFilledPrice())?"0":usdkMatchedOrderDTO.getFilledPrice())
-                    ).multiply(fee)
-            );
+            usdkMatchedOrderDO.setFee(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()).multiply(fee));
         }
 
         usdkMatchedOrderDO.setAssetName(usdkMatchedOrderDTO.getAssetName());
