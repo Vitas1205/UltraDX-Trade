@@ -95,8 +95,7 @@ public class UsdkOrderManager {
     private RealTimeEntrustManager realTimeEntrustManager;
     @Autowired
     private MonitorLogManager monitorLogManager;
-    @Autowired
-    private BrokerUsdkOrderFeeListManager brokerUsdkOrderFeeListManager;
+
     @Autowired
     private RedisManager redisManager;
     @Autowired
