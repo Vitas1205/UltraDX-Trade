@@ -56,7 +56,7 @@ public class TradeAmountStatisticTask {
     @Value("${jobStart:false}")
     private String value;
 
-    private HashMap<String, BigDecimal> rateMap;
+    private static HashMap<String, BigDecimal> rateMap;
 
     @PostConstruct
     public void initRateMap(){
@@ -122,7 +122,8 @@ public class TradeAmountStatisticTask {
                 if(!CollectionUtils.isEmpty(usdkMatchedOrderDOList)) {
                     tradeAmount30days = usdkMatchedOrderDOList.stream()
                             .filter(x-> "UNKNOW".equals(x.getAssetName()))
-                            .map(x -> x.getFilledAmount().multiply(x.getFilledPrice()).multiply(getRateByAssetName(x.getAssetName())))
+//                            .map(x -> x.getFilledAmount().multiply(x.getFilledPrice()).multiply(getRateByAssetName(x.getOrderDirection(),x.getAssetName())))
+                            .map(TradeAmountStatisticTask::getExchangePrice)
                             .reduce(BigDecimal.ZERO, BigDecimal::add)
                             .setScale(4, RoundingMode.HALF_UP);
                 }
@@ -150,14 +151,29 @@ public class TradeAmountStatisticTask {
     }
 
 
-    private BigDecimal getRateByAssetName(String assetName){
-        String quoteName = assetName.split("/")[1];
-        if(AssetTypeEnum.TWD.getDesc().equals(quoteName)){
-            return rateMap.get(assetName);
+    private static BigDecimal getExchangePrice(UsdkMatchedOrderDO usdkMatchedOrderDO){
+        String assetName = usdkMatchedOrderDO.getAssetName();
+        String baseAssetName = assetName.split("/")[0];
+        String quoteAssetName = assetName.split("/")[1];
+        if(usdkMatchedOrderDO.getOrderDirection()==1){
+            if(AssetTypeEnum.TWD.getDesc().equals(quoteAssetName)){
+                return usdkMatchedOrderDO.getFilledAmount()
+                        .multiply(usdkMatchedOrderDO.getFilledPrice())
+                        .multiply(rateMap.get(assetName));
+            }else{
+                return usdkMatchedOrderDO.getFilledAmount()
+                        .multiply(usdkMatchedOrderDO.getFilledPrice())
+                        .multiply(rateMap.get(assetName).multiply(rateMap.get(quoteAssetName+"/TWD")));
+            }
         }else{
-            return rateMap.get(assetName).multiply(rateMap.get(quoteName+"/TWD"));
+            if(AssetTypeEnum.TWD.getDesc().equals(baseAssetName)){
+                return usdkMatchedOrderDO.getFilledAmount()
+                        .multiply(rateMap.get(quoteAssetName+"/"+baseAssetName));
+            }else{
+                return usdkMatchedOrderDO.getFilledAmount()
+                        .multiply(rateMap.get(quoteAssetName+"/"+baseAssetName).multiply(rateMap.get(quoteAssetName+"/TWD")));
+            }
         }
-
     }
 
     private HashMap<String, BigDecimal> getExchangeRate(Long brokerId){
