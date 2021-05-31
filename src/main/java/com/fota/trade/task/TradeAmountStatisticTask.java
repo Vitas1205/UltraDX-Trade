@@ -171,7 +171,7 @@ public class TradeAmountStatisticTask {
                         .multiply(rateMap.get(quoteAssetName+"/"+baseAssetName));
             }else{
                 return usdkMatchedOrderDO.getFilledAmount()
-                        .multiply(rateMap.get(quoteAssetName+"/"+baseAssetName).multiply(rateMap.get(quoteAssetName+"/TWD")));
+                        .multiply(rateMap.get(quoteAssetName+"/"+baseAssetName).multiply(rateMap.get(baseAssetName+"/TWD")));
             }
         }
     }
