@@ -56,7 +56,7 @@ public class TradeAmountStatisticTask {
     @Value("${jobStart:false}")
     private String value;
 
-    private static HashMap<String, BigDecimal> rateMap;
+    private HashMap<String, BigDecimal> rateMap;
 
     @PostConstruct
     public void initRateMap(){
@@ -121,9 +121,9 @@ public class TradeAmountStatisticTask {
                 List<UsdkMatchedOrderDO> usdkMatchedOrderDOList = usdkMatchedOrderMapper.listByUserId(userId, null, 0, Integer.MAX_VALUE, startTime, nowTime);
                 if(!CollectionUtils.isEmpty(usdkMatchedOrderDOList)) {
                     tradeAmount30days = usdkMatchedOrderDOList.stream()
-                            .filter(x-> "UNKNOW".equals(x.getAssetName()))
+                            .filter(x-> !"UNKNOW".equals(x.getAssetName()))
 //                            .map(x -> x.getFilledAmount().multiply(x.getFilledPrice()).multiply(getRateByAssetName(x.getOrderDirection(),x.getAssetName())))
-                            .map(TradeAmountStatisticTask::getExchangePrice)
+                            .map(x->getExchangePrice(x))
                             .reduce(BigDecimal.ZERO, BigDecimal::add)
                             .setScale(4, RoundingMode.HALF_UP);
                 }
@@ -151,7 +151,7 @@ public class TradeAmountStatisticTask {
     }
 
 
-    private static BigDecimal getExchangePrice(UsdkMatchedOrderDO usdkMatchedOrderDO){
+    private BigDecimal getExchangePrice(UsdkMatchedOrderDO usdkMatchedOrderDO){
         String[] assetNameList = usdkMatchedOrderDO.getAssetName().split("/");
         String baseAssetName = assetNameList[0];
         String quoteAssetName = assetNameList[1];
