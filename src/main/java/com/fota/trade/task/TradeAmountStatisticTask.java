@@ -57,12 +57,16 @@ public class TradeAmountStatisticTask {
     private String value;
 
     private HashMap<String, BigDecimal> rateMap;
+    private List<Asset> assets;
+    private ExecutorService threadPool;
 
     @PostConstruct
     public void initRateMap(){
         Long brokerId = 508090L;
         rateMap = getExchangeRate(brokerId);
-        taskLog.info("rateMap:{}",rateMap);
+        assets = fotaAssetManager.getAllAssets();
+        threadPool = new ThreadPoolExecutor(8, 16, 0L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+        taskLog.info("rateMap:{},assets:{}",rateMap,assets);
     }
 
     /**
@@ -75,7 +79,6 @@ public class TradeAmountStatisticTask {
             return;
         }
         taskLog.info("tradeAmountStatistic task start!");
-        List<Asset> assets = fotaAssetManager.getAllAssets();
         List<UserCapitalDTO> userCapitalDTOList = new ArrayList<>();
         for(Asset asset : assets){
             List<UserCapitalDTO> subUserCapitalDTOList = assetService.getUserCapital(Integer.valueOf(asset.getId()));
@@ -85,22 +88,25 @@ public class TradeAmountStatisticTask {
         }
         Map<Long, List<UserCapitalDTO>> map = userCapitalDTOList.stream().collect(Collectors.groupingBy(UserCapitalDTO::getUserId));
         //多线程执行
-        ExecutorService threadPool = new ThreadPoolExecutor(8, 20,
-                0L, TimeUnit.SECONDS,
-                new LinkedBlockingQueue<>());
+        Long endTime = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
+        Long startTime = LocalDateTime.now().minusDays(30).toEpochSecond(ZoneOffset.UTC);
         for(Map.Entry<Long, List<UserCapitalDTO>> entry : map.entrySet()){
             Long userId = entry.getKey();
             List<UserCapitalDTO> list = entry.getValue();
-            threadPool.execute(new StatisticTask(userId,list));
+            threadPool.execute(new StatisticTask(userId,list,startTime,endTime));
         }
     }
 
     class StatisticTask implements Runnable{
         private final Long userId;
         private final List<UserCapitalDTO> list;
-        StatisticTask(Long userId, List<UserCapitalDTO> list){
+        private final Long startTime;
+        private final Long endTime;
+        StatisticTask(Long userId, List<UserCapitalDTO> list, Long startTime, Long endTime){
             this.userId = userId;
             this.list = list;
+            this.startTime = startTime;
+            this.endTime = endTime;
         }
 
         @Override
@@ -116,9 +122,7 @@ public class TradeAmountStatisticTask {
                     }
                 }
 
-                Long nowTime = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
-                Long startTime = LocalDateTime.now().minusDays(30).toEpochSecond(ZoneOffset.UTC);
-                List<UsdkMatchedOrderDO> usdkMatchedOrderDOList = usdkMatchedOrderMapper.listByUserId(userId, null, 0, Integer.MAX_VALUE, startTime, nowTime);
+                List<UsdkMatchedOrderDO> usdkMatchedOrderDOList = usdkMatchedOrderMapper.listByUserId(userId, null, 0, Integer.MAX_VALUE, startTime, endTime);
                 if(!CollectionUtils.isEmpty(usdkMatchedOrderDOList)) {
                     tradeAmount30days = usdkMatchedOrderDOList.stream()
                             .filter(x-> !"UNKNOW".equals(x.getAssetName()))
@@ -152,28 +156,34 @@ public class TradeAmountStatisticTask {
 
 
     private BigDecimal getExchangePrice(UsdkMatchedOrderDO usdkMatchedOrderDO){
-        String[] assetNameList = usdkMatchedOrderDO.getAssetName().split("/");
-        String baseAssetName = assetNameList[0];
-        String quoteAssetName = assetNameList[1];
-        if(usdkMatchedOrderDO.getOrderDirection()==1){
-            if(AssetTypeEnum.TWD.getDesc().equals(quoteAssetName)){
-                return usdkMatchedOrderDO.getFilledAmount()
-                        .multiply(usdkMatchedOrderDO.getFilledPrice())
-                        .multiply(rateMap.get(usdkMatchedOrderDO.getAssetName()));
-            }else{
-                return usdkMatchedOrderDO.getFilledAmount()
-                        .multiply(usdkMatchedOrderDO.getFilledPrice())
-                        .multiply(rateMap.get(usdkMatchedOrderDO.getAssetName()).multiply(rateMap.get(quoteAssetName+"/TWD")));
+        try {
+            String[] assetNameList = usdkMatchedOrderDO.getAssetName().split("/");
+            String baseAssetName = assetNameList[0];
+            String quoteAssetName = assetNameList[1];
+            if (usdkMatchedOrderDO.getOrderDirection() == 1) {
+                if (AssetTypeEnum.TWD.getDesc().equals(quoteAssetName)) {
+                    return usdkMatchedOrderDO.getFilledAmount()
+                            .multiply(usdkMatchedOrderDO.getFilledPrice())
+                            .multiply(rateMap.get(usdkMatchedOrderDO.getAssetName()));
+                } else {
+                    return usdkMatchedOrderDO.getFilledAmount()
+                            .multiply(usdkMatchedOrderDO.getFilledPrice())
+                            .multiply(rateMap.get(usdkMatchedOrderDO.getAssetName()).multiply(rateMap.get(quoteAssetName + "/TWD")));
+                }
+            } else {
+                if (AssetTypeEnum.TWD.getDesc().equals(baseAssetName)) {
+                    return usdkMatchedOrderDO.getFilledAmount()
+                            .multiply(rateMap.get(quoteAssetName + "/" + baseAssetName));
+                } else {
+                    return usdkMatchedOrderDO.getFilledAmount()
+                            .multiply(rateMap.get(quoteAssetName + "/" + baseAssetName).multiply(rateMap.get(baseAssetName + "/TWD")));
+                }
             }
-        }else{
-            if(AssetTypeEnum.TWD.getDesc().equals(baseAssetName)){
-                return usdkMatchedOrderDO.getFilledAmount()
-                        .multiply(rateMap.get(quoteAssetName+"/"+baseAssetName));
-            }else{
-                return usdkMatchedOrderDO.getFilledAmount()
-                        .multiply(rateMap.get(quoteAssetName+"/"+baseAssetName).multiply(rateMap.get(baseAssetName+"/TWD")));
-            }
+        } catch (Exception e){
+            taskLog.error("getExchangePrice error, usdkMatchedOrderDO:{}", usdkMatchedOrderDO, e);
         }
+
+        return BigDecimal.ZERO;
     }
 
     private HashMap<String, BigDecimal> getExchangeRate(Long brokerId){
