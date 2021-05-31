@@ -21,6 +21,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -54,6 +55,15 @@ public class TradeAmountStatisticTask {
 
     @Value("${jobStart:false}")
     private String value;
+
+    private HashMap<String, BigDecimal> rateMap;
+
+    @PostConstruct
+    public void initRateMap(){
+        Long brokerId = 508090L;
+        rateMap = getExchangeRate(brokerId);
+        taskLog.info("rateMap:{}",rateMap);
+    }
 
     /**
      * 每天0时统计30天内交易总量和平台币锁仓量
@@ -118,7 +128,6 @@ public class TradeAmountStatisticTask {
 
                 UserVipDTO userVipDTO = userVipService.getByUserId(userId);
                 if(userVipDTO != null){
-                    userVipDTO.setUserId(userId);
                     userVipDTO.setTradeAmount30days(tradeAmount30days.toPlainString());
                     userVipDTO.setLockedAmount(canUsedAmount.toPlainString());
                     taskLog.info("update userVipDTO:{}",userVipDTO);
@@ -133,18 +142,14 @@ public class TradeAmountStatisticTask {
                 }
 
             }catch (Exception e){
-                taskLog.error("userId{}",userId,e);
+                taskLog.error("task error, userId{}",userId,e);
             }
 
         }
     }
 
 
-
     private BigDecimal getRateByAssetName(String assetName){
-        Long brokerId = 508090L;
-        HashMap<String, BigDecimal> rateMap = getExchangeRate(brokerId);
-        taskLog.info("getExchangeRate:{}",rateMap);
         String quoteName = assetName.split("/")[1];
         if(AssetTypeEnum.TWD.getDesc().equals(quoteName)){
             return rateMap.get(assetName);
