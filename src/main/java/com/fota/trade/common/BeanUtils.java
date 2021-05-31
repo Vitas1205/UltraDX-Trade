@@ -104,14 +104,15 @@ public class BeanUtils {
         return usdkOrderDO;
     }
 
-    public static UsdkMatchedOrderDO extractUsdtRecord(UsdkMatchedOrderDTO usdkMatchedOrderDTO, int orderDirec, Long brokerId) {
-        UsdkMatchedOrderDO usdkMatchedOrderDO = extractUsdtRecord(usdkMatchedOrderDTO, orderDirec);
+    public static UsdkMatchedOrderDO extractUsdtRecord(UsdkMatchedOrderDTO usdkMatchedOrderDTO, int orderDirec, Long brokerId,
+                                                       BigDecimal fee) {
+        UsdkMatchedOrderDO usdkMatchedOrderDO = extractUsdtRecord(usdkMatchedOrderDTO, orderDirec,fee);
         usdkMatchedOrderDO.setBrokerId(brokerId);
 
         return usdkMatchedOrderDO;
     }
 
-    public static UsdkMatchedOrderDO extractUsdtRecord(UsdkMatchedOrderDTO usdkMatchedOrderDTO, int orderDirec) {
+    public static UsdkMatchedOrderDO extractUsdtRecord(UsdkMatchedOrderDTO usdkMatchedOrderDTO, int orderDirec,BigDecimal fee) {
         UsdkMatchedOrderDO usdkMatchedOrderDO = new UsdkMatchedOrderDO();
         usdkMatchedOrderDO.setMatchId(usdkMatchedOrderDTO.getId());
         usdkMatchedOrderDO.setOrderDirection(orderDirec);
@@ -124,7 +125,7 @@ public class BeanUtils {
             usdkMatchedOrderDO.setUserId(usdkMatchedOrderDTO.getAskUserId());
             usdkMatchedOrderDO.setMatchUserId(usdkMatchedOrderDTO.getBidUserId());
             usdkMatchedOrderDO.setBrokerId(usdkMatchedOrderDTO.getAskBrokerId());
-//            usdkMatchedOrderDO.setFee(); todo
+            usdkMatchedOrderDO.setFee(new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()).multiply(fee));
         }else {
             if (usdkMatchedOrderDTO.getBidOrderPrice() != null){
                 usdkMatchedOrderDO.setOrderPrice(new BigDecimal(usdkMatchedOrderDTO.getBidOrderPrice()));
@@ -133,7 +134,12 @@ public class BeanUtils {
             usdkMatchedOrderDO.setUserId(usdkMatchedOrderDTO.getBidUserId());
             usdkMatchedOrderDO.setMatchUserId(usdkMatchedOrderDTO.getAskUserId());
             usdkMatchedOrderDO.setBrokerId(usdkMatchedOrderDTO.getBidBrokerId());
-//            usdkMatchedOrderDO.setFee(); todo
+            usdkMatchedOrderDO.setFee(
+                    new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()).
+                    multiply(
+                            new BigDecimal(usdkMatchedOrderDTO.getFilledPrice())
+                    ).multiply(fee)
+            );
         }
 
         usdkMatchedOrderDO.setAssetName(usdkMatchedOrderDTO.getAssetName());

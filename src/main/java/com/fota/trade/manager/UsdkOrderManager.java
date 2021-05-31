@@ -867,8 +867,8 @@ public class UsdkOrderManager {
         profiler.complelete("update usdt order");
         //TODO insert 记录
         //写成交记录
-        UsdkMatchedOrderDO askMatchRecordDO = com.fota.trade.common.BeanUtils.extractUsdtRecord(usdkMatchedOrderDTO, OrderDirectionEnum.ASK.getCode(), askUsdkOrder.getBrokerId());
-        UsdkMatchedOrderDO bidMatchRecordDO = com.fota.trade.common.BeanUtils.extractUsdtRecord(usdkMatchedOrderDTO, OrderDirectionEnum.BID.getCode(), bidUsdkOrder.getBrokerId());
+        UsdkMatchedOrderDO askMatchRecordDO = com.fota.trade.common.BeanUtils.extractUsdtRecord(usdkMatchedOrderDTO, OrderDirectionEnum.ASK.getCode(), askUsdkOrder.getBrokerId(),askUsdkOrder.getFee());
+        UsdkMatchedOrderDO bidMatchRecordDO = com.fota.trade.common.BeanUtils.extractUsdtRecord(usdkMatchedOrderDTO, OrderDirectionEnum.BID.getCode(), bidUsdkOrder.getBrokerId(),askUsdkOrder.getFee());
         int ret = usdkMatchedOrder.insert(Arrays.asList(askMatchRecordDO, bidMatchRecordDO));
         profiler.complelete("insert match record");
         if (ret < 2){
@@ -877,10 +877,10 @@ public class UsdkOrderManager {
         }
 
 
-        // 买币 bid +totalAsset = filledAmount - filledAmount * feeRate
+        // 买币 bid +totalAsset = filledAmount - filledAmount * feeRate 得到的币的数量 乘以手续费
         // 买币 bid -totalUsdk = filledAmount * filledPrice
         // 买币 bid -lockedUsdk = filledAmount * bidOrderPrice
-        // 卖币 ask +totalUsdk = filledAmount * filledPrice - filledAmount * filledPrice * feeRate
+        // 卖币 ask +totalUsdk = filledAmount * filledPrice - filledAmount * filledPrice * feeRate   得到总的多少钱 乘以手续费
         // 卖币 ask -lockedAsset = filledAmount
         // 卖币 ask -totalAsset = filledAmount
         BigDecimal addLockedBTC = BigDecimal.ZERO;
