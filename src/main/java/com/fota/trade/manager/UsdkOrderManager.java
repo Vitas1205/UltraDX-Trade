@@ -865,7 +865,7 @@ public class UsdkOrderManager {
             }
         }
         profiler.complelete("update usdt order");
-
+        //TODO insert 记录
         //写成交记录
         UsdkMatchedOrderDO askMatchRecordDO = com.fota.trade.common.BeanUtils.extractUsdtRecord(usdkMatchedOrderDTO, OrderDirectionEnum.ASK.getCode(), askUsdkOrder.getBrokerId());
         UsdkMatchedOrderDO bidMatchRecordDO = com.fota.trade.common.BeanUtils.extractUsdtRecord(usdkMatchedOrderDTO, OrderDirectionEnum.BID.getCode(), bidUsdkOrder.getBrokerId());
@@ -900,10 +900,14 @@ public class UsdkOrderManager {
         Integer quoteAssetId = tradingPairConfig.getQuoteId();
         if (!askUsdkOrder.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
             //卖方BTC账户增加
+
+
+
             //现货交易收取手续费
             BigDecimal askFeeRate = askUsdkOrder.getFee() == null ? BigDecimal.ZERO : askUsdkOrder.getFee();
             BigDecimal fee = askFeeRate.multiply(addAskTotalBTC);
             recordUsdkOrderFee(askUsdkOrder.getBrokerId(), fee, quoteAssetId);
+
 
             CapitalAccountAddAmountDTO askBtcCapital = new CapitalAccountAddAmountDTO();
             askBtcCapital.setUserId(askUsdkOrder.getUserId());
@@ -911,6 +915,7 @@ public class UsdkOrderManager {
             askBtcCapital.setAddTotal(addAskTotalBTC.subtract(fee));
             updateList.add(askBtcCapital);
             //卖方对应资产账户的冻结和总金额减少
+
             CapitalAccountAddAmountDTO askMatchAssetCapital = new CapitalAccountAddAmountDTO();
             askMatchAssetCapital.setUserId(askUsdkOrder.getUserId());
             askMatchAssetCapital.setAssetId(baseAssetId);
@@ -918,6 +923,7 @@ public class UsdkOrderManager {
             askMatchAssetCapital.setAddOrderLocked(addLockedAsset.negate());
             updateList.add(askMatchAssetCapital);
         }
+
         if (!bidUsdkOrder.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
             //买方BTC账户总金额和冻结减少
             CapitalAccountAddAmountDTO bidBtcCapital = new CapitalAccountAddAmountDTO();

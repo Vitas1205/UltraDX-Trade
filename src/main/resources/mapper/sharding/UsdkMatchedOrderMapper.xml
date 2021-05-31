@@ -20,23 +20,30 @@
         <result column="asset_name"  property="assetName" />
         <result column="asset_id"  property="assetId" />
         <result column="broker_id"  property="brokerId" />
+        <result column="fee"  property="fee" />
+
     </resultMap>
     <insert id="insert" parameterType="com.fota.trade.domain.UsdkMatchedOrderDO">
         insert into trade_usdt_matched_record (gmt_create, gmt_modified
         , order_id, user_id, order_price, order_direction, close_type, match_user_id
-        , match_id, match_type, filled_price, filled_amount, asset_name, asset_id, broker_id)
+        , match_id, match_type, filled_price, filled_amount, asset_name, asset_id, broker_id,
+        fee
+        )
         values
         <foreach collection="list" item="item" separator=",">
             (now(3), now(3),
             #{item.orderId}, #{item.userId}, #{item.orderPrice}, #{item.orderDirection}, #{item.closeType}, #{item.matchUserId},
-            #{item.matchId}, #{item.matchType}, #{item.filledPrice},  #{item.filledAmount}, #{item.assetName}, #{item.assetId}, #{item.brokerId})
+            #{item.matchId}, #{item.matchType}, #{item.filledPrice},  #{item.filledAmount}, #{item.assetName}, #{item.assetId},
+            #{item.brokerId},
+            #{item.fee})
         </foreach>
     </insert>
 
     <sql id="Base_Column_List">
         id, gmt_create, gmt_modified
         , order_id, user_id, order_price, order_direction, close_type, match_user_id
-        , match_id, match_type, filled_price, filled_amount, asset_name, asset_id, broker_id
+        , match_id, match_type, filled_price, filled_amount, asset_name, asset_id, broker_id,
+        fee
     </sql>
 
     <select id="countByUserId" resultType="java.lang.Integer">
