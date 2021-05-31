@@ -196,7 +196,7 @@ public class UsdkOrderServiceImpl implements UsdkOrderService {
 
     @Override
     public Result<List<PlaceOrderResult>> batchOrder(PlaceOrderRequest<PlaceCoinOrderDTO> placeOrderRequest) {
-        log.error("batchOrder:{}, placeOrderRequest:{}", placeOrderRequest);
+//        log.error("batchOrder:{}, placeOrderRequest:{}", placeOrderRequest);
 
         Result<List<PlaceOrderResult>> result = new Result<>();
         if (placeOrderRequest.getCaller() == null){

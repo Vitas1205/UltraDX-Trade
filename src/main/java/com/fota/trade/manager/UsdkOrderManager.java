@@ -95,8 +95,7 @@ public class UsdkOrderManager {
     private RealTimeEntrustManager realTimeEntrustManager;
     @Autowired
     private MonitorLogManager monitorLogManager;
-    @Autowired
-    private BrokerUsdkOrderFeeListManager brokerUsdkOrderFeeListManager;
+
     @Autowired
     private RedisManager redisManager;
     @Autowired
@@ -865,10 +864,10 @@ public class UsdkOrderManager {
             }
         }
         profiler.complelete("update usdt order");
-
+        //TODO insert 记录
         //写成交记录
-        UsdkMatchedOrderDO askMatchRecordDO = com.fota.trade.common.BeanUtils.extractUsdtRecord(usdkMatchedOrderDTO, OrderDirectionEnum.ASK.getCode(), askUsdkOrder.getBrokerId());
-        UsdkMatchedOrderDO bidMatchRecordDO = com.fota.trade.common.BeanUtils.extractUsdtRecord(usdkMatchedOrderDTO, OrderDirectionEnum.BID.getCode(), bidUsdkOrder.getBrokerId());
+        UsdkMatchedOrderDO askMatchRecordDO = com.fota.trade.common.BeanUtils.extractUsdtRecord(usdkMatchedOrderDTO, OrderDirectionEnum.ASK.getCode(), askUsdkOrder.getBrokerId(),askUsdkOrder.getFee());
+        UsdkMatchedOrderDO bidMatchRecordDO = com.fota.trade.common.BeanUtils.extractUsdtRecord(usdkMatchedOrderDTO, OrderDirectionEnum.BID.getCode(), bidUsdkOrder.getBrokerId(),bidUsdkOrder.getFee());
         int ret = usdkMatchedOrder.insert(Arrays.asList(askMatchRecordDO, bidMatchRecordDO));
         profiler.complelete("insert match record");
         if (ret < 2){
@@ -877,10 +876,10 @@ public class UsdkOrderManager {
         }
 
 
-        // 买币 bid +totalAsset = filledAmount - filledAmount * feeRate
+        // 买币 bid +totalAsset = filledAmount - filledAmount * feeRate 得到的币的数量 乘以手续费
         // 买币 bid -totalUsdk = filledAmount * filledPrice
         // 买币 bid -lockedUsdk = filledAmount * bidOrderPrice
-        // 卖币 ask +totalUsdk = filledAmount * filledPrice - filledAmount * filledPrice * feeRate
+        // 卖币 ask +totalUsdk = filledAmount * filledPrice - filledAmount * filledPrice * feeRate   得到总的多少钱 乘以手续费
         // 卖币 ask -lockedAsset = filledAmount
         // 卖币 ask -totalAsset = filledAmount
         BigDecimal addLockedBTC = BigDecimal.ZERO;
@@ -900,10 +899,14 @@ public class UsdkOrderManager {
         Integer quoteAssetId = tradingPairConfig.getQuoteId();
         if (!askUsdkOrder.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
             //卖方BTC账户增加
+
+
+
             //现货交易收取手续费
             BigDecimal askFeeRate = askUsdkOrder.getFee() == null ? BigDecimal.ZERO : askUsdkOrder.getFee();
             BigDecimal fee = askFeeRate.multiply(addAskTotalBTC);
             recordUsdkOrderFee(askUsdkOrder.getBrokerId(), fee, quoteAssetId);
+
 
             CapitalAccountAddAmountDTO askBtcCapital = new CapitalAccountAddAmountDTO();
             askBtcCapital.setUserId(askUsdkOrder.getUserId());
@@ -911,6 +914,7 @@ public class UsdkOrderManager {
             askBtcCapital.setAddTotal(addAskTotalBTC.subtract(fee));
             updateList.add(askBtcCapital);
             //卖方对应资产账户的冻结和总金额减少
+
             CapitalAccountAddAmountDTO askMatchAssetCapital = new CapitalAccountAddAmountDTO();
             askMatchAssetCapital.setUserId(askUsdkOrder.getUserId());
             askMatchAssetCapital.setAssetId(baseAssetId);
@@ -918,6 +922,7 @@ public class UsdkOrderManager {
             askMatchAssetCapital.setAddOrderLocked(addLockedAsset.negate());
             updateList.add(askMatchAssetCapital);
         }
+
         if (!bidUsdkOrder.getOrderType().equals(OrderTypeEnum.ENFORCE.getCode())){
             //买方BTC账户总金额和冻结减少
             CapitalAccountAddAmountDTO bidBtcCapital = new CapitalAccountAddAmountDTO();

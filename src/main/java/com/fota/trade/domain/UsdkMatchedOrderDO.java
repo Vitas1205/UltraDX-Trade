@@ -43,4 +43,7 @@ public class UsdkMatchedOrderDO {
     private Integer assetId;
 
     private Long brokerId;
+
+    private BigDecimal fee;
+
 }
