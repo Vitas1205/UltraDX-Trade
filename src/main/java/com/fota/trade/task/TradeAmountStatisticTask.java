@@ -121,6 +121,7 @@ public class TradeAmountStatisticTask {
                 List<UsdkMatchedOrderDO> usdkMatchedOrderDOList = usdkMatchedOrderMapper.listByUserId(userId, null, 0, Integer.MAX_VALUE, startTime, nowTime);
                 if(!CollectionUtils.isEmpty(usdkMatchedOrderDOList)) {
                     tradeAmount30days = usdkMatchedOrderDOList.stream()
+                            .filter(x-> "UNKNOW".equals(x.getAssetName()))
                             .map(x -> x.getFilledAmount().multiply(x.getFilledPrice()).multiply(getRateByAssetName(x.getAssetName())))
                             .reduce(BigDecimal.ZERO, BigDecimal::add)
                             .setScale(4, RoundingMode.HALF_UP);
