@@ -16,6 +16,7 @@ import com.fota.trade.mapper.sharding.UsdkMatchedOrderMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
@@ -51,12 +52,18 @@ public class TradeAmountStatisticTask {
     @Autowired
     private BrokerTradingPairManager brokerTradingPairManager;
 
+    @Value("${jobStart:false}")
+    private String value;
+
     /**
      * 每天0时统计30天内交易总量和平台币锁仓量
      */
 //    @Scheduled(cron = "0 0 0 * * ?")
     @Scheduled(cron = "0 0/30 * * * ?")
     public void tradeAmountStatistic() {
+        if(value.equals("false")){
+            return;
+        }
         taskLog.info("tradeAmountStatistic task start!");
         List<Asset> assets = fotaAssetManager.getAllAssets();
         List<UserCapitalDTO> userCapitalDTOList = new ArrayList<>();
