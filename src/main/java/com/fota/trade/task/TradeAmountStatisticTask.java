@@ -152,18 +152,18 @@ public class TradeAmountStatisticTask {
 
 
     private static BigDecimal getExchangePrice(UsdkMatchedOrderDO usdkMatchedOrderDO){
-        String assetName = usdkMatchedOrderDO.getAssetName();
-        String baseAssetName = assetName.split("/")[0];
-        String quoteAssetName = assetName.split("/")[1];
+        String[] assetNameList = usdkMatchedOrderDO.getAssetName().split("/");
+        String baseAssetName = assetNameList[0];
+        String quoteAssetName = assetNameList[1];
         if(usdkMatchedOrderDO.getOrderDirection()==1){
             if(AssetTypeEnum.TWD.getDesc().equals(quoteAssetName)){
                 return usdkMatchedOrderDO.getFilledAmount()
                         .multiply(usdkMatchedOrderDO.getFilledPrice())
-                        .multiply(rateMap.get(assetName));
+                        .multiply(rateMap.get(usdkMatchedOrderDO.getAssetName()));
             }else{
                 return usdkMatchedOrderDO.getFilledAmount()
                         .multiply(usdkMatchedOrderDO.getFilledPrice())
-                        .multiply(rateMap.get(assetName).multiply(rateMap.get(quoteAssetName+"/TWD")));
+                        .multiply(rateMap.get(usdkMatchedOrderDO.getAssetName()).multiply(rateMap.get(quoteAssetName+"/TWD")));
             }
         }else{
             if(AssetTypeEnum.TWD.getDesc().equals(baseAssetName)){
