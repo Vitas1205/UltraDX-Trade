@@ -135,9 +135,9 @@ public class BeanUtils {
             usdkMatchedOrderDO.setMatchUserId(usdkMatchedOrderDTO.getAskUserId());
             usdkMatchedOrderDO.setBrokerId(usdkMatchedOrderDTO.getBidBrokerId());
             usdkMatchedOrderDO.setFee(
-                    new BigDecimal(usdkMatchedOrderDTO.getFilledAmount()).
+                    new BigDecimal(StringUtils.isEmpty(usdkMatchedOrderDTO.getFilledAmount())?"0":usdkMatchedOrderDTO.getFilledAmount()).
                     multiply(
-                            new BigDecimal(usdkMatchedOrderDTO.getFilledPrice())
+                            new BigDecimal(StringUtils.isEmpty(usdkMatchedOrderDTO.getFilledPrice())?"0":usdkMatchedOrderDTO.getFilledPrice())
                     ).multiply(fee)
             );
         }
