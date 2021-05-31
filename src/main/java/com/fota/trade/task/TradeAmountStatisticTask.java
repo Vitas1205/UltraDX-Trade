@@ -73,7 +73,7 @@ public class TradeAmountStatisticTask {
      * 每天0时统计30天内交易总量和平台币锁仓量
      */
 //    @Scheduled(cron = "0 0 0 * * ?")
-    @Scheduled(cron = "0 0/30 * * * ?")
+    @Scheduled(cron = "0 0/10 * * * ?")
     public void tradeAmountStatistic() {
         if(value.equals("false")){
             return;
@@ -173,10 +173,10 @@ public class TradeAmountStatisticTask {
             } else {
                 if (AssetTypeEnum.TWD.getDesc().equals(baseAssetName)) {
                     return usdkMatchedOrderDO.getFilledAmount()
-                            .multiply(rateMap.get(quoteAssetName + "/" + baseAssetName));
+                            .multiply(BigDecimal.ONE.divide(rateMap.get(usdkMatchedOrderDO.getAssetName()),4,RoundingMode.HALF_UP));
                 } else {
                     return usdkMatchedOrderDO.getFilledAmount()
-                            .multiply(rateMap.get(quoteAssetName + "/" + baseAssetName).multiply(rateMap.get(baseAssetName + "/TWD")));
+                            .multiply(BigDecimal.ONE.divide(rateMap.get(usdkMatchedOrderDO.getAssetName()),4,RoundingMode.HALF_UP).multiply(rateMap.get(baseAssetName + "/TWD")));
                 }
             }
         } catch (Exception e){
