@@ -73,8 +73,8 @@ public class TradeAmountStatisticTask {
     /**
      * 每天0时统计30天内交易总量和平台币锁仓量
      */
-//    @Scheduled(cron = "0 0 0 * * ?")
-    @Scheduled(cron = "0 0/10 * * * ?")
+    @Scheduled(cron = "0 0 0 * * ?")
+//    @Scheduled(cron = "0 0/10 * * * ?")
     public void tradeAmountStatistic() {
         if(value.equals("false")){
             return;
