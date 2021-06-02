@@ -59,6 +59,7 @@ public class TradeAmountStatisticTask {
     private HashMap<String, BigDecimal> rateMap;
     private List<Asset> assets;
     private ExecutorService threadPool;
+    private ExecutorService singleThreadPool;
 
     @PostConstruct
     public void initRateMap(){
@@ -66,6 +67,7 @@ public class TradeAmountStatisticTask {
         rateMap = getExchangeRate(brokerId);
         assets = fotaAssetManager.getAllAssets();
         threadPool = new ThreadPoolExecutor(8, 16, 0L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+        singleThreadPool = Executors.newSingleThreadExecutor();
         taskLog.info("rateMap:{},assets:{}",rateMap,assets);
     }
 
@@ -98,10 +100,10 @@ public class TradeAmountStatisticTask {
     }
 
     class StatisticTask implements Runnable{
-        private final Long userId;
-        private final List<UserCapitalDTO> list;
-        private final Long startTime;
-        private final Long endTime;
+        private Long userId;
+        private List<UserCapitalDTO> list;
+        private Long startTime;
+        private Long endTime;
         StatisticTask(Long userId, List<UserCapitalDTO> list, Long startTime, Long endTime){
             this.userId = userId;
             this.list = list;
@@ -112,7 +114,7 @@ public class TradeAmountStatisticTask {
         @Override
         public void run() {
             try {
-                Thread.sleep(((int) (Math.random() * 10)) * 1000);
+//                Thread.sleep(((int) (Math.random() * 10)) * 1000);
                 BigDecimal canUsedAmount = BigDecimal.ZERO;
                 BigDecimal tradeAmount30days = BigDecimal.ZERO;
                 for(UserCapitalDTO userCapitalDTO : list) {
@@ -133,25 +135,41 @@ public class TradeAmountStatisticTask {
                             .setScale(4, RoundingMode.HALF_UP);
                 }
 
-                UserVipDTO userVipDTO = userVipService.getByUserId(userId);
-                if(userVipDTO != null){
-                    userVipDTO.setTradeAmount30days(tradeAmount30days.toPlainString());
-                    userVipDTO.setLockedAmount(canUsedAmount.toPlainString());
-                    taskLog.info("update userVipDTO:{}",userVipDTO);
-                    userVipService.updateByUserId(userVipDTO);
-                }else{
-                    userVipDTO = new UserVipDTO();
-                    userVipDTO.setUserId(userId);
-                    userVipDTO.setTradeAmount30days(tradeAmount30days.toPlainString());
-                    userVipDTO.setLockedAmount(canUsedAmount.toPlainString());
-                    taskLog.info("insert userVipDTO:{}",userVipDTO);
-                    userVipService.insert(userVipDTO);
-                }
-
+                singleThreadPool.execute(new UpdateTask(userId,canUsedAmount,tradeAmount30days));
             }catch (Exception e){
                 taskLog.error("task error, userId{}",userId,e);
             }
 
+        }
+    }
+
+    class UpdateTask implements Runnable{
+        private Long userId;
+        private BigDecimal canUsedAmount;
+        BigDecimal tradeAmount30days;
+
+        UpdateTask(Long userId, BigDecimal canUsedAmount,BigDecimal tradeAmount30days){
+            this.userId = userId;
+            this.canUsedAmount = canUsedAmount;
+            this.tradeAmount30days= tradeAmount30days;
+        }
+
+        @Override
+        public void run() {
+            UserVipDTO userVipDTO = userVipService.getByUserId(userId);
+            if(userVipDTO != null){
+                userVipDTO.setTradeAmount30days(tradeAmount30days.toPlainString());
+                userVipDTO.setLockedAmount(canUsedAmount.toPlainString());
+                taskLog.info("update userVipDTO:{}",userVipDTO);
+                userVipService.updateByUserId(userVipDTO);
+            }else{
+                userVipDTO = new UserVipDTO();
+                userVipDTO.setUserId(userId);
+                userVipDTO.setTradeAmount30days(tradeAmount30days.toPlainString());
+                userVipDTO.setLockedAmount(canUsedAmount.toPlainString());
+                taskLog.info("insert userVipDTO:{}",userVipDTO);
+                userVipService.insert(userVipDTO);
+            }
         }
     }
 
