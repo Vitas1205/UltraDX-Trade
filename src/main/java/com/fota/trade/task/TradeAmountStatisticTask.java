@@ -58,7 +58,7 @@ public class TradeAmountStatisticTask {
 
     private HashMap<String, BigDecimal> rateMap;
     private List<Asset> assets;
-    private ExecutorService threadPool;
+//    private ExecutorService threadPool;
     private ExecutorService singleThreadPool;
 
     @PostConstruct
@@ -66,7 +66,7 @@ public class TradeAmountStatisticTask {
         Long brokerId = 508090L;
         rateMap = getExchangeRate(brokerId);
         assets = fotaAssetManager.getAllAssets();
-        threadPool = new ThreadPoolExecutor(4, 4, 0L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+//        threadPool = new ThreadPoolExecutor(4, 4, 0L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
         singleThreadPool = Executors.newSingleThreadExecutor();
         taskLog.info("rateMap:{},assets:{}",rateMap,assets);
     }
@@ -95,7 +95,7 @@ public class TradeAmountStatisticTask {
         for(Map.Entry<Long, List<UserCapitalDTO>> entry : map.entrySet()){
             Long userId = entry.getKey();
             List<UserCapitalDTO> list = entry.getValue();
-            threadPool.execute(new StatisticTask(userId,list,startTime,endTime));
+            singleThreadPool.execute(new StatisticTask(userId,list,startTime,endTime));
         }
     }
 
@@ -114,7 +114,6 @@ public class TradeAmountStatisticTask {
         @Override
         public void run() {
             try {
-                Thread.sleep(((int) (Math.random() * 10)) * 1000);
                 BigDecimal canUsedAmount = BigDecimal.ZERO;
                 BigDecimal tradeAmount30days = BigDecimal.ZERO;
                 for(UserCapitalDTO userCapitalDTO : list) {
@@ -134,43 +133,26 @@ public class TradeAmountStatisticTask {
                             .reduce(BigDecimal.ZERO, BigDecimal::add)
                             .setScale(4, RoundingMode.HALF_UP);
                 }
-                taskLog.info("threadPool#current thread: {} execute finish.",Thread.currentThread().getName());
-                singleThreadPool.execute(new UpdateTask(userId,canUsedAmount,tradeAmount30days));
+
+                UserVipDTO userVipDTO = userVipService.getByUserId(userId);
+                if(userVipDTO != null){
+                    userVipDTO.setTradeAmount30days(tradeAmount30days.toPlainString());
+                    userVipDTO.setLockedAmount(canUsedAmount.toPlainString());
+                    taskLog.info("update userVipDTO:{}",userVipDTO);
+                    userVipService.updateByUserId(userVipDTO);
+                }else{
+                    userVipDTO = new UserVipDTO();
+                    userVipDTO.setUserId(userId);
+                    userVipDTO.setTradeAmount30days(tradeAmount30days.toPlainString());
+                    userVipDTO.setLockedAmount(canUsedAmount.toPlainString());
+                    taskLog.info("insert userVipDTO:{}",userVipDTO);
+                    userVipService.insert(userVipDTO);
+                }
+                taskLog.info("singleThreadPool#current thread: {} execute finish.",Thread.currentThread().getName());
             }catch (Exception e){
                 taskLog.error("task error, userId{}",userId,e);
             }
 
-        }
-    }
-
-    class UpdateTask implements Runnable{
-        private Long userId;
-        private BigDecimal canUsedAmount;
-        BigDecimal tradeAmount30days;
-
-        UpdateTask(Long userId, BigDecimal canUsedAmount,BigDecimal tradeAmount30days){
-            this.userId = userId;
-            this.canUsedAmount = canUsedAmount;
-            this.tradeAmount30days= tradeAmount30days;
-        }
-
-        @Override
-        public void run() {
-            UserVipDTO userVipDTO = userVipService.getByUserId(userId);
-            if(userVipDTO != null){
-                userVipDTO.setTradeAmount30days(tradeAmount30days.toPlainString());
-                userVipDTO.setLockedAmount(canUsedAmount.toPlainString());
-                taskLog.info("update userVipDTO:{}",userVipDTO);
-                userVipService.updateByUserId(userVipDTO);
-            }else{
-                userVipDTO = new UserVipDTO();
-                userVipDTO.setUserId(userId);
-                userVipDTO.setTradeAmount30days(tradeAmount30days.toPlainString());
-                userVipDTO.setLockedAmount(canUsedAmount.toPlainString());
-                taskLog.info("insert userVipDTO:{}",userVipDTO);
-                userVipService.insert(userVipDTO);
-            }
-            taskLog.info("singleThreadPool#current thread: {} execute finish.",Thread.currentThread().getName());
         }
     }
 
