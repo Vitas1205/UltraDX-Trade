@@ -72,8 +72,8 @@ public class TradeAmountStatisticTask {
     /**
      * 每天0时统计30天内交易总量和平台币锁仓量
      */
-    @Scheduled(cron = "0 0 0 * * ?")
-//    @Scheduled(cron = "0 0/10 * * * ?")
+//    @Scheduled(cron = "0 0 0 * * ?")
+    @Scheduled(cron = "0 0/10 * * * ?")
     public void tradeAmountStatistic() {
         if(value.equals("false")){
             return;
@@ -112,6 +112,7 @@ public class TradeAmountStatisticTask {
         @Override
         public void run() {
             try {
+                Thread.sleep(((int) (Math.random() * 10)) * 1000);
                 BigDecimal canUsedAmount = BigDecimal.ZERO;
                 BigDecimal tradeAmount30days = BigDecimal.ZERO;
                 for(UserCapitalDTO userCapitalDTO : list) {
