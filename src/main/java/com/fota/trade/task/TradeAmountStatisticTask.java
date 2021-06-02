@@ -66,7 +66,7 @@ public class TradeAmountStatisticTask {
         Long brokerId = 508090L;
         rateMap = getExchangeRate(brokerId);
         assets = fotaAssetManager.getAllAssets();
-        threadPool = new ThreadPoolExecutor(8, 16, 0L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+        threadPool = new ThreadPoolExecutor(4, 4, 0L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
         singleThreadPool = Executors.newSingleThreadExecutor();
         taskLog.info("rateMap:{},assets:{}",rateMap,assets);
     }
@@ -134,7 +134,7 @@ public class TradeAmountStatisticTask {
                             .reduce(BigDecimal.ZERO, BigDecimal::add)
                             .setScale(4, RoundingMode.HALF_UP);
                 }
-
+                taskLog.info("threadPool#current thread: {} execute finish.",Thread.currentThread().getName());
                 singleThreadPool.execute(new UpdateTask(userId,canUsedAmount,tradeAmount30days));
             }catch (Exception e){
                 taskLog.error("task error, userId{}",userId,e);
@@ -170,6 +170,7 @@ public class TradeAmountStatisticTask {
                 taskLog.info("insert userVipDTO:{}",userVipDTO);
                 userVipService.insert(userVipDTO);
             }
+            taskLog.info("singleThreadPool#current thread: {} execute finish.",Thread.currentThread().getName());
         }
     }
 
