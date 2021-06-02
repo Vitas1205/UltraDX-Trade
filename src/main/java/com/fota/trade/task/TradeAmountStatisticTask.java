@@ -114,7 +114,7 @@ public class TradeAmountStatisticTask {
         @Override
         public void run() {
             try {
-//                Thread.sleep(((int) (Math.random() * 10)) * 1000);
+                Thread.sleep(((int) (Math.random() * 10)) * 1000);
                 BigDecimal canUsedAmount = BigDecimal.ZERO;
                 BigDecimal tradeAmount30days = BigDecimal.ZERO;
                 for(UserCapitalDTO userCapitalDTO : list) {
