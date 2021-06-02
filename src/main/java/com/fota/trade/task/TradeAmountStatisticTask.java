@@ -58,16 +58,15 @@ public class TradeAmountStatisticTask {
 
     private HashMap<String, BigDecimal> rateMap;
     private List<Asset> assets;
-//    private ExecutorService threadPool;
-    private ExecutorService singleThreadPool;
+    private ExecutorService threadPool;
 
     @PostConstruct
     public void initRateMap(){
         Long brokerId = 508090L;
         rateMap = getExchangeRate(brokerId);
         assets = fotaAssetManager.getAllAssets();
-//        threadPool = new ThreadPoolExecutor(4, 4, 0L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
-        singleThreadPool = Executors.newSingleThreadExecutor();
+        threadPool = new ThreadPoolExecutor(4, 4, 0L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+//        threadPool = Executors.newSingleThreadExecutor();
         taskLog.info("rateMap:{},assets:{}",rateMap,assets);
     }
 
@@ -95,7 +94,7 @@ public class TradeAmountStatisticTask {
         for(Map.Entry<Long, List<UserCapitalDTO>> entry : map.entrySet()){
             Long userId = entry.getKey();
             List<UserCapitalDTO> list = entry.getValue();
-            singleThreadPool.execute(new StatisticTask(userId,list,startTime,endTime));
+            threadPool.execute(new StatisticTask(userId,list,startTime,endTime));
         }
     }
 
