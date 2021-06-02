@@ -133,21 +133,23 @@ public class TradeAmountStatisticTask {
                             .setScale(4, RoundingMode.HALF_UP);
                 }
 
-                UserVipDTO userVipDTO = userVipService.getByUserId(userId);
-                if(userVipDTO != null){
-                    userVipDTO.setTradeAmount30days(tradeAmount30days.toPlainString());
-                    userVipDTO.setLockedAmount(canUsedAmount.toPlainString());
-                    taskLog.info("update userVipDTO:{}",userVipDTO);
-                    userVipService.updateByUserId(userVipDTO);
-                }else{
-                    userVipDTO = new UserVipDTO();
-                    userVipDTO.setUserId(userId);
-                    userVipDTO.setTradeAmount30days(tradeAmount30days.toPlainString());
-                    userVipDTO.setLockedAmount(canUsedAmount.toPlainString());
-                    taskLog.info("insert userVipDTO:{}",userVipDTO);
-                    userVipService.insert(userVipDTO);
+                synchronized (this) {
+                    UserVipDTO userVipDTO = userVipService.getByUserId(userId);
+                    if (userVipDTO != null) {
+                        userVipDTO.setTradeAmount30days(tradeAmount30days.toPlainString());
+                        userVipDTO.setLockedAmount(canUsedAmount.toPlainString());
+                        taskLog.info("update userVipDTO:{}", userVipDTO);
+                        userVipService.updateByUserId(userVipDTO);
+                    } else {
+                        userVipDTO = new UserVipDTO();
+                        userVipDTO.setUserId(userId);
+                        userVipDTO.setTradeAmount30days(tradeAmount30days.toPlainString());
+                        userVipDTO.setLockedAmount(canUsedAmount.toPlainString());
+                        taskLog.info("insert userVipDTO:{}", userVipDTO);
+                        userVipService.insert(userVipDTO);
+                    }
+                    taskLog.info("singleThreadPool#current thread: {} execute finish.", Thread.currentThread().getName());
                 }
-                taskLog.info("singleThreadPool#current thread: {} execute finish.",Thread.currentThread().getName());
             }catch (Exception e){
                 taskLog.error("task error, userId{}",userId,e);
             }
