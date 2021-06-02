@@ -56,8 +56,8 @@ public class TradeAmountStatisticTask {
     @Value("${jobStart:false}")
     private String value;
 
-    private HashMap<String, BigDecimal> rateMap;
-    private List<Asset> assets;
+    private static HashMap<String, BigDecimal> rateMap;
+    private static List<Asset> assets;
     private ExecutorService threadPool;
 
     @PostConstruct
@@ -128,28 +128,27 @@ public class TradeAmountStatisticTask {
                     tradeAmount30days = usdkMatchedOrderDOList.parallelStream()
                             .filter(x-> !"UNKNOW".equals(x.getAssetName()))
 //                            .map(x -> x.getFilledAmount().multiply(x.getFilledPrice()).multiply(getRateByAssetName(x.getOrderDirection(),x.getAssetName())))
-                            .map(x->getExchangePrice(x))
+                            .map(TradeAmountStatisticTask::getExchangePrice)
                             .reduce(BigDecimal.ZERO, BigDecimal::add)
                             .setScale(4, RoundingMode.HALF_UP);
                 }
 
-                synchronized (this) {
-                    UserVipDTO userVipDTO = userVipService.getByUserId(userId);
-                    if (userVipDTO != null) {
-                        userVipDTO.setTradeAmount30days(tradeAmount30days.toPlainString());
-                        userVipDTO.setLockedAmount(canUsedAmount.toPlainString());
-                        taskLog.info("update userVipDTO:{}", userVipDTO);
-                        userVipService.updateByUserId(userVipDTO);
-                    } else {
-                        userVipDTO = new UserVipDTO();
-                        userVipDTO.setUserId(userId);
-                        userVipDTO.setTradeAmount30days(tradeAmount30days.toPlainString());
-                        userVipDTO.setLockedAmount(canUsedAmount.toPlainString());
-                        taskLog.info("insert userVipDTO:{}", userVipDTO);
-                        userVipService.insert(userVipDTO);
-                    }
-                    taskLog.info("singleThreadPool#current thread: {} execute finish.", Thread.currentThread().getName());
+                UserVipDTO userVipDTO = userVipService.getByUserId(userId);
+                if (userVipDTO != null) {
+                    userVipDTO.setTradeAmount30days(tradeAmount30days.toPlainString());
+                    userVipDTO.setLockedAmount(canUsedAmount.toPlainString());
+                    taskLog.info("update userVipDTO:{}", userVipDTO);
+                    userVipService.updateByUserId(userVipDTO);
+                } else {
+                    userVipDTO = new UserVipDTO();
+                    userVipDTO.setUserId(userId);
+                    userVipDTO.setTradeAmount30days(tradeAmount30days.toPlainString());
+                    userVipDTO.setLockedAmount(canUsedAmount.toPlainString());
+                    taskLog.info("insert userVipDTO:{}", userVipDTO);
+                    userVipService.insert(userVipDTO);
                 }
+                taskLog.info("singleThreadPool#current thread: {} execute finish.", Thread.currentThread().getName());
+
             }catch (Exception e){
                 taskLog.error("task error, userId{}",userId,e);
             }
@@ -158,7 +157,7 @@ public class TradeAmountStatisticTask {
     }
 
 
-    private BigDecimal getExchangePrice(UsdkMatchedOrderDO usdkMatchedOrderDO){
+    private static BigDecimal getExchangePrice(UsdkMatchedOrderDO usdkMatchedOrderDO){
         try {
             String baseAssetName = usdkMatchedOrderDO.getAssetName().split("/")[0];
             String quoteAssetName = usdkMatchedOrderDO.getAssetName().split("/")[1];
