@@ -126,7 +126,7 @@ public class TradeAmountStatisticTask {
 
                 List<UsdkMatchedOrderDO> usdkMatchedOrderDOList = usdkMatchedOrderMapper.listByUserId(userId, null, 0, Integer.MAX_VALUE, startTime, endTime);
                 if(!CollectionUtils.isEmpty(usdkMatchedOrderDOList)) {
-                    tradeAmount30days = usdkMatchedOrderDOList.stream()
+                    tradeAmount30days = usdkMatchedOrderDOList.parallelStream()
                             .filter(x-> !"UNKNOW".equals(x.getAssetName()))
 //                            .map(x -> x.getFilledAmount().multiply(x.getFilledPrice()).multiply(getRateByAssetName(x.getOrderDirection(),x.getAssetName())))
                             .map(x->getExchangePrice(x))
@@ -159,9 +159,8 @@ public class TradeAmountStatisticTask {
 
     private BigDecimal getExchangePrice(UsdkMatchedOrderDO usdkMatchedOrderDO){
         try {
-            String[] assetNameList = usdkMatchedOrderDO.getAssetName().split("/");
-            String baseAssetName = assetNameList[0];
-            String quoteAssetName = assetNameList[1];
+            String baseAssetName = usdkMatchedOrderDO.getAssetName().split("/")[0];
+            String quoteAssetName = usdkMatchedOrderDO.getAssetName().split("/")[1];
             if (usdkMatchedOrderDO.getOrderDirection() == 1) {
                 if (AssetTypeEnum.TWD.getDesc().equals(quoteAssetName)) {
                     return usdkMatchedOrderDO.getFilledAmount()
