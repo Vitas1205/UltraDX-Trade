@@ -57,29 +57,16 @@ public class TradeAmountStatisticTask {
     private String value;
 
     private static HashMap<String, BigDecimal> rateMap;
-    private static List<Asset> assets;
+    private LinkedBlockingQueue<Long> userIdBlockQueue = new LinkedBlockingQueue<>();
     private ExecutorService threadPool;
 
     @PostConstruct
     public void initRateMap(){
         Long brokerId = 508090L;
         rateMap = getExchangeRate(brokerId);
-        assets = fotaAssetManager.getAllAssets();
-        threadPool = new ThreadPoolExecutor(2, 4, 0L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
-//        threadPool = Executors.newSingleThreadExecutor();
-        taskLog.info("rateMap:{},assets:{}",rateMap,assets);
-    }
+        threadPool = new ThreadPoolExecutor(4, 8, 0L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(16), new ThreadPoolExecutor.AbortPolicy());
 
-    /**
-     * 每天0时统计30天内交易总量和平台币锁仓量
-     */
-    @Scheduled(cron = "0 0 0 * * ?")
-//    @Scheduled(cron = "0 0/10 * * * ?")
-    public void tradeAmountStatistic() {
-        if(value.equals("false")){
-            return;
-        }
-        taskLog.info("tradeAmountStatistic task start!");
+        List<Asset> assets = fotaAssetManager.getAllAssets();
         List<UserCapitalDTO> userCapitalDTOList = new ArrayList<>();
         for(Asset asset : assets){
             List<UserCapitalDTO> subUserCapitalDTOList = assetService.getUserCapital(Integer.valueOf(asset.getId()));
@@ -87,25 +74,44 @@ public class TradeAmountStatisticTask {
                 userCapitalDTOList.addAll(subUserCapitalDTOList);
             }
         }
-        Map<Long, List<UserCapitalDTO>> map = userCapitalDTOList.stream().collect(Collectors.groupingBy(UserCapitalDTO::getUserId));
+        Set<Long> userIdSet = userCapitalDTOList.stream().map(UserCapitalDTO::getUserId).collect(Collectors.toSet());
+        userIdBlockQueue.addAll(userIdSet);
+
+        taskLog.info("init rateMap:{},assets:{},userIdBlockQueue:{}",rateMap,assets,userIdBlockQueue);
+    }
+
+    /**
+     * 每天0时统计30天内交易总量和平台币锁仓量
+     */
+//    @Scheduled(cron = "0 0 0 * * ?")
+    @Scheduled(cron = "0 0/10 * * * ?")
+    public void tradeAmountStatistic() {
+        if(value.equals("false")){
+            return;
+        }
+        taskLog.info("tradeAmountStatistic task start!");
+
         //多线程执行
         Long endTime = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
         Long startTime = LocalDateTime.now().minusDays(30).toEpochSecond(ZoneOffset.UTC);
-        for(Map.Entry<Long, List<UserCapitalDTO>> entry : map.entrySet()){
-            Long userId = entry.getKey();
-            List<UserCapitalDTO> list = entry.getValue();
-            threadPool.execute(new StatisticTask(userId,list,startTime,endTime));
+        if(!userIdBlockQueue.isEmpty()){
+            Long userId = userIdBlockQueue.poll();
+            try {
+                threadPool.execute(new StatisticTask(userId, startTime, endTime));
+            }catch (Exception e){
+                taskLog.error("threadPool execute error!",e);
+                userIdBlockQueue.add(userId);
+                taskLog.info("current userIdBlockQueue:{}",userIdBlockQueue);
+            }
         }
     }
 
     class StatisticTask implements Runnable{
         private Long userId;
-        private List<UserCapitalDTO> list;
         private Long startTime;
         private Long endTime;
-        StatisticTask(Long userId, List<UserCapitalDTO> list, Long startTime, Long endTime){
+        StatisticTask(Long userId, Long startTime, Long endTime){
             this.userId = userId;
-            this.list = list;
             this.startTime = startTime;
             this.endTime = endTime;
         }
@@ -113,15 +119,14 @@ public class TradeAmountStatisticTask {
         @Override
         public void run() {
             try {
-                Thread.sleep(((int) (Math.random() * 20))*1000);
                 BigDecimal canUsedAmount = BigDecimal.ZERO;
                 BigDecimal tradeAmount30days = BigDecimal.ZERO;
-                for(UserCapitalDTO userCapitalDTO : list) {
-                    if(userCapitalDTO.getAssetId().equals(AssetTypeEnum.TWD.getCode())) {
-                        canUsedAmount = new BigDecimal(userCapitalDTO.getAmount())
-                                .subtract(new BigDecimal(userCapitalDTO.getLockedAmount()))
-                                .setScale(4, RoundingMode.HALF_UP);
-                    }
+
+                UserCapitalDTO userCapitalDTO = assetService.getUserCapital(userId,AssetTypeEnum.TWD.getCode());
+                if(userCapitalDTO != null) {
+                    canUsedAmount = new BigDecimal(userCapitalDTO.getAmount())
+                            .subtract(new BigDecimal(userCapitalDTO.getLockedAmount()))
+                            .setScale(4, RoundingMode.HALF_UP);
                 }
 
                 List<UsdkMatchedOrderDO> usdkMatchedOrderDOList = usdkMatchedOrderMapper.listByUserId(userId, null, 0, Integer.MAX_VALUE, startTime, endTime);
