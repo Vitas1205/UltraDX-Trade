@@ -77,7 +77,7 @@ public class TradeAmountStatisticTask {
         Set<Long> userIdSet = userCapitalDTOList.stream().map(UserCapitalDTO::getUserId).collect(Collectors.toSet());
         userIdBlockQueue.addAll(userIdSet);
 
-        taskLog.info("init rateMap:{},assets:{},userIdBlockQueue:{}",rateMap,assets,userIdBlockQueue);
+        taskLog.info("init rateMap:{},assets:{},userIdBlockQueue:{},size:{}",rateMap,assets,userIdBlockQueue,userIdBlockQueue.size());
     }
 
     /**
@@ -101,7 +101,7 @@ public class TradeAmountStatisticTask {
             }catch (Exception e){
                 taskLog.error("threadPool execute error!",e);
                 userIdBlockQueue.add(userId);
-                taskLog.info("current userIdBlockQueue:{}",userIdBlockQueue);
+                taskLog.info("current userIdBlockQueue:{},size:{}",userIdBlockQueue,userIdBlockQueue.size());
             }
         }
     }
