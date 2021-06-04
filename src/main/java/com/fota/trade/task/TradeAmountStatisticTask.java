@@ -94,8 +94,9 @@ public class TradeAmountStatisticTask {
         //多线程执行
         Long endTime = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
         Long startTime = LocalDateTime.now().minusDays(30).toEpochSecond(ZoneOffset.UTC);
-        if(!userIdBlockQueue.isEmpty()){
+        while(!userIdBlockQueue.isEmpty()){
             Long userId = userIdBlockQueue.poll();
+            taskLog.info("current userIdBlockQueue:{},size:{}",userIdBlockQueue,userIdBlockQueue.size());
             try {
                 threadPool.execute(new StatisticTask(userId, startTime, endTime));
             }catch (Exception e){
