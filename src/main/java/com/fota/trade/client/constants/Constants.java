@@ -13,6 +13,6 @@ public class Constants {
     public static final long NOT_EXIST = -1L;
 
     public static final int MAX_BATCH_SIZE=50;
-    public static final Integer feePrecision = 8;
+    public static final Integer feePrecision = 12;
 
 }
