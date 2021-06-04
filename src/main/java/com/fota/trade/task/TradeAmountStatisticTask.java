@@ -100,9 +100,8 @@ public class TradeAmountStatisticTask {
             try {
                 threadPool.execute(new StatisticTask(userId, startTime, endTime));
             }catch (Exception e){
-                taskLog.error("threadPool execute error!",e);
                 userIdBlockQueue.add(userId);
-                taskLog.info("current userIdBlockQueue:{},size:{}",userIdBlockQueue,userIdBlockQueue.size());
+                taskLog.error("threadPool execute error! current userIdBlockQueue:{},size:{},e:{}",userIdBlockQueue,userIdBlockQueue.size(),e.getMessage());
             }
         }
     }
