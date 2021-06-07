@@ -68,7 +68,7 @@ public class TradeAmountStatisticTask {
     public void initRateMap(){
         Long brokerId = 508090L;
         rateMap = getExchangeRate(brokerId);
-        threadPool = new ThreadPoolExecutor(8, 16, 0L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(32), new ThreadPoolExecutor.AbortPolicy());
+        threadPool = new ThreadPoolExecutor(8, 16, 0L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(), new ThreadPoolExecutor.AbortPolicy());
 
         taskLog.info("init rateMap:{}",rateMap);
     }
@@ -100,7 +100,7 @@ public class TradeAmountStatisticTask {
         CountDownLatch countDownLatch = new CountDownLatch(userIdBlockQueue.size());
         Long endTime = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
         Long startTime = LocalDateTime.now().minusDays(30).toEpochSecond(ZoneOffset.UTC);
-        List<UserVipDTO> insetUserVipDTOs = new ArrayList<>();
+        List<UserVipDTO> insertUserVipDTOs = new ArrayList<>();
         List<UserVipDTO> updateUserVipDTOs = new ArrayList<>();
 
         while(!userIdBlockQueue.isEmpty()){
@@ -140,7 +140,7 @@ public class TradeAmountStatisticTask {
                             userVipDTO.setUserId(userId);
                             userVipDTO.setTradeAmount30days(tradeAmount30days.toPlainString());
                             userVipDTO.setLockedAmount(canUsedAmount.toPlainString());
-                            insetUserVipDTOs.add(userVipDTO);
+                            insertUserVipDTOs.add(userVipDTO);
                             countDownLatch.countDown();
                         }
                     }catch (Exception e){
@@ -156,9 +156,9 @@ public class TradeAmountStatisticTask {
         try {
             taskLog.info("countDownLatch.getCount:{}",countDownLatch.getCount());
             countDownLatch.await();
-            userVipService.batchInsert(insetUserVipDTOs);
+            userVipService.batchInsert(insertUserVipDTOs);
             userVipService.batchUpdate(updateUserVipDTOs);
-            taskLog.info("insetUserVipDTOs.size:{},updateUserVipDTOs.size:{}",insetUserVipDTOs.size(),updateUserVipDTOs.size());
+            taskLog.info("insertUserVipDTOs.size:{},updateUserVipDTOs.size:{}",insertUserVipDTOs.size(),updateUserVipDTOs.size());
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
