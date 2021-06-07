@@ -57,7 +57,6 @@ public class TradeAmountStatisticTask {
     private String value;
 
     private static HashMap<String, BigDecimal> rateMap;
-    private LinkedBlockingQueue<Long> userIdBlockQueue = new LinkedBlockingQueue<>();
     private ExecutorService threadPool;
 
     //做市账号
@@ -71,19 +70,7 @@ public class TradeAmountStatisticTask {
         rateMap = getExchangeRate(brokerId);
         threadPool = new ThreadPoolExecutor(4, 8, 0L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(16), new ThreadPoolExecutor.AbortPolicy());
 
-        List<Asset> assets = fotaAssetManager.getAllAssets();
-        List<UserCapitalDTO> userCapitalDTOList = new ArrayList<>();
-        for(Asset asset : assets){
-            List<UserCapitalDTO> subUserCapitalDTOList = assetService.getUserCapital(Integer.valueOf(asset.getId()));
-            if(!CollectionUtils.isEmpty(subUserCapitalDTOList)){
-                userCapitalDTOList.addAll(subUserCapitalDTOList);
-            }
-        }
-        Set<Long> userIdSet = userCapitalDTOList.stream().map(UserCapitalDTO::getUserId)
-                .filter(e->!MARKET_USER_ID.contains(e.intValue())).collect(Collectors.toSet());
-        userIdBlockQueue.addAll(userIdSet);
-
-        taskLog.info("init rateMap:{},assets:{},userIdBlockQueue:{},size:{}",rateMap,assets,userIdBlockQueue,userIdBlockQueue.size());
+        taskLog.info("init rateMap:{}",rateMap);
     }
 
     /**
@@ -96,6 +83,19 @@ public class TradeAmountStatisticTask {
             return;
         }
         taskLog.info("tradeAmountStatistic task start!");
+
+        List<Asset> assets = fotaAssetManager.getAllAssets();
+        List<UserCapitalDTO> userCapitalDTOList = new ArrayList<>();
+        for(Asset asset : assets){
+            List<UserCapitalDTO> subUserCapitalDTOList = assetService.getUserCapital(Integer.valueOf(asset.getId()));
+            if(!CollectionUtils.isEmpty(subUserCapitalDTOList)){
+                userCapitalDTOList.addAll(subUserCapitalDTOList);
+            }
+        }
+        LinkedBlockingQueue<Long> userIdBlockQueue = userCapitalDTOList.stream().map(UserCapitalDTO::getUserId)
+                .filter(e -> !MARKET_USER_ID.contains(e.intValue())).distinct().collect(Collectors.toCollection(LinkedBlockingQueue::new));
+        taskLog.info("handle assets:{},userIdBlockQueue:{},size:{}",assets,userIdBlockQueue,userIdBlockQueue.size());
+
 
         //多线程执行
         Long endTime = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
