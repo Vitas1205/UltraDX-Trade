@@ -68,7 +68,7 @@ public class TradeAmountStatisticTask {
     public void initRateMap(){
         Long brokerId = 508090L;
         rateMap = getExchangeRate(brokerId);
-        threadPool = new ThreadPoolExecutor(4, 8, 0L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(16), new ThreadPoolExecutor.AbortPolicy());
+        threadPool = new ThreadPoolExecutor(8, 16, 0L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(32), new ThreadPoolExecutor.AbortPolicy());
 
         taskLog.info("init rateMap:{}",rateMap);
     }
@@ -96,76 +96,72 @@ public class TradeAmountStatisticTask {
                 .filter(e -> !MARKET_USER_ID.contains(e.intValue())).distinct().collect(Collectors.toCollection(LinkedBlockingQueue::new));
         taskLog.info("handle assets:{},userIdBlockQueue:{},size:{}",assets,userIdBlockQueue,userIdBlockQueue.size());
 
-
         //多线程执行
+        CountDownLatch countDownLatch = new CountDownLatch(userIdBlockQueue.size());
         Long endTime = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
         Long startTime = LocalDateTime.now().minusDays(30).toEpochSecond(ZoneOffset.UTC);
+        List<UserVipDTO> insetUserVipDTOs = new ArrayList<>();
+        List<UserVipDTO> updateUserVipDTOs = new ArrayList<>();
+
         while(!userIdBlockQueue.isEmpty()){
-            Long userId = userIdBlockQueue.poll();
             taskLog.info("current userIdBlockQueue:{},size:{}",userIdBlockQueue,userIdBlockQueue.size());
+            Long userId = userIdBlockQueue.poll();
             try {
-                threadPool.execute(new StatisticTask(userId, startTime, endTime));
+                threadPool.execute(()->{
+                    try {
+                        BigDecimal canUsedAmount = BigDecimal.ZERO;
+                        BigDecimal tradeAmount30days = BigDecimal.ZERO;
+
+                        UserCapitalDTO userCapitalDTO = assetService.getUserCapital(userId,AssetTypeEnum.TWD.getCode());
+                        if(userCapitalDTO != null) {
+                            canUsedAmount = new BigDecimal(userCapitalDTO.getAmount())
+                                    .subtract(new BigDecimal(userCapitalDTO.getLockedAmount()))
+                                    .setScale(4, RoundingMode.HALF_UP);
+                        }
+
+                        List<UsdkMatchedOrderDO> usdkMatchedOrderDOList = usdkMatchedOrderMapper.listByUserId(userId, null, 0, Integer.MAX_VALUE, startTime, endTime);
+                        if(!CollectionUtils.isEmpty(usdkMatchedOrderDOList)) {
+                            tradeAmount30days = usdkMatchedOrderDOList.parallelStream()
+                                    .filter(x-> !"UNKNOW".equals(x.getAssetName()))
+//                            .map(x -> x.getFilledAmount().multiply(x.getFilledPrice()).multiply(getRateByAssetName(x.getOrderDirection(),x.getAssetName())))
+                                    .map(TradeAmountStatisticTask::getExchangePrice)
+                                    .reduce(BigDecimal.ZERO, BigDecimal::add)
+                                    .setScale(4, RoundingMode.HALF_UP);
+                        }
+
+                        UserVipDTO userVipDTO = userVipService.getByUserId(userId);
+                        if (userVipDTO != null) {
+                            userVipDTO.setTradeAmount30days(tradeAmount30days.toPlainString());
+                            userVipDTO.setLockedAmount(canUsedAmount.toPlainString());
+                            updateUserVipDTOs.add(userVipDTO);
+                            countDownLatch.countDown();
+                        } else {
+                            userVipDTO = new UserVipDTO();
+                            userVipDTO.setUserId(userId);
+                            userVipDTO.setTradeAmount30days(tradeAmount30days.toPlainString());
+                            userVipDTO.setLockedAmount(canUsedAmount.toPlainString());
+                            insetUserVipDTOs.add(userVipDTO);
+                            countDownLatch.countDown();
+                        }
+                    }catch (Exception e){
+                        taskLog.error("task error, userId{}",userId,e);
+                    }
+                });
             }catch (Exception e){
                 userIdBlockQueue.add(userId);
                 taskLog.error("threadPool execute error! current userIdBlockQueue:{},size:{},e:{}",userIdBlockQueue,userIdBlockQueue.size(),e.getMessage());
             }
         }
-    }
 
-    class StatisticTask implements Runnable{
-        private Long userId;
-        private Long startTime;
-        private Long endTime;
-        StatisticTask(Long userId, Long startTime, Long endTime){
-            this.userId = userId;
-            this.startTime = startTime;
-            this.endTime = endTime;
+        try {
+            countDownLatch.await();
+            userVipService.batchInsert(insetUserVipDTOs);
+            userVipService.batchUpdate(updateUserVipDTOs);
+            taskLog.error("insetUserVipDTOs.size:{},updateUserVipDTOs.size:{}",insetUserVipDTOs.size(),updateUserVipDTOs.size());
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
 
-        @Override
-        public void run() {
-            try {
-                BigDecimal canUsedAmount = BigDecimal.ZERO;
-                BigDecimal tradeAmount30days = BigDecimal.ZERO;
-
-                UserCapitalDTO userCapitalDTO = assetService.getUserCapital(userId,AssetTypeEnum.TWD.getCode());
-                if(userCapitalDTO != null) {
-                    canUsedAmount = new BigDecimal(userCapitalDTO.getAmount())
-                            .subtract(new BigDecimal(userCapitalDTO.getLockedAmount()))
-                            .setScale(4, RoundingMode.HALF_UP);
-                }
-
-                List<UsdkMatchedOrderDO> usdkMatchedOrderDOList = usdkMatchedOrderMapper.listByUserId(userId, null, 0, Integer.MAX_VALUE, startTime, endTime);
-                if(!CollectionUtils.isEmpty(usdkMatchedOrderDOList)) {
-                    tradeAmount30days = usdkMatchedOrderDOList.parallelStream()
-                            .filter(x-> !"UNKNOW".equals(x.getAssetName()))
-//                            .map(x -> x.getFilledAmount().multiply(x.getFilledPrice()).multiply(getRateByAssetName(x.getOrderDirection(),x.getAssetName())))
-                            .map(TradeAmountStatisticTask::getExchangePrice)
-                            .reduce(BigDecimal.ZERO, BigDecimal::add)
-                            .setScale(4, RoundingMode.HALF_UP);
-                }
-
-                UserVipDTO userVipDTO = userVipService.getByUserId(userId);
-                if (userVipDTO != null) {
-                    userVipDTO.setTradeAmount30days(tradeAmount30days.toPlainString());
-                    userVipDTO.setLockedAmount(canUsedAmount.toPlainString());
-                    taskLog.info("update userVipDTO:{}", userVipDTO);
-                    userVipService.updateByUserId(userVipDTO);
-                } else {
-                    userVipDTO = new UserVipDTO();
-                    userVipDTO.setUserId(userId);
-                    userVipDTO.setTradeAmount30days(tradeAmount30days.toPlainString());
-                    userVipDTO.setLockedAmount(canUsedAmount.toPlainString());
-                    taskLog.info("insert userVipDTO:{}", userVipDTO);
-                    userVipService.insert(userVipDTO);
-                }
-                taskLog.info("threadPool#current thread: {} execute finish.", Thread.currentThread().getName());
-
-            }catch (Exception e){
-                taskLog.error("task error, userId{}",userId,e);
-            }
-
-        }
     }
 
 
