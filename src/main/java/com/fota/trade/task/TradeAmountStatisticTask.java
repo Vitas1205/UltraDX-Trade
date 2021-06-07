@@ -134,17 +134,17 @@ public class TradeAmountStatisticTask {
                             userVipDTO.setTradeAmount30days(tradeAmount30days.toPlainString());
                             userVipDTO.setLockedAmount(canUsedAmount.toPlainString());
                             updateUserVipDTOs.add(userVipDTO);
-                            countDownLatch.countDown();
                         } else {
                             userVipDTO = new UserVipDTO();
                             userVipDTO.setUserId(userId);
                             userVipDTO.setTradeAmount30days(tradeAmount30days.toPlainString());
                             userVipDTO.setLockedAmount(canUsedAmount.toPlainString());
                             insertUserVipDTOs.add(userVipDTO);
-                            countDownLatch.countDown();
                         }
                     }catch (Exception e){
                         taskLog.error("task error, userId{}",userId,e);
+                    }finally {
+                        countDownLatch.countDown();
                     }
                 });
             }catch (Exception e){
