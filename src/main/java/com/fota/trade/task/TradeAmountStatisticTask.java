@@ -154,10 +154,11 @@ public class TradeAmountStatisticTask {
         }
 
         try {
+            taskLog.info("countDownLatch.getCount:{}",countDownLatch.getCount());
             countDownLatch.await();
             userVipService.batchInsert(insetUserVipDTOs);
             userVipService.batchUpdate(updateUserVipDTOs);
-            taskLog.error("insetUserVipDTOs.size:{},updateUserVipDTOs.size:{}",insetUserVipDTOs.size(),updateUserVipDTOs.size());
+            taskLog.info("insetUserVipDTOs.size:{},updateUserVipDTOs.size:{}",insetUserVipDTOs.size(),updateUserVipDTOs.size());
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
