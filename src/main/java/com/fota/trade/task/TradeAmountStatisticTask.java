@@ -68,7 +68,7 @@ public class TradeAmountStatisticTask {
     public void initRateMap(){
         Long brokerId = 508090L;
         rateMap = getExchangeRate(brokerId);
-        threadPool = new ThreadPoolExecutor(8, 16, 0L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(16),new ThreadPoolExecutor.AbortPolicy());
+        threadPool = new ThreadPoolExecutor(4, 8, 0L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(8),new ThreadPoolExecutor.AbortPolicy());
 
         taskLog.info("init rateMap:{}",rateMap);
     }
