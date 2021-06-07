@@ -68,7 +68,7 @@ public class TradeAmountStatisticTask {
     public void initRateMap(){
         Long brokerId = 508090L;
         rateMap = getExchangeRate(brokerId);
-        threadPool = new ThreadPoolExecutor(8, 16, 0L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+        threadPool = new ThreadPoolExecutor(8, 16, 0L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(16),new ThreadPoolExecutor.AbortPolicy());
 
         taskLog.info("init rateMap:{}",rateMap);
     }
@@ -154,8 +154,8 @@ public class TradeAmountStatisticTask {
         }
 
         try {
-            taskLog.info("countDownLatch.getCount:{}",countDownLatch.getCount());
             countDownLatch.await();
+            taskLog.info("countDownLatch.getCount:{}",countDownLatch.getCount());
             userVipService.batchInsert(insertUserVipDTOs);
             userVipService.batchUpdate(updateUserVipDTOs);
             taskLog.info("insertUserVipDTOs.size:{},updateUserVipDTOs.size:{}",insertUserVipDTOs.size(),updateUserVipDTOs.size());
