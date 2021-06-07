@@ -60,6 +60,11 @@ public class TradeAmountStatisticTask {
     private LinkedBlockingQueue<Long> userIdBlockQueue = new LinkedBlockingQueue<>();
     private ExecutorService threadPool;
 
+    //做市账号
+    private static final List<Integer> MARKET_USER_ID = Arrays.asList(546746,546747,546748,546753,546754,546755,546756,546757,546758,546759,546760,
+            546761,546762,546763,546764,546765,546766,546767,546768,546780,546781,546782,546783,546784,546785,546786,546787,546788,546789,
+            546790,546791,546792,546793,546794,546795,546796,546797,546798,546799,546800,546801,546802,546803,546804,546805);
+
     @PostConstruct
     public void initRateMap(){
         Long brokerId = 508090L;
@@ -74,7 +79,8 @@ public class TradeAmountStatisticTask {
                 userCapitalDTOList.addAll(subUserCapitalDTOList);
             }
         }
-        Set<Long> userIdSet = userCapitalDTOList.stream().map(UserCapitalDTO::getUserId).collect(Collectors.toSet());
+        Set<Long> userIdSet = userCapitalDTOList.stream().map(UserCapitalDTO::getUserId)
+                .filter(e->!MARKET_USER_ID.contains(e.intValue())).collect(Collectors.toSet());
         userIdBlockQueue.addAll(userIdSet);
 
         taskLog.info("init rateMap:{},assets:{},userIdBlockQueue:{},size:{}",rateMap,assets,userIdBlockQueue,userIdBlockQueue.size());
