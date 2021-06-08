@@ -920,8 +920,8 @@ public class UsdkOrderManager {
             CapitalAccountAddAmountDTO askMatchAssetCapital = new CapitalAccountAddAmountDTO();
             askMatchAssetCapital.setUserId(askUsdkOrder.getUserId());
             askMatchAssetCapital.setAssetId(baseAssetId);
-            askMatchAssetCapital.setAddTotal(addTotalAsset.negate());
-            askMatchAssetCapital.setAddOrderLocked(addLockedAsset.negate());
+            askMatchAssetCapital.setAddTotal(addTotalAsset.negate().setScale(16,RoundingMode.HALF_DOWN));
+            askMatchAssetCapital.setAddOrderLocked(addLockedAsset.negate().setScale(16,RoundingMode.HALF_DOWN));
             updateList.add(askMatchAssetCapital);
         }
 
@@ -931,7 +931,7 @@ public class UsdkOrderManager {
             bidBtcCapital.setUserId(bidUsdkOrder.getUserId());
             bidBtcCapital.setAssetId(quoteAssetId);
             bidBtcCapital.setAddTotal(addTotalBTC.negate());
-            bidBtcCapital.setAddOrderLocked(addLockedBTC.negate());
+            bidBtcCapital.setAddOrderLocked(addLockedBTC.negate().setScale(16,RoundingMode.HALF_DOWN));
             updateList.add(bidBtcCapital);
             //买方对应资产账户总金额增加
             //现货交易收取手续费
