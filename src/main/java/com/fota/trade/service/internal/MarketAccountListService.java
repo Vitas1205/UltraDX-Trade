@@ -16,7 +16,6 @@ public class MarketAccountListService {
 
     public boolean contains(Long userId) {
         List<Long> marketAccountList = marketAccountListConfig.getMarketAccountList();
-        log.info("contains marketAccountList:{}", JSON.toJSONString(marketAccountList));
         return marketAccountListConfig.getMarketAccountList() != null
                 && marketAccountListConfig.getMarketAccountList().contains(userId);
     }
