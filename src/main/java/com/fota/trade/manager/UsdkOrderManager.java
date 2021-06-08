@@ -710,7 +710,7 @@ public class UsdkOrderManager {
 
         //更新usdk委托表
         int tableIndex =Long.valueOf(userId % 1024).intValue();
-        int ret = usdkOrderMapper.cancel(tableIndex,userId, orderId, toStatus);
+        int ret = usdkOrderMapper.cancel(userId, orderId, toStatus);
         Map<String, Object> parameter = new HashMap<>();
         if (ret > 0){
             Integer orderDirection = usdkOrderDO.getOrderDirection();
