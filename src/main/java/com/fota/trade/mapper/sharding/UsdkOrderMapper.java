@@ -89,11 +89,11 @@ public interface UsdkOrderMapper {
 
 
     @Update({
-            "update trade_usdt_order",
+            "update trade_usdt_order_#{tableIndex}",
             "set gmt_modified = now(),",
             "status = #{toStatus,jdbcType=INTEGER}",
             "where user_id=#{userId} and id = #{id,jdbcType=BIGINT} and status != #{toStatus} "
     })
-    int cancel(@Param("userId") long userId, @Param("id") long id, @Param("toStatus") int toStatus);
+    int cancel(@Param("tableIndex")int tableIndex,@Param("userId") long userId, @Param("id") long id, @Param("toStatus") int toStatus);
 
 }
