@@ -709,7 +709,8 @@ public class UsdkOrderManager {
         UsdkOrderDO usdkOrderDO = usdkOrderMapper.selectByUserIdAndId(userId, orderId);
 
         //更新usdk委托表
-        int ret = usdkOrderMapper.cancel(userId, orderId, toStatus);
+        long tableIndex = userId % 1024;
+        int ret = usdkOrderMapper.cancel(tableIndex,userId, orderId, toStatus);
         Map<String, Object> parameter = new HashMap<>();
         if (ret > 0){
             Integer orderDirection = usdkOrderDO.getOrderDirection();
@@ -912,7 +913,7 @@ public class UsdkOrderManager {
             CapitalAccountAddAmountDTO askBtcCapital = new CapitalAccountAddAmountDTO();
             askBtcCapital.setUserId(askUsdkOrder.getUserId());
             askBtcCapital.setAssetId(quoteAssetId);
-            askBtcCapital.setAddTotal(addAskTotalBTC.subtract(fee));
+            askBtcCapital.setAddTotal(addAskTotalBTC.subtract(fee).setScale(16,RoundingMode.HALF_DOWN));
             updateList.add(askBtcCapital);
             //卖方对应资产账户的冻结和总金额减少
 
@@ -941,7 +942,7 @@ public class UsdkOrderManager {
             CapitalAccountAddAmountDTO bidMatchAssetCapital = new CapitalAccountAddAmountDTO();
             bidMatchAssetCapital.setUserId(bidUsdkOrder.getUserId());
             bidMatchAssetCapital.setAssetId(baseAssetId);
-            bidMatchAssetCapital.setAddTotal(addBidTotalAsset.subtract(fee));
+            bidMatchAssetCapital.setAddTotal(addBidTotalAsset.subtract(fee).setScale(16,RoundingMode.HALF_DOWN));
             updateList.add(bidMatchAssetCapital);
         }
         Result<Boolean> updateRet;
