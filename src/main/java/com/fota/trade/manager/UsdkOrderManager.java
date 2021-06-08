@@ -263,6 +263,7 @@ public class UsdkOrderManager {
                 }
             }
             if (!capitalEnough) {
+                log.error("BusinessException capital not Enough: userId:{},orderDirection:{},assetTypeId:{},qutoId:{},entrustValue:{},userCapitalDTOList:{}",userId,orderDirection,assetTypeId,tradingPairConfig.getQuoteId(),entrustValue,JSON.toJSONString(list));
                 throw new BusinessException(errorCode, errorMsg);
             }
         } else if (usdkOrderDO.getOrderType() == OrderTypeEnum.ENFORCE.getCode()){
